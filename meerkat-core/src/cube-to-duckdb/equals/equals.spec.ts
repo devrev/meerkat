@@ -3,7 +3,8 @@ import {
   ExpressionClass,
   ExpressionType,
 } from '@devrev/duckdb-serialization-types';
-import { equalsTransform, equalDuckdbCondition } from './equals'; // replace with your module name
+import { equalsTransform } from './equals'; // replace with your module name
+import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 
 describe('Equals Transform Tests', () => {
   it('Should throw error if values are empty', () => {
@@ -17,7 +18,11 @@ describe('Equals Transform Tests', () => {
   });
 
   it('Should create a simple equals condition if there is only one value', () => {
-    const expectedOutput = equalDuckdbCondition('country', 'US');
+    const expectedOutput = baseDuckdbCondition(
+      'country',
+      ExpressionType.COMPARE_EQUAL,
+      'US'
+    );
     expect(
       equalsTransform({
         member: 'country',

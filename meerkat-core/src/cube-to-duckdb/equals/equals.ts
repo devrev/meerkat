@@ -8,32 +8,13 @@ import {
   ExpressionType,
 } from 'duckdb-serialization-types/src/serialization/Expression';
 import { orDuckdbCondition } from '../or/or';
+import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 
 export interface EqualsFilters extends QueryFilter {
   member: Member;
   operator: 'equals';
   values: string[];
 }
-
-export const equalDuckdbCondition = (columnName: string, value: string) => {
-  return {
-    class: ExpressionClass.COMPARISON,
-    type: ExpressionType.COMPARE_EQUAL,
-    alias: '',
-    left: {
-      class: ExpressionClass.COLUMN_REF,
-      type: ExpressionType.COLUMN_REF,
-      alias: '',
-      column_names: [columnName],
-    },
-    right: {
-      class: ExpressionClass.COLUMN_REF,
-      type: ExpressionType.COLUMN_REF,
-      alias: '',
-      column_names: [value],
-    },
-  };
-};
 
 export const equalsTransform = (query: EqualsFilters): ParsedExpression => {
   const { member, values } = query;
@@ -46,7 +27,7 @@ export const equalsTransform = (query: EqualsFilters): ParsedExpression => {
    * If there is only one value, we can create a simple equals condition
    */
   if (values.length === 1) {
-    return equalDuckdbCondition(member, values[0]);
+    return baseDuckdbCondition(member, ExpressionType.COMPARE_EQUAL, values[0]);
   }
 
   /**
@@ -54,7 +35,9 @@ export const equalsTransform = (query: EqualsFilters): ParsedExpression => {
    */
   const orCondition = orDuckdbCondition();
   values.forEach((value) => {
-    orCondition.children.push(equalDuckdbCondition(member, value));
+    orCondition.children.push(
+      baseDuckdbCondition(member, ExpressionType.COMPARE_EQUAL, value)
+    );
   });
   return orCondition;
 };
