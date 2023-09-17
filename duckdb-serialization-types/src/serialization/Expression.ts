@@ -1,5 +1,10 @@
 import { Value } from './Misc';
-import { BoundCaseCheck, BoundParameterData, ColumnBinding, LogicalType } from './Nodes';
+import {
+  BoundCaseCheck,
+  BoundParameterData,
+  ColumnBinding,
+  LogicalType,
+} from './Nodes';
 
 export enum ExpressionType {
   INVALID = 'INVALID',
@@ -217,14 +222,8 @@ export interface BoundUnnestExpression extends BaseExpression {
   child: Expression;
 }
 
-export interface BoundFunctionExpression extends BaseExpression {
-  // Custom implementation
-}
+export type BoundFunctionExpression = BaseExpression;
 
-export interface BoundAggregateExpression extends BaseExpression {
-  // Custom implementation
-}
+export type BoundAggregateExpression = BaseExpression;
 
-export interface BoundWindowExpression extends BaseExpression {
-  // Custom implementation
-}
+export type BoundWindowExpression = BaseExpression;

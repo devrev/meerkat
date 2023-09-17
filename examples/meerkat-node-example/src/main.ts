@@ -12,10 +12,15 @@ const app = express();
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/api', async (req, res) => {
-  const sql = `SELECT json_serialize_sql('SELECT * from dim_issue where owner="nikhil" and (age > 10 or age < 100) ');`;
+  const sql = `SELECT json_serialize_sql('SELECT *
+  FROM users
+  WHERE country = "US" 
+  OR country = "Germany"');`;
   const data = await nodeSQLToSerialization(sql);
   res.send({ message: data });
 });
+
+// SELECT json_deserialize_sql(json_serialize_sql('SELECT *  FROM users WHERE country IN ("US", "Germany", "Israel")'));
 
 const port = process.env.PORT || 3333;
 const server = app.listen(port, () => {
