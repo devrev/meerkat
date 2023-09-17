@@ -1,0 +1,10 @@
+{
+  "name": "@devrev/meerkat-node",
+  "version": "0.0.1",
+  "dependencies": {
+    "@swc/helpers": "~0.5.0"
+  },
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "typings": "./src/index.d.ts"
+}

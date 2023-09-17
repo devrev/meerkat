@@ -14,7 +14,10 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@devrev/meerkat-core": ["meerkat-core/src/index.ts"],
+      "@devrev/meerkat-node": ["meerkat-node/src/index.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }

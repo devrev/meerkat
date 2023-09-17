@@ -1,0 +1,47 @@
+{
+  "name": "meerkat-node",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "meerkat-node/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/meerkat-node",
+        "main": "meerkat-node/src/index.ts",
+        "tsConfig": "meerkat-node/tsconfig.lib.json",
+        "assets": ["meerkat-node/*.md"]
+      }
+    },
+    "publish": {
+      "command": "node tools/scripts/publish.mjs meerkat-node {args.ver} {args.tag}",
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "meerkat-node/**/*.ts",
+          "meerkat-node/package.json"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "meerkat-node/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    }
+  },
+  "tags": []
+}

@@ -1,0 +1,64 @@
+{
+  "name": "meerket-node-example",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "examples/meerket-node-example/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/examples/meerket-node-example",
+        "main": "examples/meerket-node-example/src/main.ts",
+        "tsConfig": "examples/meerket-node-example/tsconfig.app.json",
+        "assets": ["examples/meerket-node-example/src/assets"],
+        "isolatedConfig": true,
+        "webpackConfig": "examples/meerket-node-example/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "meerket-node-example:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "meerket-node-example:build:development"
+        },
+        "production": {
+          "buildTarget": "meerket-node-example:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["examples/meerket-node-example/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "examples/meerket-node-example/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    }
+  },
+  "tags": []
+}
