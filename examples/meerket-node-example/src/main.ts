@@ -3,7 +3,7 @@
  * This is only a minimal backend to get started.
  */
 
-import { meerkatNode } from '@devrev/meerkat-node';
+import { nodeSQLToAST } from '@devrev/meerkat-node';
 import express from 'express';
 import * as path from 'path';
 
@@ -11,8 +11,10 @@ const app = express();
 
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
-app.get('/api', (req, res) => {
-  res.send({ message: meerkatNode() });
+app.get('/api', async (req, res) => {
+  const sql = `SELECT json_serialize_sql('SELECT * from dim_issue where owner="nikhil"');`;
+  const data = await nodeSQLToAST(sql);
+  res.send({ message: data });
 });
 
 const port = process.env.PORT || 3333;

@@ -1,1 +1,1 @@
-export * from './lib/meerkat-node';
+export * from './node-sql-ast';
