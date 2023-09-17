@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@devrev/cube-types": ["cube-types/src/index.ts"],
       "@devrev/duckdb-serialization-types": [
         "duckdb-serialization-types/src/index.ts"
       ],

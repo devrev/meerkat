@@ -1,1 +1,1 @@
-export * from './node-sql-ast';
+export * from './node-sql-to-serialization';
