@@ -1,21 +1,32 @@
 import { SelectStatement } from '@devrev/duckdb-serialization-types';
 import { duckdbExec } from './duckdb-exec';
 
+export interface ParsedSerialization {
+  [key: string]: {
+    error: boolean;
+    statements: SelectStatement[];
+  };
+}
+
 export const nodeSQLToSerialization = async (
   sql: string
-): Promise<SelectStatement> => {
+): Promise<ParsedSerialization> => {
   const queryOutput = await duckdbExec<
     {
       [key: string]: string;
     }[]
   >(sql);
 
-  let ast: SelectStatement[] = [];
+  const parsedOutput: ParsedSerialization = {};
+
   for (const key in queryOutput[0]) {
     if (Object.prototype.hasOwnProperty.call(queryOutput[0], key)) {
-      ast = JSON.parse(queryOutput[0][key]).statements;
+      parsedOutput[key] = JSON.parse(queryOutput[0][key]) as {
+        error: boolean;
+        statements: SelectStatement[];
+      };
       break;
     }
   }
-  return ast[0];
+  return parsedOutput;
 };

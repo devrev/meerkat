@@ -1,1 +1,1 @@
-export * from './lib/meerkat-core';
+export * from './cube-to-duckdb/cube-filter-to-duckdb';
