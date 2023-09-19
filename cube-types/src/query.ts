@@ -146,24 +146,22 @@ interface NormalizedQuery extends Query {
 }
 
 export {
-  QueryFilter,
+  ApiScopes,
+  ApiType,
+  FilterOperator,
   LogicalAndFilter,
   LogicalOrFilter,
-  QueryTimeDimension,
-  Query,
-  NormalizedQueryFilter,
+  Member,
+  MemberType,
   NormalizedQuery,
-};
-export {
+  NormalizedQueryFilter,
+  Query,
+  QueryFilter,
+  QueryOrderType,
+  QueryTimeDimension,
+  QueryTimeDimensionGranularity,
+  QueryType,
   RequestType,
   ResultType,
-  ApiType,
-  QueryType,
-  MemberType,
-  Member,
   TimeMember,
-  FilterOperator,
-  QueryTimeDimensionGranularity,
-  QueryOrderType,
-  ApiScopes,
 };

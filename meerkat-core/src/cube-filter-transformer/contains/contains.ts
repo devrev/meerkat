@@ -27,10 +27,17 @@ export const containsDuckdbCondition = (columnName: string, value: string) => {
         column_names: [columnName],
       },
       {
-        class: 'COLUMN_REF',
-        type: 'COLUMN_REF',
+        class: 'CONSTANT',
+        type: 'VALUE_CONSTANT',
         alias: '',
-        column_names: [`%${value}%`],
+        value: {
+          type: {
+            id: 'VARCHAR',
+            type_info: null,
+          },
+          is_null: false,
+          value: `%${value}%`,
+        },
       },
     ],
     filter: null,

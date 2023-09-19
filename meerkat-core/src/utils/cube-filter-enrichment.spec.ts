@@ -1,0 +1,70 @@
+import { Dimension, Measure } from '@devrev/cube-types';
+import {
+  LogicalAndFilterWithInfo,
+  LogicalOrFilterWithInfo,
+  QueryOperatorsWithInfo,
+} from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { cubeFiltersEnrichmentInternal } from './cube-filter-enrichment';
+
+describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
+  const measure: Measure = {
+    sql: `table.column1`,
+    type: 'number',
+  };
+  const measure2: Dimension = {
+    sql: `table.column2`,
+    type: 'number',
+  };
+  const mockTableSchema = {
+    cube: 'testCube',
+    measures: [measure],
+    dimensions: [measure2],
+  };
+
+  it('should enrich filters with member info', () => {
+    const filters: QueryOperatorsWithInfo[] = [
+      {
+        member: `column1`,
+        operator: 'equals',
+      },
+    ];
+
+    cubeFiltersEnrichmentInternal(filters, mockTableSchema);
+    expect(filters[0].memberInfo.sql).toBe(mockTableSchema.measures[0].sql);
+  });
+
+  it('should enrich nested logicalAnd/OR filter with member info', () => {
+    const filters:
+      | QueryOperatorsWithInfo
+      | LogicalAndFilterWithInfo
+      | LogicalOrFilterWithInfo = {
+      and: [
+        {
+          member: `column1`,
+          operator: 'equals',
+        },
+        {
+          or: [
+            {
+              member: `column1`,
+              operator: 'equals',
+            },
+            {
+              member: `column2`,
+              operator: 'equals',
+            },
+          ],
+        },
+      ],
+    };
+
+    cubeFiltersEnrichmentInternal(filters, mockTableSchema);
+    expect(filters.and[0].memberInfo.sql).toBe(mockTableSchema.measures[0].sql);
+    expect(filters.and[1].or[0].memberInfo.sql).toBe(
+      mockTableSchema.measures[0].sql
+    );
+    expect(filters.and[1].or[1].memberInfo.sql).toBe(
+      mockTableSchema.dimensions[0].sql
+    );
+  });
+});
