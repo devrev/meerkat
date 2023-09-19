@@ -68,7 +68,7 @@ export const getMemberInfoFromTableSchema = (
   for (let i = 0; i < tableSchema.measures.length; i++) {
     const measure = tableSchema.measures[i];
     const key = measure.sql.split('.')[1];
-
+    console.info('Got key', key);
     if (!key || key !== memberKey) {
       continue;
     }

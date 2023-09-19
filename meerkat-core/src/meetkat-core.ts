@@ -1,9 +1,8 @@
 import { Query, TableSchema } from '@devrev/cube-types';
 import { SelectNode } from '@devrev/duckdb-serialization-types';
-import { cubeFilterToDuckdbAST } from './cube-to-duckdb/cube-filter-to-duckdb';
+import { cubeFilterToDuckdbAST } from './cube-filter-transformer/factory';
 import { getBaseAST } from './utils/base-ast';
 import { cubeFiltersEnrichment } from './utils/cube-filter-enrichment';
-import { tableKeyFromMeasuresDimension } from './utils/key-from-measures-dimension';
 
 export class MeerkatCore {
   tableSchemas: Map<string, TableSchema> = new Map<string, TableSchema>();
@@ -13,21 +12,25 @@ export class MeerkatCore {
   }
 
   public cubeToDuckdbAST(query: Query) {
-    const tableKey: string | null = tableKeyFromMeasuresDimension(query);
+    const tableKey: string | null = 'base'; //tableKeyFromMeasuresDimension(query);
     /**
      * If no table key was found, return null.
      */
     if (!tableKey) {
       return null;
     }
-
+    console.info('Got table key', tableKey);
+    console.info('All table schemas', this.tableSchemas.keys());
     const tableSchema = this.tableSchemas.get(tableKey);
+    console.info('Got table schema', tableSchema);
     /**
      * Obviously, if no table schema was found, return null.
      */
     if (!tableSchema) {
       return null;
     }
+
+    console.info('Got table schema', tableSchema);
 
     const baseAST = getBaseAST();
     /**
@@ -38,11 +41,21 @@ export class MeerkatCore {
       tableSchema
     );
 
+    console.info(
+      'Got query filters with info',
+      JSON.stringify(queryFiltersWithInfo, null, 2)
+    );
+
     if (!queryFiltersWithInfo) {
       return null;
     }
 
-    const duckdbWhereClause = cubeFilterToDuckdbAST(queryFiltersWithInfo);
+    const duckdbWhereClause = cubeFilterToDuckdbAST(
+      queryFiltersWithInfo,
+      baseAST
+    );
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
     (baseAST.node as SelectNode).where_clause = duckdbWhereClause;
 
     return baseAST;

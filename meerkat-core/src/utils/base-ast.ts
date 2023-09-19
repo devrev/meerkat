@@ -19,7 +19,12 @@ export const getBaseAST = (): SelectStatement => {
           type: ExpressionType.STAR,
           alias: '',
           relation_name: '',
+          exclude_list: new Set(),
+          replace_list: new Set(),
           columns: false,
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          //@ts-ignore
+          expr: null,
         },
       ],
       from_table: {

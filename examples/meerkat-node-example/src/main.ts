@@ -3,7 +3,7 @@
  * This is only a minimal backend to get started.
  */
 
-import { nodeSQLToSerialization } from '@devrev/meerkat-node';
+import { cubeQueryToSQL, nodeSQLToSerialization } from '@devrev/meerkat-node';
 import express from 'express';
 import * as path from 'path';
 
@@ -23,7 +23,9 @@ app.post('/api-v1', async (req, res) => {
   const { cube, sql } = req.body;
   // const query = await cubeQueryToSQL(sql, cube);
 
-  res.json({ message: 'query' });
+  const data = await cubeQueryToSQL(cube);
+
+  res.json({ data });
 });
 
 // SELECT json_deserialize_sql(json_serialize_sql('SELECT *  FROM users WHERE country IN ("US", "Germany", "Israel")'));
