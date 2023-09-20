@@ -1,4 +1,4 @@
-import { ExpressionType } from 'duckdb-serialization-types/src/serialization/Expression';
+import { ExpressionType } from '@devrev/duckdb-serialization-types';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';

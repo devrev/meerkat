@@ -56,6 +56,8 @@ const cubeFilterOperatorsToDuckdb = (cubeFilter: QueryOperatorsWithInfo) => {
       return inDataRangeTransform(cubeFilter);
     case 'notInDateRange':
       return notInDataRangeTransform(cubeFilter);
+    default:
+      throw new Error('Could not transform the filter');
   }
 };
 

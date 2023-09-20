@@ -1,8 +1,8 @@
-import { ConjunctionExpression } from '@devrev/duckdb-serialization-types';
 import {
+  ConjunctionExpression,
   ExpressionClass,
   ExpressionType,
-} from 'duckdb-serialization-types/src/serialization/Expression';
+} from '@devrev/duckdb-serialization-types';
 
 export const orDuckdbCondition = (): ConjunctionExpression => {
   return {

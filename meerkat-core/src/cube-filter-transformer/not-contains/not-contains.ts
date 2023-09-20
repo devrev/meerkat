@@ -2,7 +2,7 @@ import { Dimension, Measure, Member, QueryFilter } from '@devrev/cube-types';
 import {
   ExpressionClass,
   ExpressionType,
-} from 'duckdb-serialization-types/src/serialization/Expression';
+} from '@devrev/duckdb-serialization-types';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
