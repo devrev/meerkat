@@ -1,7 +1,7 @@
 import { Member, QueryFilter } from '@devrev/cube-types';
-import { ParsedExpression } from '@devrev/duckdb-serialization-types';
 import { ExpressionType } from 'duckdb-serialization-types/src/serialization/Expression';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
+import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 
 export interface NotEqualsFilters extends QueryFilter {
@@ -10,9 +10,7 @@ export interface NotEqualsFilters extends QueryFilter {
   values: string[];
 }
 
-export const notEqualsTransform = (
-  query: NotEqualsFilters
-): ParsedExpression => {
+export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
   const { member, values } = query;
 
   if (!values || values.length === 0) {
@@ -26,7 +24,8 @@ export const notEqualsTransform = (
     return baseDuckdbCondition(
       member,
       ExpressionType.COMPARE_NOTEQUAL,
-      values[0]
+      values[0],
+      query.memberInfo
     );
   }
 
@@ -36,7 +35,12 @@ export const notEqualsTransform = (
   const orCondition = orDuckdbCondition();
   values.forEach((value) => {
     orCondition.children.push(
-      baseDuckdbCondition(member, ExpressionType.COMPARE_NOTEQUAL, value)
+      baseDuckdbCondition(
+        member,
+        ExpressionType.COMPARE_NOTEQUAL,
+        value,
+        query.memberInfo
+      )
     );
   });
   return orCondition;

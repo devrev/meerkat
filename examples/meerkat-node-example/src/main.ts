@@ -14,7 +14,9 @@ app.use(express.json());
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/api', async (req, res) => {
-  const sql = `SELECT json_serialize_sql('SELECT * FROM dim_revu  WHERE (dev_oid=1 OR dev_oid=2) AND user_name=5 GROUP BY name');`;
+  const sql = `SELECT json_serialize_sql('SELECT *
+  FROM posts
+  WHERE time >= 1 AND time <= 2');`;
   const data = await nodeSQLToSerialization(sql);
   res.json({ message: data });
 });

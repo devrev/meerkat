@@ -3,11 +3,11 @@ import { baseDuckdbCondition } from '../base-condition-builder/base-condition-bu
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 
-export const equalsTransform: CubeToParseExpressionTransform = (query) => {
+export const ltTransform: CubeToParseExpressionTransform = (query) => {
   const { member, values } = query;
 
   if (!values || values.length === 0) {
-    throw new Error('Equals filter must have at least one value');
+    throw new Error('lt filter must have at least one value');
   }
 
   /**
@@ -16,7 +16,7 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
   if (values.length === 1) {
     return baseDuckdbCondition(
       member,
-      ExpressionType.COMPARE_EQUAL,
+      ExpressionType.COMPARE_LESSTHAN,
       values[0],
       query.memberInfo
     );
@@ -30,7 +30,7 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
     orCondition.children.push(
       baseDuckdbCondition(
         member,
-        ExpressionType.COMPARE_EQUAL,
+        ExpressionType.COMPARE_LESSTHAN,
         value,
         query.memberInfo
       )

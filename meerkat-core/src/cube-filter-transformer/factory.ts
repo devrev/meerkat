@@ -17,34 +17,45 @@ import {
   isQueryFilter,
 } from '../utils/type-guards';
 import { andDuckdbCondition } from './and/and';
+import { containsTransform } from './contains/contains';
 import { equalsTransform } from './equals/equals';
+import { gtTransform } from './gt/gt';
+import { gteTransform } from './gte/gte';
+import { inDataRangeTransform } from './in-date-range/in-date-range';
+import { ltTransform } from './lt/lt';
+import { lteTransform } from './lte/lte';
+import { notInDataRangeTransform } from './not-In-date-range/not-In-date-range';
+import { notContainsTransform } from './not-contains/not-contains';
+import { notEqualsTransform } from './not-equals/not-equals';
 import { orDuckdbCondition } from './or/or';
 
 export type CubeToParseExpressionTransform = (
   query: QueryOperatorsWithInfo
 ) => ParsedExpression;
 
-// export const getTransformerFunction = (query: QueryFilter) => {
-//   switch (query.operator) {
-//     case 'equals':
-//       return equalsTransform;
-//     case 'notEquals':
-//       return notEqualsTransform;
-//     case 'contains':
-//       return containsTransform;
-//     case 'notContains':
-//       return notContainsTransform;
-
-//     default:
-//       console.error('This operator is not supported yet', query.operator);
-//       throw new Error(`Unknown operator ${query.operator}`);
-//   }
-// };
 // Comparison operators
 const cubeFilterOperatorsToDuckdb = (cubeFilter: QueryOperatorsWithInfo) => {
   switch (cubeFilter.operator) {
     case 'equals':
       return equalsTransform(cubeFilter);
+    case 'notEquals':
+      return notEqualsTransform(cubeFilter);
+    case 'contains':
+      return containsTransform(cubeFilter);
+    case 'notContains':
+      return notContainsTransform(cubeFilter);
+    case 'gt':
+      return gtTransform(cubeFilter);
+    case 'gte':
+      return gteTransform(cubeFilter);
+    case 'lt':
+      return ltTransform(cubeFilter);
+    case 'lte':
+      return lteTransform(cubeFilter);
+    case 'inDateRange':
+      return inDataRangeTransform(cubeFilter);
+    case 'notInDateRange':
+      return notInDataRangeTransform(cubeFilter);
   }
 };
 

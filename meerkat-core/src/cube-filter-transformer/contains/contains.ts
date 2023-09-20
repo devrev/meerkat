@@ -1,9 +1,10 @@
-import { Member, QueryFilter } from '@devrev/cube-types';
-import { ParsedExpression } from '@devrev/duckdb-serialization-types';
+import { Dimension, Measure, Member, QueryFilter } from '@devrev/cube-types';
 import {
   ExpressionClass,
   ExpressionType,
 } from 'duckdb-serialization-types/src/serialization/Expression';
+import { valueBuilder } from '../base-condition-builder/base-condition-builder';
+import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 
 export interface ContainsFilters extends QueryFilter {
@@ -12,7 +13,11 @@ export interface ContainsFilters extends QueryFilter {
   values: string[];
 }
 
-export const containsDuckdbCondition = (columnName: string, value: string) => {
+export const containsDuckdbCondition = (
+  columnName: string,
+  value: string,
+  memberInfo: Measure | Dimension
+) => {
   return {
     class: ExpressionClass.FUNCTION,
     type: ExpressionType.FUNCTION,
@@ -30,14 +35,7 @@ export const containsDuckdbCondition = (columnName: string, value: string) => {
         class: 'CONSTANT',
         type: 'VALUE_CONSTANT',
         alias: '',
-        value: {
-          type: {
-            id: 'VARCHAR',
-            type_info: null,
-          },
-          is_null: false,
-          value: `%${value}%`,
-        },
+        value: valueBuilder(value, memberInfo),
       },
     ],
     filter: null,
@@ -52,8 +50,8 @@ export const containsDuckdbCondition = (columnName: string, value: string) => {
   };
 };
 
-export const containsTransform = (query: ContainsFilters): ParsedExpression => {
-  const { member, values } = query;
+export const containsTransform: CubeToParseExpressionTransform = (query) => {
+  const { member, values, memberInfo } = query;
 
   if (!values || values.length === 0) {
     throw new Error('Contains filter must have at least one value');
@@ -63,7 +61,7 @@ export const containsTransform = (query: ContainsFilters): ParsedExpression => {
    * If there is only one value, we can create a simple Contains condition
    */
   if (values.length === 1) {
-    return containsDuckdbCondition(member, values[0]);
+    return containsDuckdbCondition(member, values[0], memberInfo);
   }
 
   /**
@@ -71,7 +69,9 @@ export const containsTransform = (query: ContainsFilters): ParsedExpression => {
    */
   const orCondition = orDuckdbCondition();
   values.forEach((value) => {
-    orCondition.children.push(containsDuckdbCondition(member, value));
+    orCondition.children.push(
+      containsDuckdbCondition(member, value, memberInfo)
+    );
   });
   return orCondition;
 };

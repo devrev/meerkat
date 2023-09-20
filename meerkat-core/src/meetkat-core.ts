@@ -19,18 +19,14 @@ export class MeerkatCore {
     if (!tableKey) {
       return null;
     }
-    console.info('Got table key', tableKey);
-    console.info('All table schemas', this.tableSchemas.keys());
+
     const tableSchema = this.tableSchemas.get(tableKey);
-    console.info('Got table schema', tableSchema);
     /**
      * Obviously, if no table schema was found, return null.
      */
     if (!tableSchema) {
       return null;
     }
-
-    console.info('Got table schema', tableSchema);
 
     const baseAST = getBaseAST();
     /**

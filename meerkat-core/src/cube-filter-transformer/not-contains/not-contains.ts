@@ -1,9 +1,10 @@
-import { Member, QueryFilter } from '@devrev/cube-types';
-import { ParsedExpression } from '@devrev/duckdb-serialization-types';
+import { Dimension, Measure, Member, QueryFilter } from '@devrev/cube-types';
 import {
   ExpressionClass,
   ExpressionType,
 } from 'duckdb-serialization-types/src/serialization/Expression';
+import { valueBuilder } from '../base-condition-builder/base-condition-builder';
+import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 
 export interface NotContainsFilters extends QueryFilter {
@@ -14,7 +15,8 @@ export interface NotContainsFilters extends QueryFilter {
 
 export const notContainsDuckdbCondition = (
   columnName: string,
-  value: string
+  value: string,
+  memberInfo: Measure | Dimension
 ) => {
   return {
     class: ExpressionClass.FUNCTION,
@@ -30,10 +32,10 @@ export const notContainsDuckdbCondition = (
         column_names: [columnName],
       },
       {
-        class: 'COLUMN_REF',
-        type: 'COLUMN_REF',
+        class: 'CONSTANT',
+        type: 'VALUE_CONSTANT',
         alias: '',
-        column_names: [`%${value}%`],
+        value: valueBuilder(value, memberInfo),
       },
     ],
     filter: null,
@@ -48,10 +50,8 @@ export const notContainsDuckdbCondition = (
   };
 };
 
-export const notContainsTransform = (
-  query: NotContainsFilters
-): ParsedExpression => {
-  const { member, values } = query;
+export const notContainsTransform: CubeToParseExpressionTransform = (query) => {
+  const { member, values, memberInfo } = query;
 
   if (!values || values.length === 0) {
     throw new Error('Contains filter must have at least one value');
@@ -61,7 +61,7 @@ export const notContainsTransform = (
    * If there is only one value, we can create a simple Contains condition
    */
   if (values.length === 1) {
-    return notContainsDuckdbCondition(member, values[0]);
+    return notContainsDuckdbCondition(member, values[0], memberInfo);
   }
 
   /**
@@ -69,7 +69,9 @@ export const notContainsTransform = (
    */
   const orCondition = orDuckdbCondition();
   values.forEach((value) => {
-    orCondition.children.push(notContainsDuckdbCondition(member, value));
+    orCondition.children.push(
+      notContainsDuckdbCondition(member, value, memberInfo)
+    );
   });
   return orCondition;
 };
