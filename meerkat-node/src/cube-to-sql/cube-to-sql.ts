@@ -1,10 +1,9 @@
 import { Query } from '@devrev/cube-types';
-import { MeerkatCore } from '@devrev/meerkat-core';
+import { cubeToDuckdbAST } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
 export const cubeQueryToSQL = async (cubeQuery: Query) => {
-  const meerkatCore = new MeerkatCore();
-  meerkatCore.addTableSchema({
+  const ast = cubeToDuckdbAST(cubeQuery, {
     cube: 'base',
     measures: [
       {
@@ -19,7 +18,6 @@ export const cubeQueryToSQL = async (cubeQuery: Query) => {
       },
     ],
   });
-  const ast = meerkatCore.cubeToDuckdbAST(cubeQuery);
 
   const queryTemp = `SELECT json_deserialize_sql('${JSON.stringify({
     statements: [ast],
