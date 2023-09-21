@@ -7,6 +7,8 @@ import {
   TableReferenceType,
 } from '@devrev/duckdb-serialization-types';
 
+export const BASE_TABLE_NAME = 'REPLACE_BASE_TABLE';
+
 export const getBaseAST = (): SelectStatement => {
   return {
     node: {
@@ -32,7 +34,7 @@ export const getBaseAST = (): SelectStatement => {
         alias: '',
         sample: null,
         schema_name: '',
-        table_name: 'REPLACE_BASE_TABLE',
+        table_name: BASE_TABLE_NAME,
         column_name_alias: [],
         catalog_name: '',
       },

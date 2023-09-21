@@ -6,7 +6,7 @@ export const CUBE_TYPE_TO_DUCKDB_TYPE: {
   [key in CubeType]: string;
 } = {
   string: 'VARCHAR',
-  number: 'DOUBLE',
-  time: 'DATE',
+  number: 'DECIMAL',
+  time: 'VARCHAR',
   boolean: 'BOOLEAN',
 };

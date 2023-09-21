@@ -4,6 +4,7 @@ import {
   ExpressionType,
 } from '@devrev/duckdb-serialization-types';
 import { CUBE_TYPE_TO_DUCKDB_TYPE } from '../../utils/cube-type-to-duckdb-type';
+import { convertFloatToInt, getTypeInfo } from '../../utils/get-type-info';
 
 export const baseDuckdbCondition = (
   columnName: string,
@@ -46,14 +47,16 @@ export const valueBuilder = (
       };
 
     case 'number': {
+      console.info('value', value);
       const parsedValue = parseFloat(value);
+      console.info('parsedValue', parsedValue);
       return {
         type: {
           id: CUBE_TYPE_TO_DUCKDB_TYPE[memberInfo.type],
-          type_info: null,
+          type_info: getTypeInfo(parsedValue),
         },
         is_null: false,
-        value: parsedValue,
+        value: convertFloatToInt(parsedValue),
       };
     }
     case 'boolean': {
