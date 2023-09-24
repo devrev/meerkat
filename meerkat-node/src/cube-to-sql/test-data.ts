@@ -188,6 +188,59 @@ export const TEST_DATA = [
     ],
   },
   {
+    testName: 'NotContains',
+    expectedSQL: `SELECT * FROM (select * from orders) WHERE ((customer_id !~~ '%1%') AND (customer_id !~~ '%2%') AND (customer_id !~~ '%3%') AND (customer_id !~~ '%4%') AND (customer_id !~~ '%5%') AND (customer_id !~~ '%aa%'))`,
+    cubeInput: {
+      measures: [],
+      filters: [
+        {
+          and: [
+            {
+              member: 'customer_id',
+              operator: 'notContains',
+              values: ['1'],
+            },
+            {
+              member: 'customer_id',
+              operator: 'notContains',
+              values: ['2'],
+            },
+            {
+              member: 'customer_id',
+              operator: 'notContains',
+              values: ['3'],
+            },
+            {
+              member: 'customer_id',
+              operator: 'notContains',
+              values: ['4'],
+            },
+            {
+              member: 'customer_id',
+              operator: 'notContains',
+              values: ['5'],
+            },
+            {
+              member: 'customer_id',
+              operator: 'notContains',
+              values: ['aa'],
+            },
+          ],
+        },
+      ],
+      dimensions: [],
+    },
+    expectedOutput: [
+      {
+        order_id: 10,
+        customer_id: '6',
+        product_id: '3',
+        order_date: '2022-06-01',
+        order_amount: 120,
+      },
+    ],
+  },
+  {
     testName: 'GreaterThan',
     expectedSQL: `SELECT * FROM (select * from orders) WHERE (order_amount > 50)`,
     cubeInput: {
