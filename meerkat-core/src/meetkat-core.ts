@@ -29,11 +29,6 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
     tableSchema
   );
 
-  console.info(
-    'Got query filters with info',
-    JSON.stringify(queryFiltersWithInfo, null, 2)
-  );
-
   if (!queryFiltersWithInfo) {
     return null;
   }
@@ -46,7 +41,7 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
   //@ts-ignore
   (baseAST.node as SelectNode).where_clause = duckdbWhereClause;
 
-  console.info(JSON.stringify(baseAST, null, 2));
+  // console.info(JSON.stringify(baseAST, null, 2));
 
   return baseAST;
 };

@@ -36,7 +36,7 @@ export const containsDuckdbCondition = (
         class: 'CONSTANT',
         type: 'VALUE_CONSTANT',
         alias: '',
-        value: valueBuilder(value, memberInfo),
+        value: valueBuilder(`%${value}%`, memberInfo),
       },
     ],
     filter: null,
