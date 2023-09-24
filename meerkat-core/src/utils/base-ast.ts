@@ -14,18 +14,16 @@ export const getBaseAST = (): SelectStatement => {
     node: {
       type: QueryNodeType.SELECT_NODE,
       modifiers: [],
-      cte_map: { map: {} },
+      cte_map: { map: [] },
       select_list: [
         {
           class: ExpressionClass.STAR,
           type: ExpressionType.STAR,
           alias: '',
           relation_name: '',
-          exclude_list: new Set(),
-          replace_list: new Set(),
+          exclude_list: [],
+          replace_list: [],
           columns: false,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
           expr: null,
         },
       ],
@@ -40,7 +38,7 @@ export const getBaseAST = (): SelectStatement => {
       },
       where_clause: undefined,
       group_expressions: [],
-      group_sets: new Set(),
+      group_sets: [],
       aggregate_handling: AggregateHandling.STANDARD_HANDLING,
       having: null,
       sample: null,

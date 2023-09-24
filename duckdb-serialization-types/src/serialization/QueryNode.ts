@@ -17,7 +17,11 @@ export interface BaseQueryNode {
   cte_map: CommonTableExpressionMap;
 }
 
-export type QueryNode = SelectNode | SetOperationNode | RecursiveCTENode | CTENode;
+export type QueryNode =
+  | SelectNode
+  | SetOperationNode
+  | RecursiveCTENode
+  | CTENode;
 
 export enum AggregateHandling {
   STANDARD_HANDLING = 'STANDARD_HANDLING',
@@ -31,7 +35,7 @@ export interface SelectNode extends BaseQueryNode {
   from_table?: TableRef;
   where_clause?: ParsedExpression;
   group_expressions: ParsedExpression[];
-  group_sets: Set<number>;
+  group_sets: Set<number> | Array<number>;
   aggregate_handling: AggregateHandling;
   having: ParsedExpression | null;
   sample: SampleOptions | null;

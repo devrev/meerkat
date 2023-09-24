@@ -23,7 +23,9 @@ export interface CommonTableExpressionInfo {
 }
 
 export interface CommonTableExpressionMap {
-  map: Record<string, CommonTableExpressionInfo>;
+  map:
+    | Record<string, CommonTableExpressionInfo>
+    | Array<CommonTableExpressionInfo>;
 }
 
 export enum OrderType {
