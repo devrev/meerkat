@@ -14,6 +14,8 @@ export const getBaseAST = (): SelectStatement => {
     node: {
       type: QueryNodeType.SELECT_NODE,
       modifiers: [],
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
       cte_map: { map: [] },
       select_list: [
         {
