@@ -7,7 +7,14 @@
   "type": "commonjs",
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devrev/meerkat.git"
+  },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
-  }
+  },
+  "keywords": [],
+  "author": "devrev",
+  "license": "ISC"
 }
