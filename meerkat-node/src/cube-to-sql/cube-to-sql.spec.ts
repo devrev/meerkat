@@ -14,10 +14,12 @@ describe('cube-to-sql', () => {
     await duckdbExec(INPUT_DATA_QUERY);
     //Get SQL from cube query
   });
+
   for (const data of TEST_DATA) {
     it(`Testing ${data.testName}`, async () => {
       const sql = await cubeQueryToSQL(data.cubeInput, TABLE_SCHEMA);
-      console.info(sql);
+      console.info(`SQL for ${data.testName}: `, sql);
+      //TODO: Remove order by
       const output = await duckdbExec(sql + `order by order_id asc;`);
       const parsedOutput = JSON.parse(JSON.stringify(output));
       const formattedOutput = parsedOutput.map((row) => {

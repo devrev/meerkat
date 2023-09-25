@@ -6,9 +6,6 @@ on:
 
 jobs:
   publish-npm:
-    strategy:
-      matrix:
-        version: [ meerkat-core, meerkat-node ]
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -20,11 +17,10 @@ jobs:
           node-version: 16
           registry-url: https://npm.pkg.github.com/
           scope: '@devrev'
-      - run: cd ${{ matrix.version }}
-      - run: echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-      - run: npm install -g typescript
       - run: npm install
-      - run: npm run build
+      - run: npx nx run-many --target=build --all --parallel
+      - run: cd ./dist/meerkat-core
+      - run: echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}
