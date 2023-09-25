@@ -56,7 +56,7 @@
   },
   "nx": {
     "includedScripts": []
-  }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/devrev/meerkat.git"
