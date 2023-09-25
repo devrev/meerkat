@@ -1,0 +1,30 @@
+name: Publish rules-library
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish-npm:
+    strategy:
+      matrix:
+        version: [ meerkat-core, meerkat-node ]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://npm.pkg.github.com/
+          scope: '@devrev'
+      - run: cd ${{ matrix.version }}
+      - run: echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+      - run: npm install -g typescript
+      - run: npm install
+      - run: npm run build
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}
