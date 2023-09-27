@@ -2,6 +2,8 @@ import { Query, TableSchema } from '@devrev/cube-types';
 import { SelectNode } from '@devrev/duckdb-serialization-types';
 import { cubeFilterToDuckdbAST } from './cube-filter-transformer/factory';
 import { cubeDimensionToGroupByAST } from './cube-group-by-transformer/cube-group-by-transformer';
+import { cubeLimitOffsetToAST } from './cube-limit-offset-transformer/cube-limit-offset-transformer';
+import { cubeOrderByToAST } from './cube-order-by-transformer/cube-order-by-transformer';
 import { getBaseAST } from './utils/base-ast';
 import { cubeFiltersEnrichment } from './utils/cube-filter-enrichment';
 
@@ -61,6 +63,15 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
       groupSets.push(i);
     }
     (baseAST.node as SelectNode).group_sets = [groupSets];
+  }
+  (baseAST.node as SelectNode).modifiers = [];
+  if (query.order) {
+    (baseAST.node as SelectNode).modifiers.push(cubeOrderByToAST(query.order));
+  }
+  if (query.limit || query.offset) {
+    (baseAST.node as SelectNode).modifiers.push(
+      cubeLimitOffsetToAST(query.limit, query.offset)
+    );
   }
 
   return baseAST;
