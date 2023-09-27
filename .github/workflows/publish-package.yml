@@ -1,9 +1,9 @@
 name: Publish rules-library
 
 on:
-  pull_request:
-    branches:
-      - main
+  release:
+    types: [published]
+
 
 jobs:
   publish-npm:
