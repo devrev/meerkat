@@ -163,9 +163,11 @@ describe('CubeFilterToDuckDBAST', () => {
         type: 'VALUE_CONSTANT',
         alias: '',
         value: {
-          type: {
-            id: 'DOUBLE',
-            type_info: null,
+          type_info: {
+            alias: '',
+            scale: 0,
+            type: 'DECIMAL_TYPE_INFO',
+            width: 1,
           },
           is_null: false,
           value: 1,

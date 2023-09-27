@@ -11,7 +11,7 @@ describe('cubeMeasureToSQLSelectString', () => {
   beforeEach(() => {
     tableSchema = {
       name: 'test',
-      cube: cube,
+      sql: cube,
       measures: [
         { name: 'measure1', sql: 'COUNT(*)', type: 'number' },
         { name: 'measure2', sql: 'SUM(total)', type: 'number' },
@@ -35,7 +35,7 @@ describe('cubeMeasureToSQLSelectString', () => {
   it('should substitute "*" for all columns in the cube', () => {
     const measures: Member[] = ['*'];
     const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT ${cube}.*`);
+    expect(result).toBe(`SELECT test.*`);
   });
 
   it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure', () => {

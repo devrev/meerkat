@@ -24,7 +24,7 @@ export const cubeQueryToSQL = async (
    */
   const replaceBaseTableName = deserializeQuery.replace(
     BASE_TABLE_NAME,
-    `(${tableSchema.cube})`
+    `(${tableSchema.sql})`
   );
 
   return replaceBaseTableName;

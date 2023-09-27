@@ -20,15 +20,21 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL(data.cubeInput, TABLE_SCHEMA);
       console.info(`SQL for ${data.testName}: `, sql);
       //TODO: Remove order by
-      const output = await duckdbExec(sql + `order by order_id asc;`);
+      const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
       const formattedOutput = parsedOutput.map((row) => {
+        if (!row.order_date) {
+          return row;
+        }
         return {
           ...row,
           order_date: new Date(row.order_date).toISOString(),
         };
       });
       const expectedOutput = data.expectedOutput.map((row) => {
+        if (!row.order_date) {
+          return row;
+        }
         return {
           ...row,
           order_date: new Date(row.order_date).toISOString(),
