@@ -9,7 +9,7 @@ export const cubeMeasureToSQLSelectString = (
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i];
     if (measure === '*') {
-      base += ` ${tableSchema.cube}.*`;
+      base += ` ${tableSchema.name}.*`;
       continue;
     }
     const measureKeyWithoutTable = measure.split('.')[1];
@@ -60,6 +60,7 @@ export const applyProjectionToSQLQuery = (
   sqlToReplace: string
 ) => {
   let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
+
   if (measures.length > 0 && dimensions.length > 0) {
     measureSelectString += ', ';
   }

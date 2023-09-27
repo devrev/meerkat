@@ -16,8 +16,7 @@ export type Dimension = {
 
 export type TableSchema = {
   name: string;
-  cube: string;
+  sql: string;
   measures: Measure[];
   dimensions: Dimension[];
-  sql?: string;
 };

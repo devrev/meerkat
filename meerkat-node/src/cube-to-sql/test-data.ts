@@ -24,28 +24,34 @@ INSERT INTO orders VALUES
 `;
 
 export const TABLE_SCHEMA = {
+  name: 'orders',
   cube: 'select * from orders',
   measures: [
     {
-      sql: 'orders.order_amount',
+      name: 'order_amount',
+      sql: 'order_amount',
       type: 'number',
     },
   ],
   dimensions: [
     {
-      sql: 'orders.order_date',
+      name: 'order_date',
+      sql: 'order_date',
       type: 'time',
     },
     {
-      sql: 'orders.order_id',
+      name: 'order_id',
+      sql: 'order_id',
       type: 'number',
     },
     {
-      sql: 'orders.customer_id',
+      name: 'customer_id',
+      sql: 'customer_id',
       type: 'string',
     },
     {
-      sql: 'orders.product_id',
+      name: 'product_id',
+      sql: 'product_id',
       type: 'string',
     },
   ],
@@ -54,12 +60,12 @@ export const TABLE_SCHEMA = {
 export const TEST_DATA = [
   {
     testName: 'Equals',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE (customer_id = '1')`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.customer_id = '1')`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
-          member: 'customer_id',
+          member: 'orders.customer_id',
           operator: 'equals',
           values: ['1'],
         },
@@ -85,12 +91,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'NotEquals',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE (customer_id != '1')`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.customer_id != '1')`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
-          member: 'customer_id',
+          member: 'orders.customer_id',
           operator: 'notEquals',
           values: ['1'],
         },
@@ -165,12 +171,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'Contains',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE (customer_id ~~* '%aa%')`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.customer_id ~~* '%aa%')`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
-          member: 'customer_id',
+          member: 'orders.customer_id',
           operator: 'contains',
           values: ['aa'],
         },
@@ -189,39 +195,39 @@ export const TEST_DATA = [
   },
   {
     testName: 'NotContains',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE ((customer_id !~~ '%1%') AND (customer_id !~~ '%2%') AND (customer_id !~~ '%3%') AND (customer_id !~~ '%4%') AND (customer_id !~~ '%5%') AND (customer_id !~~ '%aa%'))`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.customer_id !~~ '%1%') AND (orders.customer_id !~~ '%2%') AND (orders.customer_id !~~ '%3%') AND (orders.customer_id !~~ '%4%') AND (orders.customer_id !~~ '%5%') AND (orders.customer_id !~~ '%aa%'))`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
           and: [
             {
-              member: 'customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['1'],
             },
             {
-              member: 'customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['2'],
             },
             {
-              member: 'customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['3'],
             },
             {
-              member: 'customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['4'],
             },
             {
-              member: 'customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['5'],
             },
             {
-              member: 'customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['aa'],
             },
@@ -242,12 +248,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'GreaterThan',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE (order_amount > 50)`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.order_amount > 50)`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
-          member: 'order_amount',
+          member: 'orders.order_amount',
           operator: 'gt',
           values: ['50'],
         },
@@ -308,12 +314,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'LessThan',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE (order_amount < 50)`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.order_amount < 50)`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
-          member: 'order_amount',
+          member: 'orders.order_amount',
           operator: 'lt',
           values: ['50'],
         },
@@ -346,12 +352,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'InDateRange',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE ((order_date >= '2022-02-01') AND (order_date <= '2022-03-31'))`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.order_date >= '2022-02-01') AND (orders.order_date <= '2022-03-31'))`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
-          member: 'order_date',
+          member: 'orders.order_date',
           operator: 'inDateRange',
           values: ['2022-02-01', '2022-03-31'],
         },
@@ -384,12 +390,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'NotInDateRange',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE ((order_date < '2022-02-01') OR (order_date > '2022-03-31'))`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.order_date < '2022-02-01') OR (orders.order_date > '2022-03-31'))`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
-          member: 'order_date',
+          member: 'orders.order_date',
           operator: 'notInDateRange',
           values: ['2022-02-01', '2022-03-31'],
         },
@@ -457,19 +463,19 @@ export const TEST_DATA = [
   },
   {
     testName: 'Or',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE ((order_amount > 80) OR ((order_date >= '2022-02-01') AND (order_date <= '2022-03-01')))`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.order_amount > 80) OR ((orders.order_date >= '2022-02-01') AND (orders.order_date <= '2022-03-01')))`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
           or: [
             {
-              member: 'order_amount',
+              member: 'orders.order_amount',
               operator: 'gt',
               values: ['80'],
             },
             {
-              member: 'order_date',
+              member: 'orders.order_date',
               operator: 'inDateRange',
               values: ['2022-02-01', '2022-03-01'],
             },
@@ -525,19 +531,19 @@ export const TEST_DATA = [
   },
   {
     testName: 'And',
-    expectedSQL: `SELECT * FROM (select * from orders) WHERE ((order_amount > 50) AND ((order_date >= '2022-02-01') AND (order_date <= '2022-06-01')))`,
+    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.order_amount > 50) AND ((orders.order_date >= '2022-02-01') AND (orders.order_date <= '2022-06-01')))`,
     cubeInput: {
-      measures: [],
+      measures: ['*'],
       filters: [
         {
           and: [
             {
-              member: 'order_amount',
+              member: 'orders.order_amount',
               operator: 'gt',
               values: ['50'],
             },
             {
-              member: 'order_date',
+              member: 'orders.order_date',
               operator: 'inDateRange',
               values: ['2022-02-01', '2022-06-01'],
             },

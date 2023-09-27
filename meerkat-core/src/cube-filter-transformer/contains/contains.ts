@@ -30,7 +30,7 @@ export const containsDuckdbCondition = (
         class: 'COLUMN_REF',
         type: 'COLUMN_REF',
         alias: '',
-        column_names: [columnName],
+        column_names: columnName.split('.'),
       },
       {
         class: 'CONSTANT',

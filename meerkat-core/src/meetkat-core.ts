@@ -31,7 +31,6 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
       JSON.parse(JSON.stringify(query.filters)),
       tableSchema
     );
-    console.info(JSON.stringify(queryFiltersWithInfo, null, 2));
 
     if (!queryFiltersWithInfo) {
       return null;
@@ -63,8 +62,6 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
     }
     (baseAST.node as SelectNode).group_sets = [groupSets];
   }
-
-  console.info(JSON.stringify(baseAST, null, 2));
 
   return baseAST;
 };
