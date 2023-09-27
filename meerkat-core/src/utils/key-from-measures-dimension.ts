@@ -14,7 +14,6 @@ export const getMemberInfoFromTableSchema = (
   for (let i = 0; i < tableSchema.measures.length; i++) {
     const measure = tableSchema.measures[i];
     const key = measure.name;
-    console.info(key, memberKeyName);
     if (!key || key !== memberKeyName) {
       continue;
     }
@@ -26,7 +25,6 @@ export const getMemberInfoFromTableSchema = (
   for (let i = 0; i < tableSchema.dimensions.length; i++) {
     const dimension = tableSchema.dimensions[i];
     const key = dimension.name;
-    console.info(key, memberKeyName);
 
     if (!key || key !== memberKeyName) {
       continue;

@@ -10,6 +10,7 @@ describe('cubeMeasureToSQLSelectString', () => {
 
   beforeEach(() => {
     tableSchema = {
+      name: 'test',
       cube: cube,
       measures: [
         { name: 'measure1', sql: 'COUNT(*)', type: 'number' },

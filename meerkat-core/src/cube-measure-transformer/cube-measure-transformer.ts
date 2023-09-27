@@ -1,4 +1,5 @@
 import { Member, TableSchema } from '@devrev/cube-types';
+import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
@@ -12,7 +13,7 @@ export const cubeMeasureToSQLSelectString = (
       continue;
     }
     const measureKeyWithoutTable = measure.split('.')[1];
-    const aliasKey = measure.replace('.', '__');
+    const aliasKey = memberKeyToSafeKey(measure);
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
     );
