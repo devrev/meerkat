@@ -20,7 +20,7 @@ export const baseDuckdbCondition = (
       class: ExpressionClass.COLUMN_REF,
       type: ExpressionType.COLUMN_REF,
       alias: '',
-      column_names: [columnName],
+      column_names: columnName.split('.'),
     },
     right: {
       class: ExpressionClass.CONSTANT,

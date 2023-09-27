@@ -38,7 +38,9 @@ export const getBaseAST = (): SelectStatement => {
         column_name_alias: [],
         catalog_name: '',
       },
-      where_clause: undefined,
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
+      where_clause: null,
       group_expressions: [],
       group_sets: [],
       aggregate_handling: AggregateHandling.STANDARD_HANDLING,

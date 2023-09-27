@@ -14,9 +14,7 @@ app.use(express.json());
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/api', async (req, res) => {
-  const sql = `SELECT json_serialize_sql('SELECT *
-  FROM posts
-  WHERE time = 1.12::DECIMAL(18, 1) AND time <= 2');`;
+  const sql = `SELECT json_serialize_sql('SELECT (COUNT(*)) AS dim_devu__total ,  dim_devu.id AS dim_devu__id FROM (select * from dim_devu) as dim_devu GROUP BY dim_devu.id');`;
   const data = await nodeSQLToSerialization(sql);
   res.json({ message: data });
 });

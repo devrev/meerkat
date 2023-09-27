@@ -1,49 +1,5 @@
 import { Dimension, Measure, TableSchema } from '@devrev/cube-types';
-import {
-  getMemberInfoFromTableSchema,
-  tableKeyFromMeasuresDimension,
-} from './key-from-measures-dimension';
-
-describe('tableKeyFromMeasuresDimension function test', () => {
-  it('should return the correct key from measures', () => {
-    const query = {
-      measures: ['measure1.value', 'measure2.value'],
-      dimensions: ['dimension1.value', 'dimension2.value'],
-    };
-
-    const result = tableKeyFromMeasuresDimension(query);
-    expect(result).toBe('measure1');
-  });
-
-  it('should return the correct key from dimensions if no measure key found', () => {
-    const query = {
-      measures: ['.nokey'],
-      dimensions: ['dimension1.value', 'dimension2.value'],
-    };
-
-    const result = tableKeyFromMeasuresDimension(query);
-    expect(result).toBe('dimension1');
-  });
-
-  it('should return null if no valid keys found', () => {
-    const query = {
-      measures: ['.nokey'],
-      dimensions: ['.nokey'],
-    };
-
-    const result = tableKeyFromMeasuresDimension(query);
-    expect(result).toBeNull();
-  });
-
-  it('should return null if dimensions does not exist', () => {
-    const query = {
-      measures: ['.nokey'],
-    };
-
-    const result = tableKeyFromMeasuresDimension(query);
-    expect(result).toBeNull();
-  });
-});
+import { getMemberInfoFromTableSchema } from './key-from-measures-dimension';
 
 describe('getMemberInfoFromTableSchema', () => {
   it('should return memberInfo if memberKey matches with measure key', () => {

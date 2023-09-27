@@ -1,5 +1,9 @@
 import { Query, TableSchema } from '@devrev/cube-types';
-import { BASE_TABLE_NAME, cubeToDuckdbAST } from '@devrev/meerkat-core';
+import {
+  BASE_TABLE_NAME,
+  applyProjectionToSQLQuery,
+  cubeToDuckdbAST,
+} from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
 export const cubeQueryToSQL = async (
@@ -27,8 +31,20 @@ export const cubeQueryToSQL = async (
    */
   const replaceBaseTableName = deserializeQuery.replace(
     BASE_TABLE_NAME,
-    `(${tableSchema.cube})`
+    `(${tableSchema.cube}) AS ${tableSchema.name}`
   );
 
-  return replaceBaseTableName;
+  /**
+   * Add measures to the query
+   */
+  const measures = cubeQuery.measures;
+  const dimensions = cubeQuery.dimensions || [];
+  const queryWithMeasure = applyProjectionToSQLQuery(
+    dimensions,
+    measures,
+    tableSchema,
+    replaceBaseTableName
+  );
+
+  return queryWithMeasure;
 };
