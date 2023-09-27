@@ -20,16 +20,17 @@ jobs:
           scope: '@devrev'
       - run: npm install
       - run: npx nx run-many --target=build --all --parallel
-      - run: cd ./dist/meerkat-core
-      - run: echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-      - run: npm publish
-      - run: cd ..
-      - run: cd ./dist/meerkat-node
-      - run: echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-      - run: npm publish
-      - run: cd ..
-      - run: cd ./dist/meerkat-browser
-      - run: echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-      - run: npm publish
+      - run: |
+          cd ./dist/meerkat-core
+          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          npm publish
+      - run: |
+          cd ./dist/meerkat-node
+          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          npm publish
+      - run: |
+          cd ./dist/meerkat-browser
+          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}

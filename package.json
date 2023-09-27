@@ -1,7 +1,6 @@
 {
   "name": "@meerkat/source",
   "version": "0.0.0",
-  "license": "MIT",
   "scripts": {},
   "private": true,
   "dependencies": {
@@ -57,5 +56,15 @@
   },
   "nx": {
     "includedScripts": []
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devrev/meerkat.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "keywords": [],
+  "author": "devrev",
+  "license": "ISC"
 }
