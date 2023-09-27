@@ -13,6 +13,11 @@ describe('Not Equals Transform Tests', () => {
         member: 'country',
         operator: 'notEquals',
         values: [],
+        memberInfo: {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string',
+        },
       })
     ).toThrow();
   });
@@ -21,13 +26,23 @@ describe('Not Equals Transform Tests', () => {
     const expectedOutput = baseDuckdbCondition(
       'country',
       ExpressionType.COMPARE_NOTEQUAL,
-      'US'
+      'US',
+      {
+        name: 'country',
+        sql: 'table.country',
+        type: 'string',
+      }
     );
     expect(
       notEqualsTransform({
         member: 'country',
         operator: 'notEquals',
         values: ['US'],
+        memberInfo: {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string',
+        },
       })
     ).toEqual(expectedOutput);
   });
@@ -37,6 +52,11 @@ describe('Not Equals Transform Tests', () => {
       member: 'country',
       operator: 'notEquals',
       values: ['US', 'Germany', 'Israel'],
+      memberInfo: {
+        name: 'country',
+        sql: 'table.country',
+        type: 'string',
+      },
     }) as ConjunctionExpression;
     expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
     expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);

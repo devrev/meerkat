@@ -24,6 +24,7 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
   }
 
   const baseAST = getBaseAST();
+  const node = baseAST.node as SelectNode;
 
   if (query.filters && query.filters.length > 0) {
     /**
@@ -44,34 +45,29 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
     );
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
-    (baseAST.node as SelectNode).where_clause = duckdbWhereClause;
+    node.where_clause = duckdbWhereClause;
   }
 
   if (query.dimensions && query.dimensions?.length > 0) {
-    (baseAST.node as SelectNode).group_expressions = cubeDimensionToGroupByAST(
-      query.dimensions
-    );
+    node.group_expressions = cubeDimensionToGroupByAST(query.dimensions);
     const groupSets = [];
     /**
      * We only support one group set for now.
      */
-    for (
-      let i = 0;
-      i < (baseAST.node as SelectNode).group_expressions.length;
-      i++
-    ) {
+    for (let i = 0; i < node.group_expressions.length; i++) {
       groupSets.push(i);
     }
-    (baseAST.node as SelectNode).group_sets = [groupSets];
+    node.group_sets = [groupSets];
   }
-  (baseAST.node as SelectNode).modifiers = [];
+  node.modifiers = [];
   if (query.order) {
-    (baseAST.node as SelectNode).modifiers.push(cubeOrderByToAST(query.order));
+    node.modifiers.push(cubeOrderByToAST(query.order));
   }
   if (query.limit || query.offset) {
-    (baseAST.node as SelectNode).modifiers.push(
-      cubeLimitOffsetToAST(query.limit, query.offset)
-    );
+    // Type assertion is needed here because the AST is not typed correctly.
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
+    node.modifiers.push(cubeLimitOffsetToAST(query.limit, query.offset));
   }
 
   return baseAST;

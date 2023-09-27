@@ -15,7 +15,6 @@ describe('getMemberInfoFromTableSchema', () => {
       measures: [measure],
       dimensions: [],
     };
-
     const result = getMemberInfoFromTableSchema(memberKey, tableSchema);
     expect(result).toBe(measure);
   });

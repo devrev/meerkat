@@ -51,6 +51,7 @@ export const cubeFiltersEnrichmentInternal = (
           cubeFiltersEnrichmentInternal(filter.or, tableSchema);
         }
       } else if (isQueryFilter(filter)) {
+        console.info('filter', filter);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
         filter.memberInfo = getMemberInfoFromTableSchema(

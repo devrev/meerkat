@@ -5,8 +5,8 @@ import { ColumnDataCollection, Value } from './Misc';
 import {
   BoundOrderByNode,
   BoundPivotInfo,
-  ColumnBinding,
   CTEMaterialize,
+  ColumnBinding,
   JoinCondition,
   LogicalType,
   SampleOptions,
@@ -185,9 +185,9 @@ export interface LogicalAnyJoin extends BaseLogicalOperator {
   condition: Expression;
 }
 
-export interface LogicalCrossProduct extends BaseLogicalOperator {}
+export type LogicalCrossProduct = BaseLogicalOperator;
 
-export interface LogicalPositionalJoin extends BaseLogicalOperator {}
+export type LogicalPositionalJoin = BaseLogicalOperator;
 
 export interface LogicalSetOperation extends BaseLogicalOperator {
   table_index: number;
@@ -311,19 +311,13 @@ export interface LogicalPivot extends BaseLogicalOperator {
   bound_pivot: BoundPivotInfo;
 }
 
-export interface LogicalGet extends BaseLogicalOperator {
-  // Custom implementation, properties not defined
-}
+export type LogicalGet = BaseLogicalOperator;
 
-export interface LogicalCopyToFile extends BaseLogicalOperator {
-  // Custom implementation, properties not defined
-}
+export type LogicalCopyToFile = BaseLogicalOperator;
 
 export interface LogicalCreateIndex extends BaseLogicalOperator {
   info: CreateInfo;
   unbound_expressions: Expression[];
 }
 
-export interface LogicalExtensionOperator extends BaseLogicalOperator {
-  // Custom implementation, properties not defined
-}
+export type LogicalExtensionOperator = BaseLogicalOperator;

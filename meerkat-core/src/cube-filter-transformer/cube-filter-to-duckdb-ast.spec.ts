@@ -64,8 +64,13 @@ describe('CubeFilterToDuckDBAST', () => {
             alias: '',
             value: {
               type: {
-                id: 'DOUBLE',
-                type_info: null,
+                id: 'DECIMAL',
+                type_info: {
+                  type: 'DECIMAL_TYPE_INFO',
+                  alias: '',
+                  width: 1,
+                  scale: 0,
+                },
               },
               is_null: false,
               value: 1,
@@ -148,6 +153,7 @@ describe('CubeFilterToDuckDBAST', () => {
       ],
       ast
     );
+
     expect(output).toEqual({
       class: 'COMPARISON',
       type: 'COMPARE_EQUAL',
@@ -163,11 +169,14 @@ describe('CubeFilterToDuckDBAST', () => {
         type: 'VALUE_CONSTANT',
         alias: '',
         value: {
-          type_info: {
-            alias: '',
-            scale: 0,
-            type: 'DECIMAL_TYPE_INFO',
-            width: 1,
+          type: {
+            id: 'DECIMAL',
+            type_info: {
+              type: 'DECIMAL_TYPE_INFO',
+              alias: '',
+              width: 1,
+              scale: 0,
+            },
           },
           is_null: false,
           value: 1,

@@ -40,8 +40,7 @@ export interface ConjunctionExpression extends BaseParsedExpression {
 export interface ConstantExpression extends BaseParsedExpression {
     value: Value;
 }
-export interface DefaultExpression extends BaseParsedExpression {
-}
+export type DefaultExpression = BaseParsedExpression
 export interface FunctionExpression extends BaseParsedExpression {
     function_name: string;
     schema: string;

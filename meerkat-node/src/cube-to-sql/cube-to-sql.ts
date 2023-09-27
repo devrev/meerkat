@@ -39,12 +39,12 @@ export const cubeQueryToSQL = async (
    */
   const measures = cubeQuery.measures;
   const dimensions = cubeQuery.dimensions || [];
-  const queryWithMeasure = applyProjectionToSQLQuery(
+  const finalQuery = applyProjectionToSQLQuery(
     dimensions,
     measures,
     tableSchema,
     replaceBaseTableName
   );
 
-  return queryWithMeasure;
+  return finalQuery;
 };

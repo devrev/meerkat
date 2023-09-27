@@ -8,14 +8,17 @@ import { cubeFiltersEnrichmentInternal } from './cube-filter-enrichment';
 
 describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
   const measure: Measure = {
+    name: 'column1',
     sql: `table.column1`,
     type: 'number',
   };
   const measure2: Dimension = {
+    name: 'column2',
     sql: `table.column2`,
     type: 'number',
   };
   const mockTableSchema = {
+    name: 'test',
     cube: 'testCube',
     measures: [measure],
     dimensions: [measure2],
@@ -24,7 +27,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
   it('should enrich filters with member info', () => {
     const filters: QueryOperatorsWithInfo[] = [
       {
-        member: `column1`,
+        member: `table.column1`,
         operator: 'equals',
       },
     ];
@@ -40,18 +43,33 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
       | LogicalOrFilterWithInfo = {
       and: [
         {
-          member: `column1`,
+          member: `table.column1`,
           operator: 'equals',
+          memberInfo: {
+            name: 'column1',
+            sql: 'table.country',
+            type: 'string',
+          },
         },
         {
           or: [
             {
-              member: `column1`,
+              member: `table.column1`,
               operator: 'equals',
+              memberInfo: {
+                name: 'column1',
+                sql: 'table.country',
+                type: 'string',
+              },
             },
             {
-              member: `column2`,
+              member: `table.column2`,
               operator: 'equals',
+              memberInfo: {
+                name: 'column2',
+                sql: 'table.country',
+                type: 'string',
+              },
             },
           ],
         },

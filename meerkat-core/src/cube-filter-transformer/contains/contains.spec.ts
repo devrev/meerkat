@@ -12,17 +12,31 @@ describe('Contains Transform Tests', () => {
         member: 'country',
         operator: 'contains',
         values: [],
+        memberInfo: {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string',
+        },
       })
     ).toThrow();
   });
 
   it('Should create a simple Contains condition if there is only one value', () => {
-    const expectedOutput = containsDuckdbCondition('country', 'US');
+    const expectedOutput = containsDuckdbCondition('country', 'US', {
+      name: 'country',
+      sql: 'table.country',
+      type: 'string',
+    });
     expect(
       containsTransform({
         member: 'country',
         operator: 'contains',
         values: ['US'],
+        memberInfo: {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string',
+        },
       })
     ).toEqual(expectedOutput);
   });
@@ -32,6 +46,11 @@ describe('Contains Transform Tests', () => {
       member: 'country',
       operator: 'contains',
       values: ['US', 'Germany', 'Israel'],
+      memberInfo: {
+        name: 'country',
+        sql: 'table.country',
+        type: 'string',
+      },
     }) as ConjunctionExpression;
     expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
     expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);

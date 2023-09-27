@@ -89,9 +89,7 @@ export interface CreateTableInfo extends BaseCreateInfo {
   query?: SelectStatement;
 }
 
-export interface CreateSchemaInfo extends BaseCreateInfo {
-  // No additional members
-}
+export type CreateSchemaInfo = BaseCreateInfo
 
 export interface CreateViewInfo extends BaseCreateInfo {
   view_name: string;
