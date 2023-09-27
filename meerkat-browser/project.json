@@ -1,0 +1,47 @@
+{
+  "name": "meerkat-browser",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "meerkat-browser/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/meerkat-browser",
+        "main": "meerkat-browser/src/index.ts",
+        "tsConfig": "meerkat-browser/tsconfig.lib.json",
+        "assets": ["meerkat-browser/*.md"]
+      }
+    },
+    "publish": {
+      "command": "node tools/scripts/publish.mjs meerkat-browser {args.ver} {args.tag}",
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "meerkat-browser/**/*.ts",
+          "meerkat-browser/package.json"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "meerkat-browser/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    }
+  },
+  "tags": []
+}
