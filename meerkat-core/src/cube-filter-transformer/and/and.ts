@@ -2,7 +2,7 @@ import {
   ConjunctionExpression,
   ExpressionClass,
   ExpressionType,
-} from '@devrev/duckdb-serialization-types';
+} from '../../types/duckdb-serialization-types/index';
 
 export const andDuckdbCondition = (): ConjunctionExpression => {
   return {

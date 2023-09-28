@@ -1,4 +1,4 @@
-import { SelectStatement } from '@devrev/duckdb-serialization-types';
+import { SelectStatement } from '@devrev/meerkat-core';
 import { duckdbExec } from './duckdb-exec';
 
 export interface ParsedSerialization {

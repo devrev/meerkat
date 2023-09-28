@@ -1,8 +1,5 @@
-import { Member } from '@devrev/cube-types';
-import {
-  ExpressionClass,
-  ExpressionType,
-} from '@devrev/duckdb-serialization-types';
+import { Member } from '../types/cube-types/query';
+import { ExpressionClass, ExpressionType } from '../types/duckdb-serialization-types/serialization/Expression';
 
 export const cubeDimensionToGroupByAST = (dimensions: Member[]) => {
   const groupByAST = dimensions.map((dimension) => {

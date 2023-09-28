@@ -40,7 +40,7 @@ export interface ConjunctionExpression extends BaseParsedExpression {
 export interface ConstantExpression extends BaseParsedExpression {
     value: Value;
 }
-export type DefaultExpression = BaseParsedExpression
+export type DefaultExpression = BaseParsedExpression;
 export interface FunctionExpression extends BaseParsedExpression {
     function_name: string;
     schema: string;
@@ -54,7 +54,7 @@ export interface FunctionExpression extends BaseParsedExpression {
 }
 export interface LambdaExpression extends BaseParsedExpression {
     lhs: ParsedExpression;
-    expr: ParsedExpression;
+    expr: ParsedExpression | null;
 }
 export interface OperatorExpression extends BaseParsedExpression {
     children: ParsedExpression[];
@@ -67,8 +67,8 @@ export interface PositionalReferenceExpression extends BaseParsedExpression {
 }
 export interface StarExpression extends BaseParsedExpression {
     relation_name: string;
-    exclude_list: Set<string>;
-    replace_list: Set<ParsedExpression>;
+    exclude_list: Set<string> | Array<string>;
+    replace_list: Set<ParsedExpression> | Array<ParsedExpression>;
     columns: boolean;
     expr?: ParsedExpression;
 }

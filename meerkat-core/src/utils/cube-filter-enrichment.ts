@@ -1,4 +1,4 @@
-import { TableSchema } from '@devrev/cube-types';
+import { TableSchema } from '../types/cube-types/table';
 import {
   LogicalAndFilterWithInfo,
   LogicalOrFilterWithInfo,

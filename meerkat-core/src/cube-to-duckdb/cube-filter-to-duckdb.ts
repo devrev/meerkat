@@ -1,4 +1,5 @@
-import { Dimension, Measure, QueryFilter } from '@devrev/cube-types';
+import { Dimension, Measure } from '../types/cube-types/table';
+import { QueryFilter } from '../types/cube-types/query';
 
 export type QueryOperatorsWithInfo = QueryFilter & {
   memberInfo: Measure | Dimension;

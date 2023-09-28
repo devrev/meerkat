@@ -1,8 +1,6 @@
-import {
-  ParsedExpression,
-  SelectNode,
-  SelectStatement,
-} from '@devrev/duckdb-serialization-types';
+import { ParsedExpression } from '../types/duckdb-serialization-types/serialization/ParsedExpression';
+import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
+import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
 import {
   QueryFilterWithInfo,
   QueryFiltersWithInfo,

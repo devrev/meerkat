@@ -1,12 +1,5 @@
-import {
-  LogicalAndFilter,
-  LogicalOrFilter,
-  QueryFilter,
-} from '@devrev/cube-types';
-import {
-  ConjunctionExpression,
-  ParsedExpression,
-} from '@devrev/duckdb-serialization-types';
+import { LogicalAndFilter, LogicalOrFilter, QueryFilter } from '../types/cube-types/query';
+import { ConjunctionExpression, ParsedExpression } from '../types/duckdb-serialization-types/serialization/ParsedExpression';
 
 export function isLogicalAndOR(
   expression: QueryFilter | LogicalAndFilter | LogicalOrFilter

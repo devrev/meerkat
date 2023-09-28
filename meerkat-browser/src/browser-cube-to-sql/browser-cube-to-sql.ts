@@ -1,6 +1,7 @@
-import { Query, TableSchema } from '@devrev/cube-types';
 import {
   BASE_TABLE_NAME,
+  Query,
+  TableSchema,
   applyProjectionToSQLQuery,
   cubeToDuckdbAST,
 } from '@devrev/meerkat-core';

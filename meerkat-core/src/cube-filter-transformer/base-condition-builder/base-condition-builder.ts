@@ -1,8 +1,9 @@
-import { Dimension, Measure } from '@devrev/cube-types';
+import { Dimension, Measure } from '../../types/cube-types/index';
+
 import {
   ExpressionClass,
   ExpressionType,
-} from '@devrev/duckdb-serialization-types';
+} from '../../types/duckdb-serialization-types/index';
 import { CUBE_TYPE_TO_DUCKDB_TYPE } from '../../utils/cube-type-to-duckdb-type';
 import { convertFloatToInt, getTypeInfo } from '../../utils/get-type-info';
 

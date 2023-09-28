@@ -1,4 +1,4 @@
-import { Dimension, Measure } from '@devrev/cube-types';
+import { Dimension, Measure } from '../types/cube-types/table';
 import {
   LogicalAndFilterWithInfo,
   LogicalOrFilterWithInfo,

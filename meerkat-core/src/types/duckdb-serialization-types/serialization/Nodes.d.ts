@@ -19,7 +19,7 @@ export interface CommonTableExpressionInfo {
     materialized: CTEMaterialize;
 }
 export interface CommonTableExpressionMap {
-    map: Record<string, CommonTableExpressionInfo>;
+    map: Record<string, CommonTableExpressionInfo> | Array<CommonTableExpressionInfo>;
 }
 export declare enum OrderType {
     INVALID = "INVALID",

@@ -1,5 +1,6 @@
-import { Query, TableSchema } from '@devrev/cube-types';
-import { SelectNode } from '@devrev/duckdb-serialization-types';
+import { Query } from './types/cube-types/query';
+import { TableSchema } from './types/cube-types/table';
+import { SelectNode } from './types/duckdb-serialization-types/serialization/QueryNode';
 import { cubeFilterToDuckdbAST } from './cube-filter-transformer/factory';
 import { cubeDimensionToGroupByAST } from './cube-group-by-transformer/cube-group-by-transformer';
 import { cubeLimitOffsetToAST } from './cube-limit-offset-transformer/cube-limit-offset-transformer';

@@ -1,4 +1,4 @@
-import { DimensionType, MeasureType } from '@devrev/cube-types';
+import { DimensionType, MeasureType } from '../types/cube-types';
 
 type CubeType = DimensionType | MeasureType;
 

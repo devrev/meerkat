@@ -1,9 +1,10 @@
-import { Dimension, Measure, Member, QueryFilter } from '@devrev/cube-types';
+import { Member, QueryFilter } from '../../types/cube-types/query';
+import { Dimension, Measure } from '../../types/cube-types/table';
 
 import {
   ExpressionClass,
   ExpressionType,
-} from '@devrev/duckdb-serialization-types';
+} from '../../types/duckdb-serialization-types/serialization/Expression';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';

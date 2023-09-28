@@ -1,11 +1,7 @@
-import {
-  AggregateHandling,
-  ExpressionClass,
-  ExpressionType,
-  QueryNodeType,
-  SelectStatement,
-  TableReferenceType,
-} from '@devrev/duckdb-serialization-types';
+import { AggregateHandling, QueryNodeType } from '../types/duckdb-serialization-types/serialization/QueryNode';
+import { ExpressionClass, ExpressionType } from '../types/duckdb-serialization-types/serialization/Expression';
+import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
+import { TableReferenceType } from '../types/duckdb-serialization-types/serialization/TableRef';
 
 export const BASE_TABLE_NAME = 'REPLACE_BASE_TABLE';
 

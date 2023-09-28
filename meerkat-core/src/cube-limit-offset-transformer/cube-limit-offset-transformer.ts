@@ -1,8 +1,5 @@
-import {
-  ExpressionClass,
-  ExpressionType,
-  ResultModifierType,
-} from '@devrev/duckdb-serialization-types';
+import { ExpressionClass, ExpressionType } from '../types/duckdb-serialization-types/serialization/Expression';
+import { ResultModifierType } from '../types/duckdb-serialization-types/serialization/ResultModifier';
 
 export const cubeLimitOffsetToAST = (
   limit?: number | null,

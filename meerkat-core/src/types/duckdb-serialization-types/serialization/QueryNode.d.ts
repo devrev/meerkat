@@ -26,7 +26,7 @@ export interface SelectNode extends BaseQueryNode {
     from_table?: TableRef;
     where_clause?: ParsedExpression;
     group_expressions: ParsedExpression[];
-    group_sets: Set<number>;
+    group_sets: Set<number> | Array<Array<number>>;
     aggregate_handling: AggregateHandling;
     having: ParsedExpression | null;
     sample: SampleOptions | null;

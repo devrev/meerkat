@@ -15,10 +15,6 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@devrev/cube-types": ["cube-types/src/index.ts"],
-      "@devrev/duckdb-serialization-types": [
-        "duckdb-serialization-types/src/index.ts"
-      ],
       "@devrev/meerkat-browser": ["meerkat-browser/src/index.ts"],
       "@devrev/meerkat-core": ["meerkat-core/src/index.ts"],
       "@devrev/meerkat-node": ["meerkat-node/src/index.ts"]

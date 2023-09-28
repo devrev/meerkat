@@ -1,4 +1,5 @@
-import { Member, TableSchema } from '@devrev/cube-types';
+import { Member } from '../types/cube-types/query';
+import { TableSchema } from '../types/cube-types/table';
 import {
   applyProjectionToSQLQuery,
   cubeMeasureToSQLSelectString,

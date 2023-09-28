@@ -1,8 +1,5 @@
-import {
-  ConjunctionExpression,
-  ExpressionClass,
-  ExpressionType,
-} from '@devrev/duckdb-serialization-types';
+import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
+import { ExpressionClass, ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import {
   notContainsDuckdbCondition,
   notContainsTransform,

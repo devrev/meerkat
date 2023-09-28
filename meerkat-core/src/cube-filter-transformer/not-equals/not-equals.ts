@@ -1,5 +1,5 @@
-import { Member, QueryFilter } from '@devrev/cube-types';
-import { ExpressionType } from '@devrev/duckdb-serialization-types';
+import { Member, QueryFilter } from '../../types/cube-types/query';
+import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';

@@ -1,4 +1,4 @@
-import { Dimension, Measure, TableSchema } from '@devrev/cube-types';
+import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import { getMemberInfoFromTableSchema } from './key-from-measures-dimension';
 
 describe('getMemberInfoFromTableSchema', () => {
