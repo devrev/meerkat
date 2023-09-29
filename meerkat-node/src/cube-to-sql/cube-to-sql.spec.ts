@@ -52,3 +52,39 @@ describe('cube-to-sql', () => {
     });
   }
 });
+
+describe('Simple Cube Query', () => {
+  it('Without filter query generator with empty and', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          and: [],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL(query, TABLE_SCHEMA);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    expect(sql).toEqual(
+      'SELECT orders.* FROM (select * from orders) AS orders'
+    );
+  });
+
+  it('Without filter query generator with empty or', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          or: [],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL(query, TABLE_SCHEMA);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    expect(sql).toEqual(
+      'SELECT orders.* FROM (select * from orders) AS orders'
+    );
+  });
+});

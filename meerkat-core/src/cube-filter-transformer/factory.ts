@@ -1,11 +1,11 @@
-import { ParsedExpression } from '../types/duckdb-serialization-types/serialization/ParsedExpression';
-import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
-import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
 import {
   QueryFilterWithInfo,
   QueryFiltersWithInfo,
   QueryOperatorsWithInfo,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { ParsedExpression } from '../types/duckdb-serialization-types/serialization/ParsedExpression';
+import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
+import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
 import {
   hasChildren,
   isFilterArray,
@@ -75,6 +75,9 @@ const cubeFilterLogicalAndOrToDuckdb = (
   }
 
   if (!isFilterArray(cubeFilter) && isLogicalAnd(cubeFilter)) {
+    if (cubeFilter.and.length === 0) {
+      return null;
+    }
     // And or Or we need to recurse
     const andDuckdbExpression = andDuckdbCondition();
     const data = cubeFilterLogicalAndOrToDuckdb(
@@ -85,6 +88,9 @@ const cubeFilterLogicalAndOrToDuckdb = (
   }
 
   if (!isFilterArray(cubeFilter) && isLogicalOr(cubeFilter)) {
+    if (cubeFilter.or.length === 0) {
+      return null;
+    }
     // And or Or we need to recurse
     const orDuckdbExpression = orDuckdbCondition();
     const data = cubeFilterLogicalAndOrToDuckdb(
