@@ -51,9 +51,27 @@ describe('cube-to-sql', () => {
       expect(sql).toBe(data.expectedSQL);
     });
   }
-});
 
-describe('Simple Cube Query', () => {
+  it('Should order the projected value', async () => {
+    const query = {
+      measures: ['orders.total_order_amount'],
+      filters: [],
+      dimensions: ['orders.customer_id'],
+      order: {
+        'orders.total_order_amount': 'desc',
+      },
+      limit: 2,
+    };
+    const sql = await cubeQueryToSQL(query, TABLE_SCHEMA);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    const output = await duckdbExec(sql);
+    const parsedOutput = JSON.parse(JSON.stringify(output));
+    console.info('parsedOutput', parsedOutput);
+    expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
+      parsedOutput[1].orders__total_order_amount
+    );
+  });
+
   it('Without filter query generator with empty and', async () => {
     const query = {
       measures: ['*'],
@@ -85,35 +103,6 @@ describe('Simple Cube Query', () => {
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toEqual(
       'SELECT orders.* FROM (select * from orders) AS orders'
-    );
-  });
-});
-
-describe('Sort by test', () => {
-  beforeAll(async () => {
-    //Create test table
-    await duckdbExec(CREATE_TEST_TABLE);
-    //Insert test data
-    await duckdbExec(INPUT_DATA_QUERY);
-    //Get SQL from cube query
-  });
-  it('Should order the projected value', async () => {
-    const query = {
-      measures: ['orders.total_order_amount'],
-      filters: [],
-      dimensions: ['orders.customer_id'],
-      order: {
-        'orders.total_order_amount': 'desc',
-      },
-      limit: 2,
-    };
-    const sql = await cubeQueryToSQL(query, TABLE_SCHEMA);
-    console.info(`SQL for Simple Cube Query: `, sql);
-    const output = await duckdbExec(sql);
-    const parsedOutput = JSON.parse(JSON.stringify(output));
-    console.info('parsedOutput', parsedOutput);
-    expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
-      parsedOutput[1].orders__total_order_amount
     );
   });
 });
