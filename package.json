@@ -1,13 +1,14 @@
 {
   "name": "@meerkat/source",
   "version": "0.0.0",
-  "license": "MIT",
   "scripts": {},
   "private": true,
   "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.27.1-dev125.0",
     "@nx/next": "16.8.1",
     "@swc/helpers": "~0.5.0",
     "axios": "^1.0.0",
+    "duckdb": "^0.8.1",
     "express": "^4.18.1",
     "next": "13.4.1",
     "react": "18.2.0",
@@ -56,5 +57,15 @@
   },
   "nx": {
     "includedScripts": []
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devrev/meerkat.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "keywords": [],
+  "author": "devrev",
+  "license": "ISC"
 }

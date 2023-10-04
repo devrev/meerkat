@@ -1,0 +1,35 @@
+name: Publish rules-library
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          registry-url: https://npm.pkg.github.com/
+          scope: '@devrev'
+      - run: npm install
+      - run: npx nx run-many --target=build --all --parallel
+      - run: |
+          cd ./dist/meerkat-core
+          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          npm publish
+      - run: |
+          cd ./dist/meerkat-node
+          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          npm publish
+      - run: |
+          cd ./dist/meerkat-browser
+          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}

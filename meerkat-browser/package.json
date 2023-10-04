@@ -1,10 +1,10 @@
 {
-  "name": "@devrev/meerkat-node",
+  "name": "@devrev/meerkat-browser",
   "version": "0.0.13",
   "dependencies": {
     "@swc/helpers": "~0.5.0",
     "@devrev/meerkat-core": "*",
-    "duckdb": "^0.8.1"
+    "@duckdb/duckdb-wasm": "^1.27.1-dev125.0"
   },
   "type": "commonjs",
   "main": "./src/index.js",
@@ -15,8 +15,5 @@
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
-  },
-  "keywords": [],
-  "author": "devrev",
-  "license": "ISC"
+  }
 }

@@ -1,7 +1,7 @@
 {
-  "name": "meerket-node-example",
+  "name": "meerkat-node-example",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "examples/meerket-node-example/src",
+  "sourceRoot": "examples/meerkat-node-example/src",
   "projectType": "application",
   "targets": {
     "build": {
@@ -11,12 +11,12 @@
       "options": {
         "target": "node",
         "compiler": "tsc",
-        "outputPath": "dist/examples/meerket-node-example",
-        "main": "examples/meerket-node-example/src/main.ts",
-        "tsConfig": "examples/meerket-node-example/tsconfig.app.json",
-        "assets": ["examples/meerket-node-example/src/assets"],
+        "outputPath": "dist/examples/meerkat-node-example",
+        "main": "examples/meerkat-node-example/src/main.ts",
+        "tsConfig": "examples/meerkat-node-example/tsconfig.app.json",
+        "assets": ["examples/meerkat-node-example/src/assets"],
         "isolatedConfig": true,
-        "webpackConfig": "examples/meerket-node-example/webpack.config.js"
+        "webpackConfig": "examples/meerkat-node-example/webpack.config.js"
       },
       "configurations": {
         "development": {},
@@ -27,14 +27,14 @@
       "executor": "@nx/js:node",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "meerket-node-example:build"
+        "buildTarget": "meerkat-node-example:build"
       },
       "configurations": {
         "development": {
-          "buildTarget": "meerket-node-example:build:development"
+          "buildTarget": "meerkat-node-example:build:development"
         },
         "production": {
-          "buildTarget": "meerket-node-example:build:production"
+          "buildTarget": "meerkat-node-example:build:production"
         }
       }
     },
@@ -42,14 +42,14 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["examples/meerket-node-example/**/*.ts"]
+        "lintFilePatterns": ["examples/meerkat-node-example/**/*.ts"]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
-        "jestConfig": "examples/meerket-node-example/jest.config.ts",
+        "jestConfig": "examples/meerkat-node-example/jest.config.ts",
         "passWithNoTests": true
       },
       "configurations": {

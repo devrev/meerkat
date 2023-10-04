@@ -15,6 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@devrev/meerkat-browser": ["meerkat-browser/src/index.ts"],
       "@devrev/meerkat-core": ["meerkat-core/src/index.ts"],
       "@devrev/meerkat-node": ["meerkat-node/src/index.ts"]
     }
