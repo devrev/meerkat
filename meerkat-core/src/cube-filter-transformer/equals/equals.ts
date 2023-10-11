@@ -1,10 +1,19 @@
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
+import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
+import { equalsArrayTransform } from './equals-array';
 
 export const equalsTransform: CubeToParseExpressionTransform = (query) => {
   const { member, values } = query;
+
+  /**
+   * If the member is an array, we need to use the array transform
+   */
+  if (isArrayTypeMember(query.memberInfo.type)) {
+    return equalsArrayTransform(query);
+  }
 
   if (!values || values.length === 0) {
     throw new Error('Equals filter must have at least one value');

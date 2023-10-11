@@ -1,6 +1,18 @@
-export type MeasureType = 'string' | 'time' | 'number' | 'boolean';
+export type MeasureType =
+  | 'string'
+  | 'string_array'
+  | 'time'
+  | 'number'
+  | 'number_array'
+  | 'boolean';
 
-export type DimensionType = 'string' | 'time' | 'number' | 'boolean';
+export type DimensionType =
+  | 'string'
+  | 'string_array'
+  | 'time'
+  | 'number'
+  | 'number_array'
+  | 'boolean';
 
 export type Measure = {
   name: string;

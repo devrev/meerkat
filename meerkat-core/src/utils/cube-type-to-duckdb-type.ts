@@ -9,4 +9,6 @@ export const CUBE_TYPE_TO_DUCKDB_TYPE: {
   number: 'DECIMAL',
   time: 'VARCHAR',
   boolean: 'BOOLEAN',
+  string_array: 'VARCHAR[]',
+  number_array: 'DECIMAL[]',
 };

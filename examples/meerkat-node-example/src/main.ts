@@ -14,7 +14,7 @@ app.use(express.json());
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/api', async (req, res) => {
-  const sql = `SELECT json_serialize_sql('SELECT * FROM T1 ORDER BY VAL ASC, BEL ASC LIMIT 10');`;
+  const sql = `SELECT json_serialize_sql('SELECT * FROM orders WHERE (orders.customer_id = 1) AND 10 != ALL (orders.activities)');`;
   const data = await nodeSQLToSerialization(sql);
   res.json({ message: data });
 });

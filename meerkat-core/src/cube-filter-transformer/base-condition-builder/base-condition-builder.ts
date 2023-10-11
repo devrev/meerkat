@@ -3,6 +3,8 @@ import { Dimension, Measure } from '../../types/cube-types/index';
 import {
   ExpressionClass,
   ExpressionType,
+  QueryNodeType,
+  SubqueryType,
 } from '../../types/duckdb-serialization-types/index';
 import { CUBE_TYPE_TO_DUCKDB_TYPE } from '../../utils/cube-type-to-duckdb-type';
 import { convertFloatToInt, getTypeInfo } from '../../utils/get-type-info';
@@ -29,6 +31,74 @@ export const baseDuckdbCondition = (
       alias: '',
       value: valueBuilder(value, memberInfo),
     },
+  };
+};
+
+export const baseArrayDuckdbCondition = (
+  columnName: string,
+  type: ExpressionType,
+  value: string,
+  memberInfo: Measure | Dimension
+) => {
+  return {
+    class: ExpressionClass.SUBQUERY,
+    type: ExpressionType.SUBQUERY,
+    alias: '',
+    subquery_type: SubqueryType.ANY,
+    subquery: {
+      node: {
+        type: QueryNodeType.SELECT_NODE, //'SELECT_NODE',
+        modifiers: [],
+        cte_map: {
+          map: [],
+        },
+        select_list: [
+          {
+            class: ExpressionClass.FUNCTION,
+            type: ExpressionType.FUNCTION,
+            alias: '',
+            function_name: 'unnest',
+            schema: '',
+            children: [
+              {
+                class: ExpressionClass.COLUMN_REF,
+                type: ExpressionType.COLUMN_REF,
+                alias: '',
+                column_names: columnName.split('.'),
+              },
+            ],
+            filter: null,
+            order_bys: {
+              type: 'ORDER_MODIFIER',
+              orders: [],
+            },
+            distinct: false,
+            is_operator: false,
+            export_state: false,
+            catalog: '',
+          },
+        ],
+        from_table: {
+          type: 'EMPTY',
+          alias: '',
+          sample: null,
+        },
+        where_clause: null,
+        group_expressions: [],
+        group_sets: [],
+        aggregate_handling: 'STANDARD_HANDLING',
+        having: null,
+        sample: null,
+        qualify: null,
+      },
+    },
+    child: {
+      class: 'CONSTANT',
+      type: 'VALUE_CONSTANT',
+      alias: '',
+      value: valueBuilder(value, memberInfo),
+    },
+    comparison_type: type,
   };
 };
 

@@ -1,3 +1,4 @@
+export * from './ast-builder/ast-builder';
 export * from './cube-measure-transformer/cube-measure-transformer';
 export * from './cube-to-duckdb/cube-filter-to-duckdb';
 export * from './meetkat-core';
