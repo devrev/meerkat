@@ -9,14 +9,6 @@ import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
 
 export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
-  const tableKey: string | null = 'base'; //tableKeyFromMeasuresDimension(query);
-  /**
-   * If no table key was found, return null.
-   */
-  if (!tableKey) {
-    return null;
-  }
-
   /**
    * Obviously, if no table schema was found, return null.
    */
