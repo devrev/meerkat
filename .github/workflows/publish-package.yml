@@ -1,12 +1,7 @@
 name: Publish meerkat-library
 
-# on:
-#   push:
-#     branches:
-#       - main
-
 on:
-  pull_request:
+  push:
     branches:
       - main
 
