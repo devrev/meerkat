@@ -1,22 +1,14 @@
-import { Query } from './types/cube-types/query';
-import { TableSchema } from './types/cube-types/table';
-import { SelectNode } from './types/duckdb-serialization-types/serialization/QueryNode';
-import { cubeFilterToDuckdbAST } from './cube-filter-transformer/factory';
-import { cubeDimensionToGroupByAST } from './cube-group-by-transformer/cube-group-by-transformer';
-import { cubeLimitOffsetToAST } from './cube-limit-offset-transformer/cube-limit-offset-transformer';
-import { cubeOrderByToAST } from './cube-order-by-transformer/cube-order-by-transformer';
-import { getBaseAST } from './utils/base-ast';
-import { cubeFiltersEnrichment } from './utils/cube-filter-enrichment';
+import { cubeFilterToDuckdbAST } from '../cube-filter-transformer/factory';
+import { cubeDimensionToGroupByAST } from '../cube-group-by-transformer/cube-group-by-transformer';
+import { cubeLimitOffsetToAST } from '../cube-limit-offset-transformer/cube-limit-offset-transformer';
+import { cubeOrderByToAST } from '../cube-order-by-transformer/cube-order-by-transformer';
+import { Query } from '../types/cube-types/query';
+import { TableSchema } from '../types/cube-types/table';
+import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
+import { getBaseAST } from '../utils/base-ast';
+import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
 
 export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
-  const tableKey: string | null = 'base'; //tableKeyFromMeasuresDimension(query);
-  /**
-   * If no table key was found, return null.
-   */
-  if (!tableKey) {
-    return null;
-  }
-
   /**
    * Obviously, if no table schema was found, return null.
    */
