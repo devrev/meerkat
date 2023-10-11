@@ -6,6 +6,18 @@
     "@devrev/meerkat-core": "*",
     "duckdb": "^0.8.1"
   },
+  "scripts": {
+    "release": "semantic-release"
+  },
+  "release": {
+    "branches": ["main"],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      "@semantic-release/github"
+    ]
+  },
   "type": "commonjs",
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",

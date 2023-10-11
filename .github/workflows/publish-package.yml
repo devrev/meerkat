@@ -1,8 +1,9 @@
 name: Publish rules-library
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
   publish-npm:
@@ -22,17 +23,15 @@ jobs:
       - run: |
           cd ./dist/meerkat-core
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-          npm version ${{ env.RELEASE_TAG }} 
-          npm publish
+          npx semantic-release
       - run: |
           cd ./dist/meerkat-node
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-          npm version ${{ env.RELEASE_TAG }} 
-          npm publish
+          npx semantic-release
       - run: |
           cd ./dist/meerkat-browser
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-          npm version ${{ env.RELEASE_TAG }} 
-          npm publish
+          npx semantic-release
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
