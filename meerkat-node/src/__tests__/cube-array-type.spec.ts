@@ -1,5 +1,5 @@
+import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
 import { duckdbExec } from '../duckdb-exec';
-import { cubeQueryToSQL } from './cube-to-sql';
 
 const SCHEMA = {
   name: 'person',
