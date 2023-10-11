@@ -10,7 +10,7 @@
     "release": "semantic-release"
   },
   "release": {
-    "branches": ["main"],
+    "branches": ["chore/fix-auto-release"],
     "plugins": [
       "@semantic-release/commit-analyzer",
       "@semantic-release/release-notes-generator",
