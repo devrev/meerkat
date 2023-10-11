@@ -47,7 +47,7 @@ export const baseArrayDuckdbCondition = (
     subquery_type: SubqueryType.ANY,
     subquery: {
       node: {
-        type: QueryNodeType.SELECT_NODE, //'SELECT_NODE',
+        type: QueryNodeType.SELECT_NODE,
         modifiers: [],
         cte_map: {
           map: [],
