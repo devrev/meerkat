@@ -1,9 +1,8 @@
 name: Publish meerkat-library
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [published]
 
 jobs:
   publish-npm:
