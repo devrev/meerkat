@@ -1,4 +1,6 @@
-name: Publish rules-library
+name: Publish meerkat-library
+
+permissions: write-all
 
 on:
   release:
