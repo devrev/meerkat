@@ -22,15 +22,14 @@ jobs:
       - run: |
           cd ./dist/meerkat-core
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-          npx semantic-release
+          npm publish
       - run: |
           cd ./dist/meerkat-node
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-          npx semantic-release
+          npm publish
       - run: |
           cd ./dist/meerkat-browser
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-          npx semantic-release
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
