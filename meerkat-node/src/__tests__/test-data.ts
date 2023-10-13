@@ -59,13 +59,34 @@ export const TABLE_SCHEMA = {
       sql: 'product_id',
       type: 'string',
     },
+    {
+      name: 'order_month',
+      sql: `DATE_TRUNC('month', order_date)`,
+      type: 'string',
+    },
   ],
 };
 
 export const TEST_DATA = [
   {
+    testName: 'GroupBySQLInnerQuery',
+    expectedSQL: `SELECT (SUM(order_amount)) AS orders__total_order_amount ,   (DATE_TRUNC('month', order_date)) AS orders__order_month FROM (select * from orders) AS orders GROUP BY orders__order_month LIMIT 1`,
+    cubeInput: {
+      measures: ['orders.total_order_amount'],
+      filters: [],
+      dimensions: ['orders.order_month'],
+      limit: 1,
+    },
+    expectedOutput: [
+      {
+        orders__order_month: '2022-01-01T00:00:00.000Z',
+        orders__total_order_amount: 130,
+      },
+    ],
+  },
+  {
     testName: 'GroupBy',
-    expectedSQL: `SELECT (SUM(order_amount)) AS orders__total_order_amount ,  orders.customer_id AS orders__customer_id FROM (select * from orders) AS orders GROUP BY orders.customer_id`,
+    expectedSQL: `SELECT (SUM(order_amount)) AS orders__total_order_amount ,   (customer_id) AS orders__customer_id FROM (select * from orders) AS orders GROUP BY orders__customer_id`,
     cubeInput: {
       measures: ['orders.total_order_amount'],
       filters: [],
