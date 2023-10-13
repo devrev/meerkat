@@ -31,7 +31,8 @@ export const cubeMeasureToSQLSelectString = (
 
 const addDimensionToSQLProjection = (
   dimensions: Member[],
-  selectString: string
+  selectString: string,
+  tableSchema: TableSchema
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -39,10 +40,19 @@ const addDimensionToSQLProjection = (
   let newSelectString = selectString;
   for (let i = 0; i < dimensions.length; i++) {
     const dimension = dimensions[i];
+    const dimensionKeyWithoutTable = dimension.split('.')[1];
+    const dimensionSchema = tableSchema.dimensions.find(
+      (m) => m.name === dimensionKeyWithoutTable
+    );
+    const aliasKey = memberKeyToSafeKey(dimension);
+
+    if (!dimensionSchema) {
+      continue;
+    }
     if (i > 0) {
       newSelectString += ',';
     }
-    newSelectString += ` ${dimension} AS ${dimension.replace('.', '__')}`;
+    newSelectString += `  (${dimensionSchema.sql}) AS ${aliasKey}`;
   }
   return newSelectString;
 };
@@ -67,7 +77,8 @@ export const applyProjectionToSQLQuery = (
   }
   const selectString = addDimensionToSQLProjection(
     dimensions,
-    measureSelectString
+    measureSelectString,
+    tableSchema
   );
 
   const selectRegex = /SELECT\s\*/;

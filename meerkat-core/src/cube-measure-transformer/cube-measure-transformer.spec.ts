@@ -17,7 +17,14 @@ describe('cubeMeasureToSQLSelectString', () => {
         { name: 'measure1', sql: 'COUNT(*)', type: 'number' },
         { name: 'measure2', sql: 'SUM(total)', type: 'number' },
       ],
-      dimensions: [],
+      dimensions: [
+        { name: 'dimension1', sql: 'dimension1', type: 'number' },
+        {
+          name: 'dimension2',
+          sql: `DATE_TRUNC('month', order_date)`,
+          type: 'number',
+        },
+      ],
     };
   });
 
@@ -78,7 +85,7 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      'SELECT (COUNT(*)) AS temp__measure1 , (SUM(total)) AS temp__measure2 ,  temp.dimension1 AS temp__dimension1, temp.dimension2 AS temp__dimension2 FROM (SELECT * FROM TABLE_1)'
+      `SELECT (COUNT(*)) AS temp__measure1 , (SUM(total)) AS temp__measure2 ,   (dimension1) AS temp__dimension1,  (DATE_TRUNC('month', order_date)) AS temp__dimension2 FROM (SELECT * FROM TABLE_1)`
     );
   });
 });
