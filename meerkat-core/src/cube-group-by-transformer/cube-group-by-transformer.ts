@@ -3,6 +3,7 @@ import {
   ExpressionClass,
   ExpressionType,
 } from '../types/duckdb-serialization-types/serialization/Expression';
+import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeDimensionToGroupByAST = (dimensions: Member[]) => {
   const groupByAST = dimensions.map((dimension) => {
@@ -10,7 +11,7 @@ export const cubeDimensionToGroupByAST = (dimensions: Member[]) => {
       class: ExpressionClass.COLUMN_REF,
       type: ExpressionType.COLUMN_REF,
       alias: '',
-      column_names: [dimension.replace('.', '__')],
+      column_names: [memberKeyToSafeKey(dimension)],
     };
 
     return dimensionAST;

@@ -44,16 +44,15 @@ const addDimensionToSQLProjection = (
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
+    const aliasKey = memberKeyToSafeKey(dimension);
+
     if (!dimensionSchema) {
       continue;
     }
     if (i > 0) {
       newSelectString += ',';
     }
-    newSelectString += `  (${dimensionSchema.sql}) AS ${dimension.replace(
-      '.',
-      '__'
-    )}`;
+    newSelectString += `  (${dimensionSchema.sql}) AS ${aliasKey}}`;
   }
   return newSelectString;
 };
