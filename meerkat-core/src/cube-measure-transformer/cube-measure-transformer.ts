@@ -52,7 +52,7 @@ const addDimensionToSQLProjection = (
     if (i > 0) {
       newSelectString += ',';
     }
-    newSelectString += `  (${dimensionSchema.sql}) AS ${aliasKey}}`;
+    newSelectString += `  (${dimensionSchema.sql}) AS ${aliasKey}`;
   }
   return newSelectString;
 };
