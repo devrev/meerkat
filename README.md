@@ -1,6 +1,6 @@
 # Meerkat
 
-Meerkat is an open-source TypeScript SDK solution that seamlessly converts Cube-like queries to DuckDB queries. Whether you're using a browser or NodeJS, Meerkat delivers a powerful layer of abstraction for executing advanced queries.
+Meerkat is TypeScript SDK solution that seamlessly converts Cube-like queries to DuckDB queries. Whether you're using a browser or NodeJS, Meerkat delivers a powerful layer of abstraction for executing advanced queries.
 
 A major feature of Meerkat is its utilization of DuckDB's Abstract Syntax Tree (AST) and the json_serialize_sql native utility. This is directly employed for two critical operations: serializing and deserializing SQL to JSON. By using this, we can effectively utilize all the features of the DuckDB query language without the need to rely on another query builder like React-query builder.
 
