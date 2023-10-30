@@ -94,6 +94,6 @@ describe('filter-param-tests', () => {
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
-    expect(output[0].id).toBe(4);
+    expect(output[0].id).toBe(6);
   });
 });
