@@ -6,6 +6,7 @@ import {
   applyProjectionToSQLQuery,
   astDeserializerQuery,
   cubeToDuckdbAST,
+  deserializeQuery,
   getFilterParamsAST,
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
@@ -16,9 +17,11 @@ export const cubeQueryToSQL = async (
 ) => {
   const ast = cubeToDuckdbAST(cubeQuery, tableSchema);
 
-  const queryTemp = `SELECT json_deserialize_sql('${JSON.stringify({
-    statements: [ast],
-  })}');`;
+  if (!ast) {
+    throw new Error('Could not generate AST');
+  }
+
+  const queryTemp = astDeserializerQuery(ast);
 
   const queryOutput = await duckdbExec<
     {
@@ -26,9 +29,7 @@ export const cubeQueryToSQL = async (
     }[]
   >(queryTemp);
 
-  const deserializeObj = queryOutput[0];
-  const deserializeKey = Object.keys(deserializeObj)[0];
-  const deserializeQuery = deserializeObj[deserializeKey];
+  const preBaseQuery = deserializeQuery(queryOutput);
 
   const filterParamsAST = getFilterParamsAST(cubeQuery, tableSchema);
   const filterParamsSQL = [];
@@ -44,13 +45,11 @@ export const cubeQueryToSQL = async (
       }[]
     >(astDeserializerQuery(filterParamAST.ast));
 
-    const deserializeObj = queryOutput[0];
-    const deserializeKey = Object.keys(deserializeObj)[0];
-    const deserializeQuery = deserializeObj[deserializeKey];
+    const sql = deserializeQuery(queryOutput);
 
     filterParamsSQL.push({
       memberKey: filterParamAST.memberKey,
-      sql: deserializeQuery,
+      sql: sql,
       matchKey: filterParamAST.matchKey,
     });
   }
@@ -63,7 +62,7 @@ export const cubeQueryToSQL = async (
   /**
    * Replace BASE_TABLE_NAME with cube query
    */
-  const replaceBaseTableName = deserializeQuery.replace(
+  const replaceBaseTableName = preBaseQuery.replace(
     BASE_TABLE_NAME,
     `(${baseQuery}) AS ${tableSchema.name}`
   );

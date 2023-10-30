@@ -5,3 +5,14 @@ export const astDeserializerQuery = (ast: SelectStatement) => {
     statements: [ast],
   })}');`;
 };
+
+export const deserializeQuery = (
+  queryOutput: {
+    [key: string]: string;
+  }[]
+) => {
+  const deserializeObj = queryOutput[0];
+  const deserializeKey = Object.keys(deserializeObj)[0];
+  const deserializeQuery = deserializeObj[deserializeKey];
+  return deserializeQuery;
+};
