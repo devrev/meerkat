@@ -30,6 +30,29 @@ describe('getFilterByMemberKey', () => {
     expect(result).toEqual(expectedOutput);
   });
 
+  it('should return correct filters that match with member key with OR in different key', () => {
+    const filters = [
+      { member: 'memberKey', operator: 'equals', values: ['value1'] },
+      { member: 'differentMember', operator: 'equals', values: ['value1'] },
+      {
+        and: [
+          { member: 'memberKey', operator: 'equals', values: ['value1'] },
+          { member: 'differentMember', operator: 'equals', values: ['value1'] },
+        ],
+      },
+      { or: [{ member: 'memberKey', operator: 'equals', values: ['value1'] }] },
+    ];
+    const expectedOutput = [
+      { member: 'memberKey', operator: 'equals', values: ['value1'] },
+      {
+        and: [{ member: 'memberKey', operator: 'equals', values: ['value1'] }],
+      },
+      { or: [{ member: 'memberKey', operator: 'equals', values: ['value1'] }] },
+    ];
+    const result = getFilterByMemberKey(filters, 'memberKey');
+    expect(result).toEqual(expectedOutput);
+  });
+
   it('should return an empty array when no filters match with member key', () => {
     const filters = [
       { member: 'differentMember', operator: 'equals', values: ['value1'] },
@@ -45,7 +68,11 @@ describe('getFilterByMemberKey', () => {
       },
     ];
     const result = getFilterByMemberKey(filters, 'memberKey');
-    expect(result).toEqual([]);
+    expect(result).toEqual([
+      {
+        and: [],
+      },
+    ]);
   });
 });
 

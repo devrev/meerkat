@@ -1,35 +1,56 @@
 import { cubeToDuckdbAST } from '../ast-builder/ast-builder';
-import { Query, TableSchema } from '../types/cube-types';
+import {
+  LogicalAndFilter,
+  LogicalOrFilter,
+  Query,
+  QueryFilter,
+  TableSchema,
+} from '../types/cube-types';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
-import { isFilterArray, isLogicalAnd, isLogicalOr } from '../utils/type-guards';
 
-type QueryFilters = Query['filters'];
 /**
  * Get the query filter with only where filterKey matches
  */
-export function getFilterByMemberKey(
-  filters: QueryFilters,
+type GenericFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
+const traverseAndFilter = (
+  filter: GenericFilter,
   memberKey: string
-): QueryFilters {
-  if (!filters) return [];
+): GenericFilter | null => {
+  if ('member' in filter) {
+    return filter.member === memberKey ? filter : null;
+  }
 
-  return filters.filter((filter) => {
-    if ('member' in filter) {
-      return filter.member === memberKey;
-    }
-    if (!isFilterArray(filter) && isLogicalAnd(filter)) {
-      return filter.and.some(
-        (tmpFilter) => 'member' in tmpFilter && tmpFilter.member === memberKey
-      );
-    }
-    if (!isFilterArray(filter) && isLogicalOr(filter)) {
-      return filter.or.some(
-        (tmpFilter) => 'member' in tmpFilter && tmpFilter.member === memberKey
-      );
-    }
-    return false;
-  });
-}
+  if ('and' in filter) {
+    const filteredAndFilters = filter.and
+      .map((subFilter) => traverseAndFilter(subFilter, memberKey))
+      .filter(Boolean) as GenericFilter[];
+    const obj =
+      filteredAndFilters.length > 0
+        ? { and: filteredAndFilters }
+        : { and: filteredAndFilters };
+    return obj as LogicalAndFilter;
+  }
+
+  if ('or' in filter) {
+    const filteredOrFilters = filter.or
+      .map((subFilter) => traverseAndFilter(subFilter, memberKey))
+      .filter(Boolean);
+    const obj = filteredOrFilters.length > 0 ? { or: filteredOrFilters } : null;
+    return obj as LogicalOrFilter;
+  }
+
+  return null;
+};
+
+export const getFilterByMemberKey = (
+  filters: GenericFilter[] | undefined,
+  memberKey: string
+): GenericFilter[] => {
+  if (!filters) return [];
+  return filters
+    .map((filter) => traverseAndFilter(filter, memberKey))
+    .filter(Boolean) as GenericFilter[];
+};
 
 /**
  * Syntax for filter params in SQL:
@@ -69,6 +90,7 @@ export const getFilterParamsAST = (
   matchKey: string;
 }[] => {
   const filterParamKeys = detectAllFilterParamsFromSQL(tableSchema.sql);
+  console.info('filterParamKeys', filterParamKeys);
   const filterParamsAST = [];
 
   for (const filterParamKey of filterParamKeys) {
