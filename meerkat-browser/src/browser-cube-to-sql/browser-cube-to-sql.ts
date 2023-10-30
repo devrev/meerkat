@@ -16,6 +16,9 @@ export const cubeQueryToSQL = async (
   tableSchema: TableSchema
 ) => {
   const ast = cubeToDuckdbAST(cubeQuery, tableSchema);
+  if (!ast) {
+    throw new Error('Could not generate AST');
+  }
 
   const queryTemp = astDeserializerQuery(ast);
 
