@@ -53,9 +53,9 @@ export const cubeQueryToSQL = async (
   /**
    * Replace BASE_TABLE_NAME with cube query
    */
-  const replaceBaseTableName = baseQuery.replace(
+  const replaceBaseTableName = preBaseQuery.replace(
     BASE_TABLE_NAME,
-    `(${tableSchema.sql}) AS ${tableSchema.name}`
+    `(${baseQuery}) AS ${tableSchema.name}`
   );
 
   /**
