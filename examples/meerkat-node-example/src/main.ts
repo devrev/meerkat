@@ -26,18 +26,9 @@ app.use((req, res, next) => {
 
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
-app.get('/api/file', (req, res) => {
-  const filePath = path.join(
-    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2019-11.parquet'
-  );
-
-  const fileStream = fs.createReadStream(filePath);
-  fileStream.pipe(res);
-});
-
 app.get('/api/file-1', (req, res) => {
   const filePath = path.join(
-    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2019-11.parquet'
+    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2023-01.parquet'
   );
 
   const fileStream = fs.createReadStream(filePath);
@@ -46,7 +37,25 @@ app.get('/api/file-1', (req, res) => {
 
 app.get('/api/file-2', (req, res) => {
   const filePath = path.join(
-    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2019-11.parquet'
+    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2023-02.parquet'
+  );
+
+  const fileStream = fs.createReadStream(filePath);
+  fileStream.pipe(res);
+});
+
+app.get('/api/file-3', (req, res) => {
+  const filePath = path.join(
+    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2023-03.parquet'
+  );
+
+  const fileStream = fs.createReadStream(filePath);
+  fileStream.pipe(res);
+});
+
+app.get('/api/file-4', (req, res) => {
+  const filePath = path.join(
+    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2023-04.parquet'
   );
 
   const fileStream = fs.createReadStream(filePath);

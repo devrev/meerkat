@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import NxWelcome from './nx-welcome';
 
 import * as duckdb from '@duckdb/duckdb-wasm';
-import axios from 'axios';
+import { fileLoadingBenchmark } from './benchmarking/file-loading';
 
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 let didAlreadyRender = false;
@@ -34,18 +34,17 @@ export function App() {
       console.log(`DuckDB-wasm took ${end - start} milliseconds to load`);
       const c = await db.connect();
 
-      const output = await c.query('SELECT 42');
-      console.log('output', output);
+      await fileLoadingBenchmark(db);
 
-      const file: any = await axios({
-        method: 'get',
-        url: 'http://localhost:3333/api/file',
-        responseType: 'arraybuffer',
-      });
+      // const output = await c.query('SELECT 42');
+      // console.log('output', output);
 
-      // await db.collectFileStatistics('taxi.parquet', true);
-
-      await db.registerFileBuffer('taxi.parquet', new Uint8Array(file.data));
+      // const file: any = await axios({
+      //   method: 'get',
+      //   url: 'http://localhost:3333/api/file',
+      //   responseType: 'arraybuffer',
+      // });
+      // await db.registerFileBuffer('taxi.parquet', new Uint8Array(file.data));
 
       // await db.collectFileStatistics('taxi.parquet', true);
 
@@ -58,20 +57,20 @@ export function App() {
       // console.info('p1', p1);
       // await c.query('DROP TABLE IF EXISTS taxi');
       // await c.query('DROP TABLE IF EXISTS taxi.parquet');
-      const queryStart = performance.now();
-      const arrowResult = await c.query(
-        `SELECT CAST(count(*) as VARCHAR) as total_count FROM taxi.parquet`
-      );
-      const queryEnd = performance.now();
-      console.log(
-        `DuckDB-wasm took ${queryEnd - queryStart} milliseconds to query`
-      );
-      const parsedOutputQuery = arrowResult
-        .toArray()
-        .map((row) => row.toJSON());
-      console.info('parsedOutputQuery', parsedOutputQuery);
+      // const queryStart = performance.now();
+      // const arrowResult = await c.query(
+      //   `SELECT CAST(count(*) as VARCHAR) as total_count FROM taxi.parquet`
+      // );
+      // const queryEnd = performance.now();
+      // console.log(
+      //   `DuckDB-wasm took ${queryEnd - queryStart} milliseconds to query`
+      // );
+      // const parsedOutputQuery = arrowResult
+      //   .toArray()
+      //   .map((row) => row.toJSON());
+      // console.info('parsedOutputQuery', parsedOutputQuery);
 
-      await db.dropFile('taxi.parquet');
+      // await db.dropFile('taxi.parquet');
 
       // await c.close();
 
@@ -81,19 +80,19 @@ export function App() {
       // const ar2 = await c.query('.files');
       // const p2 = ar2.toArray().map((row) => row.toJSON());
       // console.info('p1', p2);
-      await db.reset();
+      // await db.reset();
       // await db.terminate();
       // await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 
-      const start1 = performance.now();
-      const worker1 = new Worker(worker_url);
+      // const start1 = performance.now();
+      // const worker1 = new Worker(worker_url);
 
-      const db1 = new duckdb.AsyncDuckDB(logger, worker1);
-      await db1.instantiate(bundle.mainModule, bundle.pthreadWorker);
-      const end1 = performance.now();
-      console.log(`DuckDB-wasm took ${end1 - start1} milliseconds to load`);
-      // file = null;
-      console.info('Dropped the file');
+      // const db1 = new duckdb.AsyncDuckDB(logger, worker1);
+      // await db1.instantiate(bundle.mainModule, bundle.pthreadWorker);
+      // const end1 = performance.now();
+      // console.log(`DuckDB-wasm took ${end1 - start1} milliseconds to load`);
+      // // file = null;
+      // console.info('Dropped the file');
       // await db.reset();
 
       // // eslint-disable-next-line @typescript-eslint/ban-ts-comment
