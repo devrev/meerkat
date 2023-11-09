@@ -172,4 +172,13 @@ describe('applyFilterParamsToBaseSQL function', () => {
     ];
     expect(applyFilterParamsToBaseSQL(baseSQL, filterParamsSQL)).toBe(baseSQL);
   });
+
+  it('Should handle the case if the filter params is not getting replaced filterParamsSQL with true', () => {
+    const baseSQL =
+      "SELECT * FROM orders WHERE ${FILTER_PARAMS.order_facts.date.filter('date')}";
+    const filterParamsSQL = [];
+
+    const expected = 'SELECT * FROM orders WHERE TRUE';
+    expect(applyFilterParamsToBaseSQL(baseSQL, filterParamsSQL)).toBe(expected);
+  });
 });
