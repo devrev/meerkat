@@ -90,7 +90,6 @@ export const getFilterParamsAST = (
   matchKey: string;
 }[] => {
   const filterParamKeys = detectAllFilterParamsFromSQL(tableSchema.sql);
-  console.info('filterParamKeys', filterParamKeys);
   const filterParamsAST = [];
 
   for (const filterParamKey of filterParamKeys) {
@@ -131,6 +130,13 @@ export const applyFilterParamsToBaseSQL = (
      * Replace filter param with SQL expression
      */
     finalSQL = finalSQL.replace(filterParam.matchKey, whereClause);
+  }
+  /**
+   * Find all remaining filter params and replace them with TRUE
+   */
+  const remainingFilterParams = detectAllFilterParamsFromSQL(finalSQL);
+  for (const filterParam of remainingFilterParams) {
+    finalSQL = finalSQL.replace(filterParam.matchKey, 'TRUE');
   }
   return finalSQL;
 };
