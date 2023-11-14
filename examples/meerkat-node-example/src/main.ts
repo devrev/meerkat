@@ -28,7 +28,7 @@ app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/api/file-1', (req, res) => {
   const filePath = path.join(
-    '/Users/nikhiltalwar/Workspace/devrev/meerkat/examples/meerkat-node-example/data/fhvhv_tripdata_2023-01.parquet'
+    '/home/madhav/devrev/meerkat/examples/meerkat-node-example/data/mixjs.parquet'
   );
 
   const fileStream = fs.createReadStream(filePath);

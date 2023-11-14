@@ -4,7 +4,9 @@
   "scripts": {},
   "private": true,
   "dependencies": {
+    "@carlop/duckdb-wasm": "^1.13.0",
     "@duckdb/duckdb-wasm": "^1.28.0",
+    "@kunal-mohta/duckdb-wasm": "1.11.7",
     "@nx/next": "16.8.1",
     "@swc/helpers": "~0.5.0",
     "axios": "^1.6.0",
