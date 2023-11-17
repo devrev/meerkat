@@ -19,9 +19,9 @@ export class DBM {
   }[] = [];
   private queryQueueRunning = false;
 
-  constructor(props: DBMConstructorOptions) {
-    this.fileManager = props.fileManager;
-    this.db = props.db;
+  constructor({ fileManager, db }: DBMConstructorOptions) {
+    this.fileManager = fileManager;
+    this.db = db;
   }
 
   private async _getConnection() {
