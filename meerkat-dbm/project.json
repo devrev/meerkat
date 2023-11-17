@@ -1,0 +1,44 @@
+{
+  "name": "meerkat-dbm",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "meerkat-dbm/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/meerkat-dbm",
+        "main": "meerkat-dbm/src/index.ts",
+        "tsConfig": "meerkat-dbm/tsconfig.lib.json",
+        "assets": ["meerkat-dbm/*.md"]
+      }
+    },
+    "publish": {
+      "command": "node tools/scripts/publish.mjs meerkat-dbm {args.ver} {args.tag}",
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["meerkat-dbm/**/*.ts", "meerkat-dbm/package.json"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "meerkat-dbm/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    }
+  },
+  "tags": []
+}
