@@ -6,18 +6,18 @@ export interface DBMConstructorOptions {
   db: AsyncDuckDB;
 }
 export class DBM {
-  fileManager: FileManagerType;
-  db: AsyncDuckDB;
-  connection: AsyncDuckDBConnection | null = null;
-  queriesQueue: {
+  private fileManager: FileManagerType;
+  private db: AsyncDuckDB;
+  private connection: AsyncDuckDBConnection | null = null;
+  private queriesQueue: {
     query: string;
     tableNames: string[];
     promise: {
-      resolve: (value: any) => any;
-      reject: (reason?: any) => any;
+      resolve: (value: any) => void;
+      reject: (reason?: any) => void;
     };
   }[] = [];
-  queryQueueRunning = false;
+  private queryQueueRunning = false;
 
   constructor(props: DBMConstructorOptions) {
     this.fileManager = props.fileManager;
