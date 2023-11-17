@@ -18,10 +18,14 @@ export class MemoryDBFileManager implements FileManagerType {
     const promiseArr = props.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
     );
-    await Promise.all(promiseArr);
+    console.info('bulkRegisterFileBuffer', promiseArr);
+    const output = await Promise.all(promiseArr);
+    console.info('bulkRegisterFileBuffer done', output);
+    console.info('bulkRegisterFileBuffer done', promiseArr);
   }
 
   registerFileBuffer(props: FileBufferStore): Promise<void> {
+    console.info('registerFileBuffer', props);
     return this.db.registerFileBuffer(props.fileName, props.buffer);
   }
 
