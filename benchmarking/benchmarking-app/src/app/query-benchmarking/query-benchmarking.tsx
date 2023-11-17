@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useClassicEffect, useDBM } from '../dbm-context/dbm-context';
+import { useDBM } from '../hooks/dbm-context';
+import { useClassicEffect } from '../hooks/use-classic-effect';
 
 export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
