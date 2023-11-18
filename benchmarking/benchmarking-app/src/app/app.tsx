@@ -12,6 +12,7 @@ export function App() {
           path="/raw-dbm"
           element={
             <div>
+              <h1>Raw DuckDB</h1>
               <RawDBMProvider>
                 <FileLoader>
                   <QueryBenchmarking />
@@ -24,6 +25,8 @@ export function App() {
           path="/memory-dbm"
           element={
             <div>
+              <h1>In Memory Sequence DuckDB</h1>
+
               <MemoryDBMProvider>
                 <FileLoader>
                   <QueryBenchmarking />

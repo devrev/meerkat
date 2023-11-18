@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
@@ -9,14 +9,16 @@ export const QueryBenchmarking = () => {
       time: number;
     }[]
   >([]);
+  const [totalTime, setTotalTime] = useState<number>(0);
   const { dbm } = useDBM();
 
   useClassicEffect(() => {
+    setTotalTime(0);
     const testQueries = [
-      'SELECT * as total_count FROM taxi.parquet ORDER BY bcf LIMIT 100',
       'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet',
       "SELECT * FROM taxi.parquet WHERE originating_base_num='B03404' LIMIT 100",
       'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet GROUP BY hvfhs_license_num',
+      'SELECT * as total_count FROM taxi.parquet ORDER BY bcf LIMIT 100',
       `
       WITH group_by_query AS (
         SELECT 
@@ -48,21 +50,29 @@ export const QueryBenchmarking = () => {
     ];
 
     setOutput([]);
-
+    const promiseArr = [];
+    const start = performance.now();
     for (let i = 0; i < testQueries.length; i++) {
-      const start = performance.now();
+      const eachQueryStart = performance.now();
 
-      dbm
+      const promiseObj = dbm
         .queryWithTableNames(testQueries[i], ['taxi.parquet'])
         .then((results) => {
           const end = performance.now();
-          const time = end - start;
+          const time = end - eachQueryStart;
           setOutput((prev) => [
             ...prev,
             { queryName: `Query ${i} ---->`, time },
           ]);
         });
+
+      promiseArr.push(promiseObj);
     }
+    Promise.all(promiseArr).then(() => {
+      const end = performance.now();
+      const time = end - start;
+      setTotalTime(time);
+    });
   }, []);
 
   return (
@@ -74,6 +84,16 @@ export const QueryBenchmarking = () => {
           </div>
         );
       })}
+      {totalTime === 0 && (
+        <div>
+          <span>Query Running...</span>
+        </div>
+      )}
+      {totalTime > 0 && (
+        <div>
+          Total Time: <span id="total_time">{totalTime}</span>
+        </div>
+      )}
     </div>
   );
 };
