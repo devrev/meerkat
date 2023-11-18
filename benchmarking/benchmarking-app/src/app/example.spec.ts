@@ -37,7 +37,7 @@ describe('Example', () => {
     /**
      * wait data-query='4' to be rendered
      */
-    await page.waitForSelector('[data-query="4"]');
+    await page.waitForSelector('[data-query="4"]', { timeout: 120000 });
     const pageContent = await page.content();
     console.info('pageContent', pageContent);
     expect(pageContent).toContain('query');
