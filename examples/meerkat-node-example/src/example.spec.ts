@@ -39,6 +39,7 @@ describe('Example', () => {
      */
     await page.waitForSelector('[data-query="3"]');
     const pageContent = await page.content();
+    console.info('pageContent', pageContent);
     expect(pageContent).toContain('query');
   }, 30000);
 
