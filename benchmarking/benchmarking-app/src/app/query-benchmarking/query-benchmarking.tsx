@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
@@ -39,9 +39,9 @@ export const QueryBenchmarking = () => {
 
   return (
     <div>
-      {output.map((o) => {
+      {output.map((o, i) => {
         return (
-          <div key={o.queryName}>
+          <div data-query={`${i}`} key={o.queryName}>
             {o.queryName} : {o.time}
           </div>
         );
