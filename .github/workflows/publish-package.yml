@@ -31,5 +31,11 @@ jobs:
           cd ./dist/meerkat-browser
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
           npm publish
+
+      - run: |
+          cd ./dist/meerkat-dbm
+          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          npm publish
+          
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}
