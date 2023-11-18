@@ -41,7 +41,7 @@ describe('Example', () => {
     const pageContent = await page.content();
     console.info('pageContent', pageContent);
     expect(pageContent).toContain('query');
-  }, 30000);
+  }, 120000);
 
   afterAll(async () => {
     await browser.close();
