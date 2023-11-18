@@ -1,7 +1,8 @@
+import axios from 'axios';
 import { spawn } from 'child_process';
 import * as puppeteer from 'puppeteer';
 
-describe('Example', () => {
+describe('Example-1', () => {
   let page;
   let browser;
   let appProcess;
@@ -15,8 +16,8 @@ describe('Example', () => {
     let serverStarted = false;
     while (!serverStarted) {
       try {
-        const response = await fetch('http://localhost:4200'); // Replace with your server's URL
-        if (response.ok) {
+        const response = await axios.get('http://localhost:4200'); // Replace with your server's URL
+        if (response.status === 200) {
           serverStarted = true;
         } else {
           await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
@@ -25,7 +26,6 @@ describe('Example', () => {
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
       }
     }
-
     browser = await puppeteer.launch({
       headless: 'new',
     });
@@ -37,7 +37,7 @@ describe('Example', () => {
     /**
      * wait data-query='4' to be rendered
      */
-    await page.waitForSelector('[data-query="3"]');
+    await page.waitForSelector('[data-query="4"]');
     const pageContent = await page.content();
     console.info('pageContent', pageContent);
     expect(pageContent).toContain('query');
