@@ -16,7 +16,7 @@ describe('Benchmarking DBMs', () => {
     let serverStarted = false;
     while (!serverStarted) {
       try {
-        const response = await axios.get('http://localhost:4200'); // Replace with your server's URL
+        const response = await axios.get('http://localhost:4200');
         if (response.status === 200) {
           serverStarted = true;
         } else {
