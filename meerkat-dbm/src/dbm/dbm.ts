@@ -77,10 +77,12 @@ export class DBM {
         query.tableNames
       );
 
+      const responseData = result.toArray().map((row) => row.toJSON());
+
       /**
        * Resolve the promise
        */
-      query.promise.resolve(result);
+      query.promise.resolve(responseData);
     } catch (error) {
       /**
        * Reject the promise, so the caller can catch the error
