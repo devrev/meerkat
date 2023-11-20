@@ -12,7 +12,7 @@ export interface FileBufferStore {
 export interface FileManagerType {
   bulkRegisterFileBuffer: (props: FileBufferStore[]) => Promise<void>;
   registerFileBuffer: (props: FileBufferStore) => Promise<void>;
-  getFileBuffer: (name: string) => Promise<Uint8Array>;
+  getFileBuffer: (name: string) => Promise<Uint8Array | undefined>;
   mountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
   unmountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
 }
