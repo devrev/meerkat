@@ -1,5 +1,5 @@
 import Dexie from 'dexie';
-import { Dataset, File } from './types';
+import { Dataset, File } from '../file-manager-type';
 
 export class DuckDBDatabase extends Dexie {
   datasets: Dexie.Table<Dataset, string>;
@@ -10,12 +10,10 @@ export class DuckDBDatabase extends Dexie {
 
     this.version(1).stores({
       datasets: '&tableName, files, size, metadata',
-      files: '&fileName, buffer, metadata',
+      files: '&fileName, metadata',
     });
 
     this.datasets = this.table('datasets');
     this.files = this.table('files');
   }
 }
-
-export const indexedDuckDB = new DuckDBDatabase();
