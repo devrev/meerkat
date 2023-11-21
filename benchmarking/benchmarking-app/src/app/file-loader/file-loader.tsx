@@ -21,12 +21,6 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         buffer: fileBufferView,
       });
 
-      // await fileManager.registerFileBuffer({
-      //   tableName: 'taxi',
-      //   fileName: 'taxi123.parquet',
-      //   buffer: fileBufferView,
-      // });
-
       setIsFileLoader(true);
     })();
   }, []);

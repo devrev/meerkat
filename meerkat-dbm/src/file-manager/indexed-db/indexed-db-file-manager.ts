@@ -16,6 +16,7 @@ export class IndexedDBFileManager implements FileManagerType {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.db = db;
     this._openDatabase();
+
   }
 
   // Initialize the IndexedDB database
@@ -23,7 +24,7 @@ export class IndexedDBFileManager implements FileManagerType {
     this.indexedDB = new DuckDBDatabase();
 
     // Clear the database when initialized
-    this._flushDB();
+    // this._flushDB();
   }
 
   // Clear all data from the IndexedDB database
@@ -40,9 +41,7 @@ export class IndexedDBFileManager implements FileManagerType {
       this.registerFileBuffer(fileBuffer)
     );
 
-    const output = await Promise.all(promiseArr);
-
-    console.info('bulkRegisterFileBuffer done', output);
+    await Promise.all(promiseArr);
   }
 
   // Register a single file buffer
@@ -51,6 +50,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
     const { buffer, fileName, ...fileData } = props;
 
+    // Check if indexedDB is initialized then write the file info in indexedDB
     if (this.indexedDB) {
       const tableData = await this.indexedDB.datasets.get(fileData.tableName);
 
@@ -79,7 +79,7 @@ export class IndexedDBFileManager implements FileManagerType {
     }
 
     // Register the file buffer with the DuckDB instance
-    return this.db.registerFileBuffer(props.fileName, props.buffer);
+    return this.db.registerFileBuffer(fileName, buffer);
   }
 
   // Retrieve a file buffer from indexedDB
@@ -94,30 +94,43 @@ export class IndexedDBFileManager implements FileManagerType {
   async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
     if (!this.indexedDB) throw new Error('indexedDB is not initialized');
 
-    const promiseArr = tableNames.map(async (tableName) => {
+    for (const tableName of tableNames) {
       // Retrieve table data from indexedDB
       const tableData = await this.indexedDB?.datasets.get(tableName);
 
-      await Promise.all(
-        // Retrieve file buffers from indexedDB and register them in DuckDB
+      // Retrieve file buffers from indexedDB and register them in DuckDB
+      const promiseArr =
         tableData?.files.map(async (file) => {
           const fileData = await this.indexedDB?.files.get(file.fileName);
 
-          if (fileData)
-            return this.db.registerFileBuffer(tableName, fileData.buffer);
-        }) || []
-      );
-    });
+          if (fileData) {
+            await this.db.registerFileBuffer(
+              fileData.fileName,
+              fileData.buffer
+            );
+          }
+        }) || [];
 
-    await Promise.all(promiseArr);
+      await Promise.all(promiseArr);
+    }
   }
 
   // Unmount file buffers by table names
   async unmountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-    const promiseArr = tableNames.map((tableName) =>
-      this.db.registerEmptyFileBuffer(tableName)
-    );
+    if (!this.indexedDB) throw new Error('indexedDB is not initialized');
 
-    await Promise.all(promiseArr);
+    for (const tableName of tableNames) {
+      // Retrieve table data from indexedDB
+      const tableData = await this.indexedDB?.datasets.get(tableName);
+
+      // unregister file buffers from DuckDB
+      const promiseArr =
+        tableData?.files.map(async (file) =>
+          this.db.registerEmptyFileBuffer(file.fileName)
+        ) || [];
+
+      await Promise.all(promiseArr);
+    }
+
   }
 }

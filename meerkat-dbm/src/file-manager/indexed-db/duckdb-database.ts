@@ -9,7 +9,7 @@ export class DuckDBDatabase extends Dexie {
     super('DuckDBDatabase');
 
     this.version(1).stores({
-      datasets: '&tableName, files, size, metadata',
+      datasets: '&tableName, files, metadata',
       files: '&fileName, metadata',
     });
 

@@ -29,7 +29,7 @@ export interface Dataset {
   metadata?: object;
 }
 
-interface FileData {
+export interface FileData {
   fileName: string;
   staleTime?: number;
   cacheTime?: number;

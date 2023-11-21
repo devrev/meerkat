@@ -31,9 +31,7 @@ export const IndexedDBMProvider = ({ children }: { children: JSX.Element }) => {
     /**
      * Making the queryWithTableNames simply run the queries without sequence which is the default behavior
      */
-    dbm.queryWithTableNames = async (query, tableNames) => {
-      return dbm.query(query);
-    };
+
     setdbm(dbm);
   }, [dbState]);
 
