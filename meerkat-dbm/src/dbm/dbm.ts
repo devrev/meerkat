@@ -35,11 +35,7 @@ export class DBM {
     /**
      * Load all the files into the database
      */
-    if (
-      query ===
-      'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet'
-    )
-      await this.fileManager.mountFileBufferByTableNames(tableNames);
+    await this.fileManager.mountFileBufferByTableNames(tableNames);
 
     /**
      * Execute the query
