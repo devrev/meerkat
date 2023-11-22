@@ -36,7 +36,10 @@ export class IndexedDBFileManager implements FileManagerType {
    * Register a file buffer in both datasets and files table in IndexedDB
    */
   private async _registerFileInIndexedDB(file: FileBufferStore) {
-    if (!this.indexedDB) console.error('indexedDB is not initialized');
+    if (!this.indexedDB) {
+      console.error('indexedDB is not initialized');
+      return;
+    }
 
     const { buffer, fileName, tableName, ...fileData } = file;
 
