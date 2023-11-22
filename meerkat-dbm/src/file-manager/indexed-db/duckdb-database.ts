@@ -2,7 +2,6 @@ import Dexie from 'dexie';
 import { File, Table } from '../file-manager-type';
 
 export class DuckDBDatabase extends Dexie {
-  // tables is a reserved word in Dexie so we use datasets instead
   datasets: Dexie.Table<Table, string>;
   files: Dexie.Table<File, string>;
 
