@@ -37,7 +37,7 @@ export function App() {
           }
         />
         <Route
-          path="/indexeddb-dbm"
+          path="/indexed-dbm"
           element={
             <div>
               <h1>IndexedDB DuckDB</h1>

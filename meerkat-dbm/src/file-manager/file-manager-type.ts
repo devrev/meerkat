@@ -22,7 +22,7 @@ export interface FileManagerConstructorOptions {
   db: AsyncDuckDB;
 }
 
-export interface Dataset {
+export interface Table {
   tableName: string;
   files: FileData[];
   size?: number;

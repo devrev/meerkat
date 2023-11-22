@@ -24,13 +24,11 @@ export const IndexedDBMProvider = ({ children }: { children: JSX.Element }) => {
         return [];
       },
     });
+
     const dbm = new DBM({
       db: dbState,
       fileManager: fileManagerRef.current,
     });
-    /**
-     * Making the queryWithTableNames simply run the queries without sequence which is the default behavior
-     */
 
     setdbm(dbm);
   }, [dbState]);
