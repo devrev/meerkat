@@ -36,7 +36,6 @@ export interface FileData {
   metadata?: object;
 }
 
-// Files table interface
 export interface File {
   fileName: string;
   buffer: Uint8Array;

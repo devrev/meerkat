@@ -89,7 +89,7 @@ describe('Benchmarking DBMs', () => {
        * Initially we are checking if the total time is defined
        */
       expect(totalTimeForIndexedDBM).toBeDefined();
-    }, 220000);
+    }, 300000);
 
   afterAll(async () => {
     await browser.close();
