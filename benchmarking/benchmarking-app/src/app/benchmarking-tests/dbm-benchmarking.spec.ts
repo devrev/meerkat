@@ -7,6 +7,8 @@ describe('Benchmarking DBMs', () => {
   let browser;
   let appProcess;
 
+  let totalTimeForMemoryDB: number;
+
   beforeAll(async () => {
     appProcess = spawn('npx', ['nx', 'serve', 'benchmarking-app'], {
       stdio: 'inherit',
@@ -58,7 +60,7 @@ describe('Benchmarking DBMs', () => {
     /**
      * Get the total time as number
      */
-    const totalTimeForMemoryDB = await page.$eval('#total_time', (el) =>
+    totalTimeForMemoryDB = await page.$eval('#total_time', (el) =>
       Number(el.textContent)
     );
 
@@ -70,26 +72,26 @@ describe('Benchmarking DBMs', () => {
     expect(totalTimeForRawDB).toBeLessThan(totalTimeForMemoryDB * 1.1);
   }, 220000);
 
-    it('Benchmark indexed dbm duckdb', async () => {
-      await page.goto('http://localhost:4200/indexed-dbm');
-      /**
-       * wait for total time to be render
-       */
-      await page.waitForSelector('#total_time', { timeout: 300000 });
-      /**
-       * Get the total time as number
-       */
-      const totalTimeForIndexedDBM = await page.$eval('#total_time', (el) =>
-        Number(el.textContent)
-      );
+  it('Benchmark indexed dbm duckdb', async () => {
+    await page.goto('http://localhost:4200/indexed-dbm');
+    /**
+     * wait for total time to be render
+     */
+    await page.waitForSelector('#total_time', { timeout: 300000 });
+    /**
+     * Get the total time as number
+     */
+    const totalTimeForIndexedDBM = await page.$eval('#total_time', (el) =>
+      Number(el.textContent)
+    );
 
-      console.info('totalTimeForIndexedDBM', totalTimeForIndexedDBM);
+    console.info('totalTimeForIndexedDBM', totalTimeForIndexedDBM);
 
-      /**
-       * Initially we are checking if the total time is defined
-       */
-      expect(totalTimeForIndexedDBM).toBeDefined();
-    }, 300000);
+    /**
+     * The total diff between indexed dbm and memory dbm should be less than 30%
+     */
+    expect(totalTimeForIndexedDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
+  }, 300000);
 
   afterAll(async () => {
     await browser.close();

@@ -22,15 +22,23 @@ export interface FileManagerConstructorOptions {
   db: AsyncDuckDB;
 }
 
+export const FILE_TYPES = {
+  PARQUET: 'parquet',
+} as const;
+
+export type FileType = (typeof FILE_TYPES)[keyof typeof FILE_TYPES];
+
 export interface Table {
   tableName: string;
   files: FileData[];
-  size?: number;
+  totalSize?: number;
   metadata?: object;
 }
 
 export interface FileData {
   fileName: string;
+  fileType?: FileType;
+  size?: number;
   staleTime?: number;
   cacheTime?: number;
   metadata?: object;

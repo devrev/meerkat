@@ -1,5 +1,6 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
+import { FILE_TYPES } from '../file-manager-type';
 import { DuckDBDatabase } from './duckdb-database';
 import { IndexedDBFileManager } from './indexed-db-file-manager';
 
@@ -29,6 +30,7 @@ describe('IndexedDBFileManager', () => {
     tableName: 'taxi1',
     fileName: 'taxi1.parquet',
     buffer: new Uint8Array([1, 2, 3]),
+    fileType: FILE_TYPES.PARQUET,
   };
 
   const fileBuffers = [
@@ -36,11 +38,13 @@ describe('IndexedDBFileManager', () => {
       tableName: 'taxi1',
       fileName: 'taxi2.parquet',
       buffer: new Uint8Array([1, 2, 3, 4]),
+      fileType: FILE_TYPES.PARQUET,
     },
     {
       tableName: 'taxi2',
       fileName: 'taxi3.parquet',
       buffer: new Uint8Array([1, 2, 3, 4, 5]),
+      fileType: FILE_TYPES.PARQUET,
     },
   ];
 
@@ -50,7 +54,7 @@ describe('IndexedDBFileManager', () => {
     db = mockDB;
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     indexedDB = new DuckDBDatabase();
     fileManager = new IndexedDBFileManager({
       fetchTableFileBuffers: async () => {
@@ -58,6 +62,8 @@ describe('IndexedDBFileManager', () => {
       },
       db,
     });
+
+    await fileManager.initializeDB();
   });
 
   it('should register file buffers', async () => {
@@ -65,16 +71,16 @@ describe('IndexedDBFileManager', () => {
     await fileManager.registerFileBuffer(fileBuffer);
 
     // Fetch the stored data in the indexedDB
-    const datasetData1 = await indexedDB.datasets.toArray();
+    const tableData1 = await indexedDB.tablesKey.toArray();
     const fileBufferData1 = await indexedDB.files.toArray();
 
     /**
-     * There should be one dataset with the table name 'taxi1' and one file buffer with the file name 'taxi1.parquet'
+     * There should be one table with the table name 'taxi1' and one file buffer with the file name 'taxi1.parquet'
      */
-    expect(datasetData1.length).toBe(1);
-    expect(datasetData1[0]).toEqual({
+    expect(tableData1.length).toBe(1);
+    expect(tableData1[0]).toEqual({
       tableName: 'taxi1',
-      files: [{ fileName: fileBuffer.fileName }],
+      files: [{ fileName: fileBuffer.fileName, fileType: FILE_TYPES.PARQUET }],
     });
 
     /**
@@ -85,15 +91,15 @@ describe('IndexedDBFileManager', () => {
     // Bulk register file buffers
     await fileManager.bulkRegisterFileBuffer(fileBuffers);
 
-    const datasetData2 = await indexedDB.datasets.toArray();
+    const tableData2 = await indexedDB.tablesKey.toArray();
     const fileBufferData2 = await indexedDB.files.toArray();
 
     /**
-     * There should be two datasets
-     * The first taxi1 dataset should have two file buffers
+     * There should be two tablesKey
+     * The first taxi1 table should have two file buffers
      */
-    expect(datasetData2.length).toBe(2);
-    expect(datasetData2[0].files.map((file) => file.fileName)).toEqual([
+    expect(tableData2.length).toBe(2);
+    expect(tableData2[0].files.map((file) => file.fileName)).toEqual([
       'taxi1.parquet',
       'taxi2.parquet',
     ]);
@@ -110,13 +116,13 @@ describe('IndexedDBFileManager', () => {
 
   it('should flush the database when initialized', async () => {
     // Fetch the stored data in the indexedDB
-    const datasetData = await indexedDB.datasets.toArray();
+    const tableData = await indexedDB.tablesKey.toArray();
     const fileBufferData = await indexedDB.files.toArray();
 
     /**
-     * There should be no datasets and no file buffers
+     * There should be no tablesKey and no file buffers
      */
-    expect(datasetData.length).toBe(0);
+    expect(tableData.length).toBe(0);
     expect(fileBufferData.length).toBe(0);
   });
 
@@ -124,7 +130,7 @@ describe('IndexedDBFileManager', () => {
     // Register single file buffer
     await fileManager.registerFileBuffer(fileBuffer);
 
-    const datasetData = await indexedDB.datasets.toArray();
+    const tableData = await indexedDB.tablesKey.toArray();
     const fileBufferData1 = await indexedDB.files.toArray();
 
     /**
@@ -142,10 +148,10 @@ describe('IndexedDBFileManager', () => {
     const fileBufferData2 = await indexedDB.files.toArray();
 
     /**
-     * There should be one dataset with one file buffer
+     * There should be one table with one file buffer
      */
-    expect(datasetData.length).toBe(1);
-    expect(datasetData[0].files.length).toBe(1);
+    expect(tableData.length).toBe(1);
+    expect(tableData[0].files.length).toBe(1);
 
     /**
      * There should be one file buffer, the buffer should be updated to the new buffer

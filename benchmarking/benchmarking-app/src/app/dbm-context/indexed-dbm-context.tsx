@@ -1,15 +1,11 @@
-import {
-  DBM,
-  FileManagerType,
-  IndexedDBFileManager,
-} from '@devrev/meerkat-dbm';
+import { DBM, IndexedDBFileManager } from '@devrev/meerkat-dbm';
 import React, { useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
 export const IndexedDBMProvider = ({ children }: { children: JSX.Element }) => {
-  const fileManagerRef = React.useRef<FileManagerType | null>(null);
+  const fileManagerRef = React.useRef<IndexedDBFileManager | null>(null);
   const [dbm, setdbm] = useState<DBM | null>(null);
 
   const dbState = useAsyncDuckDB();
@@ -24,6 +20,8 @@ export const IndexedDBMProvider = ({ children }: { children: JSX.Element }) => {
         return [];
       },
     });
+
+    fileManagerRef.current.initializeDB();
 
     const dbm = new DBM({
       db: dbState,

@@ -1,19 +1,24 @@
 import Dexie from 'dexie';
 import { File, Table } from '../file-manager-type';
 
+/**
+ * We don't need to specify the buffer field for index
+ * https://dexie.org/docs/Version/Version.stores()#warning
+ */
+
 export class DuckDBDatabase extends Dexie {
-  datasets: Dexie.Table<Table, string>;
+  tablesKey: Dexie.Table<Table, string>;
   files: Dexie.Table<File, string>;
 
   constructor() {
     super('DuckDBDatabase');
 
     this.version(1).stores({
-      datasets: '&tableName, files',
+      tablesKey: '&tableName',
       files: '&fileName',
     });
 
-    this.datasets = this.table('datasets');
+    this.tablesKey = this.table('tablesKey');
     this.files = this.table('files');
   }
 }
