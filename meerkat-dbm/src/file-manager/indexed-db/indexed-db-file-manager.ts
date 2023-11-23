@@ -1,14 +1,15 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
+import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
 import {
   FileBufferStore,
   FileManagerConstructorOptions,
   FileManagerType,
+  Table,
 } from '../file-manager-type';
 import { DuckDBDatabase } from './duckdb-database';
-
-
 export class IndexedDBFileManager implements FileManagerType {
   private indexedDB: DuckDBDatabase;
+  private tables: Map<string, Table>;
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   db: AsyncDuckDB;
@@ -17,6 +18,7 @@ export class IndexedDBFileManager implements FileManagerType {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.db = db;
     this.indexedDB = new DuckDBDatabase();
+    this.tables = new Map();
   }
 
   /**
@@ -27,55 +29,79 @@ export class IndexedDBFileManager implements FileManagerType {
     await this.indexedDB.files.clear();
   }
 
-  /**
-   * Register a file buffer in both tablesKey and files table in IndexedDB
-   */
-  private async _registerFileInIndexedDB(file: FileBufferStore) {
-    const { buffer, fileName, tableName, ...fileData } = file;
-
-    // Retrieve data for the specified table from IndexedDB
-    const tableData = await this.indexedDB.tablesKey.get(tableName);
-
-    /**
-     * Check if the table already exists in IndexedDB if it does, then update the existing table entry
-     * else create a new entry for the table
-     */
-    if (tableData) {
-      const fileList = tableData.files.map((file) => file.fileName);
-
-      // Check if the file is not already registered, then update the existing table entry
-      if (!fileList.includes(fileName)) {
-        await this.indexedDB.tablesKey
-          .where('tableName')
-          .equals(tableName)
-          .modify((prevData) => {
-            prevData.files.push({ fileName, ...fileData });
-          });
-      }
-    } else {
-      await this.indexedDB.tablesKey.add({
-        tableName: tableName,
-        files: [{ fileName, ...fileData }],
-      });
-    }
-
-    // Store file buffer in the 'files' object store of IndexedDB
-    await this.indexedDB.files.put({ fileName, buffer });
-  }
-
   async initializeDB(): Promise<void> {
     // Clear the database when initialized
     await this._flushDB();
   }
 
   async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
-    for (const fileBuffer of fileBuffers) {
-      await this.registerFileBuffer(fileBuffer);
-    }
+    const tableNames = Array.from(
+      new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
+    );
+
+    this.tables = mergeFileBufferStoreIntoTable(fileBuffers, this.tables);
+
+    /**
+     * Extracts the tables and files data from the tablesMap and fileBuffers
+     * in format that can be stored in IndexedDB
+     */
+    const tableData = tableNames.map((tableName) => {
+      return { tableName, files: this.tables.get(tableName)?.files ?? [] };
+    });
+
+    const fileData = fileBuffers.map((fileBuffer) => {
+      return { buffer: fileBuffer.buffer, fileName: fileBuffer.fileName };
+    });
+
+    await this.indexedDB
+      .transaction(
+        'rw',
+        this.indexedDB.tablesKey,
+        this.indexedDB.files,
+        async () => {
+          // Update the tables and files table in IndexedDB
+
+          await this.indexedDB.tablesKey.bulkPut(tableData);
+
+          await this.indexedDB.files.bulkPut(fileData);
+        }
+      )
+      .catch((error) => {
+        console.error(error);
+      });
+
+    // Register the file buffers in the DuckDB instance
+    const promiseArr = fileBuffers.map((fileBuffer) =>
+      this.db.registerFileBuffer(fileBuffer.fileName, fileBuffer.buffer)
+    );
+
+    await Promise.all(promiseArr);
   }
 
   async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
-    await this._registerFileInIndexedDB(fileBuffer);
+    const { buffer, fileName, tableName } = fileBuffer;
+
+    this.tables = mergeFileBufferStoreIntoTable([fileBuffer], this.tables);
+
+    // Store the file buffer in IndexedDB
+    await this.indexedDB
+      .transaction(
+        'rw',
+        this.indexedDB.tablesKey,
+        this.indexedDB.files,
+        async () => {
+          // Update the tables and files table in IndexedDB
+          await this.indexedDB.tablesKey.put({
+            tableName: fileBuffer.tableName,
+            files: this.tables.get(tableName)?.files ?? [],
+          });
+
+          await this.indexedDB.files.put({ fileName, buffer });
+        }
+      )
+      .catch((error) => {
+        console.error(error);
+      });
 
     // Register the file buffer in the DuckDB instance
     return this.db.registerFileBuffer(fileBuffer.fileName, fileBuffer.buffer);
