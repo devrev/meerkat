@@ -1,3 +1,4 @@
+import * as duckdb from '@duckdb/duckdb-wasm';
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import {
   FileBufferStore,
@@ -5,7 +6,26 @@ import {
   FileManagerType,
 } from '../file-manager-type';
 import { DuckDBDatabase } from './duckdb-database';
+const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 
+let temp1 = 0;
+
+const bundle = {
+  mainModule:
+    'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-eh.wasm',
+  mainWorker:
+    'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/dist/duckdb-browser-eh.worker.js',
+  pthreadWorker: null,
+};
+console.info('bundle', bundle);
+const worker_url = URL.createObjectURL(
+  new Blob([`importScripts("${bundle.mainWorker!}");`], {
+    type: 'text/javascript',
+  })
+);
+
+console.log('worker_url', bundle.pthreadWorker);
+// Instantiate the asynchronus version of DuckDB-wasm
 
 export class IndexedDBFileManager implements FileManagerType {
   private indexedDB: DuckDBDatabase;
@@ -96,7 +116,13 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
+    temp1++;
     if (!this.indexedDB) throw new Error('indexedDB is not initialized');
+    function copy(src: any) {
+      const dst = new ArrayBuffer(src.byteLength);
+      new Uint8Array(dst).set(new Uint8Array(src));
+      return dst;
+    }
 
     const promiseArr = tableNames.map(async (tableName) => {
       // Retrieve table data from IndexedDB
@@ -108,9 +134,23 @@ export class IndexedDBFileManager implements FileManagerType {
        */
       return Promise.all(
         (tableData?.files || []).map(async (file) => {
-          const fileData = await this.indexedDB?.files.get(file.fileName);
-
+          const fileData: any = await this.indexedDB?.files.get(file.fileName);
+          // for (let i = 0; i < 15; i++) {
+          //   const buffer: any = new Uint8Array(copy(fileData.buffer));
+          //   await this.db.registerFileBuffer(
+          //     fileData.fileName + '_copy' + i + temp1,
+          //     buffer
+          //   );
+          // }
           if (fileData) {
+            const worker = new Worker(worker_url);
+            const logger = new duckdb.ConsoleLogger();
+            const db = new duckdb.AsyncDuckDB(logger, worker);
+            const start = Date.now();
+            await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+            const end = Date.now();
+            console.log('Time to instantiate', end - start);
+            this.db = db;
             await this.db.registerFileBuffer(
               fileData.fileName,
               fileData.buffer
@@ -136,10 +176,25 @@ export class IndexedDBFileManager implements FileManagerType {
       return Promise.all(
         (tableData?.files || []).map(async (file) => {
           await this.db.registerEmptyFileBuffer(file.fileName);
+          await this.db.registerFileBuffer(file.fileName, new Uint8Array([1]));
+
+          for (let i = 0; i < 15; i++) {
+            await this.db.registerEmptyFileBuffer(
+              file.fileName + '_copy' + i + temp1
+            );
+            await this.db.registerFileBuffer(
+              file.fileName + '_copy' + i + temp1,
+              new Uint8Array([1])
+            );
+          }
+          await this.db.flushFiles();
+          await this.db.dropFiles();
         })
       );
     });
 
     await Promise.all(promiseArr);
+    await this.db.terminate();
+    console.info('db terminated');
   }
 }

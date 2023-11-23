@@ -9,17 +9,18 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
   useClassicEffect(() => {
     (async () => {
       const file = await axios.get(
-        'http://localhost:4200/assets/data-sets/fhvhv_tripdata_2023-01.parquet',
+        'http://localhost:4200/assets/data-sets/fhvhv_tripdata_2020-06.parquet',
         { responseType: 'arraybuffer' }
       );
       const fileBuffer = file.data;
-      const fileBufferView = new Uint8Array(fileBuffer);
+      let fileBufferView = new Uint8Array(fileBuffer);
 
       await fileManager.registerFileBuffer({
         tableName: 'taxi',
         fileName: 'taxi.parquet',
         buffer: fileBufferView,
       });
+      fileBufferView = new Uint8Array([1]);
 
       setIsFileLoader(true);
     })();

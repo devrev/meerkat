@@ -28,6 +28,8 @@ export class DBM {
     if (!this.connection) {
       this.connection = await this.db.connect();
     }
+    await this.connection.close();
+    this.connection = await this.db.connect();
     return this.connection;
   }
 
@@ -137,6 +139,10 @@ export class DBM {
     /**
      * Execute the query
      */
-    return connection.query(query);
+    const result = await connection.query(query);
+
+    await connection.close();
+
+    return result;
   }
 }
