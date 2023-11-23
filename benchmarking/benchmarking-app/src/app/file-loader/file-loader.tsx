@@ -20,6 +20,7 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         fileName: 'taxi.parquet',
         buffer: fileBufferView,
       });
+
       setIsFileLoader(true);
     })();
   }, []);

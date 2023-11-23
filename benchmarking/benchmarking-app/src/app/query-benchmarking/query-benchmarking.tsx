@@ -21,30 +21,30 @@ export const QueryBenchmarking = () => {
       'SELECT * as total_count FROM taxi.parquet ORDER BY bcf LIMIT 100',
       `
       WITH group_by_query AS (
-        SELECT 
-            hvfhs_license_num, 
-            COUNT(*) 
-        FROM 
-            taxi.parquet 
-        GROUP BY 
-            hvfhs_license_num
-    ), 
-    
-    full_query AS (
-        SELECT 
-            * 
-        FROM 
+        SELECT
+            hvfhs_license_num,
+            COUNT(*)
+        FROM
             taxi.parquet
-    ) 
-    
-    SELECT 
-        COUNT(*) 
-    FROM 
-        group_by_query 
-    LEFT JOIN 
-        full_query 
-    ON 
-        group_by_query.hvfhs_license_num = full_query.hvfhs_license_num 
+        GROUP BY
+            hvfhs_license_num
+    ),
+
+    full_query AS (
+        SELECT
+            *
+        FROM
+            taxi.parquet
+    )
+
+    SELECT
+        COUNT(*)
+    FROM
+        group_by_query
+    LEFT JOIN
+        full_query
+    ON
+        group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
     LIMIT 1
       `,
     ];
@@ -56,7 +56,7 @@ export const QueryBenchmarking = () => {
       const eachQueryStart = performance.now();
 
       const promiseObj = dbm
-        .queryWithTableNames(testQueries[i], ['taxi.parquet'])
+        .queryWithTableNames(testQueries[i], ['taxi'])
         .then((results) => {
           const end = performance.now();
           const time = end - eachQueryStart;
