@@ -53,14 +53,13 @@ export class IndexedDBFileManager implements FileManagerType {
       return { buffer: fileBuffer.buffer, fileName: fileBuffer.fileName };
     });
 
+    // Update the tables and files table in IndexedDB
     await this.indexedDB
       .transaction(
         'rw',
         this.indexedDB.tablesKey,
         this.indexedDB.files,
         async () => {
-          // Update the tables and files table in IndexedDB
-
           await this.indexedDB.tablesKey.bulkPut(tableData);
 
           await this.indexedDB.files.bulkPut(fileData);
@@ -83,14 +82,13 @@ export class IndexedDBFileManager implements FileManagerType {
 
     this.tables = mergeFileBufferStoreIntoTable([fileBuffer], this.tables);
 
-    // Store the file buffer in IndexedDB
+    // Update the tables and files table in IndexedDB
     await this.indexedDB
       .transaction(
         'rw',
         this.indexedDB.tablesKey,
         this.indexedDB.files,
         async () => {
-          // Update the tables and files table in IndexedDB
           await this.indexedDB.tablesKey.put({
             tableName: fileBuffer.tableName,
             files: this.tables.get(tableName)?.files ?? [],
