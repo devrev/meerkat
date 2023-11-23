@@ -99,7 +99,7 @@ export class IndexedDBFileManager implements FileManagerType {
         async () => {
           await this.indexedDB.tablesKey.put({
             tableName: fileBuffer.tableName,
-            files: this.tables.get(tableName)?.files ?? [],
+            files: updatedTableMap.get(tableName)?.files ?? [],
           });
 
           await this.indexedDB.files.put({ fileName, buffer });
