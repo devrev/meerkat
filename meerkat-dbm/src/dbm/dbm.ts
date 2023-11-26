@@ -32,6 +32,8 @@ export class DBM {
   }
 
   private async _queryWithTableNames(query: string, tableNames: string[]) {
+    await this.query(`SET memory_limit='4GB'`);
+
     /**
      * Load all the files into the database
      */
@@ -46,6 +48,8 @@ export class DBM {
      * Unload all the files from the database, so that the files can be removed from memory
      */
     await this.fileManager.unmountFileBufferByTableNames(tableNames);
+
+    await this.query(`SET memory_limit='0.1GB'`);
 
     return result;
   }
@@ -65,6 +69,7 @@ export class DBM {
      */
     if (!query) {
       this.queryQueueRunning = false;
+      // await this.db.terminate();
       return;
     }
 
@@ -97,7 +102,7 @@ export class DBM {
   /**
    * Start the query queue execution if it is not running
    */
-  private _startQueryQueue() {
+  private async _startQueryQueue() {
     if (this.queryQueueRunning) {
       return;
     }
@@ -124,7 +129,7 @@ export class DBM {
         },
       });
     });
-    this._startQueryQueue();
+    await this._startQueryQueue();
     return promise;
   }
 

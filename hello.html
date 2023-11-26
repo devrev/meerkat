@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Highcharts Example</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            Highcharts.chart('container', {
+                chart: {
+                    type: 'column'
+                },
+                title: {
+                    text: 'Query Execution Time'
+                },
+                xAxis: {
+                    categories: ['Queries without JOINs', 'Queries with JOINs']
+                },
+                yAxis: {
+                    title: {
+                        text: 'Execution Time (ms)'
+                    }
+                },
+                series: [{
+                    name: 'Parallel',
+                    data: [19842, 43387]
+                }, {
+                    name: 'Sequential',
+                    data: [19752, 43783]
+                }]
+            });
+        });
+    </script>
+</body>
+</html>

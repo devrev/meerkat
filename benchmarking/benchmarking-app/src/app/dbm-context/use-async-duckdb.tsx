@@ -25,7 +25,13 @@ export const useAsyncDuckDB = () => {
 
       // Instantiate the asynchronus version of DuckDB-wasm
       const worker = new Worker(worker_url);
-      const logger = new duckdb.ConsoleLogger();
+      const logger = {
+        log: (msg: string) => {
+          //noop
+        },
+      };
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      //@ts-ignore
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
       URL.revokeObjectURL(worker_url);
