@@ -1,4 +1,5 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
+import log from 'loglevel';
 import {
   FileBufferStore,
   FileManagerType,
@@ -79,6 +80,10 @@ describe('DBM', () => {
     const options: DBMConstructorOptions = {
       db,
       fileManager,
+      logger: log,
+      onEvent: (event) => {
+        console.log(event);
+      },
     };
     dbm = new DBM(options);
   });

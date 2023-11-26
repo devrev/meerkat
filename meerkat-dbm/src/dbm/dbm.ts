@@ -1,11 +1,13 @@
 import { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { FileManagerType } from '../file-manager/file-manager-type';
+import { DBMEvent } from '../logger/event-types';
 import { DBMLogger } from '../logger/logger-types';
 
 export interface DBMConstructorOptions {
   fileManager: FileManagerType;
   db: AsyncDuckDB;
   logger: DBMLogger;
+  onEvent?: (event: DBMEvent) => void;
 }
 export class DBM {
   private fileManager: FileManagerType;
@@ -25,11 +27,19 @@ export class DBM {
   }[] = [];
   private queryQueueRunning = false;
   private logger: DBMLogger;
+  private onEvent?: (event: DBMEvent) => void;
 
-  constructor({ fileManager, db, logger }: DBMConstructorOptions) {
+  constructor({ fileManager, db, logger, onEvent }: DBMConstructorOptions) {
     this.fileManager = fileManager;
     this.db = db;
     this.logger = logger;
+    this.onEvent = onEvent;
+  }
+
+  private _emitEvent(event: DBMEvent) {
+    if (this.onEvent) {
+      this.onEvent(event);
+    }
   }
 
   private async _getConnection() {
@@ -54,6 +64,11 @@ export class DBM {
       query
     );
 
+    this._emitEvent({
+      event_name: 'mount_file_buffer_duration',
+      duration: endMountTime - startMountTime,
+    });
+
     /**
      * Execute the query
      */
@@ -61,12 +76,19 @@ export class DBM {
     const result = await this.query(query);
     const endQueryTime = Date.now();
 
+    const queryQueueDuration = endQueryTime - startQueryTime;
+
     this.logger.debug(
       'Time spent in executing query by duckdb:',
-      endQueryTime - startQueryTime,
+      queryQueueDuration,
       'ms',
       query
     );
+
+    this._emitEvent({
+      event_name: 'query_execution_duration',
+      duration: queryQueueDuration,
+    });
 
     /**
      * Unload all the files from the database, so that the files can be removed from memory
@@ -82,6 +104,11 @@ export class DBM {
       query
     );
 
+    this._emitEvent({
+      event_name: 'unmount_file_buffer_duration',
+      duration: endUnmountTime - startUnmountTime,
+    });
+
     return result;
   }
 
@@ -92,6 +119,12 @@ export class DBM {
    */
   private async _startQueryExecution() {
     this.logger.debug('Query queue length:', this.queriesQueue.length);
+
+    this._emitEvent({
+      event_name: 'query_queue_length',
+      value: this.queriesQueue.length,
+    });
+
     /**
      * Get the first query
      */
@@ -113,6 +146,12 @@ export class DBM {
         'ms',
         query.query
       );
+
+      this._emitEvent({
+        event_name: 'query_queue_duration',
+        duration: startTime - query.timestamp,
+      });
+
       /**
        * Execute the query
        */
