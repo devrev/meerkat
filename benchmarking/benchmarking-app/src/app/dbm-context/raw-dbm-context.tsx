@@ -1,4 +1,5 @@
 import { DBM, FileManagerType, MemoryDBFileManager } from '@devrev/meerkat-dbm';
+import log from 'loglevel';
 import React, { useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
@@ -23,6 +24,10 @@ export const RawDBMProvider = ({ children }: { children: JSX.Element }) => {
     const dbm = new DBM({
       db: dbState,
       fileManager: fileManagerRef.current,
+      logger: log,
+      onEvent: (event) => {
+        log.info(event);
+      },
     });
     /**
      * Making the queryWithTableNames simply run the queries without sequence which is the default behavior
