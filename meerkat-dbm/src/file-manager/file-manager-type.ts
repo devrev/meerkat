@@ -1,4 +1,4 @@
-import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
+import { InstanceManagerType } from '../dbm/instance-manager';
 
 export interface FileBufferStore {
   tableName: string;
@@ -19,7 +19,7 @@ export interface FileManagerType {
 
 export interface FileManagerConstructorOptions {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
-  db: AsyncDuckDB;
+  instanceManager: InstanceManagerType;
 }
 
 export const FILE_TYPES = {

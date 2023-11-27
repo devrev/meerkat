@@ -1,4 +1,4 @@
-import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
+import { InstanceManagerType } from '../dbm/instance-manager';
 import {
   FileBufferStore,
   FileManagerConstructorOptions,
@@ -7,11 +7,14 @@ import {
 
 export class MemoryDBFileManager implements FileManagerType {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
-  db: AsyncDuckDB;
+  instanceManager: InstanceManagerType;
 
-  constructor(props: FileManagerConstructorOptions) {
-    this.fetchTableFileBuffers = props.fetchTableFileBuffers;
-    this.db = props.db;
+  constructor({
+    fetchTableFileBuffers,
+    instanceManager,
+  }: FileManagerConstructorOptions) {
+    this.fetchTableFileBuffers = fetchTableFileBuffers;
+    this.instanceManager = instanceManager;
   }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
@@ -24,9 +27,10 @@ export class MemoryDBFileManager implements FileManagerType {
     console.info('bulkRegisterFileBuffer done', promiseArr);
   }
 
-  registerFileBuffer(props: FileBufferStore): Promise<void> {
+  async registerFileBuffer(props: FileBufferStore): Promise<void> {
     console.info('registerFileBuffer', props);
-    return this.db.registerFileBuffer(props.fileName, props.buffer);
+    const db = await this.instanceManager.getDB();
+    return db.registerFileBuffer(props.fileName, props.buffer);
   }
 
   getFileBuffer(name: string): Promise<Uint8Array> {

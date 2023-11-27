@@ -1,17 +1,24 @@
-import { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
+import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent } from '../logger/event-types';
 import { DBMLogger } from '../logger/logger-types';
+import { InstanceManagerType } from './instance-manager';
 
 export interface DBMConstructorOptions {
   fileManager: FileManagerType;
-  db: AsyncDuckDB;
   logger: DBMLogger;
   onEvent?: (event: DBMEvent) => void;
+  instanceManager: InstanceManagerType;
+  options?: {
+    /**
+     * shutdown the database after inactive of this time in milliseconds
+     */
+    shutdownInactiveTime?: number;
+  };
 }
 export class DBM {
   private fileManager: FileManagerType;
-  private db: AsyncDuckDB;
+  private instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
   private queriesQueue: {
     query: string;
@@ -28,12 +35,20 @@ export class DBM {
   private queryQueueRunning = false;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
+  private options: DBMConstructorOptions['options'];
 
-  constructor({ fileManager, db, logger, onEvent }: DBMConstructorOptions) {
+  constructor({
+    fileManager,
+    logger,
+    onEvent,
+    options,
+    instanceManager,
+  }: DBMConstructorOptions) {
     this.fileManager = fileManager;
-    this.db = db;
     this.logger = logger;
     this.onEvent = onEvent;
+    this.options = options;
+    this.instanceManager = instanceManager;
   }
 
   private _emitEvent(event: DBMEvent) {
@@ -44,7 +59,8 @@ export class DBM {
 
   private async _getConnection() {
     if (!this.connection) {
-      this.connection = await this.db.connect();
+      const db = await this.instanceManager.getDB();
+      this.connection = await db.connect();
     }
     return this.connection;
   }
