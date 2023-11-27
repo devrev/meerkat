@@ -5,6 +5,7 @@ import {
   FileManagerType,
 } from '../file-manager/file-manager-type';
 import { DBM, DBMConstructorOptions } from './dbm';
+import { InstanceManagerType } from './instance-manager';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
@@ -64,21 +65,34 @@ const mockDB = {
   },
 };
 
+export class InstanceManager implements InstanceManagerType {
+  async getDB() {
+    return mockDB as AsyncDuckDB;
+  }
+
+  async terminateDB() {
+    // do nothing
+  }
+}
+
 describe('DBM', () => {
   let db: AsyncDuckDB;
   let fileManager: FileManagerType;
   let dbm: DBM;
+  let instanceManager;
 
   beforeAll(async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
     db = mockDB;
     fileManager = new MockFileManager();
+    instanceManager = new InstanceManager();
   });
 
   beforeEach(() => {
+    const instanceManager = new InstanceManager();
     const options: DBMConstructorOptions = {
-      db,
+      instanceManager: instanceManager,
       fileManager,
       logger: log,
       onEvent: (event) => {
@@ -147,6 +161,53 @@ describe('DBM', () => {
       const result3 = await promise3;
 
       expect(result3).toEqual(['SELECT * FROM table3']);
+    });
+  });
+
+  describe('shutdown the db test', () => {
+    it('should shutdown the db if there are no queries in the queue', async () => {
+      const instanceManager = new InstanceManager();
+      // If instanceManager.terminateDB is a method
+      jest.spyOn(instanceManager, 'terminateDB');
+
+      // If instanceManager.terminateDB is a function
+      instanceManager.terminateDB = jest.fn();
+      const options: DBMConstructorOptions = {
+        instanceManager: instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: (event) => {
+          console.log(event);
+        },
+        options: {
+          shutdownInactiveTime: 100,
+        },
+      };
+      const dbm = new DBM(options);
+
+      /**
+       * Execute a query
+       */
+      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
+        'table1',
+      ]);
+
+      /**
+       * Execute another query
+       */
+      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
+        'table1',
+      ]);
+
+      /**
+       * Wait for the queries to complete
+       */
+      await Promise.all([promise1, promise2]);
+
+      /**
+       * Expect instanceManager.terminateDB to be called
+       */
+      expect(instanceManager.terminateDB).toBeCalled();
     });
   });
 });

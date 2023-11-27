@@ -36,6 +36,7 @@ export class DBM {
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
+  private terminateDBTimeout: NodeJS.Timeout | null = null;
 
   constructor({
     fileManager,
@@ -49,6 +50,35 @@ export class DBM {
     this.onEvent = onEvent;
     this.options = options;
     this.instanceManager = instanceManager;
+  }
+
+  private async _shutdown() {
+    if (!this.connection) {
+      return;
+    }
+    await this.instanceManager.terminateDB();
+  }
+
+  private _startShutdownInactiveTimer() {
+    if (!this.options?.shutdownInactiveTime) {
+      return;
+    }
+    /**
+     * Clear the previous timer if any, it can happen if we try to shutdown the DB before the timer is complete after the queue is empty
+     */
+    if (this.terminateDBTimeout) {
+      clearTimeout(this.terminateDBTimeout);
+    }
+    this.terminateDBTimeout = setTimeout(async () => {
+      /**
+       * Check if there is any query in the queue
+       */
+      if (this.queriesQueue.length) {
+        this.logger.debug('Query queue is not empty, not shutting down the DB');
+        return;
+      }
+      await this._shutdown();
+    }, this.options.shutdownInactiveTime);
   }
 
   private _emitEvent(event: DBMEvent) {
@@ -128,6 +158,19 @@ export class DBM {
     return result;
   }
 
+  private async _stopQueryQueue() {
+    this.logger.debug('Query queue is empty, stopping the queue execution');
+    this.queryQueueRunning = false;
+    /**
+     * Clear the queue
+     */
+    this.queriesQueue = [];
+    /**
+     * Shutdown the DB
+     */
+    await this._shutdown();
+  }
+
   /**
    * Execute the queries in the queue one by one
    * If there is no query in the queue, stop the queue
@@ -149,8 +192,7 @@ export class DBM {
      * If there is no query, stop the queue
      */
     if (!query) {
-      this.logger.debug('Query queue is empty, stopping the queue execution');
-      this.queryQueueRunning = false;
+      await this._stopQueryQueue();
       return;
     }
 
