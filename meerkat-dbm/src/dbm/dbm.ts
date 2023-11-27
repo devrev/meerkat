@@ -53,9 +53,6 @@ export class DBM {
   }
 
   private async _shutdown() {
-    if (!this.connection) {
-      return;
-    }
     await this.instanceManager.terminateDB();
   }
 
@@ -73,7 +70,7 @@ export class DBM {
       /**
        * Check if there is any query in the queue
        */
-      if (this.queriesQueue.length) {
+      if (this.queriesQueue.length > 0) {
         this.logger.debug('Query queue is not empty, not shutting down the DB');
         return;
       }
@@ -168,7 +165,7 @@ export class DBM {
     /**
      * Shutdown the DB
      */
-    await this._shutdown();
+    await this._startShutdownInactiveTimer();
   }
 
   /**

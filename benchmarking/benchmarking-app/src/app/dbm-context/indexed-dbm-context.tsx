@@ -35,6 +35,9 @@ export const IndexedDBMProvider = ({ children }: { children: JSX.Element }) => {
         console.info(event);
       },
       logger: log,
+      options: {
+        shutdownInactiveTime: 1000,
+      },
     });
 
     setdbm(dbm);

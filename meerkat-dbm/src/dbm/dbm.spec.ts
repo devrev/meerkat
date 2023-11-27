@@ -204,10 +204,72 @@ describe('DBM', () => {
        */
       await Promise.all([promise1, promise2]);
 
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      /**
+       * Expect instanceManager.terminateDB to not be called
+       */
+      expect(instanceManager.terminateDB).not.toBeCalled();
+
+      /**
+       * wait for 200ms
+       */
+      await new Promise((resolve) => setTimeout(resolve, 200));
       /**
        * Expect instanceManager.terminateDB to be called
        */
       expect(instanceManager.terminateDB).toBeCalled();
+    });
+
+    it('should not shutdown the db if option is not set', async () => {
+      const instanceManager = new InstanceManager();
+      // If instanceManager.terminateDB is a method
+      jest.spyOn(instanceManager, 'terminateDB');
+
+      // If instanceManager.terminateDB is a function
+      instanceManager.terminateDB = jest.fn();
+      const options: DBMConstructorOptions = {
+        instanceManager: instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: (event) => {
+          console.log(event);
+        },
+      };
+      const dbm = new DBM(options);
+
+      /**
+       * Execute a query
+       */
+      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
+        'table1',
+      ]);
+
+      /**
+       * Execute another query
+       */
+      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
+        'table1',
+      ]);
+
+      /**
+       * Wait for the queries to complete
+       */
+      await Promise.all([promise1, promise2]);
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      /**
+       * Expect instanceManager.terminateDB to not be called
+       */
+      expect(instanceManager.terminateDB).not.toBeCalled();
+
+      /**
+       * wait for 200ms
+       */
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      /**
+       * Expect instanceManager.terminateDB to be called
+       */
+      expect(instanceManager.terminateDB).not.toBeCalled();
     });
   });
 });
