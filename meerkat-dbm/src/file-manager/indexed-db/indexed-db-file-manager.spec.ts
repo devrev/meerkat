@@ -1,5 +1,6 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
+import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../file-manager-type';
 import { DuckDBDatabase } from './duckdb-database';
 import { IndexedDBFileManager } from './indexed-db-file-manager';
@@ -25,6 +26,7 @@ describe('IndexedDBFileManager', () => {
   let fileManager: IndexedDBFileManager;
   let db: AsyncDuckDB;
   let indexedDB: DuckDBDatabase;
+  let instanceManager: InstanceManagerType;
 
   const fileBuffer = {
     tableName: 'taxi1',
@@ -52,6 +54,14 @@ describe('IndexedDBFileManager', () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
     db = mockDB;
+    instanceManager = {
+      getDB: async () => {
+        return db;
+      },
+      terminateDB: async () => {
+        return;
+      },
+    };
   });
 
   beforeEach(async () => {
@@ -60,7 +70,7 @@ describe('IndexedDBFileManager', () => {
       fetchTableFileBuffers: async () => {
         return [];
       },
-      db,
+      instanceManager,
     });
 
     await fileManager.initializeDB();
