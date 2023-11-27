@@ -6,12 +6,12 @@ import { File, Table } from '../file-manager-type';
  * https://dexie.org/docs/Version/Version.stores()#warning
  */
 
-export class DuckDBDatabase extends Dexie {
+export class DuckDBFilesDatabase extends Dexie {
   tablesKey: Dexie.Table<Table, string>;
   files: Dexie.Table<File, string>;
 
   constructor() {
-    super('DuckDBDatabase');
+    super('DuckDBFilesDatabase');
 
     this.version(1).stores({
       tablesKey: '&tableName',

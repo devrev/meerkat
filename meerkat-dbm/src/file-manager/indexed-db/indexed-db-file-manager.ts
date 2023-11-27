@@ -1,15 +1,25 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
-import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
+import {
+  mergeFileBufferStoreIntoTable,
+  validateCacheByFiles,
+} from '../../utils';
 import {
   FileBufferStore,
   FileManagerConstructorOptions,
   FileManagerType,
   Table,
 } from '../file-manager-type';
-import { DuckDBDatabase } from './duckdb-database';
+import { DuckDBFilesDatabase } from './duckdb-files-database';
+
 export class IndexedDBFileManager implements FileManagerType {
-  private indexedDB: DuckDBDatabase;
+  // IndexedDB instance
+  private indexedDB: DuckDBFilesDatabase;
+
+  // Map of table name with the list of files
   private tables: Map<string, Table>;
+
+  // Set of table names that are registered in the DuckDB instance
+  private registeredTables: Set<string>;
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   db: AsyncDuckDB;
@@ -17,8 +27,10 @@ export class IndexedDBFileManager implements FileManagerType {
   constructor({ fetchTableFileBuffers, db }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.db = db;
-    this.indexedDB = new DuckDBDatabase();
+
+    this.indexedDB = new DuckDBFilesDatabase();
     this.tables = new Map();
+    this.registeredTables = new Set();
   }
 
   /**
@@ -29,9 +41,60 @@ export class IndexedDBFileManager implements FileManagerType {
     await this.indexedDB.files.clear();
   }
 
+  /**
+   * Initialize the tables from IndexedDB data
+   */
+  private async _initializeTables(): Promise<void> {
+    const tables = await this.indexedDB.tablesKey.toArray();
+
+    tables.forEach((table) => {
+      this.tables.set(table.tableName, table);
+    });
+  }
+
+  /**
+   * Remove the specified files by tableName from the IndexedDB
+   */
+  private async _removeFiles(
+    tableName: string,
+    fileNames: string[]
+  ): Promise<void> {
+    // Remove the files from the tablesKey in IndexedDB
+    const tableData = this.tables.get(tableName);
+
+    if (tableData) {
+      const updatedFiles = tableData.files.filter(
+        (file) => !fileNames.includes(file.fileName)
+      );
+
+      await this.indexedDB.tablesKey.put({
+        tableName,
+        files: updatedFiles,
+      });
+    }
+
+    // Remove the files from the IndexedDB
+    await this.indexedDB.files.bulkDelete(fileNames);
+  }
+
+  /**
+   * Validate the cache for the specified table
+   */
+  private async _validateCacheByTableName(tableName: string): Promise<void> {
+    const tableData = this.tables.get(tableName);
+
+    if (tableData) {
+      const staleFiles = validateCacheByFiles(tableData.files);
+      await this._removeFiles(tableName, staleFiles);
+    }
+  }
+
   async initializeDB(): Promise<void> {
     // Clear the database when initialized
-    await this._flushDB();
+    // await this._flushDB();
+
+    // Initialize the tables and files table in IndexedDB when initialized
+    await this._initializeTables();
   }
 
   async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
@@ -123,26 +186,28 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-     const tableData = tableNames.map((tableName) => {
-       return this.tables.get(tableName);
-     });
+    const tableData = tableNames.map((tableName) => {
+      return this.tables.get(tableName);
+    });
 
     const promises = tableData.map(async (table) => {
-      // Retrieve file names for the specified table
-      const filesList = (table?.files || []).map(
-        (fileData) => fileData.fileName
-      );
+      if (table) {
+        // Retrieve file names for the specified table
+        const filesList = table.files.map((fileData) => fileData.fileName);
 
-      const filesData = await this.indexedDB?.files.bulkGet(filesList);
+        const filesData = await this.indexedDB?.files.bulkGet(filesList);
 
-      // Register file buffers from IndexedDB for each table
-      await Promise.all(
-        filesData.map(async (file) => {
-          if (file) {
-            await this.db.registerFileBuffer(file.fileName, file.buffer);
-          }
-        })
-      );
+        // Register file buffers from IndexedDB for each table
+        await Promise.all(
+          filesData.map(async (file) => {
+            if (file) {
+              await this.db.registerFileBuffer(file.fileName, file.buffer);
+            }
+          })
+        );
+
+        await this._validateCacheByTableName(table.tableName);
+      }
     });
 
     await Promise.all(promises);

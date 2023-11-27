@@ -1,7 +1,7 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
 import { FILE_TYPES } from '../file-manager-type';
-import { DuckDBDatabase } from './duckdb-database';
+import { DuckDBFilesDatabase } from './duckdb-files-database';
 import { IndexedDBFileManager } from './indexed-db-file-manager';
 
 const mockDB = {
@@ -24,7 +24,7 @@ const mockDB = {
 describe('IndexedDBFileManager', () => {
   let fileManager: IndexedDBFileManager;
   let db: AsyncDuckDB;
-  let indexedDB: DuckDBDatabase;
+  let indexedDB: DuckDBFilesDatabase;
 
   const fileBuffer = {
     tableName: 'taxi1',
@@ -55,7 +55,7 @@ describe('IndexedDBFileManager', () => {
   });
 
   beforeEach(async () => {
-    indexedDB = new DuckDBDatabase();
+    indexedDB = new DuckDBFilesDatabase();
     fileManager = new IndexedDBFileManager({
       fetchTableFileBuffers: async () => {
         return [];

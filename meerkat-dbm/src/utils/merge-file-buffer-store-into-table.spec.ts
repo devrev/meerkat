@@ -21,6 +21,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
     },
   ];
 
+
   it('should add files in new tables', () => {
     const currentTableState = new Map<string, Table>();
 
