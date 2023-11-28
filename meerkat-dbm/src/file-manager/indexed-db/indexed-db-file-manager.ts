@@ -1,10 +1,8 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
-import {
-  mergeFileBufferStoreIntoTable,
-  validateCacheByFiles,
-} from '../../utils';
+import { mergeFileBufferStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
+  FileData,
   FileManagerConstructorOptions,
   FileManagerType,
   Table,
@@ -16,7 +14,7 @@ export class IndexedDBFileManager implements FileManagerType {
   private indexedDB: DuckDBFilesDatabase;
 
   // Map of table name with the list of files
-  private tables: Map<string, Table>;
+  private filesForTables: Map<string, Table>;
 
   // Set of table names that are registered in the DuckDB instance
   private registeredTables: Set<string>;
@@ -29,7 +27,7 @@ export class IndexedDBFileManager implements FileManagerType {
     this.db = db;
 
     this.indexedDB = new DuckDBFilesDatabase();
-    this.tables = new Map();
+    this.filesForTables = new Map();
     this.registeredTables = new Set();
   }
 
@@ -48,53 +46,16 @@ export class IndexedDBFileManager implements FileManagerType {
     const tables = await this.indexedDB.tablesKey.toArray();
 
     tables.forEach((table) => {
-      this.tables.set(table.tableName, table);
+      this.filesForTables.set(table.tableName, table);
     });
-  }
-
-  /**
-   * Remove the specified files by tableName from the IndexedDB
-   */
-  private async _removeFiles(
-    tableName: string,
-    fileNames: string[]
-  ): Promise<void> {
-    // Remove the files from the tablesKey in IndexedDB
-    const tableData = this.tables.get(tableName);
-
-    if (tableData) {
-      const updatedFiles = tableData.files.filter(
-        (file) => !fileNames.includes(file.fileName)
-      );
-
-      await this.indexedDB.tablesKey.put({
-        tableName,
-        files: updatedFiles,
-      });
-    }
-
-    // Remove the files from the IndexedDB
-    await this.indexedDB.files.bulkDelete(fileNames);
-  }
-
-  /**
-   * Validate the cache for the specified table
-   */
-  private async _validateCacheByTableName(tableName: string): Promise<void> {
-    const tableData = this.tables.get(tableName);
-
-    if (tableData) {
-      const staleFiles = validateCacheByFiles(tableData.files);
-      await this._removeFiles(tableName, staleFiles);
-    }
   }
 
   async initializeDB(): Promise<void> {
     // Clear the database when initialized
-    // await this._flushDB();
+    await this._flushDB();
 
-    // Initialize the tables and files table in IndexedDB when initialized
-    await this._initializeTables();
+    // // Initialize the tables and files table in IndexedDB when initialized
+    // await this._initializeTables();
   }
 
   async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
@@ -104,7 +65,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
     const updatedTableMap = mergeFileBufferStoreIntoTable(
       fileBuffers,
-      this.tables
+      this.filesForTables
     );
 
     /**
@@ -130,7 +91,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
           await this.indexedDB.files.bulkPut(fileData);
 
-          this.tables = updatedTableMap;
+          this.filesForTables = updatedTableMap;
         }
       )
       .catch((error) => {
@@ -150,7 +111,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
     const updatedTableMap = mergeFileBufferStoreIntoTable(
       [fileBuffer],
-      this.tables
+      this.filesForTables
     );
 
     // Update the tables and files table in IndexedDB
@@ -167,7 +128,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
           await this.indexedDB.files.put({ fileName, buffer });
 
-          this.tables = updatedTableMap;
+          this.filesForTables = updatedTableMap;
         }
       )
       .catch((error) => {
@@ -187,7 +148,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
   async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
     const tableData = tableNames.map((tableName) => {
-      return this.tables.get(tableName);
+      return this.filesForTables.get(tableName);
     });
 
     const promises = tableData.map(async (table) => {
@@ -205,8 +166,6 @@ export class IndexedDBFileManager implements FileManagerType {
             }
           })
         );
-
-        await this._validateCacheByTableName(table.tableName);
       }
     });
 
@@ -215,7 +174,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
   async unmountFileBufferByTableNames(tableNames: string[]): Promise<void> {
     const tableData = tableNames.map((tableName) => {
-      return this.tables.get(tableName);
+      return this.filesForTables.get(tableName);
     });
 
     const promises = tableData.map(async (table) => {
@@ -228,5 +187,36 @@ export class IndexedDBFileManager implements FileManagerType {
     });
 
     await Promise.all(promises);
+  }
+
+  /**
+   * Get the list of files for the specified table name
+   */
+  async getFilesByTableName(tableName: string): Promise<FileData[]> {
+    const tableData = this.filesForTables.get(tableName);
+
+    return tableData?.files ?? [];
+  }
+
+  /**
+   * Drop the specified files by tableName from the IndexedDB
+   */
+  async dropFilesByName(tableName: string, fileNames: string[]): Promise<void> {
+    // Remove the files from the tablesKey in IndexedDB
+    const tableData = this.filesForTables.get(tableName);
+
+    if (tableData) {
+      const updatedFiles = tableData.files.filter(
+        (file) => !fileNames.includes(file.fileName)
+      );
+
+      await this.indexedDB.tablesKey.put({
+        tableName,
+        files: updatedFiles,
+      });
+    }
+
+    // Remove the files from the IndexedDB
+    await this.indexedDB.files.bulkDelete(fileNames);
   }
 }
