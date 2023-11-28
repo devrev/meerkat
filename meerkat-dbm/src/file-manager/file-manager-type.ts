@@ -37,7 +37,6 @@ export interface Table {
 
 export interface FileData {
   fileName: string;
-  date: Date;
   fileType?: FileType;
   size?: number;
   staleTime?: number;
