@@ -1,5 +1,5 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
-import { mergeFileBufferStoreIntoTable } from '../../utils';
+import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
 import {
   FileBufferStore,
   FileData,
@@ -38,7 +38,7 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   /**
-   * Initialize the tables from IndexedDB data
+   * Initialize the filesForTables from IndexedDB data
    */
   private async _initializeTables(): Promise<void> {
     const tables = await this.indexedDB.tablesKey.toArray();
@@ -49,10 +49,7 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   async initializeDB(): Promise<void> {
-    // Clear the database when initialized
-    // await this._flushDB();
-
-    // // Initialize the tables and files table in IndexedDB when initialized
+    // Initialize filesForTables with the data in IndexedDB when initialized
     await this._initializeTables();
   }
 

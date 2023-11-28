@@ -4,7 +4,6 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../file-manager-type';
 import { DuckDBFilesDatabase } from './duckdb-files-database';
 import { IndexedDBFileManager } from './indexed-db-file-manager';
-import exp = require('constants');
 
 const mockDB = {
   registerFileBuffer: async (fileName: string, buffer: Uint8Array) => {
@@ -137,7 +136,7 @@ describe('IndexedDBFileManager', () => {
     const fileBufferData1 = await indexedDB.files.toArray();
 
     /**
-     * The buffer should be initial file buffer
+     * The buffer value should be initial file buffer
      */
     expect(fileBufferData1[0].buffer).toEqual(fileBuffer.buffer);
 
@@ -150,7 +149,7 @@ describe('IndexedDBFileManager', () => {
     const fileBufferData2 = await indexedDB.files.toArray();
 
     /**
-     * The buffer should be updated to the new buffer
+     * The buffer value should be updated to the new buffer
      */
     expect(fileBufferData2[0].buffer).toEqual(new Uint8Array([1]));
   });
