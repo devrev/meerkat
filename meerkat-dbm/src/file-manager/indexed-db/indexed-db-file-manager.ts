@@ -202,14 +202,15 @@ export class IndexedDBFileManager implements FileManagerType {
    * Drop the specified files by tableName from the IndexedDB
    */
   async dropFilesByName(tableName: string, fileNames: string[]): Promise<void> {
-    // Remove the files from the tablesKey in IndexedDB
     const tableData = this.filesForTables.get(tableName);
 
     if (tableData) {
+      // Retrieve the files that are not dropped
       const updatedFiles = tableData.files.filter(
         (file) => !fileNames.includes(file.fileName)
       );
 
+      // Update the filesForTables and IndexedDB with the updated files
       this.filesForTables.set(tableName, { ...tableData, files: updatedFiles });
 
       await this.indexedDB.tablesKey.put({
