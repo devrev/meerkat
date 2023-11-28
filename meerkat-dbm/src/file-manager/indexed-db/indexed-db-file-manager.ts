@@ -201,7 +201,10 @@ export class IndexedDBFileManager implements FileManagerType {
   /**
    * Drop the specified files by tableName from the IndexedDB
    */
-  async dropFilesByName(tableName: string, fileNames: string[]): Promise<void> {
+  async dropFilesByTableName(
+    tableName: string,
+    fileNames: string[]
+  ): Promise<void> {
     const tableData = this.filesForTables.get(tableName);
 
     if (tableData) {

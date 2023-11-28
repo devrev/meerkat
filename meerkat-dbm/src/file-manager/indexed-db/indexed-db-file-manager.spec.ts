@@ -165,7 +165,7 @@ describe('IndexedDBFileManager', () => {
 
   it('should drop the file buffers for a table', async () => {
     // Drop a file when there are multiple files
-    await fileManager.dropFilesByName('taxi1', ['taxi1.parquet']);
+    await fileManager.dropFilesByTableName('taxi1', ['taxi1.parquet']);
 
     const tableData1 = await indexedDB.tablesKey.toArray();
     const fileBufferData1 = await indexedDB.files.toArray();
@@ -186,7 +186,7 @@ describe('IndexedDBFileManager', () => {
     ).toBe(true);
 
     // Drop a file when there is only one file
-    await fileManager.dropFilesByName('taxi1', ['taxi2.parquet']);
+    await fileManager.dropFilesByTableName('taxi1', ['taxi2.parquet']);
 
     const tableData2 = await indexedDB.tablesKey.toArray();
     const fileBufferData2 = await indexedDB.files.toArray();
