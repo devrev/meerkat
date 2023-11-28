@@ -2,8 +2,6 @@ import { Table } from '../file-manager/file-manager-type';
 import { mergeFileBufferStoreIntoTable } from './merge-file-buffer-store-into-table';
 
 describe('mergeFileBufferStoreIntoTable', () => {
-  const date = new Date(2023, 11, 1, 12, 20);
-
   const fileBufferStore = {
     tableName: 'taxi1',
     fileName: 'taxi1.parquet',
@@ -23,13 +21,6 @@ describe('mergeFileBufferStoreIntoTable', () => {
     },
   ];
 
-  const defaultFileData = {
-    cacheTime: 3600000,
-    date: date,
-  };
-
-  jest.spyOn(global, 'Date').mockImplementation(() => date);
-
   it('should add files in new tables', () => {
     const currentTableState = new Map<string, Table>();
 
@@ -41,18 +32,13 @@ describe('mergeFileBufferStoreIntoTable', () => {
     // Verify that the taxi1 table has the new file added
     expect(updatedTableMap.get('taxi1')).toEqual({
       tableName: 'taxi1',
-      files: [
-        {
-          fileName: 'taxi2.parquet',
-          ...defaultFileData,
-        },
-      ],
+      files: [{ fileName: 'taxi2.parquet' }],
     });
 
     // Verify that the taxi2 table has the new file added
     expect(updatedTableMap.get('taxi2')).toEqual({
       tableName: 'taxi2',
-      files: [{ fileName: 'taxi1.parquet', ...defaultFileData }],
+      files: [{ fileName: 'taxi1.parquet' }],
     });
   });
 
@@ -60,7 +46,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
     const currentTableState = new Map<string, Table>();
     currentTableState.set(fileBufferStore.tableName, {
       tableName: fileBufferStore.tableName,
-      files: [{ fileName: fileBufferStore.fileName, ...defaultFileData }],
+      files: [{ fileName: fileBufferStore.fileName }],
     });
 
     const updatedTableMap = mergeFileBufferStoreIntoTable(
@@ -71,10 +57,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
     // Verify that the taxi1 table has two file
     expect(updatedTableMap.get('taxi1')).toEqual({
       tableName: 'taxi1',
-      files: [
-        { fileName: 'taxi1.parquet', ...defaultFileData },
-        { fileName: 'taxi2.parquet', ...defaultFileData },
-      ],
+      files: [{ fileName: 'taxi1.parquet' }, { fileName: 'taxi2.parquet' }],
     });
   });
 
@@ -82,7 +65,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
     const currentTableState = new Map<string, Table>();
     currentTableState.set(fileBufferStore.tableName, {
       tableName: fileBufferStore.tableName,
-      files: [{ fileName: fileBufferStore.fileName, ...defaultFileData }],
+      files: [{ fileName: fileBufferStore.fileName }],
     });
 
     const updatedTableMap = mergeFileBufferStoreIntoTable(
@@ -93,7 +76,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
     // Verify that the taxi1 table still has one file (taxi1.parquet)
     expect(updatedTableMap.get('taxi1')).toEqual({
       tableName: 'taxi1',
-      files: [{ fileName: 'taxi1.parquet', ...defaultFileData }],
+      files: [{ fileName: 'taxi1.parquet' }],
     });
   });
 });

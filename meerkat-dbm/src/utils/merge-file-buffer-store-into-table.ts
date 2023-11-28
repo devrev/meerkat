@@ -1,4 +1,3 @@
-import { DEFAULT_CACHE_TIME } from '../constants';
 import { FileBufferStore, Table } from '../file-manager/file-manager-type';
 
 /**
@@ -29,11 +28,6 @@ export const mergeFileBufferStoreIntoTable = (
 
   for (const fileBuffer of fileBufferStore) {
     const { tableName, buffer, ...fileData } = fileBuffer;
-
-    const date = new Date();
-
-    const file = { cacheTime: DEFAULT_CACHE_TIME, date, ...fileData };
-
     const existingTable = tableMap.get(tableName);
 
     /**
@@ -45,12 +39,12 @@ export const mergeFileBufferStoreIntoTable = (
       );
 
       if (!fileExists) {
-        existingTable.files.push(file);
+        existingTable.files.push(fileData);
       }
     } else {
       tableMap.set(fileBuffer.tableName, {
         tableName: fileBuffer.tableName,
-        files: [file],
+        files: [fileData],
       });
     }
   }
