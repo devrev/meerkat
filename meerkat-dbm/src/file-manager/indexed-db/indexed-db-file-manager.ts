@@ -91,7 +91,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTablesMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileBufferStoreIntoTable(
       [fileBuffer],
       currentTableData
     );
@@ -105,7 +105,7 @@ export class IndexedDBFileManager implements FileManagerType {
         async () => {
           await this.indexedDB.tablesKey.put({
             tableName: fileBuffer.tableName,
-            files: updatedTablesMap.get(tableName)?.files ?? [],
+            files: updatedTableMap.get(tableName)?.files ?? [],
           });
 
           await this.indexedDB.files.put({ fileName, buffer });
