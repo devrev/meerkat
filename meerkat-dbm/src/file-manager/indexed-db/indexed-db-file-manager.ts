@@ -5,16 +5,12 @@ import {
   FileData,
   FileManagerConstructorOptions,
   FileManagerType,
-  Table,
 } from '../file-manager-type';
 import { DuckDBFilesDatabase } from './duckdb-files-database';
 
 export class IndexedDBFileManager implements FileManagerType {
   // IndexedDB instance
   private indexedDB: DuckDBFilesDatabase;
-
-  // Map of table name with the list of files
-  private filesForTables: Map<string, Table>;
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
@@ -26,7 +22,6 @@ export class IndexedDBFileManager implements FileManagerType {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
     this.indexedDB = new DuckDBFilesDatabase();
-    this.filesForTables = new Map();
   }
 
   /**
@@ -37,20 +32,8 @@ export class IndexedDBFileManager implements FileManagerType {
     await this.indexedDB.files.clear();
   }
 
-  /**
-   * Initialize the filesForTables from IndexedDB data
-   */
-  private async _initializeTables(): Promise<void> {
-    const tables = await this.indexedDB.tablesKey.toArray();
-
-    tables.forEach((table) => {
-      this.filesForTables.set(table.tableName, table);
-    });
-  }
-
   async initializeDB(): Promise<void> {
-    // Initialize filesForTables with the data in IndexedDB when initialized
-    await this._initializeTables();
+    return;
   }
 
   async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
@@ -58,20 +41,22 @@ export class IndexedDBFileManager implements FileManagerType {
       new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
     );
 
+    const currentTableData = await this.indexedDB.tablesKey.toArray();
+
     const updatedTableMap = mergeFileBufferStoreIntoTable(
       fileBuffers,
-      this.filesForTables
+      currentTableData
     );
 
     /**
      * Extracts the tables and files data from the tablesMap and fileBuffers
      * in format that can be stored in IndexedDB
      */
-    const tableData = tableNames.map((tableName) => {
+    const updatedTableData = tableNames.map((tableName) => {
       return { tableName, files: updatedTableMap.get(tableName)?.files ?? [] };
     });
 
-    const fileData = fileBuffers.map((fileBuffer) => {
+    const newFilesData = fileBuffers.map((fileBuffer) => {
       return { buffer: fileBuffer.buffer, fileName: fileBuffer.fileName };
     });
 
@@ -82,11 +67,9 @@ export class IndexedDBFileManager implements FileManagerType {
         this.indexedDB.tablesKey,
         this.indexedDB.files,
         async () => {
-          await this.indexedDB.tablesKey.bulkPut(tableData);
+          await this.indexedDB.tablesKey.bulkPut(updatedTableData);
 
-          await this.indexedDB.files.bulkPut(fileData);
-
-          this.filesForTables = updatedTableMap;
+          await this.indexedDB.files.bulkPut(newFilesData);
         }
       )
       .catch((error) => {
@@ -106,9 +89,11 @@ export class IndexedDBFileManager implements FileManagerType {
   async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
     const { buffer, fileName, tableName } = fileBuffer;
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const currentTableData = await this.indexedDB.tablesKey.toArray();
+
+    const updatedTablesMap = mergeFileBufferStoreIntoTable(
       [fileBuffer],
-      this.filesForTables
+      currentTableData
     );
 
     // Update the tables and files table in IndexedDB
@@ -120,18 +105,18 @@ export class IndexedDBFileManager implements FileManagerType {
         async () => {
           await this.indexedDB.tablesKey.put({
             tableName: fileBuffer.tableName,
-            files: updatedTableMap.get(tableName)?.files ?? [],
+            files: updatedTablesMap.get(tableName)?.files ?? [],
           });
 
           await this.indexedDB.files.put({ fileName, buffer });
-
-          this.filesForTables = updatedTableMap;
         }
       )
       .catch((error) => {
         console.error(error);
       });
+
     const db = await this.instanceManager.getDB();
+
     // Register the file buffer in the DuckDB instance
     return db.registerFileBuffer(fileBuffer.fileName, fileBuffer.buffer);
   }
@@ -144,9 +129,7 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-    const tableData = tableNames.map((tableName) => {
-      return this.filesForTables.get(tableName);
-    });
+    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
 
     const promises = tableData.map(async (table) => {
       // Retrieve file names for the specified table
@@ -172,9 +155,7 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   async unmountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-    const tableData = tableNames.map((tableName) => {
-      return this.filesForTables.get(tableName);
-    });
+    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
 
     const promises = tableData.map(async (table) => {
       // Unregister file buffers from DuckDB for each table
@@ -193,7 +174,7 @@ export class IndexedDBFileManager implements FileManagerType {
    * Get the list of files for the specified table name
    */
   async getFilesByTableName(tableName: string): Promise<FileData[]> {
-    const tableData = this.filesForTables.get(tableName);
+    const tableData = await this.indexedDB.tablesKey.get(tableName);
 
     return tableData?.files ?? [];
   }
@@ -205,16 +186,13 @@ export class IndexedDBFileManager implements FileManagerType {
     tableName: string,
     fileNames: string[]
   ): Promise<void> {
-    const tableData = this.filesForTables.get(tableName);
+    const tableData = await this.indexedDB.tablesKey.get(tableName);
 
     if (tableData) {
       // Retrieve the files that are not dropped
       const updatedFiles = tableData.files.filter(
         (file) => !fileNames.includes(file.fileName)
       );
-
-      // Update the filesForTables and IndexedDB with the updated files
-      this.filesForTables.set(tableName, { ...tableData, files: updatedFiles });
 
       await this.indexedDB.tablesKey.put({
         tableName,
