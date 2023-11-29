@@ -2,7 +2,7 @@ import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../file-manager-type';
-import { DuckDBDatabase } from './duckdb-database';
+import { DuckDBFilesDatabase } from './duckdb-files-database';
 import { IndexedDBFileManager } from './indexed-db-file-manager';
 
 const mockDB = {
@@ -25,7 +25,7 @@ const mockDB = {
 describe('IndexedDBFileManager', () => {
   let fileManager: IndexedDBFileManager;
   let db: AsyncDuckDB;
-  let indexedDB: DuckDBDatabase;
+  let indexedDB: DuckDBFilesDatabase;
   let instanceManager: InstanceManagerType;
 
   const fileBuffer = {
@@ -65,7 +65,7 @@ describe('IndexedDBFileManager', () => {
   });
 
   beforeEach(async () => {
-    indexedDB = new DuckDBDatabase();
+    indexedDB = new DuckDBFilesDatabase();
     fileManager = new IndexedDBFileManager({
       fetchTableFileBuffers: async () => {
         return [];
@@ -124,29 +124,20 @@ describe('IndexedDBFileManager', () => {
     ]);
   });
 
-  it('should flush the database when initialized', async () => {
-    // Fetch the stored data in the indexedDB
+  it('should persist the data when the IndexedDB is reinitialized', async () => {
     const tableData = await indexedDB.tablesKey.toArray();
-    const fileBufferData = await indexedDB.files.toArray();
+    const fileData = await indexedDB.files.toArray();
 
-    /**
-     * There should be no tablesKey and no file buffers
-     */
-    expect(tableData.length).toBe(0);
-    expect(fileBufferData.length).toBe(0);
+    expect(tableData.length).toBe(2);
+    expect(fileData.length).toBe(3);
   });
 
   it('should override the file buffer when registering the same file again', async () => {
-    // Register single file buffer
-    await fileManager.registerFileBuffer(fileBuffer);
-
-    const tableData = await indexedDB.tablesKey.toArray();
     const fileBufferData1 = await indexedDB.files.toArray();
 
     /**
-     * There should be one file buffer, the buffer should be initial file buffer
+     * The buffer value should be initial file buffer
      */
-    expect(fileBufferData1.length).toBe(1);
     expect(fileBufferData1[0].buffer).toEqual(fileBuffer.buffer);
 
     // Register the same file with a different buffer
@@ -158,15 +149,56 @@ describe('IndexedDBFileManager', () => {
     const fileBufferData2 = await indexedDB.files.toArray();
 
     /**
-     * There should be one table with one file buffer
+     * The buffer value should be updated to the new buffer
      */
-    expect(tableData.length).toBe(1);
-    expect(tableData[0].files.length).toBe(1);
-
-    /**
-     * There should be one file buffer, the buffer should be updated to the new buffer
-     */
-    expect(fileBufferData2.length).toBe(1);
     expect(fileBufferData2[0].buffer).toEqual(new Uint8Array([1]));
+  });
+
+  it('should return the files for a table stored', async () => {
+    const fileData = await fileManager.getFilesByTableName('taxi1');
+
+    expect(fileData).toEqual([
+      { fileName: 'taxi1.parquet', fileType: 'parquet' },
+      { fileName: 'taxi2.parquet', fileType: 'parquet' },
+    ]);
+  });
+
+  it('should drop the file buffers for a table', async () => {
+    // Drop a file when there are multiple files
+    await fileManager.dropFilesByTableName('taxi1', ['taxi1.parquet']);
+
+    const tableData1 = await indexedDB.tablesKey.toArray();
+    const fileBufferData1 = await indexedDB.files.toArray();
+
+    // Verify that the file is dropped
+    expect(tableData1[0]).toEqual({
+      tableName: 'taxi1',
+      files: [
+        {
+          fileName: 'taxi2.parquet',
+          fileType: 'parquet',
+        },
+      ],
+    });
+
+    expect(
+      fileBufferData1.some((file) => file.fileName !== 'taxi1.parquet')
+    ).toBe(true);
+
+    // Drop a file when there is only one file
+    await fileManager.dropFilesByTableName('taxi1', ['taxi2.parquet']);
+
+    const tableData2 = await indexedDB.tablesKey.toArray();
+    const fileBufferData2 = await indexedDB.files.toArray();
+
+    // Verify that the file is dropped
+    expect(tableData2[0]).toEqual({
+      tableName: 'taxi1',
+      files: [],
+    });
+
+    expect(
+      fileBufferData2.some((file) => file.fileName !== 'taxi2.parquet')
+    ).toBe(true);
   });
 });

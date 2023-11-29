@@ -22,9 +22,11 @@ import { FileBufferStore, Table } from '../file-manager/file-manager-type';
 
 export const mergeFileBufferStoreIntoTable = (
   fileBufferStore: FileBufferStore[],
-  currentTableState: Map<string, Table>
+  currentTableState: Table[]
 ): Map<string, Table> => {
-  const tableMap = new Map<string, Table>(currentTableState);
+  const tableMap = new Map<string, Table>(
+    currentTableState.map((table) => [table.tableName, { ...table }])
+  );
 
   for (const fileBuffer of fileBufferStore) {
     const { tableName, buffer, ...fileData } = fileBuffer;

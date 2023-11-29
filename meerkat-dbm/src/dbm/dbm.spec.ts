@@ -2,6 +2,7 @@ import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import log from 'loglevel';
 import {
   FileBufferStore,
+  FileData,
   FileManagerType,
 } from '../file-manager/file-manager-type';
 import { DBM, DBMConstructorOptions } from './dbm';
@@ -47,6 +48,27 @@ export class MockFileManager implements FileManagerType {
           console.log(`Unmounted file buffer for ${key}`);
         }
       }
+    }
+  }
+
+  async getFilesByTableName(tableName: string): Promise<FileData[]> {
+    const files: FileData[] = [];
+
+    for (const key in this.fileBufferStore) {
+      if (this.fileBufferStore[key].tableName === tableName) {
+        files.push({ fileName: key });
+      }
+    }
+
+    return files;
+  }
+
+  async dropFilesByTableName(
+    tableName: string,
+    fileNames: string[]
+  ): Promise<void> {
+    for (const fileName of fileNames) {
+      delete this.fileBufferStore[fileName];
     }
   }
 }

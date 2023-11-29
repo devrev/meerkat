@@ -22,7 +22,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
   ];
 
   it('should add files in new tables', () => {
-    const currentTableState = new Map<string, Table>();
+    const currentTableState: Table[] = [];
 
     const updatedTableMap = mergeFileBufferStoreIntoTable(
       fileBufferStores,
@@ -43,11 +43,12 @@ describe('mergeFileBufferStoreIntoTable', () => {
   });
 
   it('should append a file if the table already exists', () => {
-    const currentTableState = new Map<string, Table>();
-    currentTableState.set(fileBufferStore.tableName, {
-      tableName: fileBufferStore.tableName,
-      files: [{ fileName: fileBufferStore.fileName }],
-    });
+    const currentTableState = [
+      {
+        tableName: fileBufferStore.tableName,
+        files: [{ fileName: fileBufferStore.fileName }],
+      },
+    ];
 
     const updatedTableMap = mergeFileBufferStoreIntoTable(
       [fileBufferStores[0]],
@@ -62,11 +63,12 @@ describe('mergeFileBufferStoreIntoTable', () => {
   });
 
   it('should not add file if the file already exists in a table', () => {
-    const currentTableState = new Map<string, Table>();
-    currentTableState.set(fileBufferStore.tableName, {
-      tableName: fileBufferStore.tableName,
-      files: [{ fileName: fileBufferStore.fileName }],
-    });
+    const currentTableState = [
+      {
+        tableName: fileBufferStore.tableName,
+        files: [{ fileName: fileBufferStore.fileName }],
+      },
+    ];
 
     const updatedTableMap = mergeFileBufferStoreIntoTable(
       [fileBufferStore],
