@@ -53,6 +53,11 @@ export class DBM {
   }
 
   private async _shutdown() {
+    if (this.connection) {
+      await this.connection.close();
+      this.connection = null;
+    }
+    this.logger.debug('Shutting down the DB');
     await this.instanceManager.terminateDB();
   }
 
