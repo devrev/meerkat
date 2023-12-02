@@ -267,7 +267,6 @@ export class DBM {
   }
 
   public async queryWithTableNames(query: string, tableNames: string[]) {
-    this.logger.debug('FIND ME Adding query to the queue:', query);
     const promise = new Promise((resolve, reject) => {
       this.queriesQueue.push({
         query,
