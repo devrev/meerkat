@@ -53,6 +53,11 @@ export class DBM {
   }
 
   private async _shutdown() {
+    if (this.connection) {
+      await this.connection.close();
+      this.connection = null;
+    }
+    this.logger.debug('Shutting down the DB');
     await this.instanceManager.terminateDB();
   }
 
@@ -262,6 +267,7 @@ export class DBM {
   }
 
   public async queryWithTableNames(query: string, tableNames: string[]) {
+    this.logger.debug('FIND ME Adding query to the queue:', query);
     const promise = new Promise((resolve, reject) => {
       this.queriesQueue.push({
         query,
