@@ -83,6 +83,9 @@ const mockDB = {
           }, 200);
         });
       },
+      close: async () => {
+        // do nothing
+      },
     };
   },
 };
