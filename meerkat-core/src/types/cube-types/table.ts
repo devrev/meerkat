@@ -32,3 +32,7 @@ export type TableSchema = {
   measures: Measure[];
   dimensions: Dimension[];
 };
+
+export interface ContextParams {
+  [key: string]: string;
+}

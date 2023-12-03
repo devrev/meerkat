@@ -1,5 +1,6 @@
 export * from './ast-builder/ast-builder';
 export * from './ast-deserializer/ast-deserializer';
+export { detectApplyContextParamsToBaseSQL } from './context-params/context-params-ast';
 export * from './cube-measure-transformer/cube-measure-transformer';
 export * from './cube-to-duckdb/cube-filter-to-duckdb';
 export {

@@ -1,5 +1,6 @@
 import {
   BASE_TABLE_NAME,
+  ContextParams,
   Query,
   TableSchema,
   applyFilterParamsToBaseSQL,
@@ -7,13 +8,15 @@ import {
   astDeserializerQuery,
   cubeToDuckdbAST,
   deserializeQuery,
+  detectApplyContextParamsToBaseSQL,
   getFilterParamsAST,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 export const cubeQueryToSQL = async (
   connection: AsyncDuckDBConnection,
   cubeQuery: Query,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  contextParams?: ContextParams
 ) => {
   const ast = cubeToDuckdbAST(cubeQuery, tableSchema);
   if (!ast) {
@@ -48,9 +51,17 @@ export const cubeQueryToSQL = async (
     });
   }
 
-  const baseQuery = applyFilterParamsToBaseSQL(
+  const filterParamQuery = applyFilterParamsToBaseSQL(
     tableSchema.sql,
     filterParamsSQL
+  );
+
+  /**
+   * Replace CONTEXT_PARAMS with context params
+   */
+  const baseQuery = detectApplyContextParamsToBaseSQL(
+    filterParamQuery,
+    contextParams || {}
   );
 
   /**
