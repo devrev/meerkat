@@ -251,6 +251,8 @@ describe('DBM', () => {
       // If instanceManager.terminateDB is a method
       jest.spyOn(instanceManager, 'terminateDB');
 
+      const onDuckdbShutdown = jest.fn();
+
       // If instanceManager.terminateDB is a function
       instanceManager.terminateDB = jest.fn();
       const options: DBMConstructorOptions = {
@@ -260,6 +262,7 @@ describe('DBM', () => {
         onEvent: (event) => {
           console.log(event);
         },
+        onDuckdbShutdown: onDuckdbShutdown,
         options: {
           shutdownInactiveTime: 100,
         },
@@ -295,6 +298,12 @@ describe('DBM', () => {
        * wait for 200ms
        */
       await new Promise((resolve) => setTimeout(resolve, 200));
+
+      /**
+       * Expect onDuckdbShutdown to be called
+       */
+      expect(onDuckdbShutdown).toBeCalled();
+
       /**
        * Expect instanceManager.terminateDB to be called
        */
