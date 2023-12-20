@@ -128,6 +128,20 @@ export class IndexedDBFileManager implements FileManagerType {
     return fileData?.buffer;
   }
 
+  async getFilesNameForTables(tableNames: string[]): Promise<
+    {
+      tableName: string;
+      files: string[];
+    }[]
+  > {
+    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
+
+    return tableData.map((table) => ({
+      tableName: table?.tableName ?? '',
+      files: (table?.files ?? []).map((file) => file.fileName),
+    }));
+  }
+
   async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
     const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
 

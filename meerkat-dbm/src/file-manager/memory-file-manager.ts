@@ -46,6 +46,16 @@ export class MemoryDBFileManager implements FileManagerType {
     // not needed for memory file manager
   }
 
+  async getFilesNameForTables(tableNames: string[]): Promise<
+    {
+      tableName: string;
+      files: string[];
+    }[]
+  > {
+    // not needed for memory file manager
+    return [];
+  }
+
   async getFilesByTableName(tableName: string): Promise<FileData[]> {
     // not needed for memory file manager
     return [];

@@ -23,21 +23,25 @@ jobs:
           cd ./dist/meerkat-dbm
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
           npm publish
+        continue-on-error: true
 
       - run: |
           cd ./dist/meerkat-core
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
           npm publish
+        continue-on-error: true
 
       - run: |
           cd ./dist/meerkat-node
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
           npm publish
+        continue-on-error: true
           
       - run: |
           cd ./dist/meerkat-browser
           echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
           npm publish
-          
+        continue-on-error: true
+
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}

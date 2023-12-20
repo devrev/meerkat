@@ -8,6 +8,7 @@ export interface DBMConstructorOptions {
   fileManager: FileManagerType;
   logger: DBMLogger;
   onEvent?: (event: DBMEvent) => void;
+  onDuckdbShutdown?: () => void;
   instanceManager: InstanceManagerType;
   options?: {
     /**
@@ -16,6 +17,18 @@ export interface DBMConstructorOptions {
     shutdownInactiveTime?: number;
   };
 }
+
+type BeforeQueryHook = (
+  data: {
+    tableName: string;
+    files: string[];
+  }[]
+) => Promise<void>;
+
+type QueryOptions = {
+  beforeQuery: BeforeQueryHook;
+};
+
 export class DBM {
   private fileManager: FileManagerType;
   private instanceManager: InstanceManagerType;
@@ -31,12 +44,24 @@ export class DBM {
      * Timestamp when the query was added to the queue
      */
     timestamp: number;
+    options?: { beforeQuery: BeforeQueryHook };
   }[] = [];
+  private beforeQuery?: ({
+    query,
+    tableByFiles,
+  }: {
+    query: string;
+    tableByFiles: {
+      tableName: string;
+      files: string[];
+    }[];
+  }) => Promise<void>;
   private queryQueueRunning = false;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
+  private onDuckdbShutdown?: () => void;
 
   constructor({
     fileManager,
@@ -44,12 +69,14 @@ export class DBM {
     onEvent,
     options,
     instanceManager,
+    onDuckdbShutdown,
   }: DBMConstructorOptions) {
     this.fileManager = fileManager;
     this.logger = logger;
     this.onEvent = onEvent;
     this.options = options;
     this.instanceManager = instanceManager;
+    this.onDuckdbShutdown = onDuckdbShutdown;
   }
 
   private async _shutdown() {
@@ -58,6 +85,9 @@ export class DBM {
       this.connection = null;
     }
     this.logger.debug('Shutting down the DB');
+    if (this.onDuckdbShutdown) {
+      this.onDuckdbShutdown();
+    }
     await this.instanceManager.terminateDB();
   }
 
@@ -97,7 +127,11 @@ export class DBM {
     return this.connection;
   }
 
-  private async _queryWithTableNames(query: string, tableNames: string[]) {
+  private async _queryWithTableNames(
+    query: string,
+    tableNames: string[],
+    options?: QueryOptions
+  ) {
     /**
      * Load all the files into the database
      */
@@ -116,6 +150,17 @@ export class DBM {
       event_name: 'mount_file_buffer_duration',
       duration: endMountTime - startMountTime,
     });
+
+    const tablesFileData = await this.fileManager.getFilesNameForTables(
+      tableNames
+    );
+
+    /**
+     * Execute the beforeQuery hook
+     */
+    if (options?.beforeQuery) {
+      await options.beforeQuery(tablesFileData);
+    }
 
     /**
      * Execute the query
@@ -189,11 +234,11 @@ export class DBM {
     /**
      * Get the first query
      */
-    const query = this.queriesQueue.shift();
+    const queueElement = this.queriesQueue.shift();
     /**
      * If there is no query, stop the queue
      */
-    if (!query) {
+    if (!queueElement) {
       await this._stopQueryQueue();
       return;
     }
@@ -202,41 +247,42 @@ export class DBM {
       const startTime = Date.now();
       this.logger.debug(
         'Time since query was added to the queue:',
-        startTime - query.timestamp,
+        startTime - queueElement.timestamp,
         'ms',
-        query.query
+        queueElement.query
       );
 
       this._emitEvent({
         event_name: 'query_queue_duration',
-        duration: startTime - query.timestamp,
+        duration: startTime - queueElement.timestamp,
       });
 
       /**
        * Execute the query
        */
       const result = await this._queryWithTableNames(
-        query.query,
-        query.tableNames
+        queueElement.query,
+        queueElement.tableNames,
+        queueElement.options
       );
       const endTime = Date.now();
 
       this.logger.debug(
         'Total time spent along with queue time',
-        endTime - query.timestamp,
+        endTime - queueElement.timestamp,
         'ms',
-        query.query
+        queueElement.query
       );
       /**
        * Resolve the promise
        */
-      query.promise.resolve(result);
+      queueElement.promise.resolve(result);
     } catch (error) {
-      this.logger.warn('Error while executing query:', query.query);
+      this.logger.warn('Error while executing query:', queueElement.query);
       /**
        * Reject the promise, so the caller can catch the error
        */
-      query.promise.reject(error);
+      queueElement.promise.reject(error);
     }
 
     /**
@@ -266,7 +312,11 @@ export class DBM {
     return this.queryQueueRunning;
   }
 
-  public async queryWithTableNames(query: string, tableNames: string[]) {
+  public async queryWithTableNames(
+    query: string,
+    tableNames: string[],
+    options?: { beforeQuery: BeforeQueryHook }
+  ) {
     const promise = new Promise((resolve, reject) => {
       this.queriesQueue.push({
         query,
@@ -276,6 +326,7 @@ export class DBM {
           reject,
         },
         timestamp: Date.now(),
+        options,
       });
     });
     this._startQueryQueue();

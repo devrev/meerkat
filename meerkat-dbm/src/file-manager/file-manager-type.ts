@@ -17,6 +17,12 @@ export interface FileManagerType {
   unmountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
   getFilesByTableName(tableName: string): Promise<FileData[]>;
   dropFilesByTableName(tableName: string, fileNames: string[]): Promise<void>;
+  getFilesNameForTables(tableNames: string[]): Promise<
+    {
+      tableName: string;
+      files: string[];
+    }[]
+  >;
 }
 
 export interface FileManagerConstructorOptions {
