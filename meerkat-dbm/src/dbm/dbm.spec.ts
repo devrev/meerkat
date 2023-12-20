@@ -71,6 +71,35 @@ export class MockFileManager implements FileManagerType {
       delete this.fileBufferStore[fileName];
     }
   }
+
+  async getFilesNameForTables(tableNames: string[]): Promise<
+    {
+      tableName: string;
+      files: string[];
+    }[]
+  > {
+    const data: {
+      tableName: string;
+      files: string[];
+    }[] = [];
+
+    for (const tableName of tableNames) {
+      const files: string[] = [];
+
+      for (const key in this.fileBufferStore) {
+        if (this.fileBufferStore[key].tableName === tableName) {
+          files.push(key);
+        }
+      }
+
+      data.push({
+        tableName,
+        files,
+      });
+    }
+
+    return data;
+  }
 }
 
 const mockDB = {
@@ -135,6 +164,33 @@ describe('DBM', () => {
   });
 
   describe('queryWithTableNames', () => {
+    it('should call the beforeQuery hook', async () => {
+      const beforeQuery = jest.fn();
+
+      await fileManager.registerFileBuffer({
+        fileName: 'file1',
+        tableName: 'table1',
+        buffer: new Uint8Array(),
+      });
+
+      const result = await dbm.queryWithTableNames(
+        'SELECT * FROM table1',
+        ['table1'],
+        {
+          beforeQuery,
+        }
+      );
+
+      expect(beforeQuery).toBeCalledTimes(1);
+
+      expect(beforeQuery).toBeCalledWith([
+        {
+          tableName: 'table1',
+          files: ['file1'],
+        },
+      ]);
+    });
+
     it('should execute a query with table names', async () => {
       const result = await dbm.queryWithTableNames('SELECT * FROM table1', [
         'table1',
