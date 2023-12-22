@@ -89,6 +89,7 @@ export class DBM {
     if (this.onDuckdbShutdown) {
       this.onDuckdbShutdown();
     }
+    await this.fileManager.onDBShutdownHandler();
     await this.instanceManager.terminateDB();
   }
 
@@ -126,6 +127,25 @@ export class DBM {
       this.connection = await db.connect();
     }
     return this.connection;
+  }
+
+  /**
+   * Peek the queries in the queue, if the upcoming 5 queries is for the same table, don't unmount the file buffer
+   */
+  private async optimisticUnmountFileBufferByTableNames(tableNames: string[]) {
+    const PEER_QUERY_COUNT = 5;
+    const peekedQueries = this.queriesQueue.slice(0, PEER_QUERY_COUNT);
+    const peekedTableNames = peekedQueries.map((query) => query.tableNames);
+
+    for (const tableName of tableNames) {
+      const isTableUsedInNextQueries = peekedTableNames.some((tableNames) =>
+        tableNames.includes(tableName)
+      );
+      if (isTableUsedInNextQueries) {
+        continue;
+      }
+      await this.fileManager.unmountFileBufferByTableNames(tableNames);
+    }
   }
 
   private async _queryWithTableNames(

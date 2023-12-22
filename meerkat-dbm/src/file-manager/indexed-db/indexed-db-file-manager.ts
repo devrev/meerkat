@@ -7,10 +7,12 @@ import {
   FileManagerType,
 } from '../file-manager-type';
 import { DuckDBFilesDatabase } from './duckdb-files-database';
+import { FileRegisterer } from './file-registerer';
 
 export class IndexedDBFileManager implements FileManagerType {
   // IndexedDB instance
   private indexedDB: DuckDBFilesDatabase;
+  private fileRegisterer: FileRegisterer;
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
@@ -22,6 +24,7 @@ export class IndexedDBFileManager implements FileManagerType {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
     this.indexedDB = new DuckDBFilesDatabase();
+    this.fileRegisterer = new FileRegisterer({ instanceManager });
   }
 
   /**
@@ -75,15 +78,6 @@ export class IndexedDBFileManager implements FileManagerType {
       .catch((error) => {
         console.error(error);
       });
-
-    const db = await this.instanceManager.getDB();
-
-    // Register the file buffers in the DuckDB instance
-    const promiseArr = fileBuffers.map((fileBuffer) =>
-      db.registerFileBuffer(fileBuffer.fileName, fileBuffer.buffer)
-    );
-
-    await Promise.all(promiseArr);
   }
 
   async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
@@ -114,11 +108,6 @@ export class IndexedDBFileManager implements FileManagerType {
       .catch((error) => {
         console.error(error);
       });
-
-    const db = await this.instanceManager.getDB();
-
-    // Register the file buffer in the DuckDB instance
-    return db.registerFileBuffer(fileBuffer.fileName, fileBuffer.buffer);
   }
 
   async getFileBuffer(fileName: string): Promise<Uint8Array | undefined> {
@@ -145,21 +134,50 @@ export class IndexedDBFileManager implements FileManagerType {
   async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
     const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
 
+    /**
+     * Check if the file registered size is not more than 300mb
+     * If it is more than 300mb, then remove the files which are not needed while mounting this the tables
+     */
+    const totalByteLengthInDb = this.fileRegisterer.totalByteLength();
+
+    if (totalByteLengthInDb > 300 * 1024 * 1024) {
+      const allFilesInDb = this.fileRegisterer.getAllFilesInDB();
+      const fileNameToRemove = [];
+      for (const table of tableData) {
+        for (const file of table?.files ?? []) {
+          if (!allFilesInDb.includes(file.fileName)) {
+            fileNameToRemove.push(file.fileName);
+          }
+        }
+      }
+      for (const fileName of fileNameToRemove) {
+        await this.fileRegisterer.registerEmptyFileBuffer(fileName);
+      }
+    }
+
     const promises = tableData.map(async (table) => {
       // Retrieve file names for the specified table
-      const filesList = (table?.files || []).map(
+      const _filesList = (table?.files || []).map(
         (fileData) => fileData.fileName
       );
 
-      const filesData = await this.indexedDB?.files.bulkGet(filesList);
+      // Filter out the files that are already registered in DuckDB
+      const filesList = _filesList.filter(
+        (fileName) => !this.fileRegisterer.isFileRegisteredInDB(fileName)
+      );
+
+      const uniqueFileNames = Array.from(new Set(filesList));
+
+      const filesData = await this.indexedDB?.files.bulkGet(uniqueFileNames);
 
       // Register file buffers from IndexedDB for each table
       await Promise.all(
         filesData.map(async (file) => {
           if (file) {
-            const db = await this.instanceManager.getDB();
-
-            await db.registerFileBuffer(file.fileName, file.buffer);
+            await this.fileRegisterer.registerFileBuffer(
+              file.fileName,
+              file.buffer
+            );
           }
         })
       );
@@ -175,8 +193,7 @@ export class IndexedDBFileManager implements FileManagerType {
       // Unregister file buffers from DuckDB for each table
       return Promise.all(
         (table?.files || []).map(async (file) => {
-          const db = await this.instanceManager.getDB();
-          await db.registerEmptyFileBuffer(file.fileName);
+          await this.fileRegisterer.registerEmptyFileBuffer(file.fileName);
         })
       );
     });
@@ -216,5 +233,9 @@ export class IndexedDBFileManager implements FileManagerType {
 
     // Remove the files from the IndexedDB
     await this.indexedDB.files.bulkDelete(fileNames);
+  }
+
+  async onDBShutdownHandler() {
+    this.fileRegisterer.flushFileCache();
   }
 }

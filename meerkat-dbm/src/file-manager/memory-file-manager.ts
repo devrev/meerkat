@@ -66,4 +66,8 @@ export class MemoryDBFileManager implements FileManagerType {
   ): Promise<void> {
     // not needed for memory file manager
   }
+
+  async onDBShutdownHandler() {
+    // not needed for memory file manager
+  }
 }

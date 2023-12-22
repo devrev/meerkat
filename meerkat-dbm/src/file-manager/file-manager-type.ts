@@ -23,6 +23,7 @@ export interface FileManagerType {
       files: string[];
     }[]
   >;
+  onDBShutdownHandler: () => Promise<void>;
 }
 
 export interface FileManagerConstructorOptions {
