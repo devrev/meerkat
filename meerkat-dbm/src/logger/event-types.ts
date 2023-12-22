@@ -12,4 +12,4 @@ export interface QueueEvents {
   value: number;
 }
 
-export type DBMEvent = DurationEvents | QueueEvents;
+export type DBMEvent = (DurationEvents | QueueEvents) & { metadata?: object };
