@@ -26,7 +26,8 @@ type BeforeQueryHook = (
 ) => Promise<void>;
 
 type QueryOptions = {
-  beforeQuery: BeforeQueryHook;
+  beforeQuery?: BeforeQueryHook;
+  metadata?: object;
 };
 
 export class DBM {
@@ -44,7 +45,7 @@ export class DBM {
      * Timestamp when the query was added to the queue
      */
     timestamp: number;
-    options?: { beforeQuery: BeforeQueryHook };
+    options?: QueryOptions;
   }[] = [];
   private beforeQuery?: ({
     query,
@@ -149,6 +150,7 @@ export class DBM {
     this._emitEvent({
       event_name: 'mount_file_buffer_duration',
       duration: endMountTime - startMountTime,
+      metadata: options?.metadata,
     });
 
     const tablesFileData = await this.fileManager.getFilesNameForTables(
@@ -181,6 +183,7 @@ export class DBM {
     this._emitEvent({
       event_name: 'query_execution_duration',
       duration: queryQueueDuration,
+      metadata: options?.metadata,
     });
 
     /**
@@ -200,6 +203,7 @@ export class DBM {
     this._emitEvent({
       event_name: 'unmount_file_buffer_duration',
       duration: endUnmountTime - startUnmountTime,
+      metadata: options?.metadata,
     });
 
     return result;
@@ -223,12 +227,13 @@ export class DBM {
    * If there is no query in the queue, stop the queue
    * Recursively call itself to execute the next query
    */
-  private async _startQueryExecution() {
+  private async _startQueryExecution(metadata?: object) {
     this.logger.debug('Query queue length:', this.queriesQueue.length);
 
     this._emitEvent({
       event_name: 'query_queue_length',
       value: this.queriesQueue.length,
+      metadata,
     });
 
     /**
@@ -255,6 +260,7 @@ export class DBM {
       this._emitEvent({
         event_name: 'query_queue_duration',
         duration: startTime - queueElement.timestamp,
+        metadata,
       });
 
       /**
@@ -288,7 +294,7 @@ export class DBM {
     /**
      * Start the next query
      */
-    this._startQueryExecution();
+    this._startQueryExecution(queueElement.options?.metadata);
   }
 
   /**
@@ -315,7 +321,7 @@ export class DBM {
   public async queryWithTableNames(
     query: string,
     tableNames: string[],
-    options?: { beforeQuery: BeforeQueryHook }
+    options?: QueryOptions
   ) {
     const promise = new Promise((resolve, reject) => {
       this.queriesQueue.push({
