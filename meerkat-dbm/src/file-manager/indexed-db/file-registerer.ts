@@ -5,7 +5,16 @@ interface FileRegistererConstructorOptions {
   instanceManager: InstanceManagerType;
 }
 
-export class FileRegisterer {
+export interface FileRegistererType {
+  registerFileBuffer: AsyncDuckDB['registerFileBuffer'];
+  registerEmptyFileBuffer: AsyncDuckDB['registerEmptyFileBuffer'];
+  isFileRegisteredInDB: (fileName: string) => boolean;
+  flushFileCache: () => void;
+  totalByteLength: () => number;
+  getAllFilesInDB: () => string[];
+}
+
+export class FileRegisterer implements FileRegistererType {
   instanceManager: InstanceManagerType;
 
   private registeredFilesSet = new Map<

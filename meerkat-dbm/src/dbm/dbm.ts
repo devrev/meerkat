@@ -129,25 +129,6 @@ export class DBM {
     return this.connection;
   }
 
-  /**
-   * Peek the queries in the queue, if the upcoming 5 queries is for the same table, don't unmount the file buffer
-   */
-  private async optimisticUnmountFileBufferByTableNames(tableNames: string[]) {
-    const PEER_QUERY_COUNT = 5;
-    const peekedQueries = this.queriesQueue.slice(0, PEER_QUERY_COUNT);
-    const peekedTableNames = peekedQueries.map((query) => query.tableNames);
-
-    for (const tableName of tableNames) {
-      const isTableUsedInNextQueries = peekedTableNames.some((tableNames) =>
-        tableNames.includes(tableName)
-      );
-      if (isTableUsedInNextQueries) {
-        continue;
-      }
-      await this.fileManager.unmountFileBufferByTableNames(tableNames);
-    }
-  }
-
   private async _queryWithTableNames(
     query: string,
     tableNames: string[],
@@ -203,26 +184,6 @@ export class DBM {
     this._emitEvent({
       event_name: 'query_execution_duration',
       duration: queryQueueDuration,
-      metadata: options?.metadata,
-    });
-
-    /**
-     * Unload all the files from the database, so that the files can be removed from memory
-     */
-    const startUnmountTime = Date.now();
-    await this.fileManager.unmountFileBufferByTableNames(tableNames);
-    const endUnmountTime = Date.now();
-
-    this.logger.debug(
-      'Time spent in unmounting files:',
-      endUnmountTime - startUnmountTime,
-      'ms',
-      query
-    );
-
-    this._emitEvent({
-      event_name: 'unmount_file_buffer_duration',
-      duration: endUnmountTime - startUnmountTime,
       metadata: options?.metadata,
     });
 

@@ -5,11 +5,83 @@ import {
   FileData,
   FileManagerType,
 } from '../file-manager/file-manager-type';
+import { FileRegistererType } from '../file-manager/indexed-db/file-registerer';
 import { DBM, DBMConstructorOptions } from './dbm';
 import { InstanceManagerType } from './instance-manager';
 
+class FileRegisterer implements FileRegistererType {
+  instanceManager: InstanceManagerType;
+
+  private registeredFilesSet = new Map<
+    string,
+    {
+      byteLength: number;
+    }
+  >();
+
+  constructor({ instanceManager }: { instanceManager: InstanceManagerType }) {
+    this.instanceManager = instanceManager;
+  }
+
+  registerFileBuffer: AsyncDuckDB['registerFileBuffer'] = async (
+    fileName,
+    buffer
+  ) => {
+    if (this.registeredFilesSet.has(fileName)) {
+      return;
+    }
+    this.registeredFilesSet.set(fileName, {
+      byteLength: buffer.byteLength,
+    });
+    return this.instanceManager
+      .getDB()
+      .then((db) => db.registerFileBuffer(fileName, buffer));
+  };
+
+  registerEmptyFileBuffer: AsyncDuckDB['registerEmptyFileBuffer'] = async (
+    fileName
+  ) => {
+    await this.instanceManager
+      .getDB()
+      .then((db) => db.registerEmptyFileBuffer(fileName));
+
+    this.registeredFilesSet.delete(fileName);
+  };
+
+  isFileRegisteredInDB(fileName: string): boolean {
+    return this.registeredFilesSet.has(fileName);
+  }
+
+  flushFileCache(): void {
+    this.registeredFilesSet.clear();
+  }
+
+  totalByteLength(): number {
+    let total = 0;
+    for (const value of this.registeredFilesSet.values()) {
+      total += value.byteLength;
+    }
+    return total;
+  }
+
+  getAllFilesInDB(): string[] {
+    return Array.from(this.registeredFilesSet.keys());
+  }
+}
+
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
+  private fileRegisterer: FileRegisterer;
+
+  constructor() {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
+    this.fileRegisterer = new FileRegisterer({ instanceManager: null });
+  }
+
+  async onDBShutdownHandler() {
+    this.fileRegisterer.flushFileCache();
+  }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
     for (const prop of props) {

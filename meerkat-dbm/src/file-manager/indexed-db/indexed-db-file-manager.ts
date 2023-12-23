@@ -5,6 +5,7 @@ import {
   FileData,
   FileManagerConstructorOptions,
   FileManagerType,
+  Table,
 } from '../file-manager-type';
 import { DuckDBFilesDatabase } from './duckdb-files-database';
 import { FileRegisterer } from './file-registerer';
@@ -13,6 +14,7 @@ export class IndexedDBFileManager implements FileManagerType {
   // IndexedDB instance
   private indexedDB: DuckDBFilesDatabase;
   private fileRegisterer: FileRegisterer;
+  private configurationOptions: FileManagerConstructorOptions['options'];
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
@@ -20,11 +22,13 @@ export class IndexedDBFileManager implements FileManagerType {
   constructor({
     fetchTableFileBuffers,
     instanceManager,
+    options,
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
     this.indexedDB = new DuckDBFilesDatabase();
     this.fileRegisterer = new FileRegisterer({ instanceManager });
+    this.configurationOptions = options;
   }
 
   /**
@@ -131,16 +135,14 @@ export class IndexedDBFileManager implements FileManagerType {
     }));
   }
 
-  async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
-
-    /**
-     * Check if the file registered size is not more than 300mb
-     * If it is more than 300mb, then remove the files which are not needed while mounting this the tables
-     */
+  async fileCleanUpIfRequired(tableData: (Table | undefined)[]) {
+    // Default max file size is 500mb
+    const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
+    const maxFileSize =
+      this.configurationOptions?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
     const totalByteLengthInDb = this.fileRegisterer.totalByteLength();
 
-    if (totalByteLengthInDb > 300 * 1024 * 1024) {
+    if (totalByteLengthInDb > maxFileSize) {
       const allFilesInDb = this.fileRegisterer.getAllFilesInDB();
       const fileNameToRemove = [];
       for (const table of tableData) {
@@ -154,6 +156,16 @@ export class IndexedDBFileManager implements FileManagerType {
         await this.fileRegisterer.registerEmptyFileBuffer(fileName);
       }
     }
+  }
+
+  async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
+    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
+
+    /**
+     * Check if the file registered size is not more than 300mb
+     * If it is more than 300mb, then remove the files which are not needed while mounting this the tables
+     */
+    this.fileCleanUpIfRequired(tableData);
 
     const promises = tableData.map(async (table) => {
       // Retrieve file names for the specified table
@@ -179,21 +191,6 @@ export class IndexedDBFileManager implements FileManagerType {
               file.buffer
             );
           }
-        })
-      );
-    });
-
-    await Promise.all(promises);
-  }
-
-  async unmountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
-
-    const promises = tableData.map(async (table) => {
-      // Unregister file buffers from DuckDB for each table
-      return Promise.all(
-        (table?.files || []).map(async (file) => {
-          await this.fileRegisterer.registerEmptyFileBuffer(file.fileName);
         })
       );
     });
