@@ -57,6 +57,10 @@ export class FileRegisterer implements FileRegistererType {
     return this.registeredFilesSet.has(fileName);
   }
 
+  /**
+   * This function on purpose does not clear the files from the DB
+   * As this is called when the DB is shutdown and we just want to tell our file registerer to clear the cache
+   */
   flushFileCache(): void {
     this.registeredFilesSet.clear();
   }
