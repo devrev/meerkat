@@ -162,8 +162,8 @@ export class IndexedDBFileManager implements FileManagerType {
     const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
 
     /**
-     * Check if the file registered size is not more than 300mb
-     * If it is more than 300mb, then remove the files which are not needed while mounting this the tables
+     * Check if the file registered size is not more than the limit
+     * If it is more than the limit, then remove the files which are not needed while mounting this the tables
      */
     this.fileCleanUpIfRequired(tableData);
 
