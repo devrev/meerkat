@@ -14,7 +14,6 @@ export interface FileManagerType {
   registerFileBuffer: (props: FileBufferStore) => Promise<void>;
   getFileBuffer: (name: string) => Promise<Uint8Array | undefined>;
   mountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
-  unmountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
   getFilesByTableName(tableName: string): Promise<FileData[]>;
   dropFilesByTableName(tableName: string, fileNames: string[]): Promise<void>;
   getFilesNameForTables(tableNames: string[]): Promise<
@@ -23,11 +22,18 @@ export interface FileManagerType {
       files: string[];
     }[]
   >;
+  onDBShutdownHandler: () => Promise<void>;
 }
 
 export interface FileManagerConstructorOptions {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
+  options?: {
+    /**
+     * Maximum size of the file in DB in bytes
+     */
+    maxFileSize?: number;
+  };
 }
 
 export const FILE_TYPES = {

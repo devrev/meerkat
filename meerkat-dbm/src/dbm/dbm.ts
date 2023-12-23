@@ -89,6 +89,7 @@ export class DBM {
     if (this.onDuckdbShutdown) {
       this.onDuckdbShutdown();
     }
+    await this.fileManager.onDBShutdownHandler();
     await this.instanceManager.terminateDB();
   }
 
@@ -183,26 +184,6 @@ export class DBM {
     this._emitEvent({
       event_name: 'query_execution_duration',
       duration: queryQueueDuration,
-      metadata: options?.metadata,
-    });
-
-    /**
-     * Unload all the files from the database, so that the files can be removed from memory
-     */
-    const startUnmountTime = Date.now();
-    await this.fileManager.unmountFileBufferByTableNames(tableNames);
-    const endUnmountTime = Date.now();
-
-    this.logger.debug(
-      'Time spent in unmounting files:',
-      endUnmountTime - startUnmountTime,
-      'ms',
-      query
-    );
-
-    this._emitEvent({
-      event_name: 'unmount_file_buffer_duration',
-      duration: endUnmountTime - startUnmountTime,
       metadata: options?.metadata,
     });
 

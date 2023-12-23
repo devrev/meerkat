@@ -100,6 +100,10 @@ export class MockFileManager implements FileManagerType {
 
     return data;
   }
+
+  onDBShutdownHandler = jest.fn(async () => {
+    // do nothing
+  });
 }
 
 const mockDB = {
@@ -307,6 +311,7 @@ describe('DBM', () => {
       /**
        * Expect instanceManager.terminateDB to be called
        */
+      expect(fileManager.onDBShutdownHandler).toBeCalled();
       expect(instanceManager.terminateDB).toBeCalled();
     });
 
