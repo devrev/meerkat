@@ -1,9 +1,9 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
 import {
   FileBufferStore,
-  FileData,
   FileManagerConstructorOptions,
   FileManagerType,
+  Table,
 } from './file-manager-type';
 
 export class MemoryDBFileManager implements FileManagerType {
@@ -56,10 +56,15 @@ export class MemoryDBFileManager implements FileManagerType {
     return [];
   }
 
-  async getFilesByTableName(tableName: string): Promise<FileData[]> {
+  async getTableData(tableName: string): Promise<Table | undefined> {
     // not needed for memory file manager
-    return [];
+    return;
   }
+
+  async setTableMetadata(table: string, metadata: object): Promise<void> {
+    // not needed for memory file manager
+  }
+
   async dropFilesByTableName(
     tableName: string,
     fileNames: string[]
