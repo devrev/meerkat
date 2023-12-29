@@ -35,11 +35,6 @@ describe('IndexedDBFileManager', () => {
     fileType: FILE_TYPES.PARQUET,
   };
 
-  const tableMetadata = {
-    size: 100,
-    lastModifiedTime: 123456789,
-  };
-
   const fileBuffers = [
     {
       tableName: 'taxi1',
@@ -83,7 +78,7 @@ describe('IndexedDBFileManager', () => {
 
   it('should register file buffers', async () => {
     // Register single file buffer
-    await fileManager.registerFileBuffer(fileBuffer, tableMetadata);
+    await fileManager.registerFileBuffer(fileBuffer);
 
     // Fetch the stored data in the indexedDB
     const tableData1 = await indexedDB.tablesKey.toArray();
@@ -96,7 +91,6 @@ describe('IndexedDBFileManager', () => {
     expect(tableData1[0]).toEqual({
       tableName: 'taxi1',
       files: [{ fileName: fileBuffer.fileName, fileType: FILE_TYPES.PARQUET }],
-      metadata: tableMetadata,
     });
 
     /**
@@ -147,13 +141,10 @@ describe('IndexedDBFileManager', () => {
     expect(fileBufferData1[0].buffer).toEqual(fileBuffer.buffer);
 
     // Register the same file with a different buffer
-    await fileManager.registerFileBuffer(
-      {
-        ...fileBuffer,
-        buffer: new Uint8Array([1]),
-      },
-      { newSize: 123 }
-    );
+    await fileManager.registerFileBuffer({
+      ...fileBuffer,
+      buffer: new Uint8Array([1]),
+    });
 
     const fileBufferData2 = await indexedDB.files.toArray();
 
@@ -163,17 +154,13 @@ describe('IndexedDBFileManager', () => {
     expect(fileBufferData2[0].buffer).toEqual(new Uint8Array([1]));
   });
 
-  it('should return the table data', async () => {
-    const fileData = await fileManager.getTableByName('taxi1');
+  it('should return the files for a table stored', async () => {
+    const fileData = await fileManager.getFilesByTableName('taxi1');
 
-    expect(fileData).toEqual({
-      files: [
-        { fileName: 'taxi1.parquet', fileType: 'parquet' },
-        { fileName: 'taxi2.parquet', fileType: 'parquet' },
-      ],
-      tableName: 'taxi1',
-      metadata: { ...tableMetadata, newSize: 123 },
-    });
+    expect(fileData).toEqual([
+      { fileName: 'taxi1.parquet', fileType: 'parquet' },
+      { fileName: 'taxi2.parquet', fileType: 'parquet' },
+    ]);
   });
 
   it('should drop the file buffers for a table', async () => {

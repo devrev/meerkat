@@ -105,8 +105,12 @@ export class MockFileManager implements FileManagerType {
     return data;
   }
 
-  async getTableByName(tableName: string): Promise<Table | undefined> {
+  async getTableData(tableName: string): Promise<Table | undefined> {
     return this.tables[tableName];
+  }
+
+  async setTableMetadata(table: string, metadata: object): Promise<void> {
+    this.tables[table].metadata = metadata;
   }
 
   onDBShutdownHandler = jest.fn(async () => {
