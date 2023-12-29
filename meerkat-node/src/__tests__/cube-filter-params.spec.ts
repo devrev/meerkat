@@ -100,13 +100,32 @@ describe('filter-param-tests', () => {
   it('Should apply true filter if filters are not matching', async () => {
     const query = {
       measures: ['*'],
-      filters: [],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.amount',
+              operator: 'gt',
+              values: ['40'],
+            },
+            {
+              or: [
+                {
+                  member: 'orders.amount',
+                  operator: 'lt',
+                  values: ['200'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
       dimensions: [],
     };
 
     const sql = await cubeQueryToSQL(query, SCHEMA);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(7);
+    expect(output).toHaveLength(4);
   });
 });
