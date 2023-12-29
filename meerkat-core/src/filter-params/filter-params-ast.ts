@@ -25,9 +25,7 @@ const traverseAndFilter = (
       .map((subFilter) => traverseAndFilter(subFilter, memberKey))
       .filter(Boolean) as GenericFilter[];
     const obj =
-      filteredAndFilters.length > 0
-        ? { and: filteredAndFilters }
-        : { and: filteredAndFilters };
+      filteredAndFilters.length > 0 ? { and: filteredAndFilters } : null;
     return obj as LogicalAndFilter;
   }
 
