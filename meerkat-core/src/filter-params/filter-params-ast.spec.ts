@@ -68,11 +68,7 @@ describe('getFilterByMemberKey', () => {
       },
     ];
     const result = getFilterByMemberKey(filters, 'memberKey');
-    expect(result).toEqual([
-      {
-        and: [],
-      },
-    ]);
+    expect(result).toEqual([]);
   });
 });
 

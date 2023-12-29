@@ -97,7 +97,20 @@ describe('filter-param-tests', () => {
     expect(output[0].id).toBe(6);
   });
 
-  it('Should apply true filter if filters are not matching', async () => {
+  it('Should apply true filter if no filters are present', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [],
+      dimensions: [],
+    };
+
+    const sql = await cubeQueryToSQL(query, SCHEMA);
+    console.info('SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(7);
+  });
+
+  it('Should apply true filter if filters are present but are not matching', async () => {
     const query = {
       measures: ['*'],
       filters: [
