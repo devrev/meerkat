@@ -4,21 +4,25 @@ import {
   FileBufferStore,
   FileData,
   FileManagerType,
+  Table,
 } from '../file-manager/file-manager-type';
 import { DBM, DBMConstructorOptions } from './dbm';
 import { InstanceManagerType } from './instance-manager';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
+  private tables: Record<string, Table> = {};
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
     for (const prop of props) {
       this.fileBufferStore[prop.fileName] = prop;
+      this.tables[prop.tableName].files.push(...props);
     }
   }
 
   async registerFileBuffer(prop: FileBufferStore): Promise<void> {
     this.fileBufferStore[prop.fileName] = prop;
+    this.tables[prop.tableName].files.push(prop);
   }
 
   async getFileBuffer(name: string): Promise<Uint8Array> {
@@ -99,6 +103,10 @@ export class MockFileManager implements FileManagerType {
     }
 
     return data;
+  }
+
+  async getTableByName(tableName: string): Promise<Table | undefined> {
+    return this.tables[tableName];
   }
 
   onDBShutdownHandler = jest.fn(async () => {

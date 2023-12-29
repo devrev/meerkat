@@ -2,7 +2,6 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
 import {
   FileBufferStore,
-  FileData,
   FileManagerConstructorOptions,
   FileManagerType,
   Table,
@@ -43,7 +42,10 @@ export class IndexedDBFileManager implements FileManagerType {
     return;
   }
 
-  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
+  async bulkRegisterFileBuffer(
+    fileBuffers: FileBufferStore[],
+    tableMetadata?: Record<string, object>
+  ): Promise<void> {
     const tableNames = Array.from(
       new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
     );
@@ -60,7 +62,11 @@ export class IndexedDBFileManager implements FileManagerType {
      * in format that can be stored in IndexedDB
      */
     const updatedTableData = tableNames.map((tableName) => {
-      return { tableName, files: updatedTableMap.get(tableName)?.files ?? [] };
+      return {
+        tableName,
+        files: updatedTableMap.get(tableName)?.files ?? [],
+        metadata: tableMetadata?.[tableName],
+      };
     });
 
     const newFilesData = fileBuffers.map((fileBuffer) => {
@@ -201,10 +207,10 @@ export class IndexedDBFileManager implements FileManagerType {
   /**
    * Get the list of files for the specified table name
    */
-  async getFilesByTableName(tableName: string): Promise<FileData[]> {
+  async getTableByName(tableName: string): Promise<Table | undefined> {
     const tableData = await this.indexedDB.tablesKey.get(tableName);
 
-    return tableData?.files ?? [];
+    return tableData;
   }
 
   /**

@@ -14,7 +14,7 @@ export interface FileManagerType {
   registerFileBuffer: (props: FileBufferStore) => Promise<void>;
   getFileBuffer: (name: string) => Promise<Uint8Array | undefined>;
   mountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
-  getFilesByTableName(tableName: string): Promise<FileData[]>;
+  getTableByName(tableName: string): Promise<Table | undefined>;
   dropFilesByTableName(tableName: string, fileNames: string[]): Promise<void>;
   getFilesNameForTables(tableNames: string[]): Promise<
     {

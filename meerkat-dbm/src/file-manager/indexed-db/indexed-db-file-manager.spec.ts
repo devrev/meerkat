@@ -155,7 +155,7 @@ describe('IndexedDBFileManager', () => {
   });
 
   it('should return the files for a table stored', async () => {
-    const fileData = await fileManager.getFilesByTableName('taxi1');
+    const fileData = await fileManager.getTableByName('taxi1');
 
     expect(fileData).toEqual([
       { fileName: 'taxi1.parquet', fileType: 'parquet' },
