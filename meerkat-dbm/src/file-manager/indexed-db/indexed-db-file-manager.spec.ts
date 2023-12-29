@@ -155,12 +155,15 @@ describe('IndexedDBFileManager', () => {
   });
 
   it('should return the files for a table stored', async () => {
-    const fileData = await fileManager.getFilesByTableName('taxi1');
+    const fileData = await fileManager.getTableData('taxi1');
 
-    expect(fileData).toEqual([
-      { fileName: 'taxi1.parquet', fileType: 'parquet' },
-      { fileName: 'taxi2.parquet', fileType: 'parquet' },
-    ]);
+    expect(fileData).toEqual({
+      files: [
+        { fileName: 'taxi1.parquet', fileType: 'parquet' },
+        { fileName: 'taxi2.parquet', fileType: 'parquet' },
+      ],
+      tableName: 'taxi1',
+    });
   });
 
   it('should drop the file buffers for a table', async () => {
@@ -201,4 +204,14 @@ describe('IndexedDBFileManager', () => {
       fileBufferData2.some((file) => file.fileName !== 'taxi2.parquet')
     ).toBe(true);
   });
+
+  it('should set the metadata for a table', async () => {
+    await fileManager.setTableMetadata('taxi1', { test: 'test' });
+
+    const tableData = await indexedDB.tablesKey.toArray();
+
+    expect(tableData[0].metadata).toEqual({ test: 'test' });
+  });
 });
+
+
