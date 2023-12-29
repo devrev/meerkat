@@ -40,3 +40,19 @@ There is no application to run, for testing your functionality you need to run t
 Example of running all tests 
 `npx nx run-many --targets tests --all`
 
+## Link local version of meerkat to a project
+
+Following steps can be used to link a local version of meerkat to a project:-
+
+1. At root level of the meerkat repo, run
+   1. `npm i`
+   2. `npx nx run-many --target=build --all --parallel`
+2. Create Symlinks
+   1. `cd ./dist/meerkat-core && npm link`
+   2. `cd ../meerkat-browser && npm link && npm link @devrev/meerkat-core`
+3. Remove meerkat-core & meerkat-browser from `package.json` of the project repo into which meerkat is to be linked
+4. At root level of the project repo, run
+   1. `rm -rf node_modules && npm i`
+   2. `npm link --save meerkat-node meerkat-browser`
+5. When done using the local version of meerkat, at the root level of project repo, run
+   1. `npm unlink @devrev/meerkat-core @devrev/meerkat-browser`
