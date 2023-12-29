@@ -53,6 +53,6 @@ Following steps can be used to link a local version of meerkat to a project:-
 3. Remove meerkat-core & meerkat-browser from `package.json` of the project repo into which meerkat is to be linked
 4. At root level of the project repo, run
    1. `rm -rf node_modules && npm i`
-   2. `npm link --save meerkat-node meerkat-browser`
+   2. `npm link --save @devrev/meerkat-node @devrev/meerkat-browser`
 5. When done using the local version of meerkat, at the root level of project repo, run
    1. `npm unlink @devrev/meerkat-core @devrev/meerkat-browser`
