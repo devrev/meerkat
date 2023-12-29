@@ -154,7 +154,7 @@ describe('IndexedDBFileManager', () => {
     expect(fileBufferData2[0].buffer).toEqual(new Uint8Array([1]));
   });
 
-  it('should return the files for a table stored', async () => {
+  it('should return the table data', async () => {
     const fileData = await fileManager.getTableData('taxi1');
 
     expect(fileData).toEqual({
