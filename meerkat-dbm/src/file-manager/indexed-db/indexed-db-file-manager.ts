@@ -62,10 +62,13 @@ export class IndexedDBFileManager implements FileManagerType {
      * in format that can be stored in IndexedDB
      */
     const updatedTableData = tableNames.map((tableName) => {
+      const existingMetadata = updatedTableMap.get(tableName)?.metadata;
+      const newMetadata = tableMetadata?.[tableName];
+
       return {
         tableName,
         files: updatedTableMap.get(tableName)?.files ?? [],
-        metadata: tableMetadata?.[tableName],
+        metadata: { ...existingMetadata, ...newMetadata },
       };
     });
 
@@ -90,7 +93,10 @@ export class IndexedDBFileManager implements FileManagerType {
       });
   }
 
-  async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
+  async registerFileBuffer(
+    fileBuffer: FileBufferStore,
+    tableMetadata?: object
+  ): Promise<void> {
     const { buffer, fileName, tableName } = fileBuffer;
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
@@ -107,9 +113,15 @@ export class IndexedDBFileManager implements FileManagerType {
         this.indexedDB.tablesKey,
         this.indexedDB.files,
         async () => {
+          const existingMetadata = updatedTableMap.get(tableName)?.metadata;
+          console.log('existingMetadata', existingMetadata);
           await this.indexedDB.tablesKey.put({
             tableName: fileBuffer.tableName,
             files: updatedTableMap.get(tableName)?.files ?? [],
+            metadata: {
+              ...existingMetadata,
+              ...tableMetadata,
+            },
           });
 
           await this.indexedDB.files.put({ fileName, buffer });

@@ -10,8 +10,14 @@ export interface FileBufferStore {
 }
 
 export interface FileManagerType {
-  bulkRegisterFileBuffer: (props: FileBufferStore[]) => Promise<void>;
-  registerFileBuffer: (props: FileBufferStore) => Promise<void>;
+  bulkRegisterFileBuffer: (
+    props: FileBufferStore[],
+    tableMetadata?: Record<string, object>
+  ) => Promise<void>;
+  registerFileBuffer: (
+    props: FileBufferStore,
+    tableMetadata?: object
+  ) => Promise<void>;
   getFileBuffer: (name: string) => Promise<Uint8Array | undefined>;
   mountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
   getTableByName(tableName: string): Promise<Table | undefined>;

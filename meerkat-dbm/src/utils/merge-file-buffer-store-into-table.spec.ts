@@ -47,6 +47,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
       {
         tableName: fileBufferStore.tableName,
         files: [{ fileName: fileBufferStore.fileName }],
+        metadata: { size: 100 },
       },
     ];
 
@@ -59,6 +60,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
     expect(updatedTableMap.get('taxi1')).toEqual({
       tableName: 'taxi1',
       files: [{ fileName: 'taxi1.parquet' }, { fileName: 'taxi2.parquet' }],
+      metadata: { size: 100 },
     });
   });
 
@@ -67,6 +69,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
       {
         tableName: fileBufferStore.tableName,
         files: [{ fileName: fileBufferStore.fileName }],
+        metadata: { size: 100 },
       },
     ];
 
@@ -79,6 +82,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
     expect(updatedTableMap.get('taxi1')).toEqual({
       tableName: 'taxi1',
       files: [{ fileName: 'taxi1.parquet' }],
+      metadata: { size: 100 },
     });
   });
 });
