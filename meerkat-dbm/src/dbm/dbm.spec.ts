@@ -6,9 +6,9 @@ import {
   FileManagerType,
   Table,
 } from '../file-manager/file-manager-type';
-import { DBM, DBMConstructorOptions } from './dbm';
+import { DBM } from './dbm';
 import { InstanceManagerType } from './instance-manager';
-
+import { DBMConstructorOptions } from './types';
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
   private tables: Record<string, Table> = {};
@@ -184,8 +184,8 @@ describe('DBM', () => {
   });
 
   describe('queryWithTableNames', () => {
-    it('should call the beforeQuery hook', async () => {
-      const beforeQuery = jest.fn();
+    it('should call the preQuery hook', async () => {
+      const preQuery = jest.fn();
 
       await fileManager.registerFileBuffer({
         fileName: 'file1',
@@ -197,13 +197,13 @@ describe('DBM', () => {
         'SELECT * FROM table1',
         ['table1'],
         {
-          beforeQuery,
+          preQuery,
         }
       );
 
-      expect(beforeQuery).toBeCalledTimes(1);
+      expect(preQuery).toBeCalledTimes(1);
 
-      expect(beforeQuery).toBeCalledWith([
+      expect(preQuery).toBeCalledWith([
         {
           tableName: 'table1',
           files: ['file1'],
@@ -271,7 +271,7 @@ describe('DBM', () => {
       // If instanceManager.terminateDB is a method
       jest.spyOn(instanceManager, 'terminateDB');
 
-      const onDuckdbShutdown = jest.fn();
+      const onDuckDBShutdown = jest.fn();
 
       // If instanceManager.terminateDB is a function
       instanceManager.terminateDB = jest.fn();
@@ -282,7 +282,7 @@ describe('DBM', () => {
         onEvent: (event) => {
           console.log(event);
         },
-        onDuckdbShutdown: onDuckdbShutdown,
+        onDuckDBShutdown: onDuckDBShutdown,
         options: {
           shutdownInactiveTime: 100,
         },
@@ -320,9 +320,9 @@ describe('DBM', () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       /**
-       * Expect onDuckdbShutdown to be called
+       * Expect onDuckDBShutdown to be called
        */
-      expect(onDuckdbShutdown).toBeCalled();
+      expect(onDuckDBShutdown).toBeCalled();
 
       /**
        * Expect instanceManager.terminateDB to be called

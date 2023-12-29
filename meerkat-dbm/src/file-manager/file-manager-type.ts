@@ -1,13 +1,6 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
 
-export interface FileBufferStore {
-  tableName: string;
-  fileName: string;
-  buffer: Uint8Array;
-  staleTime?: number;
-  cacheTime?: number;
-  metadata?: object;
-}
+
 
 export interface FileManagerType {
   bulkRegisterFileBuffer: (props: FileBufferStore[]) => Promise<void>;
@@ -24,6 +17,15 @@ export interface FileManagerType {
     }[]
   >;
   onDBShutdownHandler: () => Promise<void>;
+}
+
+export interface FileBufferStore {
+  tableName: string;
+  fileName: string;
+  buffer: Uint8Array;
+  staleTime?: number;
+  cacheTime?: number;
+  metadata?: object;
 }
 
 export interface FileManagerConstructorOptions {
