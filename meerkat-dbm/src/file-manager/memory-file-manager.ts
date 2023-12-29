@@ -57,11 +57,12 @@ export class MemoryDBFileManager implements FileManagerType {
   }
 
   async getTableData(tableName: string): Promise<Table | undefined> {
-    throw new Error('Method not implemented.');
+    // not needed for memory file manager
+    return;
   }
 
   async setTableMetadata(table: string, metadata: object): Promise<void> {
-    throw new Error('Method not implemented.');
+    // not needed for memory file manager
   }
 
   async dropFilesByTableName(

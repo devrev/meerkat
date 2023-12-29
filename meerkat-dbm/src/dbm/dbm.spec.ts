@@ -16,12 +16,16 @@ export class MockFileManager implements FileManagerType {
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
     for (const prop of props) {
       this.fileBufferStore[prop.fileName] = prop;
+      this.tables[prop.tableName] = this.tables[prop.tableName] || {
+        files: [],
+      };
       this.tables[prop.tableName].files.push(...props);
     }
   }
 
   async registerFileBuffer(prop: FileBufferStore): Promise<void> {
     this.fileBufferStore[prop.fileName] = prop;
+    this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
     this.tables[prop.tableName].files.push(prop);
   }
 
