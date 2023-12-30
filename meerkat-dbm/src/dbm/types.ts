@@ -8,7 +8,7 @@ export interface DBMConstructorOptions {
   /**
    * @description
    * It handles all file operations such as file registration, file retrieval, file deletion
-   * including mounting and unmounting of files in DuckDB instance,
+   * including mounting and unmounting of files in DuckDB instance.
    */
   fileManager: FileManagerType;
 
@@ -54,15 +54,31 @@ export interface DBMConstructorOptions {
 /**
  * Configuration options for query execution.
  */
-export type QueryOptions = {
+export interface QueryOptions {
   /**
+   * @description
    * A callback function which will be executed before the query is executed.
    * @param tableWiseFiles - An array of tables with associated file names.
    */
   preQuery?: (tableWiseFiles: TableWiseFiles[]) => Promise<void>;
 
   /**
+   * @description
    * Additional information for the query, which will be emitted in the DBM events.
    */
   metadata?: object;
-};
+}
+
+export interface QueryQueueItem {
+  query: string;
+  tableNames: string[];
+  promise: {
+    resolve: (value: any) => void;
+    reject: (reason?: any) => void;
+  };
+  /**
+   * Timestamp indicating when the query was added to the queue.
+   */
+  timestamp: number;
+  options?: QueryOptions;
+}

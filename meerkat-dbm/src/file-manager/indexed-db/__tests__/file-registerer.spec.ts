@@ -1,5 +1,5 @@
-import { InstanceManagerType } from '../../dbm/instance-manager';
-import { FileRegisterer } from './file-registerer';
+import { InstanceManagerType } from '../../../dbm/instance-manager';
+import { FileRegisterer } from '../file-registerer';
 
 const mockDB = {
   registerFileBuffer: jest.fn(async (fileName: string, buffer: Uint8Array) => {

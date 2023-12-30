@@ -1,9 +1,9 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
-import { InstanceManagerType } from '../../dbm/instance-manager';
-import { FILE_TYPES } from '../file-manager-type';
-import { DuckDBFilesDatabase } from './duckdb-files-database';
-import { IndexedDBFileManager } from './indexed-db-file-manager';
+import { InstanceManagerType } from '../../../dbm/instance-manager';
+import { FILE_TYPES } from '../../../types';
+import { IndexedDBFileManager } from '../indexed-db-file-manager';
+import { MeerkatDatabase } from '../meerkat-database';
 
 const mockDB = {
   registerFileBuffer: async (fileName: string, buffer: Uint8Array) => {
@@ -25,7 +25,7 @@ const mockDB = {
 describe('IndexedDBFileManager', () => {
   let fileManager: IndexedDBFileManager;
   let db: AsyncDuckDB;
-  let indexedDB: DuckDBFilesDatabase;
+  let indexedDB: MeerkatDatabase;
   let instanceManager: InstanceManagerType;
 
   const fileBuffer = {
@@ -65,7 +65,7 @@ describe('IndexedDBFileManager', () => {
   });
 
   beforeEach(async () => {
-    indexedDB = new DuckDBFilesDatabase();
+    indexedDB = new MeerkatDatabase();
     fileManager = new IndexedDBFileManager({
       fetchTableFileBuffers: async () => {
         return [];

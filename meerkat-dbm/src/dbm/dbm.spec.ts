@@ -2,10 +2,9 @@ import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import log from 'loglevel';
 import {
   FileBufferStore,
-  FileData,
   FileManagerType,
-  Table,
 } from '../file-manager/file-manager-type';
+import { FileData, Table, TableWiseFiles } from '../types';
 import { DBM } from './dbm';
 import { InstanceManagerType } from './instance-manager';
 import { DBMConstructorOptions } from './types';
@@ -80,16 +79,8 @@ export class MockFileManager implements FileManagerType {
     }
   }
 
-  async getFilesNameForTables(tableNames: string[]): Promise<
-    {
-      tableName: string;
-      files: string[];
-    }[]
-  > {
-    const data: {
-      tableName: string;
-      files: string[];
-    }[] = [];
+  async getFilesNameForTables(tableNames: string[]): Promise<TableWiseFiles[]> {
+    const data: TableWiseFiles[] = [];
 
     for (const tableName of tableNames) {
       const files: string[] = [];

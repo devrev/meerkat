@@ -4,25 +4,13 @@ import { DBMEvent } from '../logger/event-types';
 import { DBMLogger } from '../logger/logger-types';
 import { InstanceManagerType } from './instance-manager';
 
-import { DBMConstructorOptions, QueryOptions } from './types';
+import { DBMConstructorOptions, QueryOptions, QueryQueueItem } from './types';
 
 export class DBM {
   private fileManager: FileManagerType;
   private instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
-  private queriesQueue: {
-    query: string;
-    tableNames: string[];
-    promise: {
-      resolve: (value: any) => void;
-      reject: (reason?: any) => void;
-    };
-    /**
-     * Timestamp when the query was added to the queue
-     */
-    timestamp: number;
-    options?: QueryOptions;
-  }[] = [];
+  private queriesQueue: QueryQueueItem[] = [];
 
   private queryQueueRunning = false;
   private logger: DBMLogger;
