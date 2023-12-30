@@ -1,22 +1,19 @@
-import { InstanceManagerType } from '../../dbm/instance-manager';
+import { Table, TableWiseFiles } from '../../types';
 import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
 import {
   FileBufferStore,
   FileManagerConstructorOptions,
-  FileManagerType,
-  Table,
+  FileManagerType
 } from '../file-manager-type';
-import { DuckDBFilesDatabase } from './duckdb-files-database';
 import { FileRegisterer } from './file-registerer';
+import { MeerkatDatabase } from './meerkat-database';
 
 export class IndexedDBFileManager implements FileManagerType {
-  // IndexedDB instance
-  private indexedDB: DuckDBFilesDatabase;
+  private indexedDB: MeerkatDatabase; // IndexedDB instance
   private fileRegisterer: FileRegisterer;
   private configurationOptions: FileManagerConstructorOptions['options'];
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
-  instanceManager: InstanceManagerType;
 
   constructor({
     fetchTableFileBuffers,
@@ -24,8 +21,7 @@ export class IndexedDBFileManager implements FileManagerType {
     options,
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
-    this.instanceManager = instanceManager;
-    this.indexedDB = new DuckDBFilesDatabase();
+    this.indexedDB = new MeerkatDatabase();
     this.fileRegisterer = new FileRegisterer({ instanceManager });
     this.configurationOptions = options;
   }
@@ -120,12 +116,7 @@ export class IndexedDBFileManager implements FileManagerType {
     return fileData?.buffer;
   }
 
-  async getFilesNameForTables(tableNames: string[]): Promise<
-    {
-      tableName: string;
-      files: string[];
-    }[]
-  > {
+  async getFilesNameForTables(tableNames: string[]): Promise<TableWiseFiles[]> {
     const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
 
     return tableData.map((table) => ({
@@ -197,27 +188,18 @@ export class IndexedDBFileManager implements FileManagerType {
     await Promise.all(promises);
   }
 
-  /**
-   * Get the table data from the IndexedDB
-   */
   async getTableData(tableName: string): Promise<Table | undefined> {
     const tableData = await this.indexedDB.tablesKey.get(tableName);
 
     return tableData;
   }
 
-  /**
-   * Set the metadata for the table
-   */
   async setTableMetadata(tableName: string, metadata: object): Promise<void> {
     await this.indexedDB.tablesKey.update(tableName, {
       metadata,
     });
   }
 
-  /**
-   * Drop the specified files by tableName from the IndexedDB
-   */
   async dropFilesByTableName(
     tableName: string,
     fileNames: string[]

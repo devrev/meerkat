@@ -1,5 +1,5 @@
-import { FileBufferStore, Table } from '../file-manager/file-manager-type';
-
+import { FileBufferStore } from '../file-manager/file-manager-type';
+import { Table } from '../types';
 /**
  * Merges an array of FileBufferStore objects into the current state of tables.
  * The function handles scenarios where tables and file buffers may need to be added or updated.

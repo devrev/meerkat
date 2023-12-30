@@ -1,4 +1,78 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
+import { Table, TableWiseFiles } from '../types';
+
+export interface FileManagerType {
+  /**
+   * @description
+   * Registers multiple file buffers in the file manager.
+   * @param props - An array of FileBufferStore objects.
+   */
+  bulkRegisterFileBuffer: (props: FileBufferStore[]) => Promise<void>;
+
+  /**
+   * @description
+   * Registers a single file buffer in the file manager.
+   * @param props - The FileBufferStore object to register.
+   */
+  registerFileBuffer: (props: FileBufferStore) => Promise<void>;
+
+  /**
+   * @description
+   * Retrieves the file buffer associated with a given file name.
+   * @param fileName - The name of the file buffer.
+   * @returns Uint8Array if found.
+   */
+  getFileBuffer: (fileName: string) => Promise<Uint8Array | undefined>;
+
+  /**
+   * @description
+   * Mounts or registers file buffers based on an array of table names in DuckDB.
+   * @param tableNames - An array of table names.
+   */
+  mountFileBufferByTableNames: (tableNames: string[]) => Promise<void>;
+
+  /**
+   * @description
+   * Retrieves the data for a specific table.
+   * @param tableName - The name of the table.
+   * @returns Table object if found.
+   */
+  getTableData: (tableName: string) => Promise<Table | undefined>;
+
+  /**
+   * @description
+   * Sets metadata for a specific table.
+   * @param tableName - The name of the table.
+   * @param metadata - The metadata object to set.
+   */
+  setTableMetadata: (tableName: string, metadata: object) => Promise<void>;
+
+  /**
+   * @description
+   * Drops files associated with a table by their names.
+   * @param tableName - The name of the table.
+   * @param fileNames - An array of file names to drop.
+   */
+  dropFilesByTableName: (
+    tableName: string,
+    fileNames: string[]
+  ) => Promise<void>;
+
+  /**
+   * @description
+   * Retrieves file names associated with specified tables.
+   * @param tableNames - An array of table names.
+   * @returns Array of objects containing table names and associated files.
+   */
+  getFilesNameForTables: (tableNames: string[]) => Promise<TableWiseFiles[]>;
+
+  /**
+   * @description
+   * Handler to be executed on database shutdown.
+   */
+  onDBShutdownHandler: () => Promise<void>;
+}
+
 
 export interface FileBufferStore {
   tableName: string;
@@ -7,23 +81,6 @@ export interface FileBufferStore {
   staleTime?: number;
   cacheTime?: number;
   metadata?: object;
-}
-
-export interface FileManagerType {
-  bulkRegisterFileBuffer: (props: FileBufferStore[]) => Promise<void>;
-  registerFileBuffer: (props: FileBufferStore) => Promise<void>;
-  getFileBuffer: (name: string) => Promise<Uint8Array | undefined>;
-  mountFileBufferByTableNames: (tableName: string[]) => Promise<void>;
-  getTableData(tableName: string): Promise<Table | undefined>;
-  setTableMetadata(tableName: string, metadata: object): Promise<void>;
-  dropFilesByTableName(tableName: string, fileNames: string[]): Promise<void>;
-  getFilesNameForTables(tableNames: string[]): Promise<
-    {
-      tableName: string;
-      files: string[];
-    }[]
-  >;
-  onDBShutdownHandler: () => Promise<void>;
 }
 
 export interface FileManagerConstructorOptions {
@@ -37,29 +94,3 @@ export interface FileManagerConstructorOptions {
   };
 }
 
-export const FILE_TYPES = {
-  PARQUET: 'parquet',
-} as const;
-
-export type FileType = (typeof FILE_TYPES)[keyof typeof FILE_TYPES];
-
-export interface Table {
-  tableName: string;
-  files: FileData[];
-  totalSize?: number;
-  metadata?: object;
-}
-
-export interface FileData {
-  fileName: string;
-  fileType?: FileType;
-  size?: number;
-  staleTime?: number;
-  cacheTime?: number;
-  metadata?: object;
-}
-
-export interface File {
-  fileName: string;
-  buffer: Uint8Array;
-}

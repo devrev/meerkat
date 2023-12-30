@@ -1,9 +1,9 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
+import { Table, TableWiseFiles } from '../types';
 import {
   FileBufferStore,
   FileManagerConstructorOptions,
   FileManagerType,
-  Table,
 } from './file-manager-type';
 
 export class MemoryDBFileManager implements FileManagerType {
@@ -46,12 +46,7 @@ export class MemoryDBFileManager implements FileManagerType {
     // not needed for memory file manager
   }
 
-  async getFilesNameForTables(tableNames: string[]): Promise<
-    {
-      tableName: string;
-      files: string[];
-    }[]
-  > {
+  async getFilesNameForTables(tableNames: string[]): Promise<TableWiseFiles[]> {
     // not needed for memory file manager
     return [];
   }

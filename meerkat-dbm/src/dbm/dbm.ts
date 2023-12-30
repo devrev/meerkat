@@ -4,65 +4,20 @@ import { DBMEvent } from '../logger/event-types';
 import { DBMLogger } from '../logger/logger-types';
 import { InstanceManagerType } from './instance-manager';
 
-export interface DBMConstructorOptions {
-  fileManager: FileManagerType;
-  logger: DBMLogger;
-  onEvent?: (event: DBMEvent) => void;
-  onDuckdbShutdown?: () => void;
-  instanceManager: InstanceManagerType;
-  options?: {
-    /**
-     * shutdown the database after inactive of this time in milliseconds
-     */
-    shutdownInactiveTime?: number;
-  };
-}
-
-type BeforeQueryHook = (
-  data: {
-    tableName: string;
-    files: string[];
-  }[]
-) => Promise<void>;
-
-type QueryOptions = {
-  beforeQuery?: BeforeQueryHook;
-  metadata?: object;
-};
+import { DBMConstructorOptions, QueryOptions, QueryQueueItem } from './types';
 
 export class DBM {
   private fileManager: FileManagerType;
   private instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
-  private queriesQueue: {
-    query: string;
-    tableNames: string[];
-    promise: {
-      resolve: (value: any) => void;
-      reject: (reason?: any) => void;
-    };
-    /**
-     * Timestamp when the query was added to the queue
-     */
-    timestamp: number;
-    options?: QueryOptions;
-  }[] = [];
-  private beforeQuery?: ({
-    query,
-    tableByFiles,
-  }: {
-    query: string;
-    tableByFiles: {
-      tableName: string;
-      files: string[];
-    }[];
-  }) => Promise<void>;
+  private queriesQueue: QueryQueueItem[] = [];
+
   private queryQueueRunning = false;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
-  private onDuckdbShutdown?: () => void;
+  private onDuckDBShutdown?: () => void;
 
   constructor({
     fileManager,
@@ -70,14 +25,14 @@ export class DBM {
     onEvent,
     options,
     instanceManager,
-    onDuckdbShutdown,
+    onDuckDBShutdown,
   }: DBMConstructorOptions) {
     this.fileManager = fileManager;
     this.logger = logger;
     this.onEvent = onEvent;
     this.options = options;
     this.instanceManager = instanceManager;
-    this.onDuckdbShutdown = onDuckdbShutdown;
+    this.onDuckDBShutdown = onDuckDBShutdown;
   }
 
   private async _shutdown() {
@@ -86,8 +41,8 @@ export class DBM {
       this.connection = null;
     }
     this.logger.debug('Shutting down the DB');
-    if (this.onDuckdbShutdown) {
-      this.onDuckdbShutdown();
+    if (this.onDuckDBShutdown) {
+      this.onDuckDBShutdown();
     }
     await this.fileManager.onDBShutdownHandler();
     await this.instanceManager.terminateDB();
@@ -159,10 +114,10 @@ export class DBM {
     );
 
     /**
-     * Execute the beforeQuery hook
+     * Execute the preQuery hook
      */
-    if (options?.beforeQuery) {
-      await options.beforeQuery(tablesFileData);
+    if (options?.preQuery) {
+      await options.preQuery(tablesFileData);
     }
 
     /**

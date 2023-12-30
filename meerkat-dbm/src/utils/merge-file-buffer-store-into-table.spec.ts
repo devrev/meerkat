@@ -1,4 +1,4 @@
-import { Table } from '../file-manager/file-manager-type';
+import { Table } from '../types';
 import { mergeFileBufferStoreIntoTable } from './merge-file-buffer-store-into-table';
 
 describe('mergeFileBufferStoreIntoTable', () => {
