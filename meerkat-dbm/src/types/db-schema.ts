@@ -1,3 +1,13 @@
+/**
+ * Meerkat DB
+ * It is consists of two tables:
+ * 1. Table: It holds the table name and the files associated with it (without the buffer).
+ * 2. File: It holds the actual file buffer data.
+ */
+
+/**
+ * Table schema
+ */
 export interface Table {
   tableName: string;
   files: FileData[];
@@ -14,13 +24,16 @@ export interface FileData {
   metadata?: object;
 }
 
-export interface File {
-  fileName: string;
-  buffer: Uint8Array;
-}
-
 export const FILE_TYPES = {
   PARQUET: 'parquet',
 } as const;
 
 export type FileType = (typeof FILE_TYPES)[keyof typeof FILE_TYPES];
+
+/**
+ * File schema
+ */
+export interface File {
+  fileName: string;
+  buffer: Uint8Array;
+}

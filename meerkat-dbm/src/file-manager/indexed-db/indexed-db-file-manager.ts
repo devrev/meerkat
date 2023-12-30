@@ -18,7 +18,7 @@ export class IndexedDBFileManager implements FileManagerType {
   constructor({
     fetchTableFileBuffers,
     instanceManager,
-    options
+    options,
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.indexedDB = new MeerkatDatabase();
@@ -98,7 +98,7 @@ export class IndexedDBFileManager implements FileManagerType {
         async () => {
           await this.indexedDB.tablesKey.put({
             tableName: fileBuffer.tableName,
-            files: updatedTableMap.get(tableName)?.files ?? []
+            files: updatedTableMap.get(tableName)?.files ?? [],
           });
 
           await this.indexedDB.files.put({ fileName, buffer });
@@ -121,7 +121,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
     return tableData.map((table) => ({
       tableName: table?.tableName ?? '',
-      files: (table?.files ?? []).map((file) => file.fileName)
+      files: (table?.files ?? []).map((file) => file.fileName),
     }));
   }
 
@@ -188,27 +188,18 @@ export class IndexedDBFileManager implements FileManagerType {
     await Promise.all(promises);
   }
 
-  /**
-   * Get the table data from the IndexedDB
-   */
   async getTableData(tableName: string): Promise<Table | undefined> {
     const tableData = await this.indexedDB.tablesKey.get(tableName);
 
     return tableData;
   }
 
-  /**
-   * Set the metadata for the table
-   */
   async setTableMetadata(tableName: string, metadata: object): Promise<void> {
     await this.indexedDB.tablesKey.update(tableName, {
-      metadata
+      metadata,
     });
   }
 
-  /**
-   * Drop the specified files by tableName from the IndexedDB
-   */
   async dropFilesByTableName(
     tableName: string,
     fileNames: string[]
@@ -223,7 +214,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
       await this.indexedDB.tablesKey.put({
         tableName,
-        files: updatedFiles
+        files: updatedFiles,
       });
     }
 

@@ -1,6 +1,5 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
-import { TableWiseFiles } from '../types/common-types';
-import { Table } from '../types/db-table-types';
+import { Table, TableWiseFiles } from '../types';
 
 export interface FileManagerType {
   /**
@@ -21,24 +20,27 @@ export interface FileManagerType {
    * @description
    * Retrieves the file buffer associated with a given file name.
    * @param fileName - The name of the file buffer.
-   * @returns A Promise resolving to a Uint8Array if found.
+   * @returns Uint8Array if found.
    */
   getFileBuffer: (fileName: string) => Promise<Uint8Array | undefined>;
 
   /**
-   * Mounts file buffers based on an array of table names in DuckDB.
+   * @description
+   * Mounts or registers file buffers based on an array of table names in DuckDB.
    * @param tableNames - An array of table names.
    */
   mountFileBufferByTableNames: (tableNames: string[]) => Promise<void>;
 
   /**
+   * @description
    * Retrieves the data for a specific table.
    * @param tableName - The name of the table.
-   * @returns A Promise resolving to a Table object or undefined if not found.
+   * @returns Table object if found.
    */
   getTableData: (tableName: string) => Promise<Table | undefined>;
 
   /**
+   * @description
    * Sets metadata for a specific table.
    * @param tableName - The name of the table.
    * @param metadata - The metadata object to set.
@@ -46,6 +48,7 @@ export interface FileManagerType {
   setTableMetadata: (tableName: string, metadata: object) => Promise<void>;
 
   /**
+   * @description
    * Drops files associated with a table by their names.
    * @param tableName - The name of the table.
    * @param fileNames - An array of file names to drop.
@@ -56,18 +59,20 @@ export interface FileManagerType {
   ) => Promise<void>;
 
   /**
+   * @description
    * Retrieves file names associated with specified tables.
    * @param tableNames - An array of table names.
-   * @returns A Promise resolving to an array of objects containing table names and associated files.
+   * @returns Array of objects containing table names and associated files.
    */
   getFilesNameForTables: (tableNames: string[]) => Promise<TableWiseFiles[]>;
 
   /**
+   * @description
    * Handler to be executed on database shutdown.
-   * @returns A Promise resolving when the shutdown handling is complete.
    */
   onDBShutdownHandler: () => Promise<void>;
 }
+
 
 export interface FileBufferStore {
   tableName: string;

@@ -1,6 +1,5 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
-import { TableWiseFiles } from '../types/common-types';
-import { Table } from '../types/db-table-types';
+import { Table, TableWiseFiles } from '../types';
 import {
   FileBufferStore,
   FileManagerConstructorOptions,

@@ -1,2 +1,3 @@
 export * from './common-types';
-export * from './db-table-types';
+export * from './db-schema';
+
