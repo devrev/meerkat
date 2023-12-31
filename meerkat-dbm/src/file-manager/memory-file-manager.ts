@@ -6,6 +6,7 @@ import {
   FileManagerConstructorOptions,
   FileManagerType,
 } from './file-manager-type';
+import { getBufferFromJSON } from './helper';
 
 export class MemoryDBFileManager implements FileManagerType {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
@@ -38,19 +39,11 @@ export class MemoryDBFileManager implements FileManagerType {
   async registerJSON(props: FileJsonStore): Promise<void> {
     const { json, tableName, ...fileData } = props;
 
-    const db = await this.instanceManager.getDB();
-
-    const connection = await db.connect();
-
-    await db.registerFileText(`${tableName}.json`, JSON.stringify(json));
-
-    await connection.insertJSONFromPath(`${tableName}.json`, {
-      name: tableName,
+    const bufferData = await getBufferFromJSON({
+      instanceManager: this.instanceManager,
+      json,
+      tableName,
     });
-
-    await connection.query("COPY taxi1 TO 'taxi.parquet' (FORMAT PARQUET)';");
-
-    const bufferData = await db.copyFileToBuffer('taxi.parquet');
 
     await this.registerFileBuffer({
       buffer: bufferData,

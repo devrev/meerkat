@@ -1,3 +1,4 @@
+import { InstanceManagerType } from '../../dbm/instance-manager';
 import { Table, TableWiseFiles } from '../../types';
 import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
 import {
@@ -6,11 +7,13 @@ import {
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
+import { getBufferFromJSON } from '../helper';
 import { FileRegisterer } from './file-registerer';
 import { MeerkatDatabase } from './meerkat-database';
-
 export class IndexedDBFileManager implements FileManagerType {
   private indexedDB: MeerkatDatabase; // IndexedDB instance
+
+  private instanceManager: InstanceManagerType;
   private fileRegisterer: FileRegisterer;
   private configurationOptions: FileManagerConstructorOptions['options'];
 
@@ -23,6 +26,7 @@ export class IndexedDBFileManager implements FileManagerType {
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.indexedDB = new MeerkatDatabase();
+    this.instanceManager = instanceManager;
     this.fileRegisterer = new FileRegisterer({ instanceManager });
     this.configurationOptions = options;
   }
@@ -113,10 +117,11 @@ export class IndexedDBFileManager implements FileManagerType {
   async registerJSON(props: FileJsonStore): Promise<void> {
     const { json, tableName, ...fileData } = props;
 
-    const bufferData = await this.fileRegisterer.getFileBufferFromJson(
+    const bufferData = await getBufferFromJSON({
+      instanceManager: this.instanceManager,
       json,
-      tableName
-    );
+      tableName,
+    });
 
     await this.registerFileBuffer({
       buffer: bufferData,
