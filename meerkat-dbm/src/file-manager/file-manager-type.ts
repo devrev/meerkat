@@ -1,5 +1,40 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
+import { DBMEvent, DBMLogger } from '../logger';
 import { Table, TableWiseFiles } from '../types';
+
+export interface FileManagerConstructorOptions {
+  /**
+   * @description
+   * It manages the lifecycle of the DuckDB database instance.
+   * It provides methods for obtaining an initialized DuckDB instance and terminating the instance.
+   */
+  instanceManager: InstanceManagerType;
+
+  /**
+   * @description
+   * Represents an logger instance, which will be used for logging messages throughout the File Manager's execution.
+   */
+  logger?: DBMLogger;
+
+  /**
+   * @description
+   * A callback function that handles events emitted by the File Manager.
+   */
+  onEvent?: (event: DBMEvent) => void;
+
+  /**
+   * @description
+   * Configuration options for the File Manager.
+   */
+  options?: {
+    /**
+     * Maximum size of the file in DB in bytes
+     */
+    maxFileSize?: number;
+  };
+
+  fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
+}
 
 export interface FileManagerType {
   /**
@@ -95,14 +130,3 @@ export type FileBufferStore = BaseFileStore & {
 export type FileJsonStore = BaseFileStore & {
   json: object;
 };
-
-export interface FileManagerConstructorOptions {
-  fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
-  instanceManager: InstanceManagerType;
-  options?: {
-    /**
-     * Maximum size of the file in DB in bytes
-     */
-    maxFileSize?: number;
-  };
-}

@@ -4,6 +4,7 @@ import { InstanceManagerType } from '../../../dbm/instance-manager';
 import { FILE_TYPES } from '../../../types';
 import { IndexedDBFileManager } from '../indexed-db-file-manager';
 import { MeerkatDatabase } from '../meerkat-database';
+import log = require('loglevel');
 
 const mockDB = {
   registerFileBuffer: jest.fn(),
@@ -67,6 +68,10 @@ describe('IndexedDBFileManager', () => {
         return [];
       },
       instanceManager,
+      logger: log,
+      onEvent: (event) => {
+        console.log(event);
+      },
     });
 
     await fileManager.initializeDB();

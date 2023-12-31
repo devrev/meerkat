@@ -1,6 +1,5 @@
 import { FileManagerType } from '../file-manager/file-manager-type';
-import { DBMEvent } from '../logger/event-types';
-import { DBMLogger } from '../logger/logger-types';
+import { DBMEvent, DBMLogger } from '../logger';
 import { TableWiseFiles } from '../types';
 import { InstanceManagerType } from './instance-manager';
 

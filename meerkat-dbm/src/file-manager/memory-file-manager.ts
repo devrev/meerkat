@@ -1,4 +1,5 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
+import { DBMEvent, DBMLogger } from '../logger';
 import { Table, TableWiseFiles } from '../types';
 import { getBufferFromJSON } from '../utils';
 import {
@@ -11,6 +12,9 @@ import {
 export class MemoryDBFileManager implements FileManagerType {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
+
+  private logger?: DBMLogger;
+  private onEvent?: (event: DBMEvent) => void;
 
   constructor({
     fetchTableFileBuffers,
@@ -39,12 +43,20 @@ export class MemoryDBFileManager implements FileManagerType {
   async registerJSON(props: FileJsonStore): Promise<void> {
     const { json, tableName, ...fileData } = props;
 
+    /**
+     * Convert JSON to buffer
+     */
     const bufferData = await getBufferFromJSON({
       instanceManager: this.instanceManager,
       json,
       tableName,
+      logger: this.logger,
+      onEvent: this.onEvent,
     });
 
+    /**
+     * Register buffer in DB
+     */
     await this.registerFileBuffer({
       buffer: bufferData,
       tableName,

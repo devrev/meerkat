@@ -1,4 +1,5 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
+import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON, mergeFileBufferStoreIntoTable } from '../../utils';
 import {
@@ -16,18 +17,25 @@ export class IndexedDBFileManager implements FileManagerType {
   private fileRegisterer: FileRegisterer;
   private configurationOptions: FileManagerConstructorOptions['options'];
 
+  private logger?: DBMLogger;
+  private onEvent?: (event: DBMEvent) => void;
+
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
 
   constructor({
     fetchTableFileBuffers,
     instanceManager,
     options,
+    logger,
+    onEvent,
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.indexedDB = new MeerkatDatabase();
     this.instanceManager = instanceManager;
     this.fileRegisterer = new FileRegisterer({ instanceManager });
     this.configurationOptions = options;
+    this.logger = logger;
+    this.onEvent = onEvent;
   }
 
   /**
@@ -113,15 +121,23 @@ export class IndexedDBFileManager implements FileManagerType {
       });
   }
 
-  async registerJSON(props: FileJsonStore): Promise<void> {
-    const { json, tableName, ...fileData } = props;
+  async registerJSON(jsonData: FileJsonStore): Promise<void> {
+    const { json, tableName, ...fileData } = jsonData;
 
+    /**
+     * Convert JSON to buffer
+     */
     const bufferData = await getBufferFromJSON({
       instanceManager: this.instanceManager,
       json,
       tableName,
+      logger: this.logger,
+      onEvent: this.onEvent,
     });
 
+    /**
+     * Register the buffer in the file manager
+     */
     await this.registerFileBuffer({
       buffer: bufferData,
       tableName,
