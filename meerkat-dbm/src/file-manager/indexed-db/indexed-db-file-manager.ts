@@ -2,8 +2,9 @@ import { Table, TableWiseFiles } from '../../types';
 import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
 import {
   FileBufferStore,
+  FileJsonStore,
   FileManagerConstructorOptions,
-  FileManagerType
+  FileManagerType,
 } from '../file-manager-type';
 import { FileRegisterer } from './file-registerer';
 import { MeerkatDatabase } from './meerkat-database';
@@ -107,6 +108,21 @@ export class IndexedDBFileManager implements FileManagerType {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  async registerJSON(props: FileJsonStore): Promise<void> {
+    const { json, tableName, ...fileData } = props;
+
+    const bufferData = await this.fileRegisterer.getFileBufferFromJson(
+      json,
+      tableName
+    );
+
+    await this.registerFileBuffer({
+      buffer: bufferData,
+      tableName,
+      ...fileData,
+    });
   }
 
   async getFileBuffer(fileName: string): Promise<Uint8Array | undefined> {

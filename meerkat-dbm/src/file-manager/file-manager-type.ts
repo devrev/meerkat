@@ -18,6 +18,13 @@ export interface FileManagerType {
 
   /**
    * @description
+   * Registers a single JSON file in the file manager.
+   * @param props - The FileJsonStore object to register.
+   */
+  registerJSON: (props: FileJsonStore) => Promise<void>;
+
+  /**
+   * @description
    * Retrieves the file buffer associated with a given file name.
    * @param fileName - The name of the file buffer.
    * @returns Uint8Array if found.
@@ -73,15 +80,22 @@ export interface FileManagerType {
   onDBShutdownHandler: () => Promise<void>;
 }
 
-
-export interface FileBufferStore {
+export type BaseFileStore = {
   tableName: string;
   fileName: string;
-  buffer: Uint8Array;
   staleTime?: number;
   cacheTime?: number;
   metadata?: object;
-}
+};
+
+export type FileBufferStore = BaseFileStore & {
+  buffer: Uint8Array;
+};
+
+export type FileJsonStore = BaseFileStore & {
+  json: object;
+};
+
 
 export interface FileManagerConstructorOptions {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
