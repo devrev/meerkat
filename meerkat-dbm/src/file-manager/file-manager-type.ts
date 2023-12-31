@@ -96,8 +96,6 @@ export type FileJsonStore = BaseFileStore & {
   json: object;
 };
 
-export type FileStore = FileBufferStore | FileJsonStore;
-
 export interface FileManagerConstructorOptions {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
@@ -108,4 +106,3 @@ export interface FileManagerConstructorOptions {
     maxFileSize?: number;
   };
 }
-

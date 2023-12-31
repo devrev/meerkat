@@ -3,12 +3,13 @@ import log from 'loglevel';
 import {
   FileBufferStore,
   FileJsonStore,
-  FileManagerType,
+  FileManagerType
 } from '../file-manager/file-manager-type';
 import { FileData, Table, TableWiseFiles } from '../types';
 import { DBM } from './dbm';
 import { InstanceManagerType } from './instance-manager';
 import { DBMConstructorOptions } from './types';
+
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
   private tables: Record<string, Table> = {};
@@ -17,7 +18,7 @@ export class MockFileManager implements FileManagerType {
     for (const prop of props) {
       this.fileBufferStore[prop.fileName] = prop;
       this.tables[prop.tableName] = this.tables[prop.tableName] || {
-        files: [],
+        files: []
       };
       this.tables[prop.tableName].files.push(...props);
     }
@@ -32,13 +33,10 @@ export class MockFileManager implements FileManagerType {
   async registerJSON(prop: FileJsonStore): Promise<void> {
     const { json, ...fileData } = prop;
 
-    this.fileBufferStore[prop.fileName] = {
+    this.registerFileBuffer({
       ...fileData,
-      buffer: new Uint8Array(),
-    };
-
-    this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
-    this.tables[prop.tableName].files.push(prop);
+      buffer: new Uint8Array()
+    });
   }
 
   async getFileBuffer(name: string): Promise<Uint8Array> {
@@ -106,7 +104,7 @@ export class MockFileManager implements FileManagerType {
 
       data.push({
         tableName,
-        files,
+        files
       });
     }
 
@@ -138,9 +136,9 @@ const mockDB = {
       },
       close: async () => {
         // do nothing
-      },
+      }
     };
-  },
+  }
 };
 
 export class InstanceManager implements InstanceManagerType {
@@ -175,7 +173,7 @@ describe('DBM', () => {
       logger: log,
       onEvent: (event) => {
         console.log(event);
-      },
+      }
     };
     dbm = new DBM(options);
   });
@@ -194,14 +192,14 @@ describe('DBM', () => {
       await fileManager.registerFileBuffer({
         fileName: 'file1',
         tableName: 'table1',
-        buffer: new Uint8Array(),
+        buffer: new Uint8Array()
       });
 
       const result = await dbm.queryWithTableNames(
         'SELECT * FROM table1',
         ['table1'],
         {
-          preQuery,
+          preQuery
         }
       );
 
@@ -210,24 +208,24 @@ describe('DBM', () => {
       expect(preQuery).toBeCalledWith([
         {
           tableName: 'table1',
-          files: ['file1'],
-        },
+          files: ['file1']
+        }
       ]);
     });
 
     it('should execute a query with table names', async () => {
       const result = await dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
+        'table1'
       ]);
       expect(result).toEqual(['SELECT * FROM table1']);
     });
 
     it('should execute multiple queries with table names', async () => {
       const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
+        'table1'
       ]);
       const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
+        'table1'
       ]);
       /**
        * Number of queries in the queue should be 1 as the first query is running
@@ -255,7 +253,7 @@ describe('DBM', () => {
        * Execute another query
        */
       const promise3 = dbm.queryWithTableNames('SELECT * FROM table3', [
-        'table1',
+        'table1'
       ]);
 
       /**
@@ -288,8 +286,8 @@ describe('DBM', () => {
         },
         onDuckDBShutdown: onDuckDBShutdown,
         options: {
-          shutdownInactiveTime: 100,
-        },
+          shutdownInactiveTime: 100
+        }
       };
       const dbm = new DBM(options);
 
@@ -297,14 +295,14 @@ describe('DBM', () => {
        * Execute a query
        */
       const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
+        'table1'
       ]);
 
       /**
        * Execute another query
        */
       const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
+        'table1'
       ]);
 
       /**
@@ -348,7 +346,7 @@ describe('DBM', () => {
         logger: log,
         onEvent: (event) => {
           console.log(event);
-        },
+        }
       };
       const dbm = new DBM(options);
 
@@ -356,14 +354,14 @@ describe('DBM', () => {
        * Execute a query
        */
       const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
+        'table1'
       ]);
 
       /**
        * Execute another query
        */
       const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
+        'table1'
       ]);
 
       /**

@@ -20,19 +20,17 @@ export const getBufferFromJSON = async ({
   const db = await instanceManager.getDB();
   const connection = await db.connect();
 
-  // Register the JSON content as a file in DuckDB with the table name
   await db.registerFileText(`${tableName}.json`, JSON.stringify(json));
 
-  // Insert JSON data into the specified table
   await connection.insertJSONFromPath(`${tableName}.json`, {
     name: tableName,
   });
 
-  // Query to copy the table to a Parquet file
-  await connection.query("COPY taxi1 TO 'taxi.parquet' (FORMAT PARQUET)';");
+  await connection.query(
+    `COPY ${tableName} TO '${tableName}.parquet' (FORMAT PARQUET)';`
+  );
 
-  // Copy Parquet file content to a Uint8Array buffer
-  const buffer = await db.copyFileToBuffer('taxi.parquet');
+  const buffer = await db.copyFileToBuffer(`${tableName}.parquet`);
 
   await connection.close();
 

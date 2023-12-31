@@ -6,19 +6,15 @@ import { IndexedDBFileManager } from '../indexed-db-file-manager';
 import { MeerkatDatabase } from '../meerkat-database';
 
 const mockDB = {
-  registerFileBuffer: async (fileName: string, buffer: Uint8Array) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([fileName]);
-      }, 200);
-    });
-  },
-  unregisterFileBuffer: async (fileName: string) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([fileName]);
-      }, 200);
-    });
+  registerFileBuffer: jest.fn(),
+  registerFileText: jest.fn(),
+  copyFileToBuffer: jest.fn(),
+  connect: async () => {
+    return {
+      query: jest.fn(),
+      insertJSONFromPath: jest.fn(),
+      close: jest.fn(),
+    };
   },
 };
 
@@ -211,6 +207,24 @@ describe('IndexedDBFileManager', () => {
     const tableData = await indexedDB.tablesKey.toArray();
 
     expect(tableData[0].metadata).toEqual({ test: 'test' });
+  });
+
+  it('should register JSON data', async () => {
+    const fileJson = {
+      tableName: 'taxi-json',
+      fileName: 'taxi-json.parquet',
+      json: {
+        test: 'test',
+      },
+    };
+
+    await fileManager.registerJSON(fileJson);
+
+    const tableData = await indexedDB.tablesKey.toArray();
+    const fileBufferData = await indexedDB.files.toArray();
+
+    tableData.some((table) => table.tableName === fileJson.tableName);
+    fileBufferData.some((file) => file.fileName === fileJson.fileName);
   });
 });
 
