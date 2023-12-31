@@ -9,9 +9,9 @@ import {
 } from '../file-manager-type';
 import { FileRegisterer } from './file-registerer';
 import { MeerkatDatabase } from './meerkat-database';
+
 export class IndexedDBFileManager implements FileManagerType {
   private indexedDB: MeerkatDatabase; // IndexedDB instance
-
   private instanceManager: InstanceManagerType;
   private fileRegisterer: FileRegisterer;
   private configurationOptions: FileManagerConstructorOptions['options'];
