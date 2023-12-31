@@ -3,6 +3,8 @@ import { DBMEvent, DBMLogger } from '../logger';
 
 /**
  * Converts a JSON object to a Uint8Array by writing it to a Parquet file in a DuckDB database.
+ * Also emits an event with the time taken for the conversion.
+ *
  * @param instanceManager - The instance manager for DuckDB.
  * @param json - The JSON object to be converted.
  * @param tableName - The name of the table.

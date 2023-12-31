@@ -133,6 +133,7 @@ export class IndexedDBFileManager implements FileManagerType {
       tableName,
       logger: this.logger,
       onEvent: this.onEvent,
+      metadata: jsonData.metadata,
     });
 
     /**

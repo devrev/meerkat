@@ -40,8 +40,8 @@ export class MemoryDBFileManager implements FileManagerType {
     return db.registerFileBuffer(props.fileName, props.buffer);
   }
 
-  async registerJSON(props: FileJsonStore): Promise<void> {
-    const { json, tableName, ...fileData } = props;
+  async registerJSON(jsonData: FileJsonStore): Promise<void> {
+    const { json, tableName, ...fileData } = jsonData;
 
     /**
      * Convert JSON to buffer
@@ -52,6 +52,7 @@ export class MemoryDBFileManager implements FileManagerType {
       tableName,
       logger: this.logger,
       onEvent: this.onEvent,
+      metadata: jsonData.metadata,
     });
 
     /**
