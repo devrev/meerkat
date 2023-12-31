@@ -8,7 +8,6 @@ import { DBMEvent, DBMLogger } from '../logger';
  * @param instanceManager - The instance manager for DuckDB.
  * @param json - The JSON object to be converted.
  * @param tableName - The name of the table.
- * @param logger - The logger instance.
  * @returns A converted Uint8Array of the JSON object.
  */
 
@@ -33,16 +32,20 @@ export const getBufferFromJSON = async ({
 
   const startConversionTime = Date.now();
 
+  // Register the JSON content as a json file in the DuckDB.
   await db.registerFileText(`${tableName}.json`, JSON.stringify(json));
 
+  // Create a table with the JSON file.
   await connection.insertJSONFromPath(`${tableName}.json`, {
     name: tableName,
   });
 
+  // Copy the content of the table into a Parquet file.
   await connection.query(
     `COPY ${tableName} TO '${tableName}.parquet' (FORMAT PARQUET)';`
   );
 
+  // Copy the content of the Parquet file into a Uint8Array buffer.
   const buffer = await db.copyFileToBuffer(`${tableName}.parquet`);
 
   const endConversionTime = Date.now();
