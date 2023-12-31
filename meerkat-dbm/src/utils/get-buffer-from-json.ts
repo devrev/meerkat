@@ -9,8 +9,6 @@ import { DBMEvent, DBMLogger } from '../logger';
  * @param json - The JSON object to be converted.
  * @param tableName - The name of the table.
  * @param logger - The logger instance.
- * @param onEvent - The callback function to handle events.
- * @param metadata - Additional information for the event.
  * @returns A converted Uint8Array of the JSON object.
  */
 
