@@ -61,7 +61,7 @@ export const getBufferFromJSON = async ({
   onEvent?.({
     event_name: 'json_to_buffer_conversion_duration',
     duration: timeTaken,
-    metadata,
+    metadata: { ...metadata, json },
   });
 
   await connection.close();
