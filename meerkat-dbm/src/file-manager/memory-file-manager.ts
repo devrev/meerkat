@@ -1,12 +1,12 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
 import { Table, TableWiseFiles } from '../types';
+import { getBufferFromJSON } from '../utils';
 import {
   FileBufferStore,
   FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
 } from './file-manager-type';
-import { getBufferFromJSON } from './helper';
 
 export class MemoryDBFileManager implements FileManagerType {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;

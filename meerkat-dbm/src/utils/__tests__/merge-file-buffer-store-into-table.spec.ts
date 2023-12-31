@@ -1,5 +1,5 @@
-import { Table } from '../types';
-import { mergeFileBufferStoreIntoTable } from './merge-file-buffer-store-into-table';
+import { Table } from '../../types';
+import { mergeFileBufferStoreIntoTable } from '../merge-file-buffer-store-into-table';
 
 describe('mergeFileBufferStoreIntoTable', () => {
   const fileBufferStore = {

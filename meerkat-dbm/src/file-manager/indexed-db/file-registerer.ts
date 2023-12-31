@@ -8,10 +8,6 @@ interface FileRegistererConstructorOptions {
 export interface FileRegistererType {
   registerFileBuffer: AsyncDuckDB['registerFileBuffer'];
   registerEmptyFileBuffer: AsyncDuckDB['registerEmptyFileBuffer'];
-  getFileBufferFromJson: (
-    json: object,
-    tableName: string
-  ) => Promise<Uint8Array>;
   isFileRegisteredInDB: (fileName: string) => boolean;
   flushFileCache: () => void;
   totalByteLength: () => number;
@@ -55,22 +51,6 @@ export class FileRegisterer implements FileRegistererType {
       .then((db) => db.registerEmptyFileBuffer(fileName));
 
     this.registeredFilesSet.delete(fileName);
-  };
-
-  getFileBufferFromJson = async (json: object, tableName: string) => {
-    const db = await this.instanceManager.getDB();
-    const connection = await db.connect();
-
-    await db.registerFileText(`${tableName}.json`, JSON.stringify(json));
-
-    await connection.insertJSONFromPath(`${tableName}.json`, {
-      name: tableName,
-    });
-    await connection.query("COPY taxi1 TO 'taxi.parquet' (FORMAT PARQUET)';");
-
-    const buffer = await db.copyFileToBuffer('taxi.parquet');
-
-    return buffer;
   };
 
   isFileRegisteredInDB(fileName: string): boolean {

@@ -1,13 +1,12 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { Table, TableWiseFiles } from '../../types';
-import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
+import { getBufferFromJSON, mergeFileBufferStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
   FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
-import { getBufferFromJSON } from '../helper';
 import { FileRegisterer } from './file-registerer';
 import { MeerkatDatabase } from './meerkat-database';
 export class IndexedDBFileManager implements FileManagerType {

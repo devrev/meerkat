@@ -2,6 +2,7 @@ import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import log from 'loglevel';
 import {
   FileBufferStore,
+  FileJsonStore,
   FileManagerType,
 } from '../file-manager/file-manager-type';
 import { FileData, Table, TableWiseFiles } from '../types';
@@ -24,6 +25,18 @@ export class MockFileManager implements FileManagerType {
 
   async registerFileBuffer(prop: FileBufferStore): Promise<void> {
     this.fileBufferStore[prop.fileName] = prop;
+    this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
+    this.tables[prop.tableName].files.push(prop);
+  }
+
+  async registerJSON(prop: FileJsonStore): Promise<void> {
+    const { json, ...fileData } = prop;
+
+    this.fileBufferStore[prop.fileName] = {
+      ...fileData,
+      buffer: new Uint8Array(),
+    };
+
     this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
     this.tables[prop.tableName].files.push(prop);
   }
