@@ -65,7 +65,7 @@ export const getBufferFromJSON = async ({
     metadata: { ...metadata, json },
   });
 
-  await db.dropFile(`${tableName}.json`);
+  await db.registerEmptyFileBuffer(`${tableName}.json`);
 
   await connection.close();
 
