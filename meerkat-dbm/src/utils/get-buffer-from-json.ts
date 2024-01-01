@@ -30,7 +30,7 @@ export const getBufferFromJSON = async ({
 
   const connection = await db.connect();
 
-  const startConversionTime = Date.now();
+  const startConversionTime = performance.now();
 
   // Register the JSON content as a json file in the DuckDB.
   await db.registerFileText(`${tableName}.json`, JSON.stringify(json));
@@ -48,7 +48,7 @@ export const getBufferFromJSON = async ({
   // Copy the content of the Parquet file into a Uint8Array buffer.
   const buffer = await db.copyFileToBuffer(`${tableName}.parquet`);
 
-  const endConversionTime = Date.now();
+  const endConversionTime = performance.now();
 
   const timeTaken = endConversionTime - startConversionTime;
 
@@ -64,6 +64,8 @@ export const getBufferFromJSON = async ({
     duration: timeTaken,
     metadata: { ...metadata, json },
   });
+
+  await db.dropFile(`${tableName}.json`);
 
   await connection.close();
 
