@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { spawn } from 'child_process';
+import { ChildProcess, spawn } from 'child_process';
 import * as puppeteer from 'puppeteer';
 
 describe('Benchmarking DBMs', () => {
-  let page;
-  let browser;
-  let appProcess;
+  let page: puppeteer.Page;
+  let browser: puppeteer.Browser;
+  let appProcess: ChildProcess;
 
   let totalTimeForMemoryDB: number;
 
@@ -91,6 +91,31 @@ describe('Benchmarking DBMs', () => {
      * The total diff between indexed dbm and memory dbm should be less than 30%
      */
     expect(totalTimeForIndexedDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
+  }, 300000);
+
+  it('Benchmark registering json data', async () => {
+    await page.goto('http://localhost:4200/register-json');
+
+    // Check if the loader is initially visible
+    const isLoaderVisibleBefore = await page.$eval('#loader', (loader) => {
+      return (
+        window.getComputedStyle(loader).getPropertyValue('display') !== 'none'
+      );
+    });
+
+    expect(isLoaderVisibleBefore).toBe(true); // Ensure the loader is initially visible
+
+    // Wait for 2 seconds
+    new Promise((r) => setTimeout(r, 1700));
+
+    // Check if the loader is not visible after 2 seconds
+    const isLoaderVisibleAfter = await page.$eval('#loader', (loader) => {
+      return (
+        window.getComputedStyle(loader).getPropertyValue('display') !== 'none'
+      );
+    });
+
+    expect(isLoaderVisibleAfter).toBe(false);
   }, 300000);
 
   afterAll(async () => {

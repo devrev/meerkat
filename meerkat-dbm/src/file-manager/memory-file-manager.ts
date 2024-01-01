@@ -19,9 +19,13 @@ export class MemoryDBFileManager implements FileManagerType {
   constructor({
     fetchTableFileBuffers,
     instanceManager,
+    logger,
+    onEvent,
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
+    this.logger = logger;
+    this.onEvent = onEvent;
   }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {

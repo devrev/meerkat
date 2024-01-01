@@ -24,6 +24,10 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
       fetchTableFileBuffers: async (table) => {
         return [];
       },
+      logger: log,
+      onEvent: (event) => {
+        console.info(event);
+      },
     });
     log.setLevel('DEBUG');
     const dbm = new DBM({

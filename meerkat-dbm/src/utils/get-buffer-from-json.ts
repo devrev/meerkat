@@ -45,7 +45,7 @@ export const getBufferFromJSON = async ({
 
   // Copy the content of the table into a Parquet file.
   await connection.query(
-    `COPY ${tableName} TO ${parquetFileName} (FORMAT PARQUET)';`
+    `COPY ${tableName} TO '${parquetFileName}' (FORMAT PARQUET);`
   );
 
   // Copy the content of the Parquet file into a Uint8Array buffer.
