@@ -10,6 +10,7 @@ const mockDB = {
   registerFileBuffer: jest.fn(),
   registerFileText: jest.fn(),
   copyFileToBuffer: jest.fn(),
+  registerEmptyFileBuffer: jest.fn(),
   connect: async () => {
     return {
       query: jest.fn(),

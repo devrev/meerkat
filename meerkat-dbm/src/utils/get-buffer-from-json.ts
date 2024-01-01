@@ -26,6 +26,9 @@ export const getBufferFromJSON = async ({
   onEvent?: (event: DBMEvent) => void;
   metadata?: object;
 }): Promise<Uint8Array> => {
+  const jsonFileName = `${tableName}.json`;
+  const parquetFileName = `${tableName}.parquet`;
+
   const db = await instanceManager.getDB();
 
   const connection = await db.connect();
@@ -33,20 +36,20 @@ export const getBufferFromJSON = async ({
   const startConversionTime = performance.now();
 
   // Register the JSON content as a json file in the DuckDB.
-  await db.registerFileText(`${tableName}.json`, JSON.stringify(json));
+  await db.registerFileText(jsonFileName, JSON.stringify(json));
 
   // Create a table with the JSON file.
-  await connection.insertJSONFromPath(`${tableName}.json`, {
+  await connection.insertJSONFromPath(jsonFileName, {
     name: tableName,
   });
 
   // Copy the content of the table into a Parquet file.
   await connection.query(
-    `COPY ${tableName} TO '${tableName}.parquet' (FORMAT PARQUET)';`
+    `COPY ${tableName} TO ${parquetFileName} (FORMAT PARQUET)';`
   );
 
   // Copy the content of the Parquet file into a Uint8Array buffer.
-  const buffer = await db.copyFileToBuffer(`${tableName}.parquet`);
+  const buffer = await db.copyFileToBuffer(parquetFileName);
 
   const endConversionTime = performance.now();
 
@@ -65,7 +68,7 @@ export const getBufferFromJSON = async ({
     metadata: { ...metadata, json },
   });
 
-  await db.registerEmptyFileBuffer(`${tableName}.json`);
+  await db.registerEmptyFileBuffer(jsonFileName);
 
   await connection.close();
 
