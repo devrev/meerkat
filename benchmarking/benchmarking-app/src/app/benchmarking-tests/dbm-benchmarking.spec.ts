@@ -96,26 +96,18 @@ describe('Benchmarking DBMs', () => {
   it('Benchmark registering json data', async () => {
     await page.goto('http://localhost:4200/register-json');
 
-    // Check if the loader is initially visible
-    const isLoaderVisibleBefore = await page.$eval('#loader', (loader) => {
-      return (
-        window.getComputedStyle(loader).getPropertyValue('display') !== 'none'
-      );
-    });
+    // Wait for the loader to appear
+    await page.waitForSelector('#loader', { timeout: 5000 });
 
-    expect(isLoaderVisibleBefore).toBe(true); // Ensure the loader is initially visible
+    // Wait for the loader to disappear
+    await page.waitForTimeout(1750);
 
-    // Wait for 2 seconds
-    new Promise((r) => setTimeout(r, 1700));
+    // The loader should not be visible after 1750ms
+    const isLoaderVisible = await page
+      .$eval('#loader', () => true)
+      .catch(() => false);
 
-    // Check if the loader is not visible after 2 seconds
-    const isLoaderVisibleAfter = await page.$eval('#loader', (loader) => {
-      return (
-        window.getComputedStyle(loader).getPropertyValue('display') !== 'none'
-      );
-    });
-
-    expect(isLoaderVisibleAfter).toBe(false);
+    expect(isLoaderVisible).toBe(false);
   }, 300000);
 
   afterAll(async () => {
