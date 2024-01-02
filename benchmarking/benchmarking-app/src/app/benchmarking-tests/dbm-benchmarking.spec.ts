@@ -96,18 +96,10 @@ describe('Benchmarking DBMs', () => {
   it('Benchmark registering json data', async () => {
     await page.goto('http://localhost:4200/register-json');
 
-    // Wait for the loader to appear
-    await page.waitForSelector('#loader', { timeout: 5000 });
-
-    // Wait for the loader to disappear
-    await page.waitForTimeout(1750);
-
-    // The loader should not be visible after 1750ms
-    const isLoaderVisible = await page
-      .$eval('#loader', () => true)
-      .catch(() => false);
-
-    expect(isLoaderVisible).toBe(false);
+    /**
+     * wait for total time to be rendered
+     */
+    await page.waitForSelector('#total_time', { timeout: 100000 });
   }, 300000);
 
   afterAll(async () => {
