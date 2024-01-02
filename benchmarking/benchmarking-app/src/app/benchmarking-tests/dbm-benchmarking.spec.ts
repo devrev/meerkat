@@ -3,9 +3,9 @@ import { ChildProcess, spawn } from 'child_process';
 import * as puppeteer from 'puppeteer';
 
 describe('Benchmarking DBMs', () => {
-  let page: puppeteer.Page;
-  let browser: puppeteer.Browser;
-  let appProcess: ChildProcess;
+   let page;
+   let browser;
+   let appProcess;
 
   let totalTimeForMemoryDB: number;
 
