@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { ChildProcess, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import * as puppeteer from 'puppeteer';
 
 describe('Benchmarking DBMs', () => {
-   let page;
-   let browser;
-   let appProcess;
+  let page;
+  let browser;
+  let appProcess;
 
   let totalTimeForMemoryDB: number;
 
@@ -91,15 +91,6 @@ describe('Benchmarking DBMs', () => {
      * The total diff between indexed dbm and memory dbm should be less than 30%
      */
     expect(totalTimeForIndexedDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
-  }, 300000);
-
-  it('Benchmark registering json data', async () => {
-    await page.goto('http://localhost:4200/register-json');
-
-    /**
-     * wait for total time to be rendered
-     */
-    await page.waitForSelector('#total_time', { timeout: 100000 });
   }, 300000);
 
   afterAll(async () => {

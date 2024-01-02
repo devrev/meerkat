@@ -1,13 +1,9 @@
 import { useState } from 'react';
-import { FILE_TEST_QUERIES } from '../constants';
+import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
-export const QueryBenchmarking = ({
-  testQueries = FILE_TEST_QUERIES,
-}: {
-  testQueries?: string[];
-}) => {
+export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
     {
       queryName: string;
@@ -23,11 +19,11 @@ export const QueryBenchmarking = ({
     setOutput([]);
     const promiseArr = [];
     const start = performance.now();
-    for (let i = 0; i < testQueries.length; i++) {
+    for (let i = 0; i < TEST_QUERIES.length; i++) {
       const eachQueryStart = performance.now();
 
       const promiseObj = dbm
-        .queryWithTableNames(testQueries[i], ['taxi'])
+        .queryWithTableNames(TEST_QUERIES[i], ['taxi'])
         .then((results) => {
           const end = performance.now();
           const time = end - eachQueryStart;

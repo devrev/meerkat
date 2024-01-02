@@ -1,4 +1,4 @@
-export const FILE_TEST_QUERIES = [
+export const TEST_QUERIES = [
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet',
   "SELECT * FROM taxi.parquet WHERE originating_base_num='B03404' LIMIT 100",
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet GROUP BY hvfhs_license_num',
@@ -31,11 +31,8 @@ export const FILE_TEST_QUERIES = [
         group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
     LIMIT 1
       `,
-];
-
-export const JSON_TEST_QUERIES = [
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  'SELECT * FROM taxi WHERE price >= 1.0005812645 LIMIT 100',
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY order_count',
-  'SELECT * as total_count FROM taxi ORDER BY seconds_in_bucket LIMIT 100',
+  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxijson',
+  'SELECT * FROM taxijson WHERE price >= 1.0005812645 LIMIT 100',
+  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxijson GROUP BY order_count',
+  'SELECT * as total_count FROM taxijson ORDER BY seconds_in_bucket LIMIT 100',
 ];

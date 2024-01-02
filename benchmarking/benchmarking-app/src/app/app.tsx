@@ -1,10 +1,8 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import { JSON_TEST_QUERIES } from './constants';
 import { IndexedDBMProvider } from './dbm-context/indexed-dbm-context';
 import { MemoryDBMProvider } from './dbm-context/memory-dbm-context';
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
-import { JsonLoader } from './file-loader/json-loader';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 
 export function App() {
@@ -48,19 +46,6 @@ export function App() {
                   <QueryBenchmarking />
                 </FileLoader>
               </IndexedDBMProvider>
-            </div>
-          }
-        />
-        <Route
-          path="/register-json"
-          element={
-            <div>
-              <h1>Register JSON with Memory DBM</h1>
-              <MemoryDBMProvider>
-                <JsonLoader>
-                  <QueryBenchmarking testQueries={JSON_TEST_QUERIES} />
-                </JsonLoader>
-              </MemoryDBMProvider>
             </div>
           }
         />
