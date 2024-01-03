@@ -1,5 +1,40 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
+import { DBMEvent, DBMLogger } from '../logger';
 import { Table, TableWiseFiles } from '../types';
+
+export interface FileManagerConstructorOptions {
+  /**
+   * @description
+   * It manages the lifecycle of the DuckDB database instance.
+   * It provides methods for obtaining an initialized DuckDB instance and terminating the instance.
+   */
+  instanceManager: InstanceManagerType;
+
+  /**
+   * @description
+   * Represents an logger instance, which will be used for logging messages throughout the File Manager's execution.
+   */
+  logger?: DBMLogger;
+
+  /**
+   * @description
+   * A callback function that handles events emitted by the File Manager.
+   */
+  onEvent?: (event: DBMEvent) => void;
+
+  /**
+   * @description
+   * Configuration options for the File Manager.
+   */
+  options?: {
+    /**
+     * Maximum size of the file in DB in bytes
+     */
+    maxFileSize?: number;
+  };
+
+  fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
+}
 
 export interface FileManagerType {
   /**
@@ -15,6 +50,15 @@ export interface FileManagerType {
    * @param props - The FileBufferStore object to register.
    */
   registerFileBuffer: (props: FileBufferStore) => Promise<void>;
+
+  /**
+   * @description
+   * Registers a single JSON file in the file manager.
+   * It converts a JSON object to a Uint8Array by writing it to a Parquet file in a DuckDB database and registers it.
+   * Also emits an event with the time taken for the conversion.
+   * @param props - The FileJsonStore object to register.
+   */
+  registerJSON: (props: FileJsonStore) => Promise<void>;
 
   /**
    * @description
@@ -73,24 +117,18 @@ export interface FileManagerType {
   onDBShutdownHandler: () => Promise<void>;
 }
 
-
-export interface FileBufferStore {
+export type BaseFileStore = {
   tableName: string;
   fileName: string;
-  buffer: Uint8Array;
   staleTime?: number;
   cacheTime?: number;
   metadata?: object;
-}
+};
 
-export interface FileManagerConstructorOptions {
-  fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
-  instanceManager: InstanceManagerType;
-  options?: {
-    /**
-     * Maximum size of the file in DB in bytes
-     */
-    maxFileSize?: number;
-  };
-}
+export type FileBufferStore = BaseFileStore & {
+  buffer: Uint8Array;
+};
 
+export type FileJsonStore = BaseFileStore & {
+  json: object;
+};

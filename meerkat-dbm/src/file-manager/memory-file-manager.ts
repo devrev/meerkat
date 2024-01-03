@@ -1,7 +1,10 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
+import { DBMEvent, DBMLogger } from '../logger';
 import { Table, TableWiseFiles } from '../types';
+import { getBufferFromJSON } from '../utils';
 import {
   FileBufferStore,
+  FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
 } from './file-manager-type';
@@ -10,12 +13,19 @@ export class MemoryDBFileManager implements FileManagerType {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
 
+  private logger?: DBMLogger;
+  private onEvent?: (event: DBMEvent) => void;
+
   constructor({
     fetchTableFileBuffers,
     instanceManager,
+    logger,
+    onEvent,
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
+    this.logger = logger;
+    this.onEvent = onEvent;
   }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
@@ -32,6 +42,31 @@ export class MemoryDBFileManager implements FileManagerType {
     console.info('registerFileBuffer', props);
     const db = await this.instanceManager.getDB();
     return db.registerFileBuffer(props.fileName, props.buffer);
+  }
+
+  async registerJSON(jsonData: FileJsonStore): Promise<void> {
+    const { json, tableName, ...fileData } = jsonData;
+
+    /**
+     * Convert JSON to buffer
+     */
+    const bufferData = await getBufferFromJSON({
+      instanceManager: this.instanceManager,
+      json,
+      tableName,
+      logger: this.logger,
+      onEvent: this.onEvent,
+      metadata: jsonData.metadata,
+    });
+
+    /**
+     * Register buffer in DB
+     */
+    await this.registerFileBuffer({
+      buffer: bufferData,
+      tableName,
+      ...fileData,
+    });
   }
 
   getFileBuffer(name: string): Promise<Uint8Array> {

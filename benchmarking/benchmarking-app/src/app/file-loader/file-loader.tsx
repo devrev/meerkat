@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useState } from 'react';
+import TAXI_JSON_DATA from '../../assets/data-sets/taxi.json';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
@@ -19,6 +20,12 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         tableName: 'taxi',
         fileName: 'taxi.parquet',
         buffer: fileBufferView,
+      });
+
+      await fileManager.registerJSON({
+        json: TAXI_JSON_DATA,
+        tableName: 'taxijson',
+        fileName: 'taxi.json',
       });
 
       setIsFileLoader(true);

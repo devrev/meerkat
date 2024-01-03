@@ -1,17 +1,24 @@
+import { InstanceManagerType } from '../../dbm/instance-manager';
+import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import { mergeFileBufferStoreIntoTable } from '../../utils/merge-file-buffer-store-into-table';
+import { getBufferFromJSON, mergeFileBufferStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
+  FileJsonStore,
   FileManagerConstructorOptions,
-  FileManagerType
+  FileManagerType,
 } from '../file-manager-type';
 import { FileRegisterer } from './file-registerer';
 import { MeerkatDatabase } from './meerkat-database';
 
 export class IndexedDBFileManager implements FileManagerType {
   private indexedDB: MeerkatDatabase; // IndexedDB instance
+  private instanceManager: InstanceManagerType;
   private fileRegisterer: FileRegisterer;
   private configurationOptions: FileManagerConstructorOptions['options'];
+
+  private logger?: DBMLogger;
+  private onEvent?: (event: DBMEvent) => void;
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
 
@@ -19,11 +26,16 @@ export class IndexedDBFileManager implements FileManagerType {
     fetchTableFileBuffers,
     instanceManager,
     options,
+    logger,
+    onEvent,
   }: FileManagerConstructorOptions) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.indexedDB = new MeerkatDatabase();
+    this.instanceManager = instanceManager;
     this.fileRegisterer = new FileRegisterer({ instanceManager });
     this.configurationOptions = options;
+    this.logger = logger;
+    this.onEvent = onEvent;
   }
 
   /**
@@ -107,6 +119,31 @@ export class IndexedDBFileManager implements FileManagerType {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  async registerJSON(jsonData: FileJsonStore): Promise<void> {
+    const { json, tableName, ...fileData } = jsonData;
+
+    /**
+     * Convert JSON to buffer
+     */
+    const bufferData = await getBufferFromJSON({
+      instanceManager: this.instanceManager,
+      json,
+      tableName,
+      logger: this.logger,
+      onEvent: this.onEvent,
+      metadata: jsonData.metadata,
+    });
+
+    /**
+     * Register the buffer in the file manager
+     */
+    await this.registerFileBuffer({
+      buffer: bufferData,
+      tableName,
+      ...fileData,
+    });
   }
 
   async getFileBuffer(fileName: string): Promise<Uint8Array | undefined> {

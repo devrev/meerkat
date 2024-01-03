@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
@@ -14,49 +15,15 @@ export const QueryBenchmarking = () => {
 
   useClassicEffect(() => {
     setTotalTime(0);
-    const testQueries = [
-      'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet',
-      "SELECT * FROM taxi.parquet WHERE originating_base_num='B03404' LIMIT 100",
-      'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet GROUP BY hvfhs_license_num',
-      'SELECT * as total_count FROM taxi.parquet ORDER BY bcf LIMIT 100',
-      `
-      WITH group_by_query AS (
-        SELECT
-            hvfhs_license_num,
-            COUNT(*)
-        FROM
-            taxi.parquet
-        GROUP BY
-            hvfhs_license_num
-    ),
-
-    full_query AS (
-        SELECT
-            *
-        FROM
-            taxi.parquet
-    )
-
-    SELECT
-        COUNT(*)
-    FROM
-        group_by_query
-    LEFT JOIN
-        full_query
-    ON
-        group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
-    LIMIT 1
-      `,
-    ];
 
     setOutput([]);
     const promiseArr = [];
     const start = performance.now();
-    for (let i = 0; i < testQueries.length; i++) {
+    for (let i = 0; i < TEST_QUERIES.length; i++) {
       const eachQueryStart = performance.now();
 
       const promiseObj = dbm
-        .queryWithTableNames(testQueries[i], ['taxi'])
+        .queryWithTableNames(TEST_QUERIES[i], ['taxi'])
         .then((results) => {
           const end = performance.now();
           const time = end - eachQueryStart;
