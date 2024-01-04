@@ -26,5 +26,3 @@ export class DuckDBSingleton {
     return DuckDBSingleton.instance;
   }
 }
-
-expory const 
