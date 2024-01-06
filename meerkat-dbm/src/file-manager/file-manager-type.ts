@@ -53,6 +53,15 @@ export interface FileManagerType {
 
   /**
    * @description
+   * Registers multiple JSON files in the file manager.
+   * It converts JSON objects to Uint8Arrays by writing them to Parquet files in a DuckDB database and registers them.
+   * Also emits an event with the time taken for the conversion.
+   * @param props - An array of FileJsonStore objects.
+   */
+  bulkRegisterJSON: (props: FileJsonStore[]) => Promise<void>;
+
+  /**
+   * @description
    * Registers a single JSON file in the file manager.
    * It converts a JSON object to a Uint8Array by writing it to a Parquet file in a DuckDB database and registers it.
    * Also emits an event with the time taken for the conversion.

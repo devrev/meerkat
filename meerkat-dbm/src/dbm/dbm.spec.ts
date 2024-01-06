@@ -29,6 +29,12 @@ export class MockFileManager implements FileManagerType {
     this.tables[prop.tableName].files.push(prop);
   }
 
+  async bulkRegisterJSON(props: FileJsonStore[]): Promise<void> {
+    for (const prop of props) {
+      await this.registerJSON(prop);
+    }
+  }
+
   async registerJSON(prop: FileJsonStore): Promise<void> {
     const { json, ...fileData } = prop;
 

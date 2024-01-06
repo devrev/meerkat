@@ -121,6 +121,27 @@ export class IndexedDBFileManager implements FileManagerType {
       });
   }
 
+  async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
+    const fileBuffers = await Promise.all(
+      jsonData.map(async (jsonFile) => {
+        const { json, tableName, ...fileData } = jsonFile;
+
+        const bufferData = await getBufferFromJSON({
+          instanceManager: this.instanceManager,
+          json: json,
+          tableName,
+          logger: this.logger,
+          onEvent: this.onEvent,
+          metadata: jsonFile.metadata,
+        });
+
+        return { buffer: bufferData, tableName, ...fileData };
+      })
+    );
+
+    await this.bulkRegisterFileBuffer(fileBuffers);
+  }
+
   async registerJSON(jsonData: FileJsonStore): Promise<void> {
     const { json, tableName, ...fileData } = jsonData;
 

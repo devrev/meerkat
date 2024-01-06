@@ -216,7 +216,7 @@ describe('IndexedDBFileManager', () => {
   });
 
   it('should register JSON data', async () => {
-    const fileJson = {
+    const jsonFile = {
       tableName: 'taxi-json',
       fileName: 'taxi-json.parquet',
       json: {
@@ -224,13 +224,50 @@ describe('IndexedDBFileManager', () => {
       },
     };
 
-    await fileManager.registerJSON(fileJson);
+    await fileManager.registerJSON(jsonFile);
 
     const tableData = await indexedDB.tablesKey.toArray();
     const fileBufferData = await indexedDB.files.toArray();
 
-    tableData.some((table) => table.tableName === fileJson.tableName);
-    fileBufferData.some((file) => file.fileName === fileJson.fileName);
+    expect(
+      tableData.some((table) => table.tableName === jsonFile.tableName)
+    ).toBe(true);
+
+    expect(
+      fileBufferData.some((file) => file.fileName === jsonFile.fileName)
+    ).toBe(true);
+  });
+
+  it('should register multiple JSON data', async () => {
+    const jsonFiles = [
+      {
+        tableName: 'taxi-json-bulk',
+        fileName: 'taxi-json1.parquet',
+        json: {
+          test: 'test',
+        },
+      },
+      {
+        tableName: 'taxi-json-bulk',
+        fileName: 'taxi-json2.parquet',
+        json: {
+          test: 'test',
+        },
+      },
+    ];
+
+    await fileManager.bulkRegisterJSON(jsonFiles);
+
+    const tableData = await indexedDB.tablesKey.toArray();
+    const fileBufferData = await indexedDB.files.toArray();
+
+    expect(
+      tableData.some((table) => table.tableName === jsonFiles[0].tableName)
+    ).toBe(true);
+
+    expect(fileBufferData.map((file) => file.fileName)).toEqual(
+      expect.arrayContaining(jsonFiles.map((file) => file.fileName))
+    );
   });
 });
 

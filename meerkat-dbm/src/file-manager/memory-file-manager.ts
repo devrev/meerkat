@@ -44,6 +44,14 @@ export class MemoryDBFileManager implements FileManagerType {
     return db.registerFileBuffer(props.fileName, props.buffer);
   }
 
+  async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
+    const promiseArr = jsonData.map((fileBuffer) =>
+      this.registerJSON(fileBuffer)
+    );
+
+    await Promise.all(promiseArr);
+  }
+
   async registerJSON(jsonData: FileJsonStore): Promise<void> {
     const { json, tableName, ...fileData } = jsonData;
 
