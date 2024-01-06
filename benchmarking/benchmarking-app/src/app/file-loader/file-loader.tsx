@@ -25,7 +25,7 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
       await fileManager.registerJSON({
         json: TAXI_JSON_DATA,
         tableName: 'taxijson',
-        fileName: 'taxi.json',
+        fileName: 'taxijson.parquet',
       });
 
       setIsFileLoader(true);
