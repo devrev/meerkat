@@ -160,7 +160,7 @@ describe('DBM', () => {
   let db: AsyncDuckDB;
   let fileManager: FileManagerType;
   let dbm: DBM;
-  let instanceManager;
+  let instanceManager: InstanceManager;
 
   beforeAll(async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -178,6 +178,9 @@ describe('DBM', () => {
       logger: log,
       onEvent: (event) => {
         console.log(event);
+      },
+      options: {
+        shutdownInactiveTime: 100,
       },
     };
     dbm = new DBM(options);
@@ -386,6 +389,30 @@ describe('DBM', () => {
       await new Promise((resolve) => setTimeout(resolve, 200));
       /**
        * Expect instanceManager.terminateDB to be called
+       */
+      expect(instanceManager.terminateDB).not.toBeCalled();
+    });
+
+    it('should not shutdown the db if the shutdown lock is true', async () => {
+      jest.spyOn(instanceManager, 'terminateDB');
+
+      /**
+       * Set the shutdown lock to true
+       */
+      dbm.setShutdownLock(true);
+
+      /**
+       * Execute a query
+       */
+      await dbm.queryWithTableNames('SELECT * FROM table1', ['table1']);
+
+      /**
+       * wait for 200ms
+       */
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      /**
+       * Expect instanceManager.terminateDB to not be called
        */
       expect(instanceManager.terminateDB).not.toBeCalled();
     });

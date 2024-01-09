@@ -17,6 +17,7 @@ export class DBM {
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
   private onDuckDBShutdown?: () => void;
+  private shutdownLock = false;
 
   constructor({
     fileManager,
@@ -35,6 +36,13 @@ export class DBM {
   }
 
   private async _shutdown() {
+    /**
+     * If the shutdown lock is true, then don't shutdown the DB
+     */
+    if (this.shutdownLock) {
+      return;
+    }
+
     if (this.connection) {
       await this.connection.close();
       this.connection = null;
@@ -284,5 +292,12 @@ export class DBM {
      * Execute the query
      */
     return connection.query(query);
+  }
+
+  /**
+   * Set the shutdown lock to prevent the DB from shutting down
+   */
+  public async setShutdownLock(state: boolean) {
+    this.shutdownLock = state;
   }
 }
