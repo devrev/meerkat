@@ -24,7 +24,7 @@ export const cubeMeasureToSQLSelectString = (
     if (i > 0) {
       base += ',';
     }
-    base += ` (${measureSchema.sql}) AS ${aliasKey} `;
+      base += ` ${measureSchema.sql} AS ${aliasKey} `;
   }
   return base;
 };
