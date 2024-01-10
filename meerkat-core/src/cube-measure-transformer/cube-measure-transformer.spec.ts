@@ -31,13 +31,13 @@ describe('cubeMeasureToSQLSelectString', () => {
   it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure1'];
     const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT (COUNT(*)) AS temp__measure1 `);
+    expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 `);
   });
 
   it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure2'];
     const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT (SUM(total)) AS temp__measure2 `);
+    expect(result).toBe(`SELECT SUM(total) AS temp__measure2 `);
   });
 
   it('should substitute "*" for all columns in the cube', () => {
@@ -56,7 +56,7 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      `SELECT (COUNT(*)) AS temp__measure1 , (SUM(total)) AS temp__measure2  FROM my_table`
+      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2  FROM my_table`
     );
   });
 
@@ -70,7 +70,7 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      `SELECT (COUNT(*)) AS temp__measure1 , (SUM(total)) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
+      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
     );
   });
 
@@ -85,7 +85,7 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      `SELECT (COUNT(*)) AS temp__measure1 , (SUM(total)) AS temp__measure2 ,   (dimension1) AS temp__dimension1,  (DATE_TRUNC('month', order_date)) AS temp__dimension2 FROM (SELECT * FROM TABLE_1)`
+      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2 ,   dimension1 AS temp__dimension1,  DATE_TRUNC('month', order_date) AS temp__dimension2 FROM (SELECT * FROM TABLE_1)`
     );
   });
 });

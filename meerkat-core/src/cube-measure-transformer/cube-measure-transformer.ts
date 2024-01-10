@@ -24,7 +24,7 @@ export const cubeMeasureToSQLSelectString = (
     if (i > 0) {
       base += ',';
     }
-    base += ` (${measureSchema.sql}) AS ${aliasKey} `;
+      base += ` ${measureSchema.sql} AS ${aliasKey} `;
   }
   return base;
 };
@@ -52,7 +52,7 @@ const addDimensionToSQLProjection = (
     if (i > 0) {
       newSelectString += ',';
     }
-    newSelectString += `  (${dimensionSchema.sql}) AS ${aliasKey}`;
+    newSelectString += `  ${dimensionSchema.sql} AS ${aliasKey}`;
   }
   return newSelectString;
 };
