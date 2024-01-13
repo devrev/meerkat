@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { spawn } from 'child_process';
+import { ChildProcess, spawn } from 'child_process';
 import * as puppeteer from 'puppeteer';
 
 describe('Benchmarking DBMs', () => {
-  let page;
-  let browser;
-  let appProcess;
+  let page: puppeteer.Page;
+  let browser: puppeteer.Browser;
+  let appProcess: ChildProcess;
 
   let totalTimeForMemoryDB: number;
 

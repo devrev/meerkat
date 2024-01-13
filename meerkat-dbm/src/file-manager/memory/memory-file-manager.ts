@@ -1,13 +1,13 @@
-import { InstanceManagerType } from '../dbm/instance-manager';
-import { DBMEvent, DBMLogger } from '../logger';
-import { Table, TableWiseFiles } from '../types';
-import { getBufferFromJSON } from '../utils';
+import { InstanceManagerType } from '../../dbm/instance-manager';
+import { DBMEvent, DBMLogger } from '../../logger';
+import { Table, TableWiseFiles } from '../../types';
+import { getBufferFromJSON } from '../../utils';
 import {
   FileBufferStore,
   FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
-} from './file-manager-type';
+} from '../file-manager-type';
 
 export class MemoryDBFileManager implements FileManagerType {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;

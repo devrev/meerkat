@@ -300,4 +300,11 @@ export class DBM {
   public async setShutdownLock(state: boolean) {
     this.shutdownLock = state;
   }
+
+  /**
+   * Empty the queue
+   */
+  public async emptyQueue() {
+    this.queriesQueue = [];
+  }
 }
