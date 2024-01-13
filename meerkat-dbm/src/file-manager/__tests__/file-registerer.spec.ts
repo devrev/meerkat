@@ -1,4 +1,4 @@
-import { InstanceManagerType } from '../../../dbm/instance-manager';
+import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FileRegisterer } from '../file-registerer';
 
 const mockDB = {

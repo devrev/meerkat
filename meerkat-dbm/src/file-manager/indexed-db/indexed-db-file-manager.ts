@@ -8,8 +8,11 @@ import {
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
-import { FileRegisterer } from './file-registerer';
+import { FileRegisterer } from '../file-registerer';
 import { MeerkatDatabase } from './meerkat-database';
+
+// Default max file size is 500mb
+const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
 
 export class IndexedDBFileManager implements FileManagerType {
   private indexedDB: MeerkatDatabase; // IndexedDB instance
@@ -184,8 +187,6 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   async fileCleanUpIfRequired(tableData: (Table | undefined)[]) {
-    // Default max file size is 500mb
-    const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
     const maxFileSize =
       this.configurationOptions?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
     const totalByteLengthInDb = this.fileRegisterer.totalByteLength();

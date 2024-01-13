@@ -1,9 +1,9 @@
 import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
-import { InstanceManagerType } from '../../../dbm/instance-manager';
-import { FILE_TYPES } from '../../../types';
-import { IndexedDBFileManager } from '../indexed-db-file-manager';
-import { MeerkatDatabase } from '../meerkat-database';
+import { InstanceManagerType } from '../../dbm/instance-manager';
+import { FILE_TYPES } from '../../types';
+import { IndexedDBFileManager } from '../indexed-db/indexed-db-file-manager';
+import { MeerkatDatabase } from '../indexed-db/meerkat-database';
 import log = require('loglevel');
 
 const mockDB = {
@@ -270,5 +270,3 @@ describe('IndexedDBFileManager', () => {
     );
   });
 });
-
-
