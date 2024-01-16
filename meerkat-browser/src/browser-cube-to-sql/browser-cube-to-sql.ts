@@ -1,6 +1,7 @@
 import {
   BASE_TABLE_NAME,
   ContextParams,
+  MeerkatFilter,
   Query,
   TableSchema,
   applyFilterParamsToBaseSQL,
@@ -30,7 +31,7 @@ export const cubeQueryToSQL = async (
 
   const preBaseQuery = deserializeQuery(parsedOutputQuery);
   const filterParamsAST = getFilterParamsAST(cubeQuery, tableSchema);
-  const filterParamsSQL = [];
+  const filterParamsSQL: MeerkatFilter[] = [];
 
   for (const filterParamAST of filterParamsAST) {
     if (!filterParamAST.ast) {
@@ -81,7 +82,8 @@ export const cubeQueryToSQL = async (
     dimensions,
     measures,
     tableSchema,
-    replaceBaseTableName
+    replaceBaseTableName,
+    filterParamsSQL
   );
 
   return finalQuery;

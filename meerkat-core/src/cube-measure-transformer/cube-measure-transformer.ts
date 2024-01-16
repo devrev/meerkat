@@ -1,10 +1,39 @@
-import { Member } from '../types/cube-types/query';
+import { MeerkatFilter, Member } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
+
+export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema, tableSchemaAccessKey }: {
+  members: Member[];
+  meerkatFilters: MeerkatFilter[];
+  tableSchema: TableSchema;
+  baseSql: string;
+  tableSchemaAccessKey: 'measures' | 'dimensions'
+}) => {
+  for (let i = 0; i < meerkatFilters.length; i++) {
+    const { memberKey } = meerkatFilters[i];
+    const measureWithoutTable = memberKey.split('.')[1];
+    const aliasKey = memberKeyToSafeKey(memberKey);
+    const measureSchema = tableSchema[tableSchemaAccessKey].find(
+      (m) => m.name === measureWithoutTable
+    );
+    const isMeasureAlreadySelected = members.includes(memberKey);
+    if (!measureSchema || isMeasureAlreadySelected) {
+      continue;
+    }
+    if (i < meerkatFilters.length) {
+      baseSql += ',';
+    }
+    baseSql += ` ${memberKey} AS ${aliasKey} `;
+  }
+  return baseSql
+}
+
+
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  meerkatFilters: MeerkatFilter[]
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -22,17 +51,18 @@ export const cubeMeasureToSQLSelectString = (
       continue;
     }
     if (i > 0) {
-      base += ',';
+      base += ', ';
     }
-      base += ` ${measureSchema.sql} AS ${aliasKey} `;
+    base += ` ${measureSchema.sql} AS ${aliasKey} `;
   }
-  return base;
+  return getAliasedColumnsFromFilters({ meerkatFilters, tableSchema, baseSql: base, members: measures, tableSchemaAccessKey: 'measures'});
 };
 
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  meerkatFilters: MeerkatFilter[]
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -54,7 +84,7 @@ const addDimensionToSQLProjection = (
     }
     newSelectString += `  ${dimensionSchema.sql} AS ${aliasKey}`;
   }
-  return newSelectString;
+  return getAliasedColumnsFromFilters({ meerkatFilters, tableSchema, baseSql: newSelectString, members: dimensions, tableSchemaAccessKey: 'dimensions'});
 };
 
 /**
@@ -68,9 +98,10 @@ export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string
+  sqlToReplace: string,
+  meerkatFilters: MeerkatFilter[]
 ) => {
-  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
+  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema, meerkatFilters);
 
   if (measures.length > 0 && dimensions.length > 0) {
     measureSelectString += ', ';
@@ -78,7 +109,8 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema
+    tableSchema,
+    meerkatFilters
   );
 
   const selectRegex = /SELECT\s\*/;

@@ -145,13 +145,18 @@ interface NormalizedQuery extends Query {
   order?: [{ id: string; desc: boolean }];
 }
 
+type MeerkatFilter = {
+  memberKey: string;
+  sql: string;
+  matchKey: string;
+}
+
 export {
   ApiScopes,
   ApiType,
   FilterOperator,
   LogicalAndFilter,
-  LogicalOrFilter,
-  Member,
+  LogicalOrFilter, MeerkatFilter, Member,
   MemberType,
   NormalizedQuery,
   NormalizedQueryFilter,
@@ -163,5 +168,6 @@ export {
   QueryType,
   RequestType,
   ResultType,
-  TimeMember,
+  TimeMember
 };
+

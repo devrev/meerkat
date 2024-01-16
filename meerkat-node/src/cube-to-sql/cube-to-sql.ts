@@ -87,7 +87,8 @@ export const cubeQueryToSQL = async (
     dimensions,
     measures,
     tableSchema,
-    replaceBaseTableName
+    replaceBaseTableName,
+    filterParamsSQL
   );
 
   return finalQuery;
