@@ -5,13 +5,19 @@ import {
   cubeMeasureToSQLSelectString,
 } from './cube-measure-transformer';
 
+
+const MEERKAT_FILTERS = [
+  { memberKey: 'temp.measure1', sql: 'MAX(*)', matchKey: 'temp.measure1' },
+  { memberKey: 'temp.measure2', sql: 'COUNT(*)', matchKey: 'temp.measure2' }
+];
+
 describe('cubeMeasureToSQLSelectString', () => {
   let tableSchema: TableSchema;
-  const cube = 'cube_test';
+  const cube = 'cube_temp';
 
   beforeEach(() => {
     tableSchema = {
-      name: 'test',
+      name: 'temp',
       sql: cube,
       measures: [
         { name: 'measure1', sql: 'COUNT(*)', type: 'number' },
@@ -28,49 +34,51 @@ describe('cubeMeasureToSQLSelectString', () => {
     };
   });
 
-  it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
+  it('should construct a SQL select string with COUNT(*) when provided with correct measure 1', () => {
     const measures: Member[] = ['temp.measure1'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 `);
+    const result = cubeMeasureToSQLSelectString(measures, tableSchema, MEERKAT_FILTERS);
+    expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 , temp.measure2 AS temp__measure2 `);
   });
 
-  it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
+  it('should construct a SQL select string with SUM(total) when provided with correct measure 2', () => {
     const measures: Member[] = ['temp.measure2'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
+    const result = cubeMeasureToSQLSelectString(measures, tableSchema, []);
     expect(result).toBe(`SELECT SUM(total) AS temp__measure2 `);
   });
 
   it('should substitute "*" for all columns in the cube', () => {
     const measures: Member[] = ['*'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT test.*`);
+    const result = cubeMeasureToSQLSelectString(measures, tableSchema, [{memberKey: 'temp.keyThatDoesntExist', sql: 'COUNT(*)', matchKey: 'temp.measure1'}]);
+    expect(result).toBe(`SELECT temp.*`);
   });
 
-  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure', () => {
+  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM my_table';
     const result = applyProjectionToSQLQuery(
       [],
       measures,
       tableSchema,
-      sqlToReplace
+      sqlToReplace,
+      MEERKAT_FILTERS
     );
     expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2  FROM my_table`
+      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM my_table`
     );
   });
 
-  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure', () => {
+  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 2', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
     const result = applyProjectionToSQLQuery(
       [],
       measures,
       tableSchema,
-      sqlToReplace
+      sqlToReplace,
+      MEERKAT_FILTERS
     );
     expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
+      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
     );
   });
 
@@ -81,11 +89,17 @@ describe('cubeMeasureToSQLSelectString', () => {
     const result = applyProjectionToSQLQuery(
       dimensions,
       measures,
-      tableSchema,
-      sqlToReplace
+      {...tableSchema, dimensions: [...tableSchema.dimensions, { name: 'dimension3', sql: 'dimension3', type: 'number' }]},
+      sqlToReplace,
+      [
+        ...MEERKAT_FILTERS, 
+        {memberKey: 'temp.dimension1', sql: 'dimension1', matchKey: 'temp.dimension1'},
+        {memberKey: 'temp.dimension3', sql: `DATE_TRUNC('month', order_date)`, matchKey: 'temp.dimension3'}
+      ]
     );
     expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2 ,   dimension1 AS temp__dimension1,  DATE_TRUNC('month', order_date) AS temp__dimension2 FROM (SELECT * FROM TABLE_1)`
+      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   dimension1 AS temp__dimension1,  DATE_TRUNC('month', order_date) AS temp__dimension2, temp.dimension3 AS temp__dimension3  FROM (SELECT * FROM TABLE_1)`
     );
   });
 });
+
