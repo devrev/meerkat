@@ -1,7 +1,6 @@
 import {
   BASE_TABLE_NAME,
   ContextParams,
-  MeerkatFilter,
   Query,
   TableSchema,
   applyFilterParamsToBaseSQL,
@@ -10,7 +9,7 @@ import {
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
-  getFilterParamsAST,
+  getFilterParamsAST
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 export const cubeQueryToSQL = async (
@@ -31,8 +30,7 @@ export const cubeQueryToSQL = async (
 
   const preBaseQuery = deserializeQuery(parsedOutputQuery);
   const filterParamsAST = getFilterParamsAST(cubeQuery, tableSchema);
-  const filterParamsSQL: MeerkatFilter[] = [];
-
+  const filterParamsSQL = [];
   for (const filterParamAST of filterParamsAST) {
     if (!filterParamAST.ast) {
       continue;
@@ -83,7 +81,6 @@ export const cubeQueryToSQL = async (
     measures,
     tableSchema,
     replaceBaseTableName,
-    filterParamsSQL
   );
 
   return finalQuery;

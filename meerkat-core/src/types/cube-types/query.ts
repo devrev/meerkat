@@ -145,11 +145,7 @@ interface NormalizedQuery extends Query {
   order?: [{ id: string; desc: boolean }];
 }
 
-type MeerkatFilter = {
-  memberKey: string;
-  sql: string;
-  matchKey: string;
-}
+type MeerkatFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)[] | undefined
 
 export {
   ApiScopes,

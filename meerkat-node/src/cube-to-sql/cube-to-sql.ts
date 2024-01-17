@@ -9,17 +9,34 @@ import {
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
+  getAliasedColumnsFromFilters,
   getFilterParamsAST,
+  getReplacedSQL
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
+
+const getWrappedBaseQueryWithProjections = ({ baseQuery, tableSchema, query }: { baseQuery: string, tableSchema: TableSchema, query: Query }) => {
+  if (!query.filters) {
+    return baseQuery
+  }
+  const newBaseSql = `SELECT * FROM (${baseQuery}) AS ${tableSchema.name}`;
+  const aliasedColumns = getAliasedColumnsFromFilters({
+    meerkatFilters: query.filters,
+    tableSchema, baseSql: 'SELECT *',
+    members: [...query.measures, ...(query.dimensions ?? [])]
+  })
+  const sqlWithFilterProjects = getReplacedSQL(newBaseSql, aliasedColumns)
+  return sqlWithFilterProjects
+}
 
 export const cubeQueryToSQL = async (
   cubeQuery: Query,
   tableSchema: TableSchema,
   contextParams?: ContextParams
 ) => {
-  const ast = cubeToDuckdbAST(cubeQuery, tableSchema);
-
+  const newSql = getWrappedBaseQueryWithProjections({ baseQuery: tableSchema.sql, tableSchema, query: cubeQuery })
+  const updatedTableSchema: TableSchema = { ...tableSchema, sql: newSql }
+  const ast = cubeToDuckdbAST(cubeQuery, updatedTableSchema);
   if (!ast) {
     throw new Error('Could not generate AST');
   }
@@ -31,12 +48,9 @@ export const cubeQueryToSQL = async (
       [key: string]: string;
     }[]
   >(queryTemp);
-
   const preBaseQuery = deserializeQuery(queryOutput);
-
-  const filterParamsAST = getFilterParamsAST(cubeQuery, tableSchema);
+  const filterParamsAST = getFilterParamsAST(cubeQuery, updatedTableSchema);
   const filterParamsSQL = [];
-
   for (const filterParamAST of filterParamsAST) {
     if (!filterParamAST.ast) {
       continue;
@@ -58,7 +72,7 @@ export const cubeQueryToSQL = async (
   }
 
   const filterParamQuery = applyFilterParamsToBaseSQL(
-    tableSchema.sql,
+    updatedTableSchema.sql,
     filterParamsSQL
   );
 
@@ -75,7 +89,7 @@ export const cubeQueryToSQL = async (
    */
   const replaceBaseTableName = preBaseQuery.replace(
     BASE_TABLE_NAME,
-    `(${baseQuery}) AS ${tableSchema.name}`
+    `(${baseQuery}) AS ${updatedTableSchema.name}`
   );
 
   /**
@@ -86,9 +100,8 @@ export const cubeQueryToSQL = async (
   const finalQuery = applyProjectionToSQLQuery(
     dimensions,
     measures,
-    tableSchema,
+    updatedTableSchema,
     replaceBaseTableName,
-    filterParamsSQL
   );
 
   return finalQuery;

@@ -2,29 +2,60 @@ import { MeerkatFilter, Member } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
+const findInSchema = (measureWithoutTable: string, tableSchema: TableSchema) => {
+  const foundDimension = tableSchema.dimensions.find(
+    (m) => m.name === measureWithoutTable
+  )
+  if (foundDimension) {
+    return foundDimension
+  }
+  const foundMeasure = tableSchema.measures.find(
+    (m) => m.name === measureWithoutTable
+  )
+  if (foundMeasure) {
+    return foundMeasure
+  }
+  return undefined
+}
 
-export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema, tableSchemaAccessKey }: {
+
+export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema }: {
   members: Member[];
-  meerkatFilters: MeerkatFilter[];
+  meerkatFilters: MeerkatFilter;
   tableSchema: TableSchema;
   baseSql: string;
-  tableSchemaAccessKey: 'measures' | 'dimensions'
 }) => {
+  if (!meerkatFilters) {
+    return baseSql;
+  }
   for (let i = 0; i < meerkatFilters.length; i++) {
-    const { memberKey } = meerkatFilters[i];
-    const measureWithoutTable = memberKey.split('.')[1];
-    const aliasKey = memberKeyToSafeKey(memberKey);
-    const measureSchema = tableSchema[tableSchemaAccessKey].find(
-      (m) => m.name === measureWithoutTable
-    );
-    const isMeasureAlreadySelected = members.includes(memberKey);
-    if (!measureSchema || isMeasureAlreadySelected) {
-      continue;
+    const filter = meerkatFilters[i]
+    if ('and' in filter) {
+      baseSql += getAliasedColumnsFromFilters({
+        baseSql: '',
+        members,
+        meerkatFilters: filter.and,
+        tableSchema,
+      })
+    } else if ('or' in filter) {
+      baseSql += getAliasedColumnsFromFilters({
+        baseSql: '',
+        tableSchema,
+        members,
+        meerkatFilters: filter.or,
+      })
+    } else {
+      const { member } = filter;
+      const measureWithoutTable = member.split('__')[1];
+      const aliasKey = memberKeyToSafeKey(member);
+      const foundMember = findInSchema(measureWithoutTable, tableSchema)
+      
+      const isMeasureAlreadySelected = members.includes(member);
+      if (!foundMember || isMeasureAlreadySelected) {
+        continue;
+      }
+      baseSql += `, ${member.split('__').join('.')} AS ${aliasKey} `;
     }
-    if (i < meerkatFilters.length) {
-      baseSql += ',';
-    }
-    baseSql += ` ${memberKey} AS ${aliasKey} `;
   }
   return baseSql
 }
@@ -33,7 +64,6 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
   tableSchema: TableSchema,
-  meerkatFilters: MeerkatFilter[]
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -55,14 +85,13 @@ export const cubeMeasureToSQLSelectString = (
     }
     base += ` ${measureSchema.sql} AS ${aliasKey} `;
   }
-  return getAliasedColumnsFromFilters({ meerkatFilters, tableSchema, baseSql: base, members: measures, tableSchemaAccessKey: 'measures'});
+  return base
 };
 
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
   tableSchema: TableSchema,
-  meerkatFilters: MeerkatFilter[]
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -84,8 +113,24 @@ const addDimensionToSQLProjection = (
     }
     newSelectString += `  ${dimensionSchema.sql} AS ${aliasKey}`;
   }
-  return getAliasedColumnsFromFilters({ meerkatFilters, tableSchema, baseSql: newSelectString, members: dimensions, tableSchemaAccessKey: 'dimensions'});
+  return newSelectString
 };
+
+export const getReplacedSQL = (sql: string, selectString: string) => {
+  const selectRegex = /SELECT\s\*/;
+  const match = sql.match(selectRegex);
+  if (!match) {
+    return sql;
+  }
+  const selectIndex = match.index;
+  if (selectIndex === undefined) {
+    throw new Error('SELECT * not found in SQL string');
+  }
+  const selectLength = match[0].length;
+  const beforeSelect = sql.substring(0, selectIndex);
+  const afterSelect = sql.substring(selectIndex + selectLength);
+  return `${beforeSelect}${selectString}${afterSelect}`;
+}
 
 /**
  * Replace the first SELECT * from the sqlToReplace with the cube measure
@@ -99,9 +144,8 @@ export const applyProjectionToSQLQuery = (
   measures: Member[],
   tableSchema: TableSchema,
   sqlToReplace: string,
-  meerkatFilters: MeerkatFilter[]
 ) => {
-  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema, meerkatFilters);
+  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
 
   if (measures.length > 0 && dimensions.length > 0) {
     measureSelectString += ', ';
@@ -110,20 +154,7 @@ export const applyProjectionToSQLQuery = (
     dimensions,
     measureSelectString,
     tableSchema,
-    meerkatFilters
   );
 
-  const selectRegex = /SELECT\s\*/;
-  const match = sqlToReplace.match(selectRegex);
-  if (!match) {
-    return sqlToReplace;
-  }
-  const selectIndex = match.index;
-  if (selectIndex === undefined) {
-    throw new Error('SELECT * not found in SQL string');
-  }
-  const selectLength = match[0].length;
-  const beforeSelect = sqlToReplace.substring(0, selectIndex);
-  const afterSelect = sqlToReplace.substring(selectIndex + selectLength);
-  return `${beforeSelect}${selectString}${afterSelect}`;
+  return getReplacedSQL(sqlToReplace, selectString)
 };
