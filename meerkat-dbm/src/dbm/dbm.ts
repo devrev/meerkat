@@ -1,8 +1,8 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
+
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { InstanceManagerType } from './instance-manager';
-
 import { DBMConstructorOptions, QueryOptions, QueryQueueItem } from './types';
 
 export class DBM {
@@ -11,13 +11,15 @@ export class DBM {
   private connection: AsyncDuckDBConnection | null = null;
   private queriesQueue: QueryQueueItem[] = [];
 
-  private queryQueueRunning = false;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
   private onDuckDBShutdown?: () => void;
+
+  private queryQueueRunning = false;
   private shutdownLock = false;
+  private currentQueryItem?: QueryQueueItem;
 
   constructor({
     fileManager,
@@ -111,8 +113,8 @@ export class DBM {
     );
 
     this._emitEvent({
-      event_name: 'mount_file_buffer_duration',
       duration: endMountTime - startMountTime,
+      event_name: 'mount_file_buffer_duration',
       metadata: options?.metadata,
     });
 
@@ -144,8 +146,8 @@ export class DBM {
     );
 
     this._emitEvent({
-      event_name: 'query_execution_duration',
       duration: queryQueueDuration,
+      event_name: 'query_execution_duration',
       metadata: options?.metadata,
     });
 
@@ -175,18 +177,18 @@ export class DBM {
 
     this._emitEvent({
       event_name: 'query_queue_length',
-      value: this.queriesQueue.length,
       metadata,
+      value: this.queriesQueue.length,
     });
 
     /**
      * Get the first query
      */
-    const queueElement = this.queriesQueue.shift();
+    this.currentQueryItem = this.queriesQueue.shift();
     /**
      * If there is no query, stop the queue
      */
-    if (!queueElement) {
+    if (!this.currentQueryItem) {
       await this._stopQueryQueue();
       return;
     }
@@ -195,14 +197,14 @@ export class DBM {
       const startTime = Date.now();
       this.logger.debug(
         'Time since query was added to the queue:',
-        startTime - queueElement.timestamp,
+        startTime - this.currentQueryItem.timestamp,
         'ms',
-        queueElement.query
+        this.currentQueryItem.query
       );
 
       this._emitEvent({
+        duration: startTime - this.currentQueryItem.timestamp,
         event_name: 'query_queue_duration',
-        duration: startTime - queueElement.timestamp,
         metadata,
       });
 
@@ -210,34 +212,42 @@ export class DBM {
        * Execute the query
        */
       const result = await this._queryWithTableNames(
-        queueElement.query,
-        queueElement.tableNames,
-        queueElement.options
+        this.currentQueryItem.query,
+        this.currentQueryItem.tableNames,
+        this.currentQueryItem.options
       );
       const endTime = Date.now();
 
       this.logger.debug(
         'Total time spent along with queue time',
-        endTime - queueElement.timestamp,
+        endTime - this.currentQueryItem.timestamp,
         'ms',
-        queueElement.query
+        this.currentQueryItem.query
       );
       /**
        * Resolve the promise
        */
-      queueElement.promise.resolve(result);
+      this.currentQueryItem.promise.resolve(result);
+
+      /**
+       * Remove the query from the queue
+       */
+      this.currentQueryItem = undefined;
     } catch (error) {
-      this.logger.warn('Error while executing query:', queueElement.query);
+      this.logger.warn(
+        'Error while executing query:',
+        this.currentQueryItem?.query
+      );
       /**
        * Reject the promise, so the caller can catch the error
        */
-      queueElement.promise.reject(error);
+      this.currentQueryItem?.promise.reject(error);
     }
 
     /**
      * Start the next query
      */
-    this._startQueryExecution(queueElement.options?.metadata);
+    this._startQueryExecution();
   }
 
   /**
@@ -261,23 +271,56 @@ export class DBM {
     return this.queryQueueRunning;
   }
 
-  public async queryWithTableNames(
-    query: string,
-    tableNames: string[],
-    options?: QueryOptions
-  ) {
+  private _abortSignal(connectionId?: string, signal?: AbortSignal): void {
+    signal?.addEventListener('abort', async () => {
+      const indexToRemove = this.queriesQueue.findIndex(
+        (item) => item.connectionId === connectionId
+      );
+
+      // Remove the item at the found index (if it exists)
+      if (indexToRemove !== -1) {
+        this.queriesQueue.splice(indexToRemove, 1);
+      }
+
+      /**
+       * Check if the current executing query is the one that was aborted
+       * If yes, then cancel the query
+       */
+      if (this.currentQueryItem?.connectionId === connectionId) {
+        const connection = await this._getConnection();
+
+        await connection.cancelSent();
+      }
+    });
+  }
+
+  public async queryWithTableNames({
+    query,
+    tableNames,
+    connectionId,
+    options,
+  }: {
+    query: string;
+    tableNames: string[];
+    connectionId?: string;
+    options?: QueryOptions;
+  }) {
     const promise = new Promise((resolve, reject) => {
+      this._abortSignal(connectionId, options?.signal);
+
       this.queriesQueue.push({
-        query,
-        tableNames,
-        promise: {
-          resolve,
-          reject,
-        },
-        timestamp: Date.now(),
         options,
+        promise: {
+          reject,
+          resolve,
+        },
+        query,
+        connectionId,
+        tableNames,
+        timestamp: Date.now(),
       });
     });
+
     this._startQueryQueue();
     return promise;
   }

@@ -203,13 +203,13 @@ describe('DBM', () => {
         buffer: new Uint8Array(),
       });
 
-      const result = await dbm.queryWithTableNames(
-        'SELECT * FROM table1',
-        ['table1'],
-        {
+      const result = await dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+        options: {
           preQuery,
-        }
-      );
+        },
+      });
 
       expect(preQuery).toBeCalledTimes(1);
 
@@ -222,19 +222,22 @@ describe('DBM', () => {
     });
 
     it('should execute a query with table names', async () => {
-      const result = await dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
+      const result = await dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
       expect(result).toEqual(['SELECT * FROM table1']);
     });
 
     it('should execute multiple queries with table names', async () => {
-      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
-      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
-      ]);
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table1'],
+      });
       /**
        * Number of queries in the queue should be 1 as the first query is running
        */
@@ -260,9 +263,10 @@ describe('DBM', () => {
       /**
        * Execute another query
        */
-      const promise3 = dbm.queryWithTableNames('SELECT * FROM table3', [
-        'table1',
-      ]);
+      const promise3 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table3',
+        tableNames: ['table1'],
+      });
 
       /**
        * Now the queue should be running
@@ -302,16 +306,18 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
 
       /**
        * Execute another query
        */
-      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
-      ]);
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table1'],
+      });
 
       /**
        * Wait for the queries to complete
@@ -361,16 +367,18 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
 
       /**
        * Execute another query
        */
-      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
-      ]);
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table1'],
+      });
 
       /**
        * Wait for the queries to complete
@@ -404,7 +412,10 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      await dbm.queryWithTableNames('SELECT * FROM table1', ['table1']);
+      await dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
 
       /**
        * wait for 200ms

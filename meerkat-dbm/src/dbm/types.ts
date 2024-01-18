@@ -66,10 +66,17 @@ export interface QueryOptions {
    * Additional information for the query, which will be emitted in the DBM events.
    */
   metadata?: object;
+
+  /**
+   * @description
+   * An AbortSignal object instance which can be used to abort the query execution.
+   */
+  signal?: AbortSignal;
 }
 
 export interface QueryQueueItem {
   query: string;
+  connectionId?: string;
   tableNames: string[];
   promise: {
     resolve: (value: any) => void;
