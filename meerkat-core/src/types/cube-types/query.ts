@@ -123,7 +123,7 @@ export type MeerkatQueryFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilt
 interface Query {
   measures: Member[];
   dimensions?: (Member | TimeMember)[];
-  filters?: QueryFilter[];
+  filters?: MeerkatQueryFilter[];
   timeDimensions?: QueryTimeDimension[];
   segments?: Member[];
   limit?: null | number;
