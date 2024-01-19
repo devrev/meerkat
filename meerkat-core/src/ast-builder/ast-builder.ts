@@ -19,8 +19,8 @@ const modifyLeafMeerkatFilter = <T>(filters: QueryFiltersWithInfo, callback: (ar
       const orPayload: T[] | undefined = 'or' in item ?  modifyLeafMeerkatFilter(item.or, callback) : undefined;
       
       return {
-        and: andPayload,
-        or: orPayload
+        ...(andPayload ? { and: andPayload } : {}),
+        ...(orPayload ? { or: orPayload } : {}),
       } as T
     }
   })

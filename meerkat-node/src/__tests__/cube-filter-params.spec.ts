@@ -90,7 +90,6 @@ describe('filter-param-tests', () => {
       ],
       dimensions: [],
     };
-    console.log({query})
     const sql = await cubeQueryToSQL(query, SCHEMA);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
