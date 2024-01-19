@@ -134,7 +134,6 @@ export class DBM {
      */
     const startQueryTime = Date.now();
     const result = await this.query(query);
-    console.log('result', result);
     const endQueryTime = Date.now();
 
     const queryQueueDuration = endQueryTime - startQueryTime;
@@ -273,8 +272,8 @@ export class DBM {
   }
 
   private _abortSignal(
-    connectionId?: string,
     signal?: AbortSignal,
+    connectionId?: string,
     reject?: (reason?: any) => void
   ): void {
     signal?.addEventListener('abort', async (reason: Event) => {

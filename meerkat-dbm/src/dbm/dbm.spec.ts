@@ -441,9 +441,9 @@ describe('DBM', () => {
     it('should cancel the current executing query when abort is emitted', async () => {
       const abortController1 = new AbortController();
 
-      // check the current query throws error after cancel
+      // check the current query throws error abort is emitted
       try {
-        const result = dbm.queryWithTableNames({
+        const promise = dbm.queryWithTableNames({
           query: 'SELECT * FROM table1',
           tableNames: ['table1'],
           connectionId: 'connection1',
@@ -454,9 +454,9 @@ describe('DBM', () => {
 
         abortController1.abort();
 
-        await result;
+        await promise;
 
-        expect(result).not.toBeDefined();
+        expect(promise).not.toBeDefined();
       } catch (e) {
         expect(e).toBeDefined();
       }

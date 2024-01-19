@@ -76,7 +76,6 @@ export interface QueryOptions {
 
 export interface QueryQueueItem {
   query: string;
-  connectionId?: string;
   tableNames: string[];
   promise: {
     resolve: (value: any) => void;
@@ -86,5 +85,6 @@ export interface QueryQueueItem {
    * Timestamp indicating when the query was added to the queue.
    */
   timestamp: number;
+  connectionId?: string;
   options?: QueryOptions;
 }
