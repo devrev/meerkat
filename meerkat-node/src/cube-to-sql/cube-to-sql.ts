@@ -1,6 +1,7 @@
 import {
   BASE_TABLE_NAME,
   ContextParams,
+  FilterType,
   Query,
   TableSchema,
   applyFilterParamsToBaseSQL,
@@ -13,7 +14,6 @@ import {
   getFilterParamsAST,
   getReplacedSQL
 } from '@devrev/meerkat-core';
-import { FilterType, replaceWhereClauseWithFiltersParamsSQL } from '../../../meerkat-core/src/filter-params/filter-params-ast';
 import { duckdbExec } from '../duckdb-exec';
 
 const getWrappedBaseQueryWithProjections = ({ baseQuery, tableSchema, query }: { baseQuery: string, tableSchema: TableSchema, query: Query }) => {
@@ -57,7 +57,7 @@ const getFilterParamsSQL = async ({ cubeQuery, tableSchema, filterType }: { cube
 
 const getFinalBaseSQL = async (cubeQuery: Query, tableSchema: TableSchema) => {
   const baseFilterParamsSQL = await getFilterParamsSQL({ cubeQuery: cubeQuery, tableSchema, filterType: 'BASE_FILTER' })
-  const baseSQL = replaceWhereClauseWithFiltersParamsSQL(tableSchema.sql, baseFilterParamsSQL)
+  const baseSQL = applyFilterParamsToBaseSQL(tableSchema.sql, baseFilterParamsSQL)
   const baseSQLWithFilterProjection = getWrappedBaseQueryWithProjections({ baseQuery: baseSQL, tableSchema, query: cubeQuery })
   return baseSQLWithFilterProjection
 }

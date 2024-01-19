@@ -10,7 +10,7 @@ import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
 
 const modifyLeafMeerkatFilter = <T>(filters: QueryFiltersWithInfo, callback: (arg: QueryFilter) => T): T[] | undefined  => {
-  if (!filters) return filters;
+  if (!filters) return undefined;
   return filters.map((item) => {
     if ('member' in item) {
       return callback(item)

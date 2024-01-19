@@ -127,7 +127,7 @@ type FilterParamsSQL = {
   matchKey: string;
 }
 
-export const replaceWhereClauseWithFiltersParamsSQL = (baseSQL: string, filterParamsSQL: FilterParamsSQL[]) => {
+const replaceWhereClauseWithFiltersParamsSQL = (baseSQL: string, filterParamsSQL: FilterParamsSQL[]) => {
   let finalSQL = baseSQL;
 
   for (const filterParam of filterParamsSQL) {

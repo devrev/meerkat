@@ -1,4 +1,4 @@
-import { MeerkatFilter, Member } from '../types/cube-types/query';
+import { GenericFilter, Member } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
@@ -21,7 +21,7 @@ const findInSchema = (measureWithoutTable: string, tableSchema: TableSchema) => 
 
 export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema }: {
   members: Member[];
-  meerkatFilters: MeerkatFilter;
+  meerkatFilters: GenericFilter[];
   tableSchema: TableSchema;
   baseSql: string;
 }) => {
