@@ -9,6 +9,7 @@ import { FileData, Table, TableWiseFiles } from '../types';
 import { DBM } from './dbm';
 import { InstanceManagerType } from './instance-manager';
 import { DBMConstructorOptions } from './types';
+
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
   private tables: Record<string, Table> = {};
@@ -137,6 +138,13 @@ const mockDB = {
           setTimeout(() => {
             resolve([query]);
           }, 200);
+        });
+      },
+      cancelSent: async () => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(true);
+          }, 100);
         });
       },
       close: async () => {
@@ -426,6 +434,69 @@ describe('DBM', () => {
        * Expect instanceManager.terminateDB to not be called
        */
       expect(instanceManager.terminateDB).not.toBeCalled();
+    });
+  });
+
+  describe('cancel query execution', () => {
+    it('should cancel the current executing query when abort is emitted', async () => {
+      const abortController1 = new AbortController();
+
+      // check the current query throws error after cancel
+      try {
+        const result = dbm.queryWithTableNames({
+          query: 'SELECT * FROM table1',
+          tableNames: ['table1'],
+          connectionId: 'connection1',
+          options: {
+            signal: abortController1.signal,
+          },
+        });
+
+        abortController1.abort();
+
+        await result;
+
+        expect(result).not.toBeDefined();
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    });
+
+    it('should cancel the query in the queue when abort is emitted', async () => {
+      const abortController1 = new AbortController();
+      const abortController2 = new AbortController();
+
+      const mockDBMQuery = jest.spyOn(dbm, 'query');
+
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+        connectionId: 'connection1',
+        options: {
+          signal: abortController1.signal,
+        },
+      });
+
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table2'],
+        connectionId: 'connection2',
+        options: {
+          signal: abortController2.signal,
+        },
+      });
+
+      abortController2.abort();
+
+      const promises = await Promise.allSettled([promise1, promise2]);
+
+      // the first query should be fulfilled
+      expect(mockDBMQuery).toBeCalledWith('SELECT * FROM table1');
+      expect(promises[0].status).toBe('fulfilled');
+
+      // the second query should be rejected as it was aborted
+      expect(mockDBMQuery).not.toBeCalledWith('SELECT * FROM table2');
+      expect(promises[1].status).toBe('rejected');
     });
   });
 });

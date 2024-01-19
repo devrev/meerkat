@@ -113,8 +113,8 @@ export class DBM {
     );
 
     this._emitEvent({
-      duration: endMountTime - startMountTime,
       event_name: 'mount_file_buffer_duration',
+      duration: endMountTime - startMountTime,
       metadata: options?.metadata,
     });
 
@@ -134,6 +134,7 @@ export class DBM {
      */
     const startQueryTime = Date.now();
     const result = await this.query(query);
+    console.log('result', result);
     const endQueryTime = Date.now();
 
     const queryQueueDuration = endQueryTime - startQueryTime;
@@ -146,8 +147,8 @@ export class DBM {
     );
 
     this._emitEvent({
-      duration: queryQueueDuration,
       event_name: 'query_execution_duration',
+      duration: queryQueueDuration,
       metadata: options?.metadata,
     });
 
@@ -177,8 +178,8 @@ export class DBM {
 
     this._emitEvent({
       event_name: 'query_queue_length',
-      metadata,
       value: this.queriesQueue.length,
+      metadata,
     });
 
     /**
@@ -203,8 +204,8 @@ export class DBM {
       );
 
       this._emitEvent({
-        duration: startTime - this.currentQueryItem.timestamp,
         event_name: 'query_queue_duration',
+        duration: startTime - this.currentQueryItem.timestamp,
         metadata,
       });
 
@@ -228,11 +229,6 @@ export class DBM {
        * Resolve the promise
        */
       this.currentQueryItem.promise.resolve(result);
-
-      /**
-       * Remove the query from the queue
-       */
-      this.currentQueryItem = undefined;
     } catch (error) {
       this.logger.warn(
         'Error while executing query:',
@@ -243,6 +239,11 @@ export class DBM {
        */
       this.currentQueryItem?.promise.reject(error);
     }
+
+    /**
+     * Clear the current query item
+     */
+    this.currentQueryItem = undefined;
 
     /**
      * Start the next query
@@ -271,13 +272,17 @@ export class DBM {
     return this.queryQueueRunning;
   }
 
-  private _abortSignal(connectionId?: string, signal?: AbortSignal): void {
-    signal?.addEventListener('abort', async () => {
+  private _abortSignal(
+    connectionId?: string,
+    signal?: AbortSignal,
+    reject?: (reason?: any) => void
+  ): void {
+    signal?.addEventListener('abort', async (reason: Event) => {
       const indexToRemove = this.queriesQueue.findIndex(
-        (item) => item.connectionId === connectionId
+        (queryItem) => queryItem.connectionId === connectionId
       );
 
-      // Remove the item at the found index (if it exists)
+      // Remove the item at the found index
       if (indexToRemove !== -1) {
         this.queriesQueue.splice(indexToRemove, 1);
       }
@@ -291,6 +296,8 @@ export class DBM {
 
         await connection.cancelSent();
       }
+
+      reject?.(reason);
     });
   }
 
@@ -306,18 +313,18 @@ export class DBM {
     options?: QueryOptions;
   }) {
     const promise = new Promise((resolve, reject) => {
-      this._abortSignal(connectionId, options?.signal);
+      this._abortSignal(connectionId, options?.signal, reject);
 
       this.queriesQueue.push({
-        options,
-        promise: {
-          reject,
-          resolve,
-        },
         query,
-        connectionId,
         tableNames,
+        promise: {
+          resolve,
+          reject,
+        },
+        connectionId,
         timestamp: Date.now(),
+        options,
       });
     });
 
