@@ -150,14 +150,14 @@ interface NormalizedQuery extends Query {
   order?: [{ id: string; desc: boolean }];
 }
 
-type MeerkatFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)[] | undefined
+type GenericFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
+
 
 export {
   ApiScopes,
   ApiType,
-  FilterOperator,
-  LogicalAndFilter,
-  LogicalOrFilter, MeerkatFilter, Member,
+  FilterOperator, GenericFilter, LogicalAndFilter,
+  LogicalOrFilter, Member,
   MemberType,
   NormalizedQuery,
   NormalizedQueryFilter,

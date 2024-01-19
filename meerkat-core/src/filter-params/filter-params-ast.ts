@@ -1,10 +1,10 @@
 import { cubeToDuckdbAST } from '../ast-builder/ast-builder';
 import {
   FilterType,
+  GenericFilter,
   LogicalAndFilter,
   LogicalOrFilter,
   Query,
-  QueryFilter,
   TableSchema
 } from '../types/cube-types';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
@@ -12,7 +12,6 @@ import { SelectStatement } from '../types/duckdb-serialization-types/serializati
 /**
  * Get the query filter with only where filterKey matches
  */
-type GenericFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 const traverseAndFilter = (
   filter: GenericFilter,
   memberKey: string

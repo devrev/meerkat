@@ -9,7 +9,7 @@ import {
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
-  getFilterParamsAST
+  getFilterParamsAST,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 export const cubeQueryToSQL = async (
@@ -80,7 +80,7 @@ export const cubeQueryToSQL = async (
     dimensions,
     measures,
     tableSchema,
-    replaceBaseTableName,
+    replaceBaseTableName
   );
 
   return finalQuery;

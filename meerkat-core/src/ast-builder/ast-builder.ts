@@ -2,30 +2,28 @@ import { cubeFilterToDuckdbAST } from '../cube-filter-transformer/factory';
 import { cubeDimensionToGroupByAST } from '../cube-group-by-transformer/cube-group-by-transformer';
 import { cubeLimitOffsetToAST } from '../cube-limit-offset-transformer/cube-limit-offset-transformer';
 import { cubeOrderByToAST } from '../cube-order-by-transformer/cube-order-by-transformer';
-import { FilterType, MeerkatFilter, Query, QueryFilter } from '../types/cube-types/query';
+import { QueryFiltersWithInfo } from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { FilterType, Query, QueryFilter } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
 
-const modifyLeafMeerkatFilter = <T>(filters: MeerkatFilter, cb: (arg: QueryFilter) => T)  => {
+const modifyLeafMeerkatFilter = <T>(filters: QueryFiltersWithInfo, callback: (arg: QueryFilter) => T): T[] | undefined  => {
   if (!filters) return filters;
-  const modifiedFilters: T[] | { and?: T[], or?: T[] } = filters.map((item) => {
-    if ('and' in item) {
-      return {
-        and: modifyLeafMeerkatFilter(item.and, cb)
-      }
-    } 
-    if ('or' in item) {
-      return {
-        or: modifyLeafMeerkatFilter(item.or, cb)
-      }
-    } 
+  return filters.map((item) => {
     if ('member' in item) {
-      return cb(item)
+      return callback(item)
+    } else {
+      const andPayload: T[] | undefined = 'and' in item ? modifyLeafMeerkatFilter(item.and, callback) : undefined;
+      const orPayload: T[] | undefined = 'or' in item ?  modifyLeafMeerkatFilter(item.or, callback) : undefined;
+      
+      return {
+        and: andPayload,
+        or: orPayload
+      } as T
     }
   })
-  return modifiedFilters
 };
 
 export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?: { filterType: FilterType }
@@ -58,7 +56,7 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?
         ...item,
         member: item.member.split('__').join('.')
       }
-    }):  queryFiltersWithInfo; 
+    }) as QueryFiltersWithInfo : queryFiltersWithInfo; 
 
     const duckdbWhereClause = cubeFilterToDuckdbAST(
       finalFilters,
