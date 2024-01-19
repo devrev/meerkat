@@ -31,7 +31,7 @@ export const cubeQueryToSQL = async (
   const preBaseQuery = deserializeQuery(parsedOutputQuery);
   const filterParamsAST = getFilterParamsAST(cubeQuery, tableSchema);
   const filterParamsSQL = [];
-  
+
   for (const filterParamAST of filterParamsAST) {
     if (!filterParamAST.ast) {
       continue;
