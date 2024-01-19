@@ -312,7 +312,7 @@ export class DBM {
     options?: QueryOptions;
   }) {
     const promise = new Promise((resolve, reject) => {
-      this._abortSignal(connectionId, options?.signal, reject);
+      this._abortSignal(options?.signal, connectionId, reject);
 
       this.queriesQueue.push({
         query,
