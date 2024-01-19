@@ -12,7 +12,7 @@ import {
   detectApplyContextParamsToBaseSQL,
   getAliasedColumnsFromFilters,
   getFilterParamsAST,
-  getReplacedSQL
+  getSelectReplacedSql
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
@@ -26,7 +26,7 @@ const getWrappedBaseQueryWithProjections = ({ baseQuery, tableSchema, query }: {
     tableSchema, baseSql: 'SELECT *',
     members: [...query.measures, ...(query.dimensions ?? [])]
   })
-  const sqlWithFilterProjects = getReplacedSQL(newBaseSql, aliasedColumns)
+  const sqlWithFilterProjects = getSelectReplacedSql(newBaseSql, aliasedColumns)
   return sqlWithFilterProjects
 }
 

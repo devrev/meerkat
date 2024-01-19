@@ -1,9 +1,7 @@
 {
   "name": "@meerkat/source",
   "version": "0.0.0",
-  "scripts": {
-    "test:debug": "node --nolazy --inspect-brk ./node_modules/jest/bin/jest.js --runInBand --colors --verbose"
-  },
+  "scripts": {},
   "private": true,
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.28.0",

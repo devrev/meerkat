@@ -119,7 +119,7 @@ const addDimensionToSQLProjection = (
   return newSelectString
 };
 
-export const getReplacedSQL = (sql: string, selectString: string) => {
+export const getSelectReplacedSql = (sql: string, selectString: string) => {
   const selectRegex = /SELECT\s\*/;
   const match = sql.match(selectRegex);
   if (!match) {
@@ -159,5 +159,5 @@ export const applyProjectionToSQLQuery = (
     tableSchema,
   );
 
-  return getReplacedSQL(sqlToReplace, selectString)
+  return getSelectReplacedSql(sqlToReplace, selectString)
 };
