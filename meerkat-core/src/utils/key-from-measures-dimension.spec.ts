@@ -3,7 +3,7 @@ import { getMemberInfoFromTableSchema } from './key-from-measures-dimension';
 
 describe('getMemberInfoFromTableSchema', () => {
   it('should return memberInfo if memberKey matches with measure key', () => {
-    const memberKey = 'test.testKey';
+    const memberKey = 'test__testKey';
     const measure: Measure = {
       name: 'testKey',
       sql: `table.testKey`,
@@ -20,7 +20,7 @@ describe('getMemberInfoFromTableSchema', () => {
   });
 
   it('should return memberInfo if memberKey matches with dimension key', () => {
-    const memberKey = 'test.testKey';
+    const memberKey = 'test__testKey';
     const dimension: Dimension = {
       name: 'testKey',
       sql: `table.testKey`,

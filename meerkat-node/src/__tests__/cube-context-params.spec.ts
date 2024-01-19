@@ -50,7 +50,7 @@ describe('context-param-tests', () => {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.status',
+          member: 'orders__status',
           operator: 'equals',
           values: ['pending'],
         },

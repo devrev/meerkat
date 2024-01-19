@@ -2,13 +2,34 @@ import { cubeFilterToDuckdbAST } from '../cube-filter-transformer/factory';
 import { cubeDimensionToGroupByAST } from '../cube-group-by-transformer/cube-group-by-transformer';
 import { cubeLimitOffsetToAST } from '../cube-limit-offset-transformer/cube-limit-offset-transformer';
 import { cubeOrderByToAST } from '../cube-order-by-transformer/cube-order-by-transformer';
-import { Query } from '../types/cube-types/query';
+import { FilterType, MeerkatFilter, Query, QueryFilter } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
 
-export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
+const modifyLeafMeerkatFilter = <T>(filters: MeerkatFilter, cb: (arg: QueryFilter) => T)  => {
+  if (!filters) return filters;
+  const modifiedFilters: T[] | { and?: T[], or?: T[] } = filters.map((item) => {
+    if ('and' in item) {
+      return {
+        and: modifyLeafMeerkatFilter(item.and, cb)
+      }
+    } 
+    if ('or' in item) {
+      return {
+        or: modifyLeafMeerkatFilter(item.or, cb)
+      }
+    } 
+    if ('member' in item) {
+      return cb(item)
+    }
+  })
+  return modifiedFilters
+};
+
+export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?: { filterType: FilterType }
+) => {
   /**
    * Obviously, if no table schema was found, return null.
    */
@@ -32,8 +53,15 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
       return null;
     }
 
+    const finalFilters = options?.filterType === 'BASE_FILTER' ? modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
+      return {
+        ...item,
+        member: item.member.split('__').join('.')
+      }
+    }):  queryFiltersWithInfo; 
+
     const duckdbWhereClause = cubeFilterToDuckdbAST(
-      queryFiltersWithInfo,
+      finalFilters,
       baseAST
     );
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

@@ -80,6 +80,11 @@ type QueryOrderType = 'asc' | 'desc';
  */
 type ApiScopes = 'graphql' | 'meta' | 'data' | 'jobs';
 
+
+
+export type FilterType = 'BASE_FILTER' | 'PROJECTION_FILTER'
+
+
 interface QueryFilter {
   member: Member;
   operator: FilterOperator;

@@ -50,7 +50,7 @@ describe('filter-param-tests', () => {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.status',
+          member: 'orders__status',
           operator: 'equals',
           values: ['pending'],
         },
@@ -71,17 +71,17 @@ describe('filter-param-tests', () => {
         {
           or: [
             {
-              member: 'orders.status',
+              member: 'orders__status',
               operator: 'equals',
               values: ['pending'],
             },
             {
-              member: 'orders.status',
+              member: 'orders__status',
               operator: 'equals',
               values: ['cancelled'],
             },
             {
-              member: 'orders.amount',
+              member: 'orders__amount',
               operator: 'gt',
               values: ['40'],
             },
@@ -90,6 +90,7 @@ describe('filter-param-tests', () => {
       ],
       dimensions: [],
     };
+    console.log({query})
     const sql = await cubeQueryToSQL(query, SCHEMA);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
@@ -117,14 +118,14 @@ describe('filter-param-tests', () => {
         {
           and: [
             {
-              member: 'orders.amount',
+              member: 'orders__amount',
               operator: 'gt',
               values: ['40'],
             },
             {
               or: [
                 {
-                  member: 'orders.amount',
+                  member: 'orders__amount',
                   operator: 'lt',
                   values: ['200'],
                 },

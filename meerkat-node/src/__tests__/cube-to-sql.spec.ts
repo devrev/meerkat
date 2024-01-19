@@ -29,6 +29,7 @@ describe('cube-to-sql', () => {
         return {
           ...row,
           order_date: new Date(row.order_date).toISOString(),
+          orders__order_date: row.orders__order_date ? new Date(row.orders__order_date).toISOString() : undefined,
         };
       });
       const expectedOutput = data.expectedOutput.map((row) => {
@@ -38,6 +39,7 @@ describe('cube-to-sql', () => {
         return {
           ...row,
           order_date: new Date(row.order_date).toISOString(),
+          orders__order_date: row.orders__order_date ? new Date(row.orders__order_date).toISOString() : undefined,
         };
       });
 
@@ -85,7 +87,7 @@ describe('cube-to-sql', () => {
     const sql = await cubeQueryToSQL(query, TABLE_SCHEMA);
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toEqual(
-      'SELECT orders.* FROM (select * from orders) AS orders'
+      'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
     );
   });
 
@@ -102,7 +104,7 @@ describe('cube-to-sql', () => {
     const sql = await cubeQueryToSQL(query, TABLE_SCHEMA);
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toEqual(
-      'SELECT orders.* FROM (select * from orders) AS orders'
+      'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
     );
   });
 });

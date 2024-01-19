@@ -25,6 +25,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
   tableSchema: TableSchema;
   baseSql: string;
 }) => {
+  const aliasedColumnsSet = new Set<string>();
   if (!meerkatFilters) {
     return baseSql;
   }
@@ -46,15 +47,17 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
       })
     } else {
       const { member } = filter;
+      const tableColumn = member.split('__').join('.')
       const measureWithoutTable = member.split('__')[1];
       const aliasKey = memberKeyToSafeKey(member);
       const foundMember = findInSchema(measureWithoutTable, tableSchema)
       
       const isMeasureAlreadySelected = members.includes(member);
-      if (!foundMember || isMeasureAlreadySelected) {
+      if (!foundMember || isMeasureAlreadySelected || aliasedColumnsSet.has(aliasKey)) {
         continue;
       }
-      baseSql += `, ${member.split('__').join('.')} AS ${aliasKey} `;
+      aliasedColumnsSet.add(aliasKey)
+      baseSql += `, ${tableColumn} AS ${aliasKey} `;
     }
   }
   return baseSql

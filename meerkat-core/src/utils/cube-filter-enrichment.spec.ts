@@ -1,9 +1,9 @@
-import { Dimension, Measure } from '../types/cube-types/table';
 import {
   LogicalAndFilterWithInfo,
   LogicalOrFilterWithInfo,
   QueryOperatorsWithInfo,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { Dimension, Measure } from '../types/cube-types/table';
 import { cubeFiltersEnrichmentInternal } from './cube-filter-enrichment';
 
 describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
@@ -27,7 +27,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
   it('should enrich filters with member info', () => {
     const filters: QueryOperatorsWithInfo[] = [
       {
-        member: `table.column1`,
+        member: `table__column1`,
         operator: 'equals',
       },
     ];
@@ -43,7 +43,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
       | LogicalOrFilterWithInfo = {
       and: [
         {
-          member: `table.column1`,
+          member: `table__column1`,
           operator: 'equals',
           memberInfo: {
             name: 'column1',
@@ -54,7 +54,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
         {
           or: [
             {
-              member: `table.column1`,
+              member: `table__column1`,
               operator: 'equals',
               memberInfo: {
                 name: 'column1',
@@ -63,7 +63,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
               },
             },
             {
-              member: `table.column2`,
+              member: `table__column2`,
               operator: 'equals',
               memberInfo: {
                 name: 'column2',

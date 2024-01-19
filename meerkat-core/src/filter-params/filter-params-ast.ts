@@ -1,10 +1,11 @@
 import { cubeToDuckdbAST } from '../ast-builder/ast-builder';
 import {
+  FilterType,
   LogicalAndFilter,
   LogicalOrFilter,
   Query,
   QueryFilter,
-  TableSchema,
+  TableSchema
 } from '../types/cube-types';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
 
@@ -40,13 +41,16 @@ const traverseAndFilter = (
   return null;
 };
 
+
 export const getFilterByMemberKey = (
   filters: GenericFilter[] | undefined,
   memberKey: string
 ): GenericFilter[] => {
   if (!filters) return [];
   return filters
-    .map((filter) => traverseAndFilter(filter, memberKey))
+    .map((filter) => {
+      return traverseAndFilter(filter, memberKey)
+    })
     .filter(Boolean) as GenericFilter[];
 };
 
@@ -79,9 +83,12 @@ export const detectAllFilterParamsFromSQL = (
   return matches;
 };
 
+
+
 export const getFilterParamsAST = (
   query: Query,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  filterType: FilterType = 'PROJECTION_FILTER'
 ): {
   memberKey: string;
   ast: SelectStatement | null;
@@ -89,19 +96,24 @@ export const getFilterParamsAST = (
 }[] => {
   const filterParamKeys = detectAllFilterParamsFromSQL(tableSchema.sql);
   const filterParamsAST = [];
-
+  
   for (const filterParamKey of filterParamKeys) {
+    const baseTableMemberKey = filterParamKey.memberKey.split('.').join('__');
     const filters = getFilterByMemberKey(
       query.filters,
-      filterParamKey.memberKey
+      baseTableMemberKey
     );
+   
     if (filters && filters.length > 0) {
       filterParamsAST.push({
         memberKey: filterParamKey.memberKey,
         matchKey: filterParamKey.matchKey,
         ast: cubeToDuckdbAST(
           { filters, measures: [], dimensions: [] },
-          tableSchema
+          tableSchema,
+          {
+            filterType
+          }
         ),
       });
     }
@@ -110,15 +122,33 @@ export const getFilterParamsAST = (
   return filterParamsAST;
 };
 
+type FilterParamsSQL = {
+  memberKey: string;
+  sql: string;
+  matchKey: string;
+}
+
+export const replaceWhereClauseWithFiltersParamsSQL = (baseSQL: string, filterParamsSQL: FilterParamsSQL[]) => {
+  let finalSQL = baseSQL;
+
+  for (const filterParam of filterParamsSQL) {
+    /**
+     * Get SQL expression after WHERE clause
+     */
+    const whereClause = filterParam.sql.split('WHERE')[1];
+    /**
+     * Replace filter param with SQL expression
+     */
+    finalSQL = finalSQL.replace(filterParam.matchKey, whereClause);
+  }
+  return finalSQL
+}
+
 export const applyFilterParamsToBaseSQL = (
   baseSQL: string,
-  filterParamsSQL: {
-    memberKey: string;
-    sql: string;
-    matchKey: string;
-  }[]
+  filterParamsSQL: FilterParamsSQL[]
 ) => {
-  let finalSQL = baseSQL;
+  let finalSQL = replaceWhereClauseWithFiltersParamsSQL(baseSQL, filterParamsSQL);
   for (const filterParam of filterParamsSQL) {
     /**
      * Get SQL expression after WHERE clause
@@ -133,6 +163,7 @@ export const applyFilterParamsToBaseSQL = (
    * Find all remaining filter params and replace them with TRUE
    */
   const remainingFilterParams = detectAllFilterParamsFromSQL(finalSQL);
+
   for (const filterParam of remainingFilterParams) {
     finalSQL = finalSQL.replace(filterParam.matchKey, 'TRUE');
   }

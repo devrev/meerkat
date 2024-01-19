@@ -125,12 +125,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'Equals',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.customer_id = '1')`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.customer_id AS orders__customer_id  FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '1')`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.customer_id',
+          member: 'orders__customer_id',
           operator: 'equals',
           values: ['1'],
         },
@@ -141,6 +141,7 @@ export const TEST_DATA = [
       {
         order_id: 1,
         customer_id: '1',
+        orders__customer_id: '1',
         product_id: '1',
         order_date: '2022-01-01',
         order_amount: 50.0,
@@ -148,6 +149,7 @@ export const TEST_DATA = [
       {
         order_id: 2,
         customer_id: '1',
+        orders__customer_id: '1',
         product_id: '2',
         order_date: '2022-01-02',
         order_amount: 80.0,
@@ -156,12 +158,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'NotEquals',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.customer_id != '1')`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.customer_id AS orders__customer_id  FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id != '1')`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.customer_id',
+          member: 'orders__customer_id',
           operator: 'notEquals',
           values: ['1'],
         },
@@ -172,6 +174,7 @@ export const TEST_DATA = [
       {
         order_id: 3,
         customer_id: '2',
+        orders__customer_id: '2',
         product_id: '3',
         order_date: '2022-02-01',
         order_amount: 25.0,
@@ -179,6 +182,7 @@ export const TEST_DATA = [
       {
         order_id: 4,
         customer_id: '2',
+        orders__customer_id: '2',
         product_id: '1',
         order_date: '2022-03-01',
         order_amount: 75.0,
@@ -186,6 +190,7 @@ export const TEST_DATA = [
       {
         order_id: 5,
         customer_id: '3',
+        orders__customer_id: '3',
         product_id: '1',
         order_date: '2022-03-02',
         order_amount: 100.0,
@@ -193,6 +198,7 @@ export const TEST_DATA = [
       {
         order_id: 6,
         customer_id: '4',
+        orders__customer_id: '4',
         product_id: '2',
         order_date: '2022-04-01',
         order_amount: 45.0,
@@ -200,6 +206,7 @@ export const TEST_DATA = [
       {
         order_id: 7,
         customer_id: '4',
+        orders__customer_id: '4',
         product_id: '3',
         order_date: '2022-05-01',
         order_amount: 90.0,
@@ -207,6 +214,7 @@ export const TEST_DATA = [
       {
         order_id: 8,
         customer_id: '5',
+        orders__customer_id: '5',
         product_id: '1',
         order_date: '2022-05-02',
         order_amount: 65.0,
@@ -214,6 +222,7 @@ export const TEST_DATA = [
       {
         order_id: 9,
         customer_id: '5',
+        orders__customer_id: '5',
         product_id: '2',
         order_date: '2022-05-05',
         order_amount: 85.0,
@@ -221,6 +230,7 @@ export const TEST_DATA = [
       {
         order_id: 10,
         customer_id: '6',
+        orders__customer_id: '6',
         product_id: '3',
         order_date: '2022-06-01',
         order_amount: 120.0,
@@ -228,6 +238,7 @@ export const TEST_DATA = [
       {
         order_id: 11,
         customer_id: '6aa6',
+        orders__customer_id: '6aa6',
         product_id: '3',
         order_date: '2024-06-01',
         order_amount: 0.0,
@@ -236,12 +247,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'Contains',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.customer_id ~~* '%aa%')`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.customer_id AS orders__customer_id  FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id ~~* '%aa%')`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.customer_id',
+          member: 'orders__customer_id',
           operator: 'contains',
           values: ['aa'],
         },
@@ -252,6 +263,7 @@ export const TEST_DATA = [
       {
         order_id: 11,
         customer_id: '6aa6',
+        orders__customer_id: '6aa6',
         product_id: '3',
         order_date: '2024-06-01',
         order_amount: 0.0,
@@ -260,39 +272,39 @@ export const TEST_DATA = [
   },
   {
     testName: 'NotContains',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.customer_id !~~ '%1%') AND (orders.customer_id !~~ '%2%') AND (orders.customer_id !~~ '%3%') AND (orders.customer_id !~~ '%4%') AND (orders.customer_id !~~ '%5%') AND (orders.customer_id !~~ '%aa%'))`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.customer_id AS orders__customer_id  FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id !~~ '%1%') AND (orders__customer_id !~~ '%2%') AND (orders__customer_id !~~ '%3%') AND (orders__customer_id !~~ '%4%') AND (orders__customer_id !~~ '%5%') AND (orders__customer_id !~~ '%aa%'))`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
           and: [
             {
-              member: 'orders.customer_id',
+              member: 'orders__customer_id',
               operator: 'notContains',
               values: ['1'],
             },
             {
-              member: 'orders.customer_id',
+              member: 'orders__customer_id',
               operator: 'notContains',
               values: ['2'],
             },
             {
-              member: 'orders.customer_id',
+              member: 'orders__customer_id',
               operator: 'notContains',
               values: ['3'],
             },
             {
-              member: 'orders.customer_id',
+              member: 'orders__customer_id',
               operator: 'notContains',
               values: ['4'],
             },
             {
-              member: 'orders.customer_id',
+              member: 'orders__customer_id',
               operator: 'notContains',
               values: ['5'],
             },
             {
-              member: 'orders.customer_id',
+              member: 'orders__customer_id',
               operator: 'notContains',
               values: ['aa'],
             },
@@ -305,6 +317,7 @@ export const TEST_DATA = [
       {
         order_id: 10,
         customer_id: '6',
+        orders__customer_id: '6',
         product_id: '3',
         order_date: '2022-06-01',
         order_amount: 120,
@@ -313,12 +326,12 @@ export const TEST_DATA = [
   },
   {
     testName: 'GreaterThan',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.order_amount > 50)`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount  FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount > 50)`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.order_amount',
+          member: 'orders__order_amount',
           operator: 'gt',
           values: ['50'],
         },
@@ -332,6 +345,7 @@ export const TEST_DATA = [
         product_id: '2',
         order_date: '2022-01-02',
         order_amount: 80.0,
+        orders__order_amount: 80.0,
       },
       {
         order_id: 4,
@@ -339,6 +353,7 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-03-01',
         order_amount: 75.0,
+        orders__order_amount: 75.0,
       },
       {
         order_id: 5,
@@ -346,6 +361,7 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-03-02',
         order_amount: 100.0,
+        orders__order_amount: 100.0,
       },
       {
         order_id: 7,
@@ -353,6 +369,7 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2022-05-01',
         order_amount: 90.0,
+        orders__order_amount: 90.0,
       },
       {
         order_id: 8,
@@ -360,6 +377,7 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-05-02',
         order_amount: 65.0,
+        orders__order_amount: 65.0,
       },
       {
         order_id: 9,
@@ -367,6 +385,7 @@ export const TEST_DATA = [
         product_id: '2',
         order_date: '2022-05-05',
         order_amount: 85.0,
+        orders__order_amount: 85.0,
       },
       {
         order_id: 10,
@@ -374,17 +393,18 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2022-06-01',
         order_amount: 120.0,
+        orders__order_amount: 120.0,
       },
     ],
   },
   {
     testName: 'LessThan',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE (orders.order_amount < 50)`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount  FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount < 50)`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.order_amount',
+          member: 'orders__order_amount',
           operator: 'lt',
           values: ['50'],
         },
@@ -398,6 +418,7 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2022-02-01',
         order_amount: 25.0,
+        orders__order_amount: 25.0,
       },
       {
         order_id: 6,
@@ -405,6 +426,7 @@ export const TEST_DATA = [
         product_id: '2',
         order_date: '2022-04-01',
         order_amount: 45.0,
+        orders__order_amount: 45.0,
       },
       {
         order_id: 11,
@@ -412,17 +434,18 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2024-06-01',
         order_amount: 0.0,
+        orders__order_amount: 0.0,
       },
     ],
   },
   {
     testName: 'InDateRange',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.order_date >= '2022-02-01') AND (orders.order_date <= '2022-03-31'))`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_date AS orders__order_date  FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-03-31'))`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.order_date',
+          member: 'orders__order_date',
           operator: 'inDateRange',
           values: ['2022-02-01', '2022-03-31'],
         },
@@ -435,6 +458,7 @@ export const TEST_DATA = [
         customer_id: '2',
         product_id: '3',
         order_date: '2022-02-01',
+        orders__order_date: '2022-02-01',
         order_amount: 25.0,
       },
       {
@@ -442,6 +466,7 @@ export const TEST_DATA = [
         customer_id: '2',
         product_id: '1',
         order_date: '2022-03-01',
+        orders__order_date:'2022-03-01',
         order_amount: 75.0,
       },
       {
@@ -449,18 +474,19 @@ export const TEST_DATA = [
         customer_id: '3',
         product_id: '1',
         order_date: '2022-03-02',
+        orders__order_date: '2022-03-02',
         order_amount: 100.0,
       },
     ],
   },
   {
     testName: 'NotInDateRange',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.order_date < '2022-02-01') OR (orders.order_date > '2022-03-31'))`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_date AS orders__order_date  FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_date < '2022-02-01') OR (orders__order_date > '2022-03-31'))`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
-          member: 'orders.order_date',
+          member: 'orders__order_date',
           operator: 'notInDateRange',
           values: ['2022-02-01', '2022-03-31'],
         },
@@ -474,6 +500,7 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-01-01',
         order_amount: 50.0,
+        orders__order_date: '2022-01-01',
       },
       {
         order_id: 2,
@@ -481,12 +508,14 @@ export const TEST_DATA = [
         product_id: '2',
         order_date: '2022-01-02',
         order_amount: 80.0,
+        orders__order_date: '2022-01-02',
       },
       {
         order_id: 6,
         customer_id: '4',
         product_id: '2',
         order_date: '2022-04-01',
+        orders__order_date: '2022-04-01',
         order_amount: 45.0,
       },
       {
@@ -494,6 +523,7 @@ export const TEST_DATA = [
         customer_id: '4',
         product_id: '3',
         order_date: '2022-05-01',
+        orders__order_date: '2022-05-01',
         order_amount: 90.0,
       },
       {
@@ -501,6 +531,7 @@ export const TEST_DATA = [
         customer_id: '5',
         product_id: '1',
         order_date: '2022-05-02',
+        orders__order_date: '2022-05-02',
         order_amount: 65.0,
       },
       {
@@ -508,6 +539,7 @@ export const TEST_DATA = [
         customer_id: '5',
         product_id: '2',
         order_date: '2022-05-05',
+        orders__order_date: '2022-05-05',
         order_amount: 85.0,
       },
       {
@@ -515,6 +547,7 @@ export const TEST_DATA = [
         customer_id: '6',
         product_id: '3',
         order_date: '2022-06-01',
+        orders__order_date: '2022-06-01',
         order_amount: 120.0,
       },
       {
@@ -522,6 +555,7 @@ export const TEST_DATA = [
         customer_id: '6aa6',
         product_id: '3',
         order_date: '2024-06-01',
+        orders__order_date: '2024-06-01',
         order_amount: 0.0,
       },
     ],
@@ -596,19 +630,19 @@ export const TEST_DATA = [
   // },
   {
     testName: 'And',
-    expectedSQL: `SELECT orders.* FROM (select * from orders) AS orders WHERE ((orders.order_amount > 50) AND ((orders.order_date >= '2022-02-01') AND (orders.order_date <= '2022-06-01')))`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount , orders.order_date AS orders__order_date  FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount > 50) AND ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-06-01')))`,
     cubeInput: {
       measures: ['*'],
       filters: [
         {
           and: [
             {
-              member: 'orders.order_amount',
+              member: 'orders__order_amount',
               operator: 'gt',
               values: ['50'],
             },
             {
-              member: 'orders.order_date',
+              member: 'orders__order_date',
               operator: 'inDateRange',
               values: ['2022-02-01', '2022-06-01'],
             },
@@ -624,41 +658,53 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-03-01',
         order_amount: 75.0,
+        orders__order_amount: 75.0,
+        orders__order_date: '2022-03-01',
       },
       {
         order_id: 5,
         customer_id: '3',
         product_id: '1',
         order_date: '2022-03-02',
+        orders__order_date: '2022-03-02',
         order_amount: 100.0,
+        orders__order_amount: 100.0,
       },
       {
         order_id: 7,
         customer_id: '4',
         product_id: '3',
         order_date: '2022-05-01',
+        orders__order_date: '2022-05-01',
         order_amount: 90.0,
+        orders__order_amount: 90.0,
       },
       {
         order_id: 8,
         customer_id: '5',
         product_id: '1',
         order_date: '2022-05-02',
+        orders__order_date: '2022-05-02',
         order_amount: 65,
+        orders__order_amount: 65,
       },
       {
         order_id: 9,
         customer_id: '5',
         product_id: '2',
         order_date: '2022-05-05',
+        orders__order_date: '2022-05-05',
         order_amount: 85.0,
+        orders__order_amount: 85.0,
       },
       {
         order_id: 10,
         customer_id: '6',
         product_id: '3',
         order_date: '2022-06-01',
+        orders__order_date: '2022-06-01',
         order_amount: 120.0,
+        orders__order_amount: 120.0,
       },
     ],
   },
