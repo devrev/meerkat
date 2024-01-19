@@ -17,6 +17,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
   /*  
    * Maintain a set to make sure already seen members are not added again. 
    */
+  let sql = baseSql
   if (!meerkatFilters) {
     return baseSql;
   }
@@ -24,7 +25,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
     const filter = meerkatFilters[i]
     if ('and' in filter) {
     // Traverse through the passed 'and' filters
-      baseSql += getAliasedColumnsFromFilters({
+      sql += getAliasedColumnsFromFilters({
         baseSql: '',
         members,
         meerkatFilters: filter.and,
@@ -33,7 +34,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
     }
     if ('or' in filter) {
     // Traverse through the passed 'or' filters
-      baseSql += getAliasedColumnsFromFilters({
+      sql += getAliasedColumnsFromFilters({
         baseSql: '',
         tableSchema,
         members,
@@ -54,10 +55,10 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
       }
       // Add the alias key to the set. So we have a reference to all the previously selected members.
       aliasedColumnsSet.add(aliasKey)
-      baseSql += `, ${tableColumn} AS ${aliasKey} `;
+      sql += `, ${tableColumn} AS ${aliasKey} `;
     }
   }
-  return baseSql
+  return sql
 }
 
 
