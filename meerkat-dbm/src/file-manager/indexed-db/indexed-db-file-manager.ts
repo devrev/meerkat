@@ -1,7 +1,11 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import { getBufferFromJSON, mergeFileBufferStoreIntoTable } from '../../utils';
+import {
+  getBufferFromJSON,
+  isDefined,
+  mergeFileBufferStoreIntoTable,
+} from '../../utils';
 import {
   FileBufferStore,
   FileJsonStore,
@@ -177,9 +181,9 @@ export class IndexedDBFileManager implements FileManagerType {
   async getFilesNameForTables(tableNames: string[]): Promise<TableWiseFiles[]> {
     const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
 
-    return tableData.map((table) => ({
-      tableName: table?.tableName ?? '',
-      files: (table?.files ?? []).map((file) => file.fileName),
+    return tableData.filter(isDefined).map((table) => ({
+      tableName: table.tableName,
+      files: table.files.map((file) => file.fileName),
     }));
   }
 
@@ -232,13 +236,11 @@ export class IndexedDBFileManager implements FileManagerType {
 
       // Register file buffers from IndexedDB for each table
       await Promise.all(
-        filesData.map(async (file) => {
-          if (file) {
-            await this.fileRegisterer.registerFileBuffer(
-              file.fileName,
-              file.buffer
-            );
-          }
+        filesData.filter(isDefined).map(async (file) => {
+          await this.fileRegisterer.registerFileBuffer(
+            file.fileName,
+            file.buffer
+          );
         })
       );
     });
