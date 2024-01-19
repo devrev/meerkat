@@ -1,22 +1,7 @@
 import { GenericFilter, Member } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
+import { findInSchema } from '../utils/find-in-table-schema';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
-
-const findInSchema = (measureWithoutTable: string, tableSchema: TableSchema) => {
-  const foundDimension = tableSchema.dimensions.find(
-    (m) => m.name === measureWithoutTable
-  )
-  if (foundDimension) {
-    return foundDimension
-  }
-  const foundMeasure = tableSchema.measures.find(
-    (m) => m.name === measureWithoutTable
-  )
-  if (foundMeasure) {
-    return foundMeasure
-  }
-  return undefined
-}
 
 
 export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema }: {
@@ -25,37 +10,49 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
   tableSchema: TableSchema;
   baseSql: string;
 }) => {
+  /*
+   * This function returns the string of aliased columns from the filters passed.
+   */
   const aliasedColumnsSet = new Set<string>();
+  /*  
+   * Maintain a set to make sure already seen members are not added again. 
+   */
   if (!meerkatFilters) {
     return baseSql;
   }
   for (let i = 0; i < meerkatFilters.length; i++) {
     const filter = meerkatFilters[i]
     if ('and' in filter) {
+    // Traverse through the passed 'and' filters
       baseSql += getAliasedColumnsFromFilters({
         baseSql: '',
         members,
         meerkatFilters: filter.and,
         tableSchema,
       })
-    } else if ('or' in filter) {
+    }
+    if ('or' in filter) {
+    // Traverse through the passed 'or' filters
       baseSql += getAliasedColumnsFromFilters({
         baseSql: '',
         tableSchema,
         members,
         meerkatFilters: filter.or,
       })
-    } else {
+    } 
+    if ('member' in filter) {
       const { member } = filter;
+      // Find the table access key
       const tableColumn = member.split('__').join('.')
       const measureWithoutTable = member.split('__')[1];
       const aliasKey = memberKeyToSafeKey(member);
+
       const foundMember = findInSchema(measureWithoutTable, tableSchema)
-      
-      const isMeasureAlreadySelected = members.includes(member);
-      if (!foundMember || isMeasureAlreadySelected || aliasedColumnsSet.has(aliasKey)) {
+      if (!foundMember  || aliasedColumnsSet.has(aliasKey)) {
+        // If the selected member is not found in the table schema or if it is already selected, continue.
         continue;
       }
+      // Add the alias key to the set. So we have a reference to all the previously selected members.
       aliasedColumnsSet.add(aliasKey)
       baseSql += `, ${tableColumn} AS ${aliasKey} `;
     }
@@ -120,6 +117,9 @@ const addDimensionToSQLProjection = (
 };
 
 export const getSelectReplacedSql = (sql: string, selectString: string) => {
+  /*
+  ** Replaces the select portion of a SQL string with the selectString passed.
+  */
   const selectRegex = /SELECT\s\*/;
   const match = sql.match(selectRegex);
   if (!match) {

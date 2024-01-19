@@ -117,10 +117,13 @@ interface QueryTimeDimension {
 /**
  * Incoming network query data type.
  */
+
+export type MeerkatQueryFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)
+
 interface Query {
   measures: Member[];
   dimensions?: (Member | TimeMember)[];
-  filters?: (QueryFilter | LogicalAndFilter | LogicalOrFilter)[];
+  filters?: QueryFilter[];
   timeDimensions?: QueryTimeDimension[];
   segments?: Member[];
   limit?: null | number;
@@ -156,8 +159,11 @@ type GenericFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 export {
   ApiScopes,
   ApiType,
-  FilterOperator, GenericFilter, LogicalAndFilter,
-  LogicalOrFilter, Member,
+  FilterOperator,
+  GenericFilter,
+  LogicalAndFilter,
+  LogicalOrFilter,
+  Member,
   MemberType,
   NormalizedQuery,
   NormalizedQueryFilter,

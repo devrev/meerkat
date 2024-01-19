@@ -3,28 +3,13 @@ import { cubeDimensionToGroupByAST } from '../cube-group-by-transformer/cube-gro
 import { cubeLimitOffsetToAST } from '../cube-limit-offset-transformer/cube-limit-offset-transformer';
 import { cubeOrderByToAST } from '../cube-order-by-transformer/cube-order-by-transformer';
 import { QueryFiltersWithInfo } from '../cube-to-duckdb/cube-filter-to-duckdb';
-import { FilterType, Query, QueryFilter } from '../types/cube-types/query';
+import { FilterType, Query } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
+import { modifyLeafMeerkatFilter } from '../utils/modify-meerkat-filter';
 
-const modifyLeafMeerkatFilter = <T>(filters: QueryFiltersWithInfo, callback: (arg: QueryFilter) => T): T[] | undefined  => {
-  if (!filters) return undefined;
-  return filters.map((item) => {
-    if ('member' in item) {
-      return callback(item)
-    } else {
-      const andPayload: T[] | undefined = 'and' in item ? modifyLeafMeerkatFilter(item.and, callback) : undefined;
-      const orPayload: T[] | undefined = 'or' in item ?  modifyLeafMeerkatFilter(item.or, callback) : undefined;
-      
-      return {
-        ...(andPayload ? { and: andPayload } : {}),
-        ...(orPayload ? { or: orPayload } : {}),
-      } as T
-    }
-  })
-};
 
 export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?: { filterType: FilterType }
 ) => {
@@ -51,11 +36,14 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?
       return null;
     }
 
+    /*
+    * If the type of filter is set to base filter where 
+    */
     const finalFilters = options?.filterType === 'BASE_FILTER' ? modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
       return {
         ...item,
         member: item.member.split('__').join('.')
-      }
+      };
     }) as QueryFiltersWithInfo : queryFiltersWithInfo; 
 
     const duckdbWhereClause = cubeFilterToDuckdbAST(
