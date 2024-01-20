@@ -44,7 +44,6 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
     if ('member' in filter) {
       const { member } = filter;
       // Find the table access key
-      const tableColumn = member.split('__').join('.')
       const measureWithoutTable = member.split('__')[1];
       const aliasKey = memberKeyToSafeKey(member);
 
@@ -55,7 +54,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
       }
       // Add the alias key to the set. So we have a reference to all the previously selected members.
       aliasedColumnsSet.add(aliasKey)
-      sql += `, ${tableColumn} AS ${aliasKey} `;
+      sql += `, ${foundMember.sql} AS ${aliasKey} `;
     }
   }
   return sql

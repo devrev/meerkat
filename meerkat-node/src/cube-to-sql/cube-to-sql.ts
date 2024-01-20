@@ -77,7 +77,6 @@ export const cubeQueryToSQL = async (
   tableSchema: TableSchema,
   contextParams?: ContextParams
 ) => {
-
   const baseFilterParamsSQL = await getFinalBaseSQL(cubeQuery, tableSchema)
 
   const updatedTableSchema: TableSchema = { ...tableSchema, sql: baseFilterParamsSQL }
