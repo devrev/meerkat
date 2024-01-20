@@ -1,6 +1,6 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-
 import { v4 as uuidv4 } from 'uuid';
+
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { InstanceManagerType } from './instance-manager';
