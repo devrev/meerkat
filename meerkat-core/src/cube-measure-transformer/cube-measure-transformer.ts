@@ -4,16 +4,13 @@ import { findInSchema } from '../utils/find-in-table-schema';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 
-export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema }: {
+export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema, aliasedColumnSet }: {
   members: Member[];
   meerkatFilters: GenericFilter[];
   tableSchema: TableSchema;
   baseSql: string;
+  aliasedColumnSet: Set<string>;
 }) => {
-  /*
-   * This function returns the string of aliased columns from the filters passed.
-   */
-  const aliasedColumnsSet = new Set<string>();
   /*  
    * Maintain a set to make sure already seen members are not added again. 
    */
@@ -30,6 +27,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
         members,
         meerkatFilters: filter.and,
         tableSchema,
+        aliasedColumnSet
       })
     }
     if ('or' in filter) {
@@ -39,6 +37,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
         tableSchema,
         members,
         meerkatFilters: filter.or,
+        aliasedColumnSet
       })
     } 
     if ('member' in filter) {
@@ -48,12 +47,12 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
       const aliasKey = memberKeyToSafeKey(member);
 
       const foundMember = findInSchema(measureWithoutTable, tableSchema)
-      if (!foundMember  || aliasedColumnsSet.has(aliasKey)) {
+      if (!foundMember  || aliasedColumnSet.has(aliasKey)) {
         // If the selected member is not found in the table schema or if it is already selected, continue.
         continue;
       }
       // Add the alias key to the set. So we have a reference to all the previously selected members.
-      aliasedColumnsSet.add(aliasKey)
+      aliasedColumnSet.add(aliasKey)
       sql += `, ${foundMember.sql} AS ${aliasKey} `;
     }
   }

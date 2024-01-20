@@ -29,7 +29,8 @@ const getWrappedBaseQueryWithProjections = ({ baseQuery, tableSchema, query }: {
   const aliasedColumns = getAliasedColumnsFromFilters({
     meerkatFilters: query.filters,
     tableSchema, baseSql: 'SELECT *',
-    members: [...query.measures, ...(query.dimensions ?? [])]
+    members: [...query.measures, ...(query.dimensions ?? [])],
+    aliasedColumnSet: new Set<string>()
   })
   // Append the aliased columns to the base query select statement
   const sqlWithFilterProjects = getSelectReplacedSql(newBaseSql, aliasedColumns)
