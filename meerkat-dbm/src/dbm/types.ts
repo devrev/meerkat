@@ -85,6 +85,5 @@ export interface QueryQueueItem {
    * Timestamp indicating when the query was added to the queue.
    */
   timestamp: number;
-  connectionId?: string;
   options?: QueryOptions;
 }

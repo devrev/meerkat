@@ -1,5 +1,6 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 
+import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { InstanceManagerType } from './instance-manager';
@@ -271,12 +272,12 @@ export class DBM {
     return this.queryQueueRunning;
   }
 
-  private _abortSignal(
-    signal?: AbortSignal,
-    connectionId?: string,
-    reject?: (reason?: any) => void
+  private _signalListener(
+    connectionId: string,
+    reject: (reason?: any) => void,
+    signal?: AbortSignal
   ): void {
-    signal?.addEventListener('abort', async (reason: Event) => {
+    const signalHandler = async (reason: Event) => {
       const indexToRemove = this.queriesQueue.findIndex(
         (queryItem) => queryItem.connectionId === connectionId
       );
@@ -296,23 +297,27 @@ export class DBM {
         await connection.cancelSent();
       }
 
-      reject?.(reason);
-    });
+      signal?.removeEventListener('abort', signalHandler);
+
+      reject(reason);
+    };
+
+    signal?.addEventListener('abort', signalHandler);
   }
 
   public async queryWithTableNames({
     query,
     tableNames,
-    connectionId,
     options,
   }: {
     query: string;
     tableNames: string[];
-    connectionId?: string;
     options?: QueryOptions;
   }) {
+    const connectionId = uuidv4();
+
     const promise = new Promise((resolve, reject) => {
-      this._abortSignal(options?.signal, connectionId, reject);
+      this._signalListener(connectionId, reject, options?.signal);
 
       this.queriesQueue.push({
         query,
@@ -321,7 +326,6 @@ export class DBM {
           resolve,
           reject,
         },
-        connectionId,
         timestamp: Date.now(),
         options,
       });
@@ -348,12 +352,5 @@ export class DBM {
    */
   public async setShutdownLock(state: boolean) {
     this.shutdownLock = state;
-  }
-
-  /**
-   * Empty the queue
-   */
-  public async emptyQueue() {
-    this.queriesQueue = [];
   }
 }
