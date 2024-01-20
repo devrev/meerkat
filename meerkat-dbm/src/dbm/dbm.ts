@@ -326,6 +326,7 @@ export class DBM {
           resolve,
           reject,
         },
+        connectionId,
         timestamp: Date.now(),
         options,
       });
