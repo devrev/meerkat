@@ -78,14 +78,12 @@ describe('modifyLeafMeerkatFilter', () => {
 
 
         const modifiedFilters = modifyLeafMeerkatFilter(ORIGINAL_FILTERS, (filter: QueryFilter) => {
-            console.log('filter', filter)
             if (filter.member === 'table__column1') {
                 filter.operator = 'xyz';
             }
             if (filter.member === 'table__column2') {
                 filter.operator = 'abc';
             }
-            console.log('filter 2', filter)
             return filter;
         });
 
