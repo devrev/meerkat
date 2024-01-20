@@ -446,7 +446,6 @@ describe('DBM', () => {
         const promise = dbm.queryWithTableNames({
           query: 'SELECT * FROM table1',
           tableNames: ['table1'],
-          connectionId: 'connection1',
           options: {
             signal: abortController1.signal,
           },
@@ -471,7 +470,6 @@ describe('DBM', () => {
       const promise1 = dbm.queryWithTableNames({
         query: 'SELECT * FROM table1',
         tableNames: ['table1'],
-        connectionId: 'connection1',
         options: {
           signal: abortController1.signal,
         },
@@ -480,7 +478,6 @@ describe('DBM', () => {
       const promise2 = dbm.queryWithTableNames({
         query: 'SELECT * FROM table2',
         tableNames: ['table2'],
-        connectionId: 'connection2',
         options: {
           signal: abortController2.signal,
         },
