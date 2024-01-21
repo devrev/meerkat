@@ -10,32 +10,11 @@ import {
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
-  getAliasedColumnsFromFilters,
   getFilterParamsAST,
-  getSelectReplacedSql
+  getWrappedBaseQueryWithProjections
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
-const getWrappedBaseQueryWithProjections = ({ baseQuery, tableSchema, query }: { baseQuery: string, tableSchema: TableSchema, query: Query }) => {
-  /*
-  * Im order to be able to filter on computed metric from a query, we need to project the computed metric in the base query.
-  * If theres filters supplied, we can safely return the original base query. Since nothing need to be projected and filtered in this case
-  */
-  if (!query?.filters?.length) {
-    return baseQuery
-  }
-  // Wrap the query into another 'SELECT * FROM (baseQuery) AS baseTable'' in order to project everything in the base query, and other computed metrics to be able to filter on them
-  const newBaseSql = `SELECT * FROM (${baseQuery}) AS ${tableSchema.name}`;
-  const aliasedColumns = getAliasedColumnsFromFilters({
-    meerkatFilters: query.filters,
-    tableSchema, baseSql: 'SELECT *',
-    members: [...query.measures, ...(query.dimensions ?? [])],
-    aliasedColumnSet: new Set<string>()
-  })
-  // Append the aliased columns to the base query select statement
-  const sqlWithFilterProjects = getSelectReplacedSql(newBaseSql, aliasedColumns)
-  return sqlWithFilterProjects
-}
 
 const getFilterParamsSQL = async ({ cubeQuery, tableSchema, filterType }: { cubeQuery: Query, tableSchema: TableSchema, filterType?: FilterType }) => {
   const filterParamsAST = getFilterParamsAST(cubeQuery, tableSchema, filterType);
@@ -79,7 +58,6 @@ export const cubeQueryToSQL = async (
   contextParams?: ContextParams
 ) => {
   const baseFilterParamsSQL = await getFinalBaseSQL(cubeQuery, tableSchema)
-
   const updatedTableSchema: TableSchema = { ...tableSchema, sql: baseFilterParamsSQL }
 
   const ast = cubeToDuckdbAST(cubeQuery, updatedTableSchema);
