@@ -19,4 +19,3 @@ export const findInSchema = (measureWithoutTable: string, tableSchema: TableSche
     }
     return undefined
 }
-  

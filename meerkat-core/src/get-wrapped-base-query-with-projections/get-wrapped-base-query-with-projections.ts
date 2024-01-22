@@ -1,41 +1,9 @@
 import { getSelectReplacedSql } from '../cube-measure-transformer/cube-measure-transformer';
+import { getMemberProjection, getProjectionClause } from '../get-projection-clause/get-projection-clause';
 import { MeerkatQueryFilter, Member, Query, TableSchema } from '../types/cube-types';
-import { findInSchema } from '../utils/find-in-table-schema';
-import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 interface GetWrappedBaseQueryWithProjectionsParams { baseQuery: string, tableSchema: TableSchema, query: Query }
 
-const getMemberProjection = ({ key, tableSchema }: {
-  key: string;
-  tableSchema: TableSchema;
-}) => {;
-  // Find the table access key
-  const measureWithoutTable = key.split('.')[1];
-  const aliasKey = memberKeyToSafeKey(key);
-
-  const foundMember = findInSchema(measureWithoutTable, tableSchema)
-  if (!foundMember) {
-    // If the selected member is not found in the table schema or if it is already selected, continue.
-    return {
-      sql: undefined,
-      foundMember: undefined,
-      aliasKey: undefined
-    }
-  }
-  // Add the alias key to the set. So we have a reference to all the previously selected members.
-  return { sql: `${foundMember.sql} AS ${aliasKey}` , foundMember, aliasKey }
-}
-
-const getProjectionSql = (members: string[], tableSchema: TableSchema, aliasedColumnSet: Set<string>) => {
-  return members.reduce((acc, member) => {
-    const { sql: memberSql }  = getMemberProjection({ key: member, tableSchema })
-    if (aliasedColumnSet.has(member)) {
-      return acc
-    }
-    acc += `, ${memberSql}`
-    return acc
-  }, '')
-}
 
 export const getAliasedColumns = ({ baseSql, members, meerkatFilters, tableSchema, aliasedColumnSet }: {
   members: Member[];
@@ -83,7 +51,7 @@ export const getAliasedColumns = ({ baseSql, members, meerkatFilters, tableSchem
       }
   })
   // Alias dimensions in the base query/
-  const memberProjections = getProjectionSql(members, tableSchema, aliasedColumnSet);
+  const memberProjections = getProjectionClause(members, tableSchema, aliasedColumnSet);
   return sql + memberProjections;
 }
 
@@ -108,4 +76,3 @@ export const getWrappedBaseQueryWithProjections = ({
     const sqlWithFilterProjects = getSelectReplacedSql(newBaseSql, aliasedColumns)
     return sqlWithFilterProjects
 }
-  

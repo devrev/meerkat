@@ -52,6 +52,7 @@ const addDimensionToSQLProjection = (
     if (i > 0) {
       newSelectString += ',';
     }
+    // since alias key is expected to have been unfurled in the base query, we can just use it as is.
     newSelectString += `  ${aliasKey}`;
   }
   return newSelectString
