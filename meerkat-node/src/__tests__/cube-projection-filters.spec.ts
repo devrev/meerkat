@@ -126,7 +126,7 @@ describe('cube-to-sql', () => {
     const sql = await cubeQueryToSQL({ ...QUERY, filters: [
         { and: [
                 {
-                    member: 'person__id',
+                    member: 'person.id',
                     "operator": "notEquals",
                     "values": [
                         "2"
