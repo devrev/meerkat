@@ -50,7 +50,7 @@ describe('filter-param-tests', () => {
       measures: ['*'],
       filters: [
         {
-          member: 'orders__status',
+          member: 'orders.status',
           operator: 'equals',
           values: ['pending'],
         },
@@ -71,17 +71,17 @@ describe('filter-param-tests', () => {
         {
           or: [
             {
-              member: 'orders__status',
+              member: 'orders.status',
               operator: 'equals',
               values: ['pending'],
             },
             {
-              member: 'orders__status',
+              member: 'orders.status',
               operator: 'equals',
               values: ['cancelled'],
             },
             {
-              member: 'orders__amount',
+              member: 'orders.amount',
               operator: 'gt',
               values: ['40'],
             },
@@ -117,14 +117,14 @@ describe('filter-param-tests', () => {
         {
           and: [
             {
-              member: 'orders__amount',
+              member: 'orders.amount',
               operator: 'gt',
               values: ['40'],
             },
             {
               or: [
                 {
-                  member: 'orders__amount',
+                  member: 'orders.amount',
                   operator: 'lt',
                   values: ['200'],
                 },

@@ -43,7 +43,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
       | LogicalOrFilterWithInfo = {
       and: [
         {
-          member: `table__column1`,
+          member: `table.column1`,
           operator: 'equals',
           memberInfo: {
             name: 'column1',
