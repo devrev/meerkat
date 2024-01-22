@@ -95,10 +95,9 @@ export const getFilterParamsAST = (
   const filterParamsAST = [];
   
   for (const filterParamKey of filterParamKeys) {
-    const baseTableMemberKey = filterParamKey.memberKey.split('.').join('__');
     const filters = getFilterByMemberKey(
       query.filters,
-      baseTableMemberKey
+      filterParamKey.memberKey
     );
    
     if (filters && filters.length > 0) {

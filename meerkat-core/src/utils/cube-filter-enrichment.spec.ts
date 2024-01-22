@@ -27,7 +27,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
   it('should enrich filters with member info', () => {
     const filters: QueryOperatorsWithInfo[] = [
       {
-        member: `table__column1`,
+        member: `table.column1`,
         operator: 'equals',
       },
     ];
@@ -54,7 +54,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
         {
           or: [
             {
-              member: `table__column1`,
+              member: `table.column1`,
               operator: 'equals',
               memberInfo: {
                 name: 'column1',
@@ -63,7 +63,7 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
               },
             },
             {
-              member: `table__column2`,
+              member: `table.column2`,
               operator: 'equals',
               memberInfo: {
                 name: 'column2',

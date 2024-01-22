@@ -6,7 +6,7 @@ export const getMemberInfoFromTableSchema = (
 ) => {
   let memberInfo: Measure | Dimension | undefined;
 
-  const memberKeyName = memberKey.split('__')[1];
+  const memberKeyName = memberKey.split('.')[1];
   console.info('memberKeyName', memberKeyName, memberKey);
 
   /**

@@ -39,12 +39,12 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?
     /*
     * If the type of filter is set to base filter where 
     */
-    const finalFilters = options?.filterType === 'BASE_FILTER' ? modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
+    const finalFilters = options?.filterType === 'BASE_FILTER' ? queryFiltersWithInfo : modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
       return {
         ...item,
-        member: item.member.split('__').join('.')
+        member: item.member.split('.').join('__')
       };
-    }) as QueryFiltersWithInfo : queryFiltersWithInfo; 
+    }) as QueryFiltersWithInfo; 
 
     const duckdbWhereClause = cubeFilterToDuckdbAST(
       finalFilters,

@@ -4,7 +4,7 @@ import { modifyLeafMeerkatFilter } from './modify-meerkat-filter';
 const ORIGINAL_FILTERS = [{
     and: [
         {
-            member: `table__column1`,
+            member: `table.column1`,
             operator: 'equals',
             memberInfo: {
                 name: 'column1',
@@ -15,7 +15,7 @@ const ORIGINAL_FILTERS = [{
         {
             or: [
             {
-                member: `table__column3`,
+                member: `table.column3`,
                 operator: 'equals',
                 memberInfo: {
                     name: 'column1',
@@ -24,7 +24,7 @@ const ORIGINAL_FILTERS = [{
                 },
             },
             {
-                member: `table__column2`,
+                member: `table.column2`,
                 operator: 'equals',
                 memberInfo: {
                     name: 'column2',
@@ -41,7 +41,7 @@ const ORIGINAL_FILTERS = [{
 const EXPECTED_FILTERS = [{
     and: [
         {
-            member: `table__column1`,
+            member: `table.column1`,
             operator: 'xyz',
             memberInfo: {
                 name: 'column1',
@@ -52,7 +52,7 @@ const EXPECTED_FILTERS = [{
         {
             or: [
             {
-                member: `table__column3`,
+                member: `table.column3`,
                 operator: 'equals',
                 memberInfo: {
                     name: 'column1',
@@ -61,7 +61,7 @@ const EXPECTED_FILTERS = [{
                 },
             },
             {
-                member: `table__column2`,
+                member: `table.column2`,
                 operator: 'abc',
                 memberInfo: {
                     name: 'column2',
@@ -78,10 +78,10 @@ describe('modifyLeafMeerkatFilter', () => {
 
 
         const modifiedFilters = modifyLeafMeerkatFilter(ORIGINAL_FILTERS, (filter: QueryFilter) => {
-            if (filter.member === 'table__column1') {
+            if (filter.member === 'table.column1') {
                 filter.operator = 'xyz';
             }
-            if (filter.member === 'table__column2') {
+            if (filter.member === 'table.column2') {
                 filter.operator = 'abc';
             }
             return filter;

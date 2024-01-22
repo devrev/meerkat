@@ -130,7 +130,7 @@ export const TEST_DATA = [
       measures: ['*'],
       filters: [
         {
-          member: 'orders__customer_id',
+          member: 'orders.customer_id',
           operator: 'equals',
           values: ['1'],
         },
@@ -163,7 +163,7 @@ export const TEST_DATA = [
       measures: ['*'],
       filters: [
         {
-          member: 'orders__customer_id',
+          member: 'orders.customer_id',
           operator: 'notEquals',
           values: ['1'],
         },
@@ -252,7 +252,7 @@ export const TEST_DATA = [
       measures: ['*'],
       filters: [
         {
-          member: 'orders__customer_id',
+          member: 'orders.customer_id',
           operator: 'contains',
           values: ['aa'],
         },
@@ -279,32 +279,32 @@ export const TEST_DATA = [
         {
           and: [
             {
-              member: 'orders__customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['1'],
             },
             {
-              member: 'orders__customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['2'],
             },
             {
-              member: 'orders__customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['3'],
             },
             {
-              member: 'orders__customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['4'],
             },
             {
-              member: 'orders__customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['5'],
             },
             {
-              member: 'orders__customer_id',
+              member: 'orders.customer_id',
               operator: 'notContains',
               values: ['aa'],
             },
@@ -331,7 +331,7 @@ export const TEST_DATA = [
       measures: ['*'],
       filters: [
         {
-          member: 'orders__order_amount',
+          member: 'orders.order_amount',
           operator: 'gt',
           values: ['50'],
         },
@@ -404,7 +404,7 @@ export const TEST_DATA = [
       measures: ['*'],
       filters: [
         {
-          member: 'orders__order_amount',
+          member: 'orders.order_amount',
           operator: 'lt',
           values: ['50'],
         },
@@ -445,7 +445,7 @@ export const TEST_DATA = [
       measures: ['*'],
       filters: [
         {
-          member: 'orders__order_date',
+          member: 'orders.order_date',
           operator: 'inDateRange',
           values: ['2022-02-01', '2022-03-31'],
         },
@@ -486,7 +486,7 @@ export const TEST_DATA = [
       measures: ['*'],
       filters: [
         {
-          member: 'orders__order_date',
+          member: 'orders.order_date',
           operator: 'notInDateRange',
           values: ['2022-02-01', '2022-03-31'],
         },
@@ -637,12 +637,12 @@ export const TEST_DATA = [
         {
           and: [
             {
-              member: 'orders__order_amount',
+              member: 'orders.order_amount',
               operator: 'gt',
               values: ['50'],
             },
             {
-              member: 'orders__order_date',
+              member: 'orders.order_date',
               operator: 'inDateRange',
               values: ['2022-02-01', '2022-06-01'],
             },

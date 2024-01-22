@@ -61,7 +61,7 @@ describe('cube-to-sql', () => {
       measures: ['*'],
       filters: [
         {
-          member: 'person__activities',
+          member: 'person.activities',
           operator: 'equals',
           values: ['Hiking'],
         },
@@ -80,7 +80,7 @@ describe('cube-to-sql', () => {
       measures: ['*'],
       filters: [
         {
-          member: 'person__activities',
+          member: 'person.activities',
           operator: 'equals',
           values: ['Hiking'],
         },
@@ -103,12 +103,12 @@ describe('cube-to-sql', () => {
         {
           and: [
             {
-              member: 'person__activities',
+              member: 'person.activities',
               operator: 'equals',
               values: ['Running'],
             },
             {
-              member: 'person__id',
+              member: 'person.id',
               operator: 'equals',
               values: ['2'],
             },
@@ -131,7 +131,7 @@ describe('cube-to-sql', () => {
       measures: ['*'],
       filters: [
         {
-          member: 'person__activities',
+          member: 'person.activities',
           operator: 'notEquals',
           values: ['Running'],
         },

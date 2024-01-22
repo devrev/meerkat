@@ -45,7 +45,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
     if ('member' in filter) {
       const { member } = filter;
       // Find the table access key
-      const measureWithoutTable = member.split('__')[1];
+      const measureWithoutTable = member.split('.')[1];
       const aliasKey = memberKeyToSafeKey(member);
 
       const foundMember = findInSchema(measureWithoutTable, tableSchema)

@@ -48,7 +48,7 @@ const QUERY = {
         {
             "and": [
                 {
-                    "member": "person__ticket_prioritized",
+                    "member": "person.ticket_prioritized",
                     "operator": "notEquals",
                     "values": [
                         "no"
@@ -95,14 +95,14 @@ describe('cube-to-sql', () => {
                 { 
                     or: [
                         { 
-                            member: 'person__id',
+                            member: 'person.id',
                             "operator": "notEquals",
                             "values": [
                                 "1"
                             ] 
                         },
                         {
-                            "member": "person__ticket_prioritized",
+                            "member": "person.ticket_prioritized",
                             "operator": "notEquals",
                             "values": [
                                 "no"
@@ -135,14 +135,14 @@ describe('cube-to-sql', () => {
                 { 
                     or: [
                         { 
-                            member: 'person__id',
+                            member: 'person.id',
                             "operator": "notEquals",
                             "values": [
                                 "1"
                             ] 
                         },
                         {
-                            "member": "person__ticket_prioritized",
+                            "member": "person.ticket_prioritized",
                             "operator": "notEquals",
                             "values": [
                                 "no"
