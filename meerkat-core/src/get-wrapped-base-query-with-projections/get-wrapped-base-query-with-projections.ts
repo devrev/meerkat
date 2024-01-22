@@ -5,6 +5,26 @@ import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 interface GetWrappedBaseQueryWithProjectionsParams { baseQuery: string, tableSchema: TableSchema, query: Query }
 
+const getMemberProjection = ({ key, tableSchema }: {
+  key: string;
+  tableSchema: TableSchema;
+}) => {;
+  // Find the table access key
+  const measureWithoutTable = key.split('.')[1];
+  const aliasKey = memberKeyToSafeKey(key);
+
+  const foundMember = findInSchema(measureWithoutTable, tableSchema)
+  if (!foundMember) {
+    // If the selected member is not found in the table schema or if it is already selected, continue.
+    return {
+      sql: undefined,
+      foundMember: undefined,
+      aliasKey: undefined
+    }
+  }
+  // Add the alias key to the set. So we have a reference to all the previously selected members.
+  return { sql: `${foundMember.sql} AS ${aliasKey}` , foundMember, aliasKey }
+}
 
 export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema, aliasedColumnSet }: {
   members: Member[];
@@ -26,7 +46,7 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
     // Traverse through the passed 'and' filters
       sql += getAliasedColumnsFromFilters({
         baseSql: '',
-        members,
+        members: [],
         meerkatFilters: filter.and,
         tableSchema,
         aliasedColumnSet
@@ -37,28 +57,32 @@ export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters,
       sql += getAliasedColumnsFromFilters({
         baseSql: '',
         tableSchema,
-        members,
+        members: [],
         meerkatFilters: filter.or,
         aliasedColumnSet
       })
     } 
     if ('member' in filter) {
-      const { member } = filter;
-      // Find the table access key
-      const measureWithoutTable = member.split('.')[1];
-      const aliasKey = memberKeyToSafeKey(member);
-
-      const foundMember = findInSchema(measureWithoutTable, tableSchema)
+      const { sql: memberSql, aliasKey, foundMember }  = getMemberProjection({ key: filter.member, tableSchema })
+      console.log('memberSql', memberSql, aliasKey, foundMember)
       if (!foundMember  || aliasedColumnSet.has(aliasKey)) {
         // If the selected member is not found in the table schema or if it is already selected, continue.
         continue;
       }
+      if (aliasKey) {
+        aliasedColumnSet.add(aliasKey)
+      }
       // Add the alias key to the set. So we have a reference to all the previously selected members.
-      aliasedColumnSet.add(aliasKey)
-      sql += `, ${foundMember.sql} AS ${aliasKey} `;
+      sql += `, ${memberSql}`;
     }
   }
-  return sql
+  const memberProjections = members.reduce((acc, member) => {
+    const { sql: memberSql }  = getMemberProjection({ key: member, tableSchema })
+    acc += `, ${memberSql}`
+    return acc
+  }, '')
+  console.log('sql', {sql, memberProjections})
+  return sql + memberProjections
 }
 
 export const getWrappedBaseQueryWithProjections = ({
@@ -78,7 +102,7 @@ export const getWrappedBaseQueryWithProjections = ({
     const aliasedColumns = getAliasedColumnsFromFilters({
       meerkatFilters: query.filters,
       tableSchema, baseSql: 'SELECT *',
-      members: [...query.measures, ...(query.dimensions ?? [])],
+      members: [...(query.dimensions ?? [])],
       aliasedColumnSet: new Set<string>()
     })
     // Append the aliased columns to the base query select statement

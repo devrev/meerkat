@@ -56,7 +56,7 @@ const addDimensionToSQLProjection = (
     if (i > 0) {
       newSelectString += ',';
     }
-    newSelectString += `  ${dimensionSchema.sql} AS ${aliasKey}`;
+    newSelectString += `  ${aliasKey}`;
   }
   return newSelectString
 };
