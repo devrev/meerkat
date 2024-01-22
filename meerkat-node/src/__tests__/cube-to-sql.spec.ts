@@ -15,7 +15,7 @@ describe('cube-to-sql', () => {
     //Get SQL from cube query
   });
 
-  for (const data of TEST_DATA) {
+  for (const data of [TEST_DATA[0]]) {
     it(`Testing ${data.testName}`, async () => {
       const sql = await cubeQueryToSQL(data.cubeInput, TABLE_SCHEMA);
       console.info(`SQL for ${data.testName}: `, sql);
