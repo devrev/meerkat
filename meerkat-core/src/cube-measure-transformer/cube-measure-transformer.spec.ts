@@ -85,7 +85,7 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   dimension1 AS temp__dimension1,  DATE_TRUNC('month', order_date) AS temp__dimension2 FROM (SELECT * FROM TABLE_1)`
+      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
     );
   });
 });

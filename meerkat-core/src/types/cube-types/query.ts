@@ -120,6 +120,7 @@ interface QueryTimeDimension {
 
 type MeerkatQueryFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)
 
+type Order = any
 interface Query {
   measures: Member[];
   dimensions?: (Member | TimeMember)[];
@@ -130,7 +131,7 @@ interface Query {
   offset?: number;
   total?: boolean;
   totalQuery?: boolean;
-  order?: any;
+  order?: Order;
   timezone?: string;
   renewQuery?: boolean;
   ungrouped?: boolean;
@@ -162,15 +163,13 @@ export {
   LogicalOrFilter, MeerkatQueryFilter, Member,
   MemberType,
   NormalizedQuery,
-  NormalizedQueryFilter,
-  Query,
+  NormalizedQueryFilter, Order, Query,
   QueryFilter,
   QueryOrderType,
   QueryTimeDimension,
   QueryTimeDimensionGranularity,
   QueryType,
   RequestType,
-  ResultType,
-  TimeMember
+  ResultType, TimeMember
 };
 

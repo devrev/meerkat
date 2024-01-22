@@ -2,10 +2,6 @@ import { Member } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
-
-
-
-
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
   tableSchema: TableSchema,

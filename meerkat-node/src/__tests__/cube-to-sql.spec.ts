@@ -4,7 +4,7 @@ import {
   CREATE_TEST_TABLE,
   INPUT_DATA_QUERY,
   TABLE_SCHEMA,
-  TEST_DATA,
+  TEST_DATA
 } from './test-data';
 describe('cube-to-sql', () => {
   beforeAll(async () => {
