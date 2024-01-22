@@ -22,7 +22,6 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?
 
   const baseAST = getBaseAST();
   const node = baseAST.node as SelectNode;
-
   if (query.filters && query.filters.length > 0) {
     /**
      * Make a copy of the query filters and enrich them with the table schema.
