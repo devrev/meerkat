@@ -118,7 +118,7 @@ interface QueryTimeDimension {
  * Incoming network query data type.
  */
 
-export type MeerkatQueryFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)
+type MeerkatQueryFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)
 
 interface Query {
   measures: Member[];
@@ -153,17 +153,13 @@ interface NormalizedQuery extends Query {
   order?: [{ id: string; desc: boolean }];
 }
 
-type GenericFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 
 
 export {
   ApiScopes,
   ApiType,
-  FilterOperator,
-  GenericFilter,
-  LogicalAndFilter,
-  LogicalOrFilter,
-  Member,
+  FilterOperator, LogicalAndFilter,
+  LogicalOrFilter, MeerkatQueryFilter, Member,
   MemberType,
   NormalizedQuery,
   NormalizedQueryFilter,

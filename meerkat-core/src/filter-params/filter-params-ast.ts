@@ -1,9 +1,9 @@
 import { cubeToDuckdbAST } from '../ast-builder/ast-builder';
 import {
   FilterType,
-  GenericFilter,
   LogicalAndFilter,
   LogicalOrFilter,
+  MeerkatQueryFilter,
   Query,
   TableSchema
 } from '../types/cube-types';
@@ -13,9 +13,9 @@ import { SelectStatement } from '../types/duckdb-serialization-types/serializati
  * Get the query filter with only where filterKey matches
  */
 const traverseAndFilter = (
-  filter: GenericFilter,
+  filter: MeerkatQueryFilter,
   memberKey: string
-): GenericFilter | null => {
+): MeerkatQueryFilter | null => {
   if ('member' in filter) {
     return filter.member === memberKey ? filter : null;
   }
@@ -23,7 +23,7 @@ const traverseAndFilter = (
   if ('and' in filter) {
     const filteredAndFilters = filter.and
       .map((subFilter) => traverseAndFilter(subFilter, memberKey))
-      .filter(Boolean) as GenericFilter[];
+      .filter(Boolean) as MeerkatQueryFilter[];
     const obj =
       filteredAndFilters.length > 0 ? { and: filteredAndFilters } : null;
     return obj as LogicalAndFilter;
@@ -42,15 +42,13 @@ const traverseAndFilter = (
 
 
 export const getFilterByMemberKey = (
-  filters: GenericFilter[] | undefined,
+  filters: MeerkatQueryFilter[] | undefined,
   memberKey: string
-): GenericFilter[] => {
+): MeerkatQueryFilter[] => {
   if (!filters) return [];
   return filters
-    .map((filter) => {
-      return traverseAndFilter(filter, memberKey)
-    })
-    .filter(Boolean) as GenericFilter[];
+    .map((filter) => traverseAndFilter(filter, memberKey))
+    .filter(Boolean) as MeerkatQueryFilter[];
 };
 
 /**

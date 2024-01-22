@@ -1,5 +1,5 @@
 import { getSelectReplacedSql } from '../cube-measure-transformer/cube-measure-transformer';
-import { GenericFilter, Member, Query, TableSchema } from '../types/cube-types';
+import { MeerkatQueryFilter, Member, Query, TableSchema } from '../types/cube-types';
 import { findInSchema } from '../utils/find-in-table-schema';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
@@ -8,7 +8,7 @@ interface GetWrappedBaseQueryWithProjectionsParams { baseQuery: string, tableSch
 
 export const getAliasedColumnsFromFilters = ({ baseSql, members, meerkatFilters, tableSchema, aliasedColumnSet }: {
   members: Member[];
-  meerkatFilters: GenericFilter[];
+  meerkatFilters: MeerkatQueryFilter[];
   tableSchema: TableSchema;
   baseSql: string;
   aliasedColumnSet: Set<string>;
