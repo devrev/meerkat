@@ -2,7 +2,7 @@ import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 
 export const getMemberInfoFromTableSchema = (
   memberKey: string,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
 ) => {
   let memberInfo: Measure | Dimension | undefined;
 

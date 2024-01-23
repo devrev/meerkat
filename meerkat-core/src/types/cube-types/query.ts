@@ -80,6 +80,8 @@ type QueryOrderType = 'asc' | 'desc';
  */
 type ApiScopes = 'graphql' | 'meta' | 'data' | 'jobs';
 
+export type FilterType = 'BASE_FILTER' | 'PROJECTION_FILTER'
+
 interface QueryFilter {
   member: Member;
   operator: FilterOperator;
@@ -112,10 +114,13 @@ interface QueryTimeDimension {
 /**
  * Incoming network query data type.
  */
+
+type MeerkatQueryFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)
+
 interface Query {
   measures: Member[];
   dimensions?: (Member | TimeMember)[];
-  filters?: (QueryFilter | LogicalAndFilter | LogicalOrFilter)[];
+  filters?: MeerkatQueryFilter[];
   timeDimensions?: QueryTimeDimension[];
   segments?: Member[];
   limit?: null | number;
@@ -145,13 +150,13 @@ interface NormalizedQuery extends Query {
   order?: [{ id: string; desc: boolean }];
 }
 
+
+
 export {
   ApiScopes,
   ApiType,
-  FilterOperator,
-  LogicalAndFilter,
-  LogicalOrFilter,
-  Member,
+  FilterOperator, LogicalAndFilter,
+  LogicalOrFilter, MeerkatQueryFilter, Member,
   MemberType,
   NormalizedQuery,
   NormalizedQueryFilter,
@@ -163,5 +168,6 @@ export {
   QueryType,
   RequestType,
   ResultType,
-  TimeMember,
+  TimeMember
 };
+

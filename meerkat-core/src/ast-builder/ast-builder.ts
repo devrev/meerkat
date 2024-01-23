@@ -2,13 +2,17 @@ import { cubeFilterToDuckdbAST } from '../cube-filter-transformer/factory';
 import { cubeDimensionToGroupByAST } from '../cube-group-by-transformer/cube-group-by-transformer';
 import { cubeLimitOffsetToAST } from '../cube-limit-offset-transformer/cube-limit-offset-transformer';
 import { cubeOrderByToAST } from '../cube-order-by-transformer/cube-order-by-transformer';
-import { Query } from '../types/cube-types/query';
+import { QueryFiltersWithInfo } from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { FilterType, Query } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
+import { modifyLeafMeerkatFilter } from '../utils/modify-meerkat-filter';
 
-export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
+
+export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?: { filterType: FilterType }
+) => {
   /**
    * Obviously, if no table schema was found, return null.
    */
@@ -18,7 +22,6 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
 
   const baseAST = getBaseAST();
   const node = baseAST.node as SelectNode;
-
   if (query.filters && query.filters.length > 0) {
     /**
      * Make a copy of the query filters and enrich them with the table schema.
@@ -32,8 +35,18 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema) => {
       return null;
     }
 
+    /*
+    * If the type of filter is set to base filter where 
+    */
+    const finalFilters = options?.filterType === 'BASE_FILTER' ? queryFiltersWithInfo : modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
+      return {
+        ...item,
+        member: item.member.split('.').join('__')
+      };
+    }) as QueryFiltersWithInfo; 
+
     const duckdbWhereClause = cubeFilterToDuckdbAST(
-      queryFiltersWithInfo,
+      finalFilters,
       baseAST
     );
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

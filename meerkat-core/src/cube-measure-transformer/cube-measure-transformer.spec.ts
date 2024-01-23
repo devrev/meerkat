@@ -46,7 +46,7 @@ describe('cubeMeasureToSQLSelectString', () => {
     expect(result).toBe(`SELECT test.*`);
   });
 
-  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure', () => {
+  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM my_table';
     const result = applyProjectionToSQLQuery(
@@ -56,11 +56,11 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2  FROM my_table`
+      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM my_table`
     );
   });
 
-  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure', () => {
+  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 2', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
     const result = applyProjectionToSQLQuery(
@@ -70,7 +70,7 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
+      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
     );
   });
 
@@ -85,7 +85,7 @@ describe('cubeMeasureToSQLSelectString', () => {
       sqlToReplace
     );
     expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 , SUM(total) AS temp__measure2 ,   dimension1 AS temp__dimension1,  DATE_TRUNC('month', order_date) AS temp__dimension2 FROM (SELECT * FROM TABLE_1)`
+      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
     );
   });
 });

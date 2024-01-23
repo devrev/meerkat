@@ -1,21 +1,21 @@
 import { cubeToDuckdbAST } from '../ast-builder/ast-builder';
 import {
+  FilterType,
   LogicalAndFilter,
   LogicalOrFilter,
+  MeerkatQueryFilter,
   Query,
-  QueryFilter,
-  TableSchema,
+  TableSchema
 } from '../types/cube-types';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
 
 /**
  * Get the query filter with only where filterKey matches
  */
-type GenericFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 const traverseAndFilter = (
-  filter: GenericFilter,
+  filter: MeerkatQueryFilter,
   memberKey: string
-): GenericFilter | null => {
+): MeerkatQueryFilter | null => {
   if ('member' in filter) {
     return filter.member === memberKey ? filter : null;
   }
@@ -23,7 +23,7 @@ const traverseAndFilter = (
   if ('and' in filter) {
     const filteredAndFilters = filter.and
       .map((subFilter) => traverseAndFilter(subFilter, memberKey))
-      .filter(Boolean) as GenericFilter[];
+      .filter(Boolean) as MeerkatQueryFilter[];
     const obj =
       filteredAndFilters.length > 0 ? { and: filteredAndFilters } : null;
     return obj as LogicalAndFilter;
@@ -40,14 +40,15 @@ const traverseAndFilter = (
   return null;
 };
 
+
 export const getFilterByMemberKey = (
-  filters: GenericFilter[] | undefined,
+  filters: MeerkatQueryFilter[] | undefined,
   memberKey: string
-): GenericFilter[] => {
+): MeerkatQueryFilter[] => {
   if (!filters) return [];
   return filters
     .map((filter) => traverseAndFilter(filter, memberKey))
-    .filter(Boolean) as GenericFilter[];
+    .filter(Boolean) as MeerkatQueryFilter[];
 };
 
 /**
@@ -79,9 +80,12 @@ export const detectAllFilterParamsFromSQL = (
   return matches;
 };
 
+
+
 export const getFilterParamsAST = (
   query: Query,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  filterType: FilterType = 'PROJECTION_FILTER'
 ): {
   memberKey: string;
   ast: SelectStatement | null;
@@ -89,19 +93,23 @@ export const getFilterParamsAST = (
 }[] => {
   const filterParamKeys = detectAllFilterParamsFromSQL(tableSchema.sql);
   const filterParamsAST = [];
-
+  
   for (const filterParamKey of filterParamKeys) {
     const filters = getFilterByMemberKey(
       query.filters,
       filterParamKey.memberKey
     );
+   
     if (filters && filters.length > 0) {
       filterParamsAST.push({
         memberKey: filterParamKey.memberKey,
         matchKey: filterParamKey.matchKey,
         ast: cubeToDuckdbAST(
           { filters, measures: [], dimensions: [] },
-          tableSchema
+          tableSchema,
+          {
+            filterType
+          }
         ),
       });
     }
@@ -110,15 +118,33 @@ export const getFilterParamsAST = (
   return filterParamsAST;
 };
 
+type FilterParamsSQL = {
+  memberKey: string;
+  sql: string;
+  matchKey: string;
+}
+
+const replaceWhereClauseWithFiltersParamsSQL = (baseSQL: string, filterParamsSQL: FilterParamsSQL[]) => {
+  let finalSQL = baseSQL;
+
+  for (const filterParam of filterParamsSQL) {
+    /**
+     * Get SQL expression after WHERE clause
+     */
+    const whereClause = filterParam.sql.split('WHERE')[1];
+    /**
+     * Replace filter param with SQL expression
+     */
+    finalSQL = finalSQL.replace(filterParam.matchKey, whereClause);
+  }
+  return finalSQL
+}
+
 export const applyFilterParamsToBaseSQL = (
   baseSQL: string,
-  filterParamsSQL: {
-    memberKey: string;
-    sql: string;
-    matchKey: string;
-  }[]
+  filterParamsSQL: FilterParamsSQL[]
 ) => {
-  let finalSQL = baseSQL;
+  let finalSQL = replaceWhereClauseWithFiltersParamsSQL(baseSQL, filterParamsSQL);
   for (const filterParam of filterParamsSQL) {
     /**
      * Get SQL expression after WHERE clause
@@ -133,6 +159,7 @@ export const applyFilterParamsToBaseSQL = (
    * Find all remaining filter params and replace them with TRUE
    */
   const remainingFilterParams = detectAllFilterParamsFromSQL(finalSQL);
+
   for (const filterParam of remainingFilterParams) {
     finalSQL = finalSQL.replace(filterParam.matchKey, 'TRUE');
   }

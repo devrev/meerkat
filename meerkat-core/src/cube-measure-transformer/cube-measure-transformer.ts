@@ -4,7 +4,7 @@ import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -22,17 +22,17 @@ export const cubeMeasureToSQLSelectString = (
       continue;
     }
     if (i > 0) {
-      base += ',';
+      base += ', ';
     }
-      base += ` ${measureSchema.sql} AS ${aliasKey} `;
+    base += ` ${measureSchema.sql} AS ${aliasKey} `;
   }
-  return base;
+  return base
 };
 
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -52,10 +52,30 @@ const addDimensionToSQLProjection = (
     if (i > 0) {
       newSelectString += ',';
     }
-    newSelectString += `  ${dimensionSchema.sql} AS ${aliasKey}`;
+    // since alias key is expected to have been unfurled in the base query, we can just use it as is.
+    newSelectString += `  ${aliasKey}`;
   }
-  return newSelectString;
+  return newSelectString
 };
+
+export const getSelectReplacedSql = (sql: string, selectString: string) => {
+  /*
+  ** Replaces the select portion of a SQL string with the selectString passed.
+  */
+  const selectRegex = /SELECT\s\*/;
+  const match = sql.match(selectRegex);
+  if (!match) {
+    return sql;
+  }
+  const selectIndex = match.index;
+  if (selectIndex === undefined) {
+    throw new Error('SELECT * not found in SQL string');
+  }
+  const selectLength = match[0].length;
+  const beforeSelect = sql.substring(0, selectIndex);
+  const afterSelect = sql.substring(selectIndex + selectLength);
+  return `${beforeSelect}${selectString}${afterSelect}`;
+}
 
 /**
  * Replace the first SELECT * from the sqlToReplace with the cube measure
@@ -68,7 +88,7 @@ export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string
+  sqlToReplace: string,
 ) => {
   let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
 
@@ -78,20 +98,8 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema
+    tableSchema,
   );
 
-  const selectRegex = /SELECT\s\*/;
-  const match = sqlToReplace.match(selectRegex);
-  if (!match) {
-    return sqlToReplace;
-  }
-  const selectIndex = match.index;
-  if (selectIndex === undefined) {
-    throw new Error('SELECT * not found in SQL string');
-  }
-  const selectLength = match[0].length;
-  const beforeSelect = sqlToReplace.substring(0, selectIndex);
-  const afterSelect = sqlToReplace.substring(selectIndex + selectLength);
-  return `${beforeSelect}${selectString}${afterSelect}`;
+  return getSelectReplacedSql(sqlToReplace, selectString)
 };

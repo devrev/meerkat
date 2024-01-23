@@ -1,9 +1,9 @@
-import { Dimension, Measure } from '../types/cube-types/table';
 import {
   LogicalAndFilterWithInfo,
   LogicalOrFilterWithInfo,
   QueryOperatorsWithInfo,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { Dimension, Measure } from '../types/cube-types/table';
 import { cubeFiltersEnrichmentInternal } from './cube-filter-enrichment';
 
 describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
