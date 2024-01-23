@@ -2,50 +2,40 @@ import { cubeFilterToDuckdbAST } from '../cube-filter-transformer/factory';
 import { cubeDimensionToGroupByAST } from '../cube-group-by-transformer/cube-group-by-transformer';
 import { cubeLimitOffsetToAST } from '../cube-limit-offset-transformer/cube-limit-offset-transformer';
 import { cubeOrderByToAST } from '../cube-order-by-transformer/cube-order-by-transformer';
-import { QueryFiltersWithInfo } from '../cube-to-duckdb/cube-filter-to-duckdb';
-import { FilterType, Query } from '../types/cube-types/query';
+import { QueryFiltersWithInfo, QueryFiltersWithInfoSingular, QueryOperatorsWithInfo } from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { traverseAndFilter } from '../filter-params/filter-params-ast';
+import { FilterType, LogicalOrFilter, Query } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
-import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 import { modifyLeafMeerkatFilter } from '../utils/modify-meerkat-filter';
 
-const getSeparatedWhereAndHavingFilters = (query: Query, queryFiltersWithInfo: QueryFiltersWithInfo) => {
-  const having: QueryFiltersWithInfo = [];
-  const where: QueryFiltersWithInfo = [];
-  
-  queryFiltersWithInfo.forEach((filter) => {
-    if ('member' in filter) {
-      const isMeasure = query.measures.includes(filter.member)
-      if (isMeasure) {
-        having.push({...filter, member:  memberKeyToSafeKey(filter.member)});
-      } else {
-        where.push(filter);
-      }
-    }
-    const andFilters = 'and' in filter ? getSeparatedWhereAndHavingFilters(query, filter.and) : undefined;
-    const orFilters = 'or' in filter ? getSeparatedWhereAndHavingFilters(query, filter.or) : undefined;
-    
-    if (andFilters?.having || orFilters?.having) {
-      having.push({
-        ...(andFilters?.having ? { and: andFilters.having }: {}),
-        ...(orFilters?.having ? { or: orFilters.having }: {}),
-      })
-    }
-    if (andFilters?.where || orFilters?.having) {
-      where.push({
-        ...(andFilters?.where ? { and: andFilters.where }: {}),
-        ...(orFilters?.where ? { or: orFilters.where }: {}),
-      })
-    }
-  })
-
-  return {
-    having,
-    where
+const traverseFiltersAndModify = (filter: QueryFiltersWithInfoSingular, callback: (val: QueryOperatorsWithInfo) => boolean) => {
+  if ('member' in filter) {
+    return callback(filter) ? filter : null
   }
+  if ('and' in filter) {
+    const andFilters = filter.and
+      .map(item => {
+        return traverseFiltersAndModify(item, callback)
+      })
+      .filter(Boolean) as QueryFiltersWithInfoSingular[]
+    const obj = andFilters.length > 0 ? { or: andFilters } : null;
+    return obj
+  }
+  if ('or' in filter) {
+    const orFilters = filter.or
+      .map(item => {
+        return traverseFiltersAndModify(item, callback)
+      })
+      .filter(Boolean) as QueryFiltersWithInfoSingular[]
+    const obj = orFilters.length > 0 ? { or: orFilters } : null;
+    return obj as LogicalOrFilter
+  }
+  return null
 }
+
 
 
 export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?: { filterType: FilterType }
@@ -82,15 +72,16 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?
       };
     }) as QueryFiltersWithInfo; 
 
-    const { having, where } = getSeparatedWhereAndHavingFilters(query, finalFilters)
+    const havingFilters = finalFilters.map(item => traverseAndFilter(item, (value) =>  query.measures.includes(value.member))).filter(Boolean) as QueryFiltersWithInfoSingular[]
+    const whereFilters = finalFilters.map(item => traverseAndFilter(item, (value) => !query.measures.includes(value.member))).filter(Boolean) as QueryFiltersWithInfoSingular[]
 
     const duckdbWhereClause = cubeFilterToDuckdbAST(
-      where,
+      whereFilters,
       baseAST
     );
 
     const duckdbHavingClause = cubeFilterToDuckdbAST(
-      having,
+      havingFilters,
       baseAST
     );
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

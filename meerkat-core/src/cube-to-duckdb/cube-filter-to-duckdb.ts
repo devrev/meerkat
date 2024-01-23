@@ -1,5 +1,5 @@
-import { Dimension, Measure } from '../types/cube-types/table';
 import { QueryFilter } from '../types/cube-types/query';
+import { Dimension, Measure } from '../types/cube-types/table';
 
 export type QueryOperatorsWithInfo = QueryFilter & {
   memberInfo: Measure | Dimension;
@@ -28,8 +28,8 @@ export type QueryFilterWithInfo =
       | LogicalOrFilterWithInfo
     )[];
 
-export type QueryFiltersWithInfo = (
-  | QueryOperatorsWithInfo
-  | LogicalAndFilterWithInfo
-  | LogicalOrFilterWithInfo
-)[];
+export type QueryFiltersWithInfoSingular = QueryOperatorsWithInfo
+| LogicalAndFilterWithInfo
+| LogicalOrFilterWithInfo;
+
+export type QueryFiltersWithInfo = QueryFiltersWithInfoSingular[];

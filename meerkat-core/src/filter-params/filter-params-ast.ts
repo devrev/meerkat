@@ -5,6 +5,7 @@ import {
   LogicalOrFilter,
   MeerkatQueryFilter,
   Query,
+  QueryFilter,
   TableSchema
 } from '../types/cube-types';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
@@ -12,17 +13,18 @@ import { SelectStatement } from '../types/duckdb-serialization-types/serializati
 /**
  * Get the query filter with only where filterKey matches
  */
-const traverseAndFilter = (
+
+export const traverseAndFilter = (
   filter: MeerkatQueryFilter,
-  memberKey: string
+  callback: (value: QueryFilter) => boolean
 ): MeerkatQueryFilter | null => {
   if ('member' in filter) {
-    return filter.member === memberKey ? filter : null;
+    return callback(filter) ? filter : null;
   }
 
   if ('and' in filter) {
     const filteredAndFilters = filter.and
-      .map((subFilter) => traverseAndFilter(subFilter, memberKey))
+      .map((subFilter) => traverseAndFilter(subFilter, callback))
       .filter(Boolean) as MeerkatQueryFilter[];
     const obj =
       filteredAndFilters.length > 0 ? { and: filteredAndFilters } : null;
@@ -31,7 +33,7 @@ const traverseAndFilter = (
 
   if ('or' in filter) {
     const filteredOrFilters = filter.or
-      .map((subFilter) => traverseAndFilter(subFilter, memberKey))
+      .map((subFilter) => traverseAndFilter(subFilter, callback))
       .filter(Boolean);
     const obj = filteredOrFilters.length > 0 ? { or: filteredOrFilters } : null;
     return obj as LogicalOrFilter;
@@ -47,7 +49,7 @@ export const getFilterByMemberKey = (
 ): MeerkatQueryFilter[] => {
   if (!filters) return [];
   return filters
-    .map((filter) => traverseAndFilter(filter, memberKey))
+    .map((filter) => traverseAndFilter(filter, (value) =>  value.member === memberKey))
     .filter(Boolean) as MeerkatQueryFilter[];
 };
 
