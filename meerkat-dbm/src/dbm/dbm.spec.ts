@@ -9,6 +9,7 @@ import { FileData, Table, TableWiseFiles } from '../types';
 import { DBM } from './dbm';
 import { InstanceManagerType } from './instance-manager';
 import { DBMConstructorOptions } from './types';
+
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
   private tables: Record<string, Table> = {};
@@ -139,6 +140,13 @@ const mockDB = {
           }, 200);
         });
       },
+      cancelSent: async () => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(true);
+          }, 100);
+        });
+      },
       close: async () => {
         // do nothing
       },
@@ -203,13 +211,13 @@ describe('DBM', () => {
         buffer: new Uint8Array(),
       });
 
-      const result = await dbm.queryWithTableNames(
-        'SELECT * FROM table1',
-        ['table1'],
-        {
+      const result = await dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+        options: {
           preQuery,
-        }
-      );
+        },
+      });
 
       expect(preQuery).toBeCalledTimes(1);
 
@@ -222,19 +230,22 @@ describe('DBM', () => {
     });
 
     it('should execute a query with table names', async () => {
-      const result = await dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
+      const result = await dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
       expect(result).toEqual(['SELECT * FROM table1']);
     });
 
     it('should execute multiple queries with table names', async () => {
-      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
-      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
-      ]);
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table1'],
+      });
       /**
        * Number of queries in the queue should be 1 as the first query is running
        */
@@ -260,9 +271,10 @@ describe('DBM', () => {
       /**
        * Execute another query
        */
-      const promise3 = dbm.queryWithTableNames('SELECT * FROM table3', [
-        'table1',
-      ]);
+      const promise3 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table3',
+        tableNames: ['table1'],
+      });
 
       /**
        * Now the queue should be running
@@ -302,16 +314,18 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
 
       /**
        * Execute another query
        */
-      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
-      ]);
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table1'],
+      });
 
       /**
        * Wait for the queries to complete
@@ -361,16 +375,18 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      const promise1 = dbm.queryWithTableNames('SELECT * FROM table1', [
-        'table1',
-      ]);
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
 
       /**
        * Execute another query
        */
-      const promise2 = dbm.queryWithTableNames('SELECT * FROM table2', [
-        'table1',
-      ]);
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table1'],
+      });
 
       /**
        * Wait for the queries to complete
@@ -404,7 +420,10 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      await dbm.queryWithTableNames('SELECT * FROM table1', ['table1']);
+      await dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+      });
 
       /**
        * wait for 200ms
@@ -415,6 +434,66 @@ describe('DBM', () => {
        * Expect instanceManager.terminateDB to not be called
        */
       expect(instanceManager.terminateDB).not.toBeCalled();
+    });
+  });
+
+  describe('cancel query execution', () => {
+    it('should cancel the current executing query when abort is emitted', async () => {
+      const abortController1 = new AbortController();
+
+      // check the current query throws error abort is emitted
+      try {
+        const promise = dbm.queryWithTableNames({
+          query: 'SELECT * FROM table1',
+          tableNames: ['table1'],
+          options: {
+            signal: abortController1.signal,
+          },
+        });
+
+        abortController1.abort();
+
+        await promise;
+
+        expect(promise).not.toBeDefined();
+      } catch (e) {
+        expect(e).toBeDefined();
+      }
+    });
+
+    it('should cancel the query in the queue when abort is emitted', async () => {
+      const abortController1 = new AbortController();
+      const abortController2 = new AbortController();
+
+      const mockDBMQuery = jest.spyOn(dbm, 'query');
+
+      const promise1 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table1',
+        tableNames: ['table1'],
+        options: {
+          signal: abortController1.signal,
+        },
+      });
+
+      const promise2 = dbm.queryWithTableNames({
+        query: 'SELECT * FROM table2',
+        tableNames: ['table2'],
+        options: {
+          signal: abortController2.signal,
+        },
+      });
+
+      abortController2.abort();
+
+      const promises = await Promise.allSettled([promise1, promise2]);
+
+      // the first query should be fulfilled
+      expect(mockDBMQuery).toBeCalledWith('SELECT * FROM table1');
+      expect(promises[0].status).toBe('fulfilled');
+
+      // the second query should be rejected as it was aborted
+      expect(mockDBMQuery).not.toBeCalledWith('SELECT * FROM table2');
+      expect(promises[1].status).toBe('rejected');
     });
   });
 });

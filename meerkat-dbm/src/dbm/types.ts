@@ -66,6 +66,12 @@ export interface QueryOptions {
    * Additional information for the query, which will be emitted in the DBM events.
    */
   metadata?: object;
+
+  /**
+   * @description
+   * An AbortSignal object instance which can be used to abort the query execution.
+   */
+  signal?: AbortSignal;
 }
 
 export interface QueryQueueItem {
@@ -79,5 +85,6 @@ export interface QueryQueueItem {
    * Timestamp indicating when the query was added to the queue.
    */
   timestamp: number;
+  connectionId: string;
   options?: QueryOptions;
 }
