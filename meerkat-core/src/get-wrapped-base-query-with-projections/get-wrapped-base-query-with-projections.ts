@@ -4,55 +4,65 @@ import { MeerkatQueryFilter, Member, Query, TableSchema } from '../types/cube-ty
 
 interface GetWrappedBaseQueryWithProjectionsParams { baseQuery: string, tableSchema: TableSchema, query: Query }
 
+const getAliasedColumnsFromFilters = ({ baseSql, meerkatFilters, tableSchema, aliasedColumnSet }: {
+  meerkatFilters?: MeerkatQueryFilter[];
+  tableSchema: TableSchema;
+  baseSql: string;
+  aliasedColumnSet: Set<string>;
+}) => {
+  let sql = baseSql
+  meerkatFilters?.forEach((filter) => {
+    if ('and' in filter) {
+      // Traverse through the passed 'and' filters
+      sql += getAliasedColumnsFromFilters({
+        baseSql: '',
+        meerkatFilters: filter.and,
+        tableSchema,
+        aliasedColumnSet
+      })
+    }
+    if ('or' in filter) {
+      // Traverse through the passed 'or' filters
+      sql += getAliasedColumnsFromFilters({
+        baseSql: '',
+        tableSchema,
+        meerkatFilters: filter.or,
+        aliasedColumnSet,
+      })
+    } 
+    if ('member' in filter) {
+      const { sql: memberSql, aliasKey, foundMember }  = getMemberProjection({ key: filter.member, tableSchema })
+      if (!foundMember || aliasedColumnSet.has(aliasKey)) {
+        // If the selected member is not found in the table schema or if it is already selected, continue.
+        return;
+      }
+      if (aliasKey) {
+        aliasedColumnSet.add(aliasKey)
+      }
+      // Add the alias key to the set. So we have a reference to all the previously selected members.
+      sql += `, ${memberSql}`;
+    }
+  })
+  return sql
+}
 
-export const getAliasedColumns = ({ baseSql, members, meerkatFilters, tableSchema, aliasedColumnSet }: {
+
+export const getBaseQueryAliasedColumns = ({ baseSql, members, meerkatFilters, tableSchema, aliasedColumnSet }: {
   members: Member[];
   meerkatFilters?: MeerkatQueryFilter[];
   tableSchema: TableSchema;
   baseSql: string;
   aliasedColumnSet: Set<string>;
 }) => {
-  /*  
-   * Maintain a set to make sure already seen members are not added again. 
-   */
-  let sql = baseSql
-  meerkatFilters?.forEach((filter) => {
-    if ('and' in filter) {
-      // Traverse through the passed 'and' filters
-        sql += getAliasedColumns({
-          baseSql: '',
-          members: [],
-          meerkatFilters: filter.and,
-          tableSchema,
-          aliasedColumnSet
-        })
-      }
-      if ('or' in filter) {
-      // Traverse through the passed 'or' filters
-        sql += getAliasedColumns({
-          baseSql: '',
-          tableSchema,
-          members: [],
-          meerkatFilters: filter.or,
-          aliasedColumnSet,
-        })
-      } 
-      if ('member' in filter) {
-        const { sql: memberSql, aliasKey, foundMember }  = getMemberProjection({ key: filter.member, tableSchema })
-        if (!foundMember  || aliasedColumnSet.has(aliasKey)) {
-          // If the selected member is not found in the table schema or if it is already selected, continue.
-          return;
-        }
-        if (aliasKey) {
-          aliasedColumnSet.add(aliasKey)
-        }
-        // Add the alias key to the set. So we have a reference to all the previously selected members.
-        sql += `, ${memberSql}`;
-      }
+  const aliasFromFilters = getAliasedColumnsFromFilters({
+    aliasedColumnSet,
+    baseSql,
+    // setting measures to empty array, since we don't want to project measures present in the filters in the base query
+    tableSchema: { ...tableSchema, measures: [] },
+    meerkatFilters
   })
-  // Alias dimensions in the base query/
   const memberProjections = getProjectionClause(members, tableSchema, aliasedColumnSet);
-  return sql + memberProjections;
+  return `${aliasFromFilters}, ${memberProjections}`;
 }
 
 export const getWrappedBaseQueryWithProjections = ({
@@ -66,10 +76,11 @@ export const getWrappedBaseQueryWithProjections = ({
     */
     // Wrap the query into another 'SELECT * FROM (baseQuery) AS baseTable'' in order to project everything in the base query, and other computed metrics to be able to filter on them
     const newBaseSql = `SELECT * FROM (${baseQuery}) AS ${tableSchema.name}`;
-    const aliasedColumns = getAliasedColumns({
+    const aliasedColumns = getBaseQueryAliasedColumns({
       meerkatFilters: query.filters,
-      tableSchema, baseSql: 'SELECT *',
-      members: [...(query.dimensions ?? [])],
+      tableSchema,
+      baseSql: 'SELECT *',
+      members: query.dimensions ?? [],
       aliasedColumnSet: new Set<string>()
     })
     // Append the aliased columns to the base query select statement

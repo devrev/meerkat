@@ -4,13 +4,41 @@ import { cubeLimitOffsetToAST } from '../cube-limit-offset-transformer/cube-limi
 import { cubeOrderByToAST } from '../cube-order-by-transformer/cube-order-by-transformer';
 import { QueryFiltersWithInfo, QueryFiltersWithInfoSingular } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { traverseAndFilter } from '../filter-params/filter-params-ast';
-import { FilterType, Query } from '../types/cube-types/query';
+import { FilterType, MeerkatQueryFilter, Query } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
+import { SelectStatement } from '../types/duckdb-serialization-types';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { getBaseAST } from '../utils/base-ast';
 import { cubeFiltersEnrichment } from '../utils/cube-filter-enrichment';
 import { modifyLeafMeerkatFilter } from '../utils/modify-meerkat-filter';
 
+
+const formatFilters = (queryFiltersWithInfo: QueryFiltersWithInfo, filterType?: FilterType) => {
+  /*
+  * If the type of filter is set to base filter where 
+  */
+  return filterType === 'BASE_FILTER' ? queryFiltersWithInfo : modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
+    return {
+      ...item,
+      member: item.member.split('.').join('__')
+    };
+  }) as QueryFiltersWithInfo;
+}
+
+
+const getFormattedFilters = ({ queryFiltersWithInfo, filterType, mapperFn, baseAST }: {
+  queryFiltersWithInfo: QueryFiltersWithInfo,
+  filterType?: FilterType,
+  baseAST: SelectStatement,
+  mapperFn: (val: QueryFiltersWithInfoSingular) => MeerkatQueryFilter | null
+}) => {
+  const filters = queryFiltersWithInfo.map(item => mapperFn(item)).filter(Boolean) as QueryFiltersWithInfoSingular[];
+  const formattedFilters = formatFilters(filters, filterType);
+  return cubeFilterToDuckdbAST(
+    formattedFilters,
+    baseAST
+  );
+}
 
 export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?: { filterType: FilterType }
 ) => {
@@ -36,32 +64,24 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?
       return null;
     }
 
-    /*
-    * If the type of filter is set to base filter where 
-    */
-    const finalFilters = options?.filterType === 'BASE_FILTER' ? queryFiltersWithInfo : modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
-      return {
-        ...item,
-        member: item.member.split('.').join('__')
-      };
-    }) as QueryFiltersWithInfo; 
+    const whereClause = getFormattedFilters({
+      baseAST,
+      mapperFn: (item) => traverseAndFilter(item, (value) =>  !query.measures.includes(value.member)),
+      queryFiltersWithInfo,
+      filterType: options?.filterType
+    })
 
-    const havingFilters = finalFilters.map(item => traverseAndFilter(item, (value) =>  query.measures.includes(value.member))).filter(Boolean) as QueryFiltersWithInfoSingular[]
-    const whereFilters = finalFilters.map(item => traverseAndFilter(item, (value) => !query.measures.includes(value.member))).filter(Boolean) as QueryFiltersWithInfoSingular[]
+    const havingClause = getFormattedFilters({
+      baseAST,
+      mapperFn: (item) => traverseAndFilter(item, (value) =>  query.measures.includes(value.member)),
+      queryFiltersWithInfo,
+      filterType: options?.filterType
+    })
 
-    const duckdbWhereClause = cubeFilterToDuckdbAST(
-      whereFilters,
-      baseAST
-    );
-
-    const duckdbHavingClause = cubeFilterToDuckdbAST(
-      havingFilters,
-      baseAST
-    );
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
-    node.where_clause = duckdbWhereClause;
-    node.having = duckdbHavingClause
+    node.where_clause = whereClause;
+    node.having = havingClause
   }
 
   if (query.dimensions && query.dimensions?.length > 0) {
