@@ -1,5 +1,5 @@
 import { TableSchema } from "../types/cube-types";
-import { getDimensionProjection, getMeasureProjection, getProjectionClause } from './get-projection-clause';
+import { getDimensionProjection, getFilterMeasureProjection, getProjectionClause } from './get-projection-clause';
 
 
 const TABLE_SCHEMA: TableSchema = {
@@ -30,16 +30,16 @@ describe("get-projection-clause", () => {
         });
     })
 
-    describe("getMeasureProjection", () => {
+    describe("getFilterMeasureProjection", () => {
         it("should return the member projection when the key exists in the table schema", () => {
             const key = "test.x";
-            const result = getMeasureProjection({ key, tableSchema: TABLE_SCHEMA, measures: ['test.a']});
+            const result = getFilterMeasureProjection({ key, tableSchema: TABLE_SCHEMA, measures: ['test.a']});
             expect(result).toEqual({ aliasKey: "test__x", foundMember: {"name": "x", "sql": "x", "type": "number"}, sql: "test.x AS test__x"});
         });
 
         it("should not create alias when item in measure list", () => {
             const key = "test.x";
-            const result = getMeasureProjection({ key, tableSchema: TABLE_SCHEMA, measures: ['test.x']});
+            const result = getFilterMeasureProjection({ key, tableSchema: TABLE_SCHEMA, measures: ['test.x']});
             expect(result).toEqual({ aliasKey: undefined, foundMember: undefined, sql: undefined});
         });
     
@@ -50,7 +50,7 @@ describe("get-projection-clause", () => {
                 measures: [{ name: 'b', sql: 'others', type: 'number' }],
             };
     
-            const result = getMeasureProjection({ key, tableSchema, measures: ['test.b'] });
+            const result = getFilterMeasureProjection({ key, tableSchema, measures: ['test.b'] });
             expect(result).toEqual({ aliasKey: undefined, foundMember: undefined, sql: undefined });
         });
     })

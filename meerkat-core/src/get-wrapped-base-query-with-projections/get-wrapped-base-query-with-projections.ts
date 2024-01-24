@@ -1,5 +1,5 @@
 import { getSelectReplacedSql } from '../cube-measure-transformer/cube-measure-transformer';
-import { getDimensionProjection, getMeasureProjection, getProjectionClause } from '../get-projection-clause/get-projection-clause';
+import { getDimensionProjection, getFilterMeasureProjection as getFilterMeasureProjections, getProjectionClause } from '../get-projection-clause/get-projection-clause';
 import { MeerkatQueryFilter, Query, TableSchema } from '../types/cube-types';
 import { findInDimensionSchema, findInMeasureSchema } from '../utils/find-in-table-schema';
 
@@ -14,7 +14,7 @@ const getFilterProjections = ({ member, tableSchema, measures }: { member: strin
   }
   const isMeasure = findInMeasureSchema(memberWithoutTable, tableSchema)
   if (isMeasure) {
-    return getMeasureProjection({ key: member, tableSchema, measures })
+    return getFilterMeasureProjections({ key: member, tableSchema, measures })
   }
   return {
     sql: undefined,
@@ -96,7 +96,7 @@ export const getWrappedBaseQueryWithProjections = ({
     const formattedMemberProjection = memberProjections ? `, ${memberProjections}` : '';
     
     const finalAliasedColumnsClause = aliasFromFilters + formattedMemberProjection;
-    // Append the aliased columns to the base query select statement
+
     const sqlWithFilterProjects = getSelectReplacedSql(newBaseSql, finalAliasedColumnsClause)
     return sqlWithFilterProjects
 }

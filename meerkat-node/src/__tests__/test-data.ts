@@ -326,7 +326,7 @@ export const TEST_DATA = [
   },
   {
     testName: 'GreaterThan',
-    expectedSQL: `SELECT orders.* FROM (SELECT *, order_amount AS orders__order_amount FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount > 50)`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount > 50)`,
     cubeInput: {
       measures: ['*'],
       filters: [
@@ -399,7 +399,7 @@ export const TEST_DATA = [
   },
   {
     testName: 'LessThan',
-    expectedSQL: `SELECT orders.* FROM (SELECT *, order_amount AS orders__order_amount FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount < 50)`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount < 50)`,
     cubeInput: {
       measures: ['*'],
       filters: [
@@ -630,7 +630,7 @@ export const TEST_DATA = [
   // },
   {
     testName: 'And',
-    expectedSQL: `SELECT orders.* FROM (SELECT *, order_amount AS orders__order_amount, order_date AS orders__order_date FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount > 50) AND ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-06-01')))`,
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount, order_date AS orders__order_date FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount > 50) AND ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-06-01')))`,
     cubeInput: {
       measures: ['*'],
       filters: [
