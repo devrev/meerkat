@@ -3,12 +3,15 @@ import { findInDimensionSchema, findInMeasureSchema } from "../utils/find-in-tab
 import { memberKeyToSafeKey } from "../utils/member-key-to-safe-key";
 
 
-export const getMeasureProjection = ({ key, tableSchema }: {
+export const getMeasureProjection = ({ key, tableSchema, measures }: {
   key: string;
   tableSchema: TableSchema;
+  measures: string[]
 }) => {
-  const foundMember = findInMeasureSchema(key, tableSchema);
-  if (!foundMember) {
+  const measureWithoutTable = key.split('.')[1];
+  const foundMember = findInMeasureSchema(measureWithoutTable, tableSchema);
+  const isMeasure = measures.includes(key)
+  if (!foundMember || isMeasure) {
     // If the selected member is not found in the table schema or if it is already selected, continue.
     return {
       sql: undefined,
@@ -66,7 +69,8 @@ const aggregator = ({
   })
   if (aliasedColumnSet.has(member) || !sql) {
     return acc
-  }
+  } 
+  aliasedColumnSet.add(member)
   acc += sql
   if (currentIndex !== members.length - 1) {
     acc += `, `
@@ -80,11 +84,10 @@ export const getProjectionClause = (measures: string[], dimensions: string[], ta
     const { sql: memberSql }  = getDimensionProjection({ key: member, tableSchema })
     return aggregator({ member, aliasedColumnSet, acc, currentIndex, members, sql: memberSql })
   }, '')
-  // const measureProjections = measures.reduce((acc, member, currentIndex, members) => {
-  //   const { sql: memberSql } = getMeasureProjection({ key: member, tableSchema })
-  //   return aggregator({ member, aliasedColumnSet, acc, currentIndex, members, sql: memberSql })
-  // }, '')
-  const measureProjections = ''
+  const measureProjections = measures.reduce((acc, member, currentIndex, members) => {
+    const { sql: memberSql } = getMeasureProjection({ key: member, tableSchema, measures })
+    return aggregator({ member, aliasedColumnSet, acc, currentIndex, members, sql: memberSql })
+  }, '')
   return dimensionsProjections + (dimensionsProjections.length && measureProjections.length ? ', ' : '') + measureProjections
 
 }
