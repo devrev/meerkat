@@ -7,6 +7,12 @@ export const findInDimensionSchema = (measureWithoutTable: string, tableSchema: 
   )
 }
 
+export const findInMeasureSchema = (measureWithoutTable: string, tableSchema: TableSchema) => {
+  return tableSchema.measures.find(
+    (m) => m.name === measureWithoutTable
+  )
+}
+
 export const findInSchema = (measureWithoutTable: string, tableSchema: TableSchema) => {
   /*
   ** Using the key passed as measureWithoutTable this function searches the table schema.
@@ -16,9 +22,7 @@ export const findInSchema = (measureWithoutTable: string, tableSchema: TableSche
   if (foundDimension) {
     return foundDimension
   }
-  const foundMeasure = tableSchema.measures.find(
-    (m) => m.name === measureWithoutTable
-  )
+  const foundMeasure = findInMeasureSchema(measureWithoutTable, tableSchema)
   if (foundMeasure) {
     return foundMeasure
   }

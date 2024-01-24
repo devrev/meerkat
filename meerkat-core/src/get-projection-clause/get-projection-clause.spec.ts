@@ -1,6 +1,5 @@
-import { get } from "http";
 import { TableSchema } from "../types/cube-types";
-import { getMemberProjection, getProjectionClause } from './get-projection-clause';
+import { getDimensionProjection, getProjectionClause } from './get-projection-clause';
 
 
 const TABLE_SCHEMA: TableSchema = {
@@ -11,12 +10,11 @@ const TABLE_SCHEMA: TableSchema = {
     // Define your table schema here
 };
 describe("get-projection-clause", () => {
-    describe("getMemberProjection", () => {
+    describe("getDimensionProjection", () => {
         it("should return the member projection when the key exists in the table schema", () => {
             const key = "test.a";
-            
     
-            const result = getMemberProjection({ key, tableSchema: TABLE_SCHEMA });
+            const result = getDimensionProjection({ key, tableSchema: TABLE_SCHEMA });
             expect(result).toEqual({ aliasKey: "test__a", foundMember: {"name": "a", "sql": "others", "type": "number"}, sql: "others AS test__a"});
         });
     
@@ -27,7 +25,7 @@ describe("get-projection-clause", () => {
                 dimensions: [{ name: 'b', sql: 'others', type: 'number' }],
             };
     
-            const result = getMemberProjection({ key, tableSchema });
+            const result = getDimensionProjection({ key, tableSchema });
             expect(result).toEqual({ aliasKey: undefined, foundMember: undefined, sql: undefined });
         });
     })
@@ -37,15 +35,16 @@ describe("get-projection-clause", () => {
             const members = ['test.a', 'test.c'];
             const tableSchema = TABLE_SCHEMA;
             const aliasedColumnSet = new Set<string>();
-            const result = getProjectionClause(members, tableSchema, aliasedColumnSet);
-            expect(result).toEqual(', others AS test__a, any AS test__c');
+            const result = getProjectionClause([], members, tableSchema, aliasedColumnSet);
+            expect(result).toEqual('others AS test__a, any AS test__c');
         })
         it('should skip aliased items present in already seen', () => {
             const members = ['test.a', 'test.c'];
+
             const tableSchema = TABLE_SCHEMA;
             const aliasedColumnSet = new Set<string>(['test.c']);
-            const result = getProjectionClause(members, tableSchema, aliasedColumnSet);
-            expect(result).toEqual(', others AS test__a');
+            const result = getProjectionClause([], members, tableSchema, aliasedColumnSet);
+            expect(result).toEqual('others AS test__a, ');
         })
     })
 
