@@ -18,6 +18,7 @@ describe('cube-to-sql', () => {
   for (const data of TEST_DATA) {
     it(`Testing ${data.testName}`, async () => {
       const sql = await cubeQueryToSQL(data.cubeInput, TABLE_SCHEMA);
+      expect(sql).toEqual(data.expectedSQL)
       console.info(`SQL for ${data.testName}: `, sql);
       //TODO: Remove order by
       const output = await duckdbExec(sql);

@@ -11,3 +11,5 @@ export { FilterType } from './types/cube-types';
 export * from './types/cube-types/index';
 export * from './types/duckdb-serialization-types/index';
 export { BASE_TABLE_NAME } from './utils/base-ast';
+export { memberKeyToSafeKey } from './utils/member-key-to-safe-key';
+
