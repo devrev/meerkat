@@ -4,7 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { InstanceManagerType } from './instance-manager';
-import { DBMConstructorOptions, QueryOptions, QueryQueueItem } from './types';
+import {
+  DBMConstructorOptions,
+  QueryOptions,
+  QueryQueueItem,
+  Table,
+} from './types';
 
 export class DBM {
   private fileManager: FileManagerType;
@@ -94,16 +99,16 @@ export class DBM {
     return this.connection;
   }
 
-  private async _queryWithTableNames(
+  private async _queryWithTables(
     query: string,
-    tableNames: string[],
+    tables: Table[],
     options?: QueryOptions
   ) {
     /**
      * Load all the files into the database
      */
     const startMountTime = Date.now();
-    await this.fileManager.mountFileBufferByTableNames(tableNames);
+    await this.fileManager.mountFileBufferByTables(tables);
     const endMountTime = Date.now();
 
     this.logger.debug(
@@ -119,9 +124,7 @@ export class DBM {
       metadata: options?.metadata,
     });
 
-    const tablesFileData = await this.fileManager.getFilesNameForTables(
-      tableNames
-    );
+    const tablesFileData = await this.fileManager.getFilesNameForTables(tables);
 
     /**
      * Execute the preQuery hook
@@ -186,6 +189,7 @@ export class DBM {
      * Get the first query
      */
     this.currentQueryItem = this.queriesQueue.shift();
+
     /**
      * If there is no query, stop the queue
      */
@@ -212,9 +216,9 @@ export class DBM {
       /**
        * Execute the query
        */
-      const result = await this._queryWithTableNames(
+      const result = await this._queryWithTables(
         this.currentQueryItem.query,
-        this.currentQueryItem.tableNames,
+        this.currentQueryItem.tables,
         this.currentQueryItem.options
       );
       const endTime = Date.now();
@@ -305,13 +309,13 @@ export class DBM {
     signal?.addEventListener('abort', signalHandler);
   }
 
-  public async queryWithTableNames({
+  public async queryWithTables({
     query,
-    tableNames,
+    tables,
     options,
   }: {
     query: string;
-    tableNames: string[];
+    tables: Table[];
     options?: QueryOptions;
   }) {
     const connectionId = uuidv4();
@@ -321,7 +325,7 @@ export class DBM {
 
       this.queriesQueue.push({
         query,
-        tableNames,
+        tables,
         promise: {
           resolve,
           reject,

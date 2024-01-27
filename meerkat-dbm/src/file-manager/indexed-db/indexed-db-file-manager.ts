@@ -1,4 +1,5 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
+import { Table as DBMTable } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import {
@@ -13,6 +14,7 @@ import {
   FileManagerType,
 } from '../file-manager-type';
 import { FileRegisterer } from '../file-registerer';
+import { getFilesByPartition } from '../partition';
 import { MeerkatDatabase } from './meerkat-database';
 
 // Default max file size is 500mb
@@ -181,22 +183,37 @@ export class IndexedDBFileManager implements FileManagerType {
     return fileData?.buffer;
   }
 
-  async getFilesNameForTables(tableNames: string[]): Promise<TableWiseFiles[]> {
-    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
+  async getFilesNameForTables(tables: DBMTable[]): Promise<TableWiseFiles[]> {
+    const tableNames = tables.map((table) => table.name);
 
-    return tableData.filter(isDefined).map((table) => ({
+    const tableData = (await this.indexedDB.tablesKey.bulkGet(tableNames))
+      .filter(isDefined)
+      .reduce((obj, item) => {
+        obj[item.tableName] = item;
+        return obj;
+      }, {} as { [key: string]: Table });
+
+    const filesByTablePartition = tables.map((table) => {
+      return getFilesByPartition(
+        tableData[table.name]?.files,
+        table.partitionKey
+      );
+    });
+
+    return filesByTablePartition.map((table) => ({
       tableName: table.tableName,
       files: table.files.map((file) => file.fileName),
     }));
   }
 
-  async fileCleanUpIfRequired(tableData: (Table | undefined)[]) {
+  async fileCleanUpIfRequired(tableData: Table[]) {
     const maxFileSize =
       this.configurationOptions?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
     const totalByteLengthInDb = this.fileRegisterer.totalByteLength();
 
     if (totalByteLengthInDb > maxFileSize) {
       const allFilesInDb = this.fileRegisterer.getAllFilesInDB();
+
       const fileNameToRemove = [];
       for (const table of tableData) {
         for (const file of table?.files ?? []) {
@@ -211,8 +228,12 @@ export class IndexedDBFileManager implements FileManagerType {
     }
   }
 
-  async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-    const tableData = await this.indexedDB.tablesKey.bulkGet(tableNames);
+  async mountFileBufferByTables(tables: DBMTable[]): Promise<void> {
+    const tableNames = tables.map((table) => table.name);
+
+    const tableData = (
+      await this.indexedDB.tablesKey.bulkGet(tableNames)
+    ).filter(isDefined);
 
     /**
      * Check if the file registered size is not more than the limit

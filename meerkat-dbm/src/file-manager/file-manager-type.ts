@@ -1,4 +1,5 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
+import { Table as DBMTable } from '../dbm/types';
 import { DBMEvent, DBMLogger } from '../logger';
 import { Table, TableWiseFiles } from '../types';
 
@@ -80,9 +81,9 @@ export interface FileManagerType {
   /**
    * @description
    * Mounts or registers file buffers based on an array of table names in DuckDB.
-   * @param tableNames - An array of table names.
+   * @param tables - An array of table.
    */
-  mountFileBufferByTableNames: (tableNames: string[]) => Promise<void>;
+  mountFileBufferByTables: (tables: DBMTable[]) => Promise<void>;
 
   /**
    * @description
@@ -114,10 +115,10 @@ export interface FileManagerType {
   /**
    * @description
    * Retrieves file names associated with specified tables.
-   * @param tableNames - An array of table names.
+   * @param tables - An array of tables.
    * @returns Array of objects containing table names and associated files.
    */
-  getFilesNameForTables: (tableNames: string[]) => Promise<TableWiseFiles[]>;
+  getFilesNameForTables: (tables: DBMTable[]) => Promise<TableWiseFiles[]>;
 
   /**
    * @description

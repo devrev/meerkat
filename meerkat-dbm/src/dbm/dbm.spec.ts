@@ -53,7 +53,7 @@ export class MockFileManager implements FileManagerType {
     return fileBuffer.buffer;
   }
 
-  async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
+  async mountFileBufferByTables(tableNames: string[]): Promise<void> {
     for (const tableName of tableNames) {
       for (const key in this.fileBufferStore) {
         if (this.fileBufferStore[key].tableName === tableName) {
@@ -64,7 +64,7 @@ export class MockFileManager implements FileManagerType {
     }
   }
 
-  async unmountFileBufferByTableNames(tableNames: string[]): Promise<void> {
+  async unmountFileBufferByTables(tableNames: string[]): Promise<void> {
     for (const tableName of tableNames) {
       for (const key in this.fileBufferStore) {
         if (this.fileBufferStore[key].tableName === tableName) {

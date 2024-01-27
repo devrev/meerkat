@@ -74,9 +74,22 @@ export interface QueryOptions {
   signal?: AbortSignal;
 }
 
+export interface Table {
+  /**
+   * @description
+   * Name of the table.
+   */
+  name: string;
+  /**
+   * @description
+   * Partitions of the table.
+   */
+  partitions?: string[];
+}
+
 export interface QueryQueueItem {
   query: string;
-  tableNames: string[];
+  tables: Table[];
   promise: {
     resolve: (value: any) => void;
     reject: (reason?: any) => void;

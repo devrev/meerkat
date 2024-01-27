@@ -1,4 +1,5 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
+import { Table as DBMTable } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON } from '../../utils';
@@ -81,15 +82,11 @@ export class MemoryDBFileManager implements FileManagerType {
     throw new Error('Method not implemented.');
   }
 
-  async mountFileBufferByTableNames(tableNames: string[]): Promise<void> {
+  async mountFileBufferByTables(tables: DBMTable[]): Promise<void> {
     // not needed for memory file manager
   }
 
-  async unmountFileBufferByTableNames(tableNames: string[]): Promise<void> {
-    // not needed for memory file manager
-  }
-
-  async getFilesNameForTables(tableNames: string[]): Promise<TableWiseFiles[]> {
+  async getFilesNameForTables(tables: DBMTable[]): Promise<TableWiseFiles[]> {
     // not needed for memory file manager
     return [];
   }
