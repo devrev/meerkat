@@ -8,7 +8,7 @@ import {
 import { FileData, Table, TableWiseFiles } from '../types';
 import { DBM } from './dbm';
 import { InstanceManagerType } from './instance-manager';
-import { DBMConstructorOptions } from './types';
+import { DBMConstructorOptions, Table as DBMTable } from './types';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
@@ -53,23 +53,13 @@ export class MockFileManager implements FileManagerType {
     return fileBuffer.buffer;
   }
 
-  async mountFileBufferByTables(tableNames: string[]): Promise<void> {
+  async mountFileBufferByTables(tables: DBMTable[]): Promise<void> {
+    const tableNames = tables.map((table) => table.name);
     for (const tableName of tableNames) {
       for (const key in this.fileBufferStore) {
         if (this.fileBufferStore[key].tableName === tableName) {
           // mount operation here
           console.log(`Mounted file buffer for ${key}`);
-        }
-      }
-    }
-  }
-
-  async unmountFileBufferByTables(tableNames: string[]): Promise<void> {
-    for (const tableName of tableNames) {
-      for (const key in this.fileBufferStore) {
-        if (this.fileBufferStore[key].tableName === tableName) {
-          // unmount operation here
-          console.log(`Unmounted file buffer for ${key}`);
         }
       }
     }
@@ -96,15 +86,17 @@ export class MockFileManager implements FileManagerType {
     }
   }
 
-  async getFilesNameForTables(tableNames: string[]): Promise<TableWiseFiles[]> {
+  async getFilesNameForTables(
+    tableNames: DBMTable[]
+  ): Promise<TableWiseFiles[]> {
     const data: TableWiseFiles[] = [];
 
-    for (const tableName of tableNames) {
-      const files: string[] = [];
+    for (const { name: tableName } of tableNames) {
+      const files: FileData[] = [];
 
       for (const key in this.fileBufferStore) {
         if (this.fileBufferStore[key].tableName === tableName) {
-          files.push(key);
+          files.push({ fileName: key });
         }
       }
 
@@ -170,6 +162,8 @@ describe('DBM', () => {
   let dbm: DBM;
   let instanceManager: InstanceManager;
 
+  const tables = [{ name: 'table1' }];
+
   beforeAll(async () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     //@ts-ignore
@@ -201,7 +195,7 @@ describe('DBM', () => {
     });
   });
 
-  describe('queryWithTableNames', () => {
+  describe('queryWithTables', () => {
     it('should call the preQuery hook', async () => {
       const preQuery = jest.fn();
 
@@ -211,9 +205,9 @@ describe('DBM', () => {
         buffer: new Uint8Array(),
       });
 
-      const result = await dbm.queryWithTableNames({
+      const result = await dbm.queryWithTables({
         query: 'SELECT * FROM table1',
-        tableNames: ['table1'],
+        tables: tables,
         options: {
           preQuery,
         },
@@ -224,27 +218,27 @@ describe('DBM', () => {
       expect(preQuery).toBeCalledWith([
         {
           tableName: 'table1',
-          files: ['file1'],
+          files: [{ fileName: 'file1' }],
         },
       ]);
     });
 
     it('should execute a query with table names', async () => {
-      const result = await dbm.queryWithTableNames({
+      const result = await dbm.queryWithTables({
         query: 'SELECT * FROM table1',
-        tableNames: ['table1'],
+        tables: tables,
       });
       expect(result).toEqual(['SELECT * FROM table1']);
     });
 
     it('should execute multiple queries with table names', async () => {
-      const promise1 = dbm.queryWithTableNames({
+      const promise1 = dbm.queryWithTables({
         query: 'SELECT * FROM table1',
-        tableNames: ['table1'],
+        tables: tables,
       });
-      const promise2 = dbm.queryWithTableNames({
+      const promise2 = dbm.queryWithTables({
         query: 'SELECT * FROM table2',
-        tableNames: ['table1'],
+        tables: tables,
       });
       /**
        * Number of queries in the queue should be 1 as the first query is running
@@ -271,9 +265,9 @@ describe('DBM', () => {
       /**
        * Execute another query
        */
-      const promise3 = dbm.queryWithTableNames({
+      const promise3 = dbm.queryWithTables({
         query: 'SELECT * FROM table3',
-        tableNames: ['table1'],
+        tables: tables,
       });
 
       /**
@@ -314,17 +308,17 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      const promise1 = dbm.queryWithTableNames({
+      const promise1 = dbm.queryWithTables({
         query: 'SELECT * FROM table1',
-        tableNames: ['table1'],
+        tables: tables,
       });
 
       /**
        * Execute another query
        */
-      const promise2 = dbm.queryWithTableNames({
+      const promise2 = dbm.queryWithTables({
         query: 'SELECT * FROM table2',
-        tableNames: ['table1'],
+        tables: tables,
       });
 
       /**
@@ -375,17 +369,17 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      const promise1 = dbm.queryWithTableNames({
+      const promise1 = dbm.queryWithTables({
         query: 'SELECT * FROM table1',
-        tableNames: ['table1'],
+        tables: tables,
       });
 
       /**
        * Execute another query
        */
-      const promise2 = dbm.queryWithTableNames({
+      const promise2 = dbm.queryWithTables({
         query: 'SELECT * FROM table2',
-        tableNames: ['table1'],
+        tables: tables,
       });
 
       /**
@@ -420,9 +414,9 @@ describe('DBM', () => {
       /**
        * Execute a query
        */
-      await dbm.queryWithTableNames({
+      await dbm.queryWithTables({
         query: 'SELECT * FROM table1',
-        tableNames: ['table1'],
+        tables: tables,
       });
 
       /**
@@ -443,9 +437,9 @@ describe('DBM', () => {
 
       // check the current query throws error abort is emitted
       try {
-        const promise = dbm.queryWithTableNames({
+        const promise = dbm.queryWithTables({
           query: 'SELECT * FROM table1',
-          tableNames: ['table1'],
+          tables: tables,
           options: {
             signal: abortController1.signal,
           },
@@ -467,17 +461,17 @@ describe('DBM', () => {
 
       const mockDBMQuery = jest.spyOn(dbm, 'query');
 
-      const promise1 = dbm.queryWithTableNames({
+      const promise1 = dbm.queryWithTables({
         query: 'SELECT * FROM table1',
-        tableNames: ['table1'],
+        tables: tables,
         options: {
           signal: abortController1.signal,
         },
       });
 
-      const promise2 = dbm.queryWithTableNames({
+      const promise2 = dbm.queryWithTables({
         query: 'SELECT * FROM table2',
-        tableNames: ['table2'],
+        tables: [{ name: 'table2' }],
         options: {
           signal: abortController2.signal,
         },

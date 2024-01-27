@@ -1,4 +1,6 @@
+import { FileData } from './db-schema';
+
 export type TableWiseFiles = {
   tableName: string;
-  files: string[];
+  files: FileData[];
 };

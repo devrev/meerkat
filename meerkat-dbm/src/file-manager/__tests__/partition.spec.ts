@@ -24,7 +24,7 @@ describe('getFilesByPartition', () => {
     ]);
   });
 
-  it('should filter files by partition when multiple partitions of customer_oid used', () => {
+  it('should filter files by multiple partitions of customer_oid', () => {
     const result = getFilesByPartition(files, [
       'customer_oid=dev-0',
       'customer_oid=dev-1',
@@ -38,7 +38,7 @@ describe('getFilesByPartition', () => {
     ]);
   });
 
-  it('should filter files by partition based multiple partitions ', () => {
+  it('should filter files by a specific combination of partitions ', () => {
     const result = getFilesByPartition(files, ['customer_oid=dev-0/month=09']);
 
     expect(result).toEqual([
@@ -46,14 +46,15 @@ describe('getFilesByPartition', () => {
     ]);
   });
 
-  it('should filter files by partition based multiple partitions ', () => {
+  it('should filter files by multiple specified partitions', () => {
     const result = getFilesByPartition(files, [
       'customer_oid=dev-0/month=09',
       'customer_oid=dev-0/month=10',
     ]);
 
     expect(result).toEqual([
-      { fileName: 'file2.txt', partitionKey: 'customer_oid=dev-0/month=10' },
+      { fileName: 'file2.txt', partitionKey: 'customer_oid=dev-0/month=09' },
+      { fileName: 'file6.txt', partitionKey: 'customer_oid=dev-0/month=10' },
     ]);
   });
 

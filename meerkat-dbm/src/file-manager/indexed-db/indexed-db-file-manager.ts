@@ -188,21 +188,19 @@ export class IndexedDBFileManager implements FileManagerType {
 
     const tableData = (await this.indexedDB.tablesKey.bulkGet(tableNames))
       .filter(isDefined)
-      .reduce((obj, item) => {
-        obj[item.tableName] = item;
-        return obj;
+      .reduce((tableObj, table) => {
+        tableObj[table.tableName] = table;
+        return tableObj;
       }, {} as { [key: string]: Table });
 
-    const filesByTablePartition = tables.map((table) => {
-      return getFilesByPartition(
-        tableData[table.name]?.files,
-        table.partitionKey
-      );
-    });
 
-    return filesByTablePartition.map((table) => ({
-      tableName: table.tableName,
-      files: table.files.map((file) => file.fileName),
+
+    return tables.map((table) => ({
+      tableName: table.name,
+      files: getFilesByPartition(
+        tableData[table.name]?.files,
+        table.partitions
+      ),
     }));
   }
 
@@ -229,11 +227,7 @@ export class IndexedDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: DBMTable[]): Promise<void> {
-    const tableNames = tables.map((table) => table.name);
-
-    const tableData = (
-      await this.indexedDB.tablesKey.bulkGet(tableNames)
-    ).filter(isDefined);
+    const tableData = await this.getFilesNameForTables(tables);
 
     /**
      * Check if the file registered size is not more than the limit
