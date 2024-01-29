@@ -34,9 +34,9 @@ export const RawDBMProvider = ({ children }: { children: JSX.Element }) => {
       },
     });
     /**
-     * Making the queryWithTableNames simply run the queries without sequence which is the default behavior
+     * Making the queryWithTables simply run the queries without sequence which is the default behavior
      */
-    dbm.queryWithTableNames = async ({ query, tableNames }) => {
+    dbm.queryWithTables = async ({ query, tables }) => {
       return dbm.query(query);
     };
     setdbm(dbm);

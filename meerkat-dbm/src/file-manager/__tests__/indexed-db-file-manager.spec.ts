@@ -15,11 +15,10 @@ const mockDB = {
     return {
       query: jest.fn(),
       insertJSONFromPath: jest.fn(),
-      close: jest.fn(),
+      close: jest.fn()
     };
-  },
+  }
 };
-
 describe('IndexedDBFileManager', () => {
   let fileManager: IndexedDBFileManager;
   let db: AsyncDuckDB;
@@ -30,7 +29,7 @@ describe('IndexedDBFileManager', () => {
     tableName: 'taxi1',
     fileName: 'taxi1.parquet',
     buffer: new Uint8Array([1, 2, 3]),
-    fileType: FILE_TYPES.PARQUET,
+    fileType: FILE_TYPES.PARQUET
   };
 
   const fileBuffers = [
@@ -38,14 +37,14 @@ describe('IndexedDBFileManager', () => {
       tableName: 'taxi1',
       fileName: 'taxi2.parquet',
       buffer: new Uint8Array([1, 2, 3, 4]),
-      fileType: FILE_TYPES.PARQUET,
+      fileType: FILE_TYPES.PARQUET
     },
     {
       tableName: 'taxi2',
       fileName: 'taxi3.parquet',
       buffer: new Uint8Array([1, 2, 3, 4, 5]),
-      fileType: FILE_TYPES.PARQUET,
-    },
+      fileType: FILE_TYPES.PARQUET
+    }
   ];
 
   beforeAll(() => {
@@ -58,7 +57,7 @@ describe('IndexedDBFileManager', () => {
       },
       terminateDB: async () => {
         return;
-      },
+      }
     };
   });
 
@@ -72,7 +71,7 @@ describe('IndexedDBFileManager', () => {
       logger: log,
       onEvent: (event) => {
         console.log(event);
-      },
+      }
     });
 
     await fileManager.initializeDB();
@@ -92,7 +91,7 @@ describe('IndexedDBFileManager', () => {
     expect(tableData1.length).toBe(1);
     expect(tableData1[0]).toEqual({
       tableName: 'taxi1',
-      files: [{ fileName: fileBuffer.fileName, fileType: FILE_TYPES.PARQUET }],
+      files: [{ fileName: fileBuffer.fileName, fileType: FILE_TYPES.PARQUET }]
     });
 
     /**
@@ -113,7 +112,7 @@ describe('IndexedDBFileManager', () => {
     expect(tableData2.length).toBe(2);
     expect(tableData2[0].files.map((file) => file.fileName)).toEqual([
       'taxi1.parquet',
-      'taxi2.parquet',
+      'taxi2.parquet'
     ]);
 
     /**
@@ -122,7 +121,7 @@ describe('IndexedDBFileManager', () => {
     expect(fileBufferData2.map((file) => file.fileName)).toEqual([
       'taxi1.parquet',
       'taxi2.parquet',
-      'taxi3.parquet',
+      'taxi3.parquet'
     ]);
   });
 
@@ -145,7 +144,7 @@ describe('IndexedDBFileManager', () => {
     // Register the same file with a different buffer
     await fileManager.registerFileBuffer({
       ...fileBuffer,
-      buffer: new Uint8Array([1]),
+      buffer: new Uint8Array([1])
     });
 
     const fileBufferData2 = await indexedDB.files.toArray();
@@ -162,9 +161,9 @@ describe('IndexedDBFileManager', () => {
     expect(fileData).toEqual({
       files: [
         { fileName: 'taxi1.parquet', fileType: 'parquet' },
-        { fileName: 'taxi2.parquet', fileType: 'parquet' },
+        { fileName: 'taxi2.parquet', fileType: 'parquet' }
       ],
-      tableName: 'taxi1',
+      tableName: 'taxi1'
     });
   });
 
@@ -181,9 +180,9 @@ describe('IndexedDBFileManager', () => {
       files: [
         {
           fileName: 'taxi2.parquet',
-          fileType: 'parquet',
-        },
-      ],
+          fileType: 'parquet'
+        }
+      ]
     });
 
     expect(
@@ -199,7 +198,7 @@ describe('IndexedDBFileManager', () => {
     // Verify that the file is dropped
     expect(tableData2[0]).toEqual({
       tableName: 'taxi1',
-      files: [],
+      files: []
     });
 
     expect(
@@ -220,8 +219,8 @@ describe('IndexedDBFileManager', () => {
       tableName: 'taxi-json',
       fileName: 'taxi-json.parquet',
       json: {
-        test: 'test',
-      },
+        test: 'test'
+      }
     };
 
     await fileManager.registerJSON(jsonFile);
@@ -244,16 +243,16 @@ describe('IndexedDBFileManager', () => {
         tableName: 'taxi-json-bulk',
         fileName: 'taxi-json1.parquet',
         json: {
-          test: 'test',
-        },
+          test: 'test'
+        }
       },
       {
         tableName: 'taxi-json-bulk',
         fileName: 'taxi-json2.parquet',
         json: {
-          test: 'test',
-        },
-      },
+          test: 'test'
+        }
+      }
     ];
 
     await fileManager.bulkRegisterJSON(jsonFiles);

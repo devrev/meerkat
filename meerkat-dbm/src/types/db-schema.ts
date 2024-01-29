@@ -17,6 +17,7 @@ export interface Table {
 
 export interface FileData {
   fileName: string;
+  partitions?: string[];
   fileType?: FileType;
   size?: number;
   staleTime?: number;
