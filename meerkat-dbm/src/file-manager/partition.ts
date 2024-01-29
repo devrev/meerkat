@@ -1,4 +1,4 @@
-import { FileData } from '../types/db-schema';
+import { FileData } from '../types';
 
 export const getFilesByPartition = (
   files: FileData[],
@@ -9,11 +9,17 @@ export const getFilesByPartition = (
 
   // Filter files by partition
   const filteredFiles = files.filter((file) => {
-    if (!file.partitionKey) return false;
+    // If file has no partitions, skip it
+    if (!file.partitions?.length) return false;
 
-    return partitions.some((partition) =>
-      file.partitionKey?.includes(partition)
-    );
+    const filePartitions = file.partitions;
+
+    // Check if any partition in the file matches any partition in the input
+    return partitions.some((requestPartition) => {
+      return filePartitions.some((filePartition) => {
+        return filePartition.includes(requestPartition);
+      });
+    });
   });
 
   return filteredFiles;
