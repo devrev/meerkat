@@ -8,7 +8,7 @@ import {
   DBMConstructorOptions,
   QueryOptions,
   QueryQueueItem,
-  Table,
+  TableConfig,
 } from './types';
 
 export class DBM {
@@ -101,7 +101,7 @@ export class DBM {
 
   private async _queryWithTables(
     query: string,
-    tables: Table[],
+    tables: TableConfig[],
     options?: QueryOptions
   ) {
     /**
@@ -315,7 +315,7 @@ export class DBM {
     options,
   }: {
     query: string;
-    tables: Table[];
+    tables: TableConfig[];
     options?: QueryOptions;
   }) {
     const connectionId = uuidv4();
