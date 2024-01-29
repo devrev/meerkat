@@ -1,5 +1,5 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
-import { Table as DBMTable } from '../../dbm/types';
+import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import {
@@ -183,7 +183,9 @@ export class IndexedDBFileManager implements FileManagerType {
     return fileData?.buffer;
   }
 
-  async getFilesNameForTables(tables: DBMTable[]): Promise<TableWiseFiles[]> {
+  async getFilesNameForTables(
+    tables: TableConfig[]
+  ): Promise<TableWiseFiles[]> {
     const tableNames = tables.map((table) => table.name);
 
     const tableData = (await this.indexedDB.tablesKey.bulkGet(tableNames))
@@ -192,8 +194,6 @@ export class IndexedDBFileManager implements FileManagerType {
         tableObj[table.tableName] = table;
         return tableObj;
       }, {} as { [key: string]: Table });
-
-
 
     return tables.map((table) => ({
       tableName: table.name,
@@ -226,7 +226,7 @@ export class IndexedDBFileManager implements FileManagerType {
     }
   }
 
-  async mountFileBufferByTables(tables: DBMTable[]): Promise<void> {
+  async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tableData = await this.getFilesNameForTables(tables);
 
     /**

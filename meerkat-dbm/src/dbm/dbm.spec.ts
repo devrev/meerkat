@@ -8,7 +8,7 @@ import {
 import { FileData, Table, TableWiseFiles } from '../types';
 import { DBM } from './dbm';
 import { InstanceManagerType } from './instance-manager';
-import { DBMConstructorOptions, Table as DBMTable } from './types';
+import { DBMConstructorOptions, TableConfig } from './types';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
@@ -53,7 +53,7 @@ export class MockFileManager implements FileManagerType {
     return fileBuffer.buffer;
   }
 
-  async mountFileBufferByTables(tables: DBMTable[]): Promise<void> {
+  async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tableNames = tables.map((table) => table.name);
     for (const tableName of tableNames) {
       for (const key in this.fileBufferStore) {
@@ -87,7 +87,7 @@ export class MockFileManager implements FileManagerType {
   }
 
   async getFilesNameForTables(
-    tableNames: DBMTable[]
+    tableNames: TableConfig[]
   ): Promise<TableWiseFiles[]> {
     const data: TableWiseFiles[] = [];
 

@@ -74,7 +74,7 @@ export interface QueryOptions {
   signal?: AbortSignal;
 }
 
-export interface Table {
+export interface TableConfig {
   /**
    * @description
    * Name of the table.
@@ -89,7 +89,7 @@ export interface Table {
 
 export interface QueryQueueItem {
   query: string;
-  tables: Table[];
+  tables: TableConfig[];
   promise: {
     resolve: (value: any) => void;
     reject: (reason?: any) => void;
