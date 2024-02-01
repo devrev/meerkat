@@ -81,4 +81,24 @@ describe('mergeFileBufferStoreIntoTable', () => {
       files: [{ fileName: 'taxi1.parquet' }],
     });
   });
+
+  it('should update the file if already exists', () => {
+    const currentTableState = [
+      {
+        tableName: fileBufferStore.tableName,
+        files: [{ fileName: fileBufferStore.fileName }],
+      },
+    ];
+
+    const updatedTableMap = mergeFileBufferStoreIntoTable(
+      [{ ...fileBufferStore, partitions: ['dev_oid=DEV-787'] }],
+      currentTableState
+    );
+
+    // Verify that the taxi1 table still has one file (taxi1.parquet)
+    expect(updatedTableMap.get('taxi1')).toEqual({
+      tableName: 'taxi1',
+      files: [{ fileName: 'taxi1.parquet', partitions: ['dev_oid=DEV-787'] }],
+    });
+  });
 });
