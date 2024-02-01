@@ -130,6 +130,7 @@ export interface FileManagerType {
 export type BaseFileStore = {
   tableName: string;
   fileName: string;
+  partitions?: string[];
   staleTime?: number;
   cacheTime?: number;
   metadata?: object;

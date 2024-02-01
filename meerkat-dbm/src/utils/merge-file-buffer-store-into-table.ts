@@ -36,11 +36,18 @@ export const mergeFileBufferStoreIntoTable = (
      * Check if the table already exists in the map if it does, then update the existing table entry
      */
     if (existingTable) {
-      const fileExists = existingTable.files.some(
+      const existingFileIndex = existingTable.files.findIndex(
         (file) => file.fileName === fileBuffer.fileName
       );
 
-      if (!fileExists) {
+      if (existingFileIndex !== -1) {
+        // If file exists, update the fileData
+        existingTable.files[existingFileIndex] = {
+          ...existingTable.files[existingFileIndex],
+          ...fileData,
+        };
+      } else {
+        // If file does not exist, add it to the files array
         existingTable.files.push(fileData);
       }
     } else {
