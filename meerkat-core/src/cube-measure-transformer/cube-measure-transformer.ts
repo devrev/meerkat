@@ -1,5 +1,6 @@
 import { Member } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
+import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replacer';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeMeasureToSQLSelectString = (
@@ -24,7 +25,8 @@ export const cubeMeasureToSQLSelectString = (
     if (i > 0) {
       base += ', ';
     }
-    base += ` ${measureSchema.sql} AS ${aliasKey} `;
+    const meerkatReplacedSqlString = meerkatPlaceholderReplacer(measureSchema.sql, tableSchema.name)
+    base += ` ${meerkatReplacedSqlString} AS ${aliasKey} `;
   }
   return base
 };
