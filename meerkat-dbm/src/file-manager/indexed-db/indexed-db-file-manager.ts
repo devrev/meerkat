@@ -264,10 +264,13 @@ export class IndexedDBFileManager implements FileManagerType {
     await Promise.all(promises);
   }
 
-  async getTableData(tableName: string): Promise<Table | undefined> {
-    const tableData = await this.indexedDB.tablesKey.get(tableName);
+  async getTableData(table: TableConfig): Promise<Table | undefined> {
+    const tableData = await this.indexedDB.tablesKey.get(table.name);
 
-    return tableData;
+    return {
+      ...tableData,
+      files: getFilesByPartition(tableData?.files ?? [], table.partitions),
+    };
   }
 
   async setTableMetadata(tableName: string, metadata: object): Promise<void> {

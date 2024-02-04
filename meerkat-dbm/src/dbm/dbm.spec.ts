@@ -109,8 +109,8 @@ export class MockFileManager implements FileManagerType {
     return data;
   }
 
-  async getTableData(tableName: string): Promise<Table | undefined> {
-    return this.tables[tableName];
+  async getTableData(table: TableConfig): Promise<Table | undefined> {
+    return this.tables[table.name];
   }
 
   async setTableMetadata(table: string, metadata: object): Promise<void> {
