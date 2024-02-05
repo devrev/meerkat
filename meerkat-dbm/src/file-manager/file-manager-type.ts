@@ -91,7 +91,7 @@ export interface FileManagerType {
    * @param tableName - The name of the table.
    * @returns Table object if found.
    */
-  getTableData: (tableName: string) => Promise<Table | undefined>;
+  getTableData: (table: TableConfig) => Promise<Table | undefined>;
 
   /**
    * @description
@@ -130,6 +130,7 @@ export interface FileManagerType {
 export type BaseFileStore = {
   tableName: string;
   fileName: string;
+  partitions?: string[];
   staleTime?: number;
   cacheTime?: number;
   metadata?: object;

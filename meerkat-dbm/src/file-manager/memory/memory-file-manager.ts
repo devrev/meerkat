@@ -93,7 +93,7 @@ export class MemoryDBFileManager implements FileManagerType {
     return [];
   }
 
-  async getTableData(tableName: string): Promise<Table | undefined> {
+  async getTableData(table: TableConfig): Promise<Table | undefined> {
     // not needed for memory file manager
     return;
   }
