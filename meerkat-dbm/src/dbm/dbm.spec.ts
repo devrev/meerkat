@@ -490,4 +490,51 @@ describe('DBM', () => {
       expect(promises[1].status).toBe('rejected');
     });
   });
+
+  describe('table locks', () => {
+    it('should lock the table and release it', async () => {
+      const tableName = 'exampleTable';
+
+      // Request the lock for the table and then release it
+      await dbm.lockTables([tableName]);
+
+      await dbm.unlockTables([tableName]);
+
+      // Again request the lock for the table
+      await dbm.lockTables([tableName]);
+
+      await dbm.unlockTables([tableName]);
+    });
+
+    it('two consumers requesting lock for the same table', async () => {
+      const tableName = 'exampleTable';
+
+      // Set up promises for the two consumers
+      const consumer1Promise = dbm.lockTables([tableName]);
+      const consumer2Promise = dbm.lockTables([tableName]);
+
+      // Wait for the first consumer to get the lock
+      const consumer1 = await consumer1Promise;
+      expect(consumer1).toBe(undefined);
+
+      const timeout = new Promise((resolve) => {
+        setTimeout(resolve, 1000, 'TIMEOUT');
+      });
+
+      // Promise.race will wait for either the promises be resolved
+      // consumer2 will not be able to get the lock as it is already locked by consumer1
+      await expect(Promise.race([consumer2Promise, timeout])).resolves.toBe(
+        'TIMEOUT'
+      );
+
+      // Release the lock for the first consumer
+      await dbm.unlockTables([tableName]);
+
+      // Now the second consumer should be able to get the lock
+      await consumer2Promise;
+      await expect(Promise.race([consumer2Promise, timeout])).resolves.toBe(
+        undefined
+      );
+    });
+  });
 });
