@@ -514,8 +514,7 @@ describe('DBM', () => {
       const consumer2Promise = dbm.lockTables([tableName]);
 
       // Wait for the first consumer to get the lock
-      const consumer1 = await consumer1Promise;
-      expect(consumer1).toBe(undefined);
+      await expect(consumer1Promise).resolves.toBeUndefined();
 
       const timeout = new Promise((resolve) => {
         setTimeout(resolve, 1000, 'TIMEOUT');
