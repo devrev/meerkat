@@ -157,6 +157,10 @@ export class DBM {
     }
   }
 
+  isTableLocked(tableName: string): boolean {
+    return this.tableLockRegistry[tableName]?.isLocked ?? false;
+  }
+
   private async _queryWithTables(
     query: string,
     tables: TableConfig[],

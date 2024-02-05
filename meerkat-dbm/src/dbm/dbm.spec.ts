@@ -498,7 +498,11 @@ describe('DBM', () => {
       // Request the lock for the table and then release it
       await dbm.lockTables([tableName]);
 
+      expect(dbm.isTableLocked(tableName)).toBe(true);
+
       await dbm.unlockTables([tableName]);
+
+      expect(dbm.isTableLocked(tableName)).toBe(false);
 
       // Again request the lock for the table
       await dbm.lockTables([tableName]);
@@ -516,24 +520,37 @@ describe('DBM', () => {
       // Wait for the first consumer to get the lock
       await expect(consumer1Promise).resolves.toBeUndefined();
 
-      const timeout = new Promise((resolve) => {
+      expect(dbm.isTableLocked(tableName)).toBe(true);
+
+      const timeout1 = new Promise((resolve) => {
         setTimeout(resolve, 1000, 'TIMEOUT');
       });
 
       // Promise.race will wait for either the promises be resolved
       // consumer2 will not be able to get the lock as it is already locked by consumer1
-      await expect(Promise.race([consumer2Promise, timeout])).resolves.toBe(
+      await expect(Promise.race([consumer2Promise, timeout1])).resolves.toBe(
         'TIMEOUT'
       );
 
       // Release the lock for the first consumer
       await dbm.unlockTables([tableName]);
 
-      // Now the second consumer should be able to get the lock
-      await consumer2Promise;
-      await expect(Promise.race([consumer2Promise, timeout])).resolves.toBe(
-        undefined
-      );
+      // Check if the table is still locked as the consumer2 will get the lock
+      expect(dbm.isTableLocked(tableName)).toBe(true);
+
+      const timeout2 = new Promise((resolve) => {
+        setTimeout(resolve, 1000, 'TIMEOUT');
+      });
+
+      // This time the consumer2 will get the lock
+      await expect(
+        Promise.race([consumer2Promise, timeout2])
+      ).resolves.toBeUndefined();
+
+      // Release the lock
+      await dbm.unlockTables([tableName]);
+
+      expect(dbm.isTableLocked(tableName)).toBe(false);
     });
   });
 });
