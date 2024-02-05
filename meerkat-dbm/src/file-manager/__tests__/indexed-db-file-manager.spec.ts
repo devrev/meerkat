@@ -19,6 +19,7 @@ const mockDB = {
     };
   }
 };
+
 describe('IndexedDBFileManager', () => {
   let fileManager: IndexedDBFileManager;
   let db: AsyncDuckDB;
@@ -29,7 +30,8 @@ describe('IndexedDBFileManager', () => {
     tableName: 'taxi1',
     fileName: 'taxi1.parquet',
     buffer: new Uint8Array([1, 2, 3]),
-    fileType: FILE_TYPES.PARQUET
+    fileType: FILE_TYPES.PARQUET,
+    partitions: ['customer_oid=1'],
   };
 
   const fileBuffers = [
@@ -37,14 +39,14 @@ describe('IndexedDBFileManager', () => {
       tableName: 'taxi1',
       fileName: 'taxi2.parquet',
       buffer: new Uint8Array([1, 2, 3, 4]),
-      fileType: FILE_TYPES.PARQUET
+      fileType: FILE_TYPES.PARQUET,
     },
     {
       tableName: 'taxi2',
       fileName: 'taxi3.parquet',
       buffer: new Uint8Array([1, 2, 3, 4, 5]),
-      fileType: FILE_TYPES.PARQUET
-    }
+      fileType: FILE_TYPES.PARQUET,
+    },
   ];
 
   beforeAll(() => {
@@ -57,7 +59,7 @@ describe('IndexedDBFileManager', () => {
       },
       terminateDB: async () => {
         return;
-      }
+      },
     };
   });
 
@@ -71,7 +73,7 @@ describe('IndexedDBFileManager', () => {
       logger: log,
       onEvent: (event) => {
         console.log(event);
-      }
+      },
     });
 
     await fileManager.initializeDB();
@@ -91,7 +93,13 @@ describe('IndexedDBFileManager', () => {
     expect(tableData1.length).toBe(1);
     expect(tableData1[0]).toEqual({
       tableName: 'taxi1',
-      files: [{ fileName: fileBuffer.fileName, fileType: FILE_TYPES.PARQUET }]
+      files: [
+        {
+          fileName: fileBuffer.fileName,
+          fileType: FILE_TYPES.PARQUET,
+          partitions: fileBuffer.partitions,
+        },
+      ],
     });
 
     /**
@@ -112,7 +120,7 @@ describe('IndexedDBFileManager', () => {
     expect(tableData2.length).toBe(2);
     expect(tableData2[0].files.map((file) => file.fileName)).toEqual([
       'taxi1.parquet',
-      'taxi2.parquet'
+      'taxi2.parquet',
     ]);
 
     /**
@@ -121,7 +129,7 @@ describe('IndexedDBFileManager', () => {
     expect(fileBufferData2.map((file) => file.fileName)).toEqual([
       'taxi1.parquet',
       'taxi2.parquet',
-      'taxi3.parquet'
+      'taxi3.parquet',
     ]);
   });
 
@@ -144,7 +152,7 @@ describe('IndexedDBFileManager', () => {
     // Register the same file with a different buffer
     await fileManager.registerFileBuffer({
       ...fileBuffer,
-      buffer: new Uint8Array([1])
+      buffer: new Uint8Array([1]),
     });
 
     const fileBufferData2 = await indexedDB.files.toArray();
@@ -156,14 +164,20 @@ describe('IndexedDBFileManager', () => {
   });
 
   it('should return the table data', async () => {
-    const fileData = await fileManager.getTableData('taxi1');
+    const fileData = await fileManager.getTableData({
+      name: 'taxi1',
+      partitions: fileBuffer.partitions,
+    });
 
     expect(fileData).toEqual({
       files: [
-        { fileName: 'taxi1.parquet', fileType: 'parquet' },
-        { fileName: 'taxi2.parquet', fileType: 'parquet' }
+        {
+          fileName: 'taxi1.parquet',
+          fileType: 'parquet',
+          partitions: fileBuffer.partitions,
+        },
       ],
-      tableName: 'taxi1'
+      tableName: 'taxi1',
     });
   });
 

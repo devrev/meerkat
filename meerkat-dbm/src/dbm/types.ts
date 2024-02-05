@@ -101,3 +101,11 @@ export interface QueryQueueItem {
   connectionId: string;
   options?: QueryOptions;
 }
+
+export interface TableLock {
+  promiseQueue: {
+    resolve: () => void;
+    reject: () => void;
+  }[];
+  isLocked: boolean;
+}

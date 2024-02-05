@@ -9,6 +9,7 @@ import {
   QueryOptions,
   QueryQueueItem,
   TableConfig,
+  TableLock,
 } from './types';
 
 export class DBM {
@@ -16,6 +17,7 @@ export class DBM {
   private instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
   private queriesQueue: QueryQueueItem[] = [];
+  private tableLockRegistry: Record<string, TableLock> = {};
 
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
@@ -97,6 +99,66 @@ export class DBM {
       this.connection = await db.connect();
     }
     return this.connection;
+  }
+
+  async lockTables(tableNames: string[]): Promise<void> {
+    const promises = [];
+
+    for (const tableName of tableNames) {
+      const tableLock = this.tableLockRegistry[tableName];
+
+      // If the table lock doesn't exist, create a new lock
+      if (!tableLock) {
+        this.tableLockRegistry[tableName] = {
+          isLocked: true,
+          promiseQueue: [],
+        };
+        continue;
+      }
+
+      // If the table is already locked, add the promise to the queue
+      if (tableLock.isLocked) {
+        const promise = new Promise<void>((resolve, reject) => {
+          tableLock.promiseQueue.push({ reject, resolve });
+        });
+        promises.push(promise);
+      }
+
+      // Set the table as locked
+      tableLock.isLocked = true;
+    }
+
+    // Wait for all promises to resolve (locks to be acquired)
+    await Promise.all(promises);
+  }
+
+  async unlockTables(tableNames: string[]): Promise<void> {
+    for (const tableName of tableNames) {
+      const tableLock = this.tableLockRegistry[tableName];
+
+      // If the table lock doesn't exist, create a new lock
+      if (!tableLock) {
+        this.tableLockRegistry[tableName] = {
+          isLocked: false,
+          promiseQueue: [],
+        };
+      }
+
+      const nextPromiseInQueue = tableLock?.promiseQueue?.shift();
+
+      // If there is a promise in the queue, resolve it and keep the table as locked
+      if (nextPromiseInQueue) {
+        tableLock.isLocked = true;
+        nextPromiseInQueue.resolve();
+      } else {
+        // If there are no promises in the queue, set the table as unlocked
+        tableLock.isLocked = false;
+      }
+    }
+  }
+
+  isTableLocked(tableName: string): boolean {
+    return this.tableLockRegistry[tableName]?.isLocked ?? false;
   }
 
   private async _queryWithTables(
@@ -199,6 +261,11 @@ export class DBM {
     }
 
     try {
+      /**
+       * Lock the tables
+       */
+      this.lockTables(this.currentQueryItem.tables.map((table) => table.name));
+
       const startTime = Date.now();
       this.logger.debug(
         'Time since query was added to the queue:',
@@ -242,6 +309,13 @@ export class DBM {
        * Reject the promise, so the caller can catch the error
        */
       this.currentQueryItem?.promise.reject(error);
+    } finally {
+      /**
+       * Unlock the tables
+       */
+      this.unlockTables(
+        this.currentQueryItem.tables.map((table) => table.name)
+      );
     }
 
     /**
