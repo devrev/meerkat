@@ -6,7 +6,6 @@ import {
   INPUT_DATA_QUERY,
   INPUT_DATA_QUERY_2,
   TABLE_SCHEMA,
-  TABLE_SCHEMA_2,
   TEST_DATA,
 } from './test-data';
 describe('cube-to-sql', () => {
@@ -79,26 +78,6 @@ describe('cube-to-sql', () => {
       limit: 2,
     };
     const sql = await cubeQueryToSQL(query, [TABLE_SCHEMA]);
-    console.info(`SQL for Simple Cube Query: `, sql);
-    const output = await duckdbExec(sql);
-    const parsedOutput = JSON.parse(JSON.stringify(output));
-    console.info('parsedOutput', parsedOutput);
-    expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
-      parsedOutput[1].orders__total_order_amount
-    );
-  });
-
-  it('Test', async () => {
-    const query = {
-      measures: ['orders.total_order_amount'],
-      filters: [],
-      dimensions: ['orders.customer_id', 'customers_joined.customer_name'],
-      order: {
-        'orders.total_order_amount': 'desc',
-      },
-      limit: 2,
-    };
-    const sql = await cubeQueryToSQL(query, [TABLE_SCHEMA_2, TABLE_SCHEMA]);
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));

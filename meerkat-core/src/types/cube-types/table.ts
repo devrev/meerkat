@@ -35,7 +35,7 @@ export type TableSchema = {
   sql: string;
   measures: Measure[];
   dimensions: Dimension[];
-  joins: Join[];
+  joins?: Join[];
 };
 
 export interface ContextParams {

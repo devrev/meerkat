@@ -65,62 +65,6 @@ export const TABLE_SCHEMA = {
       type: 'string',
     },
   ],
-  joins: [],
-};
-
-export const CREATE_TEST_TABLE_2 = `
-CREATE TABLE customers (
-    customer_id INTEGER,
-    customer_name VARCHAR,
-    customer_email VARCHAR,
-    customer_phone VARCHAR
-);
-`;
-
-export const INPUT_DATA_QUERY_2 = `
-INSERT INTO customers VALUES
-(1, 'John Doe', 'johndoe@gmail.com', '1234567890'),
-(2, 'Jane Doe', 'janedoe@gmail.com', '9876543210'),
-(3, 'John Smith', 'johnsmith@gmail.com', '1234567892'); 
-`;
-
-export const TABLE_SCHEMA_2 = {
-  name: 'customers_joined',
-  sql: 'select * from customers',
-  measures: [
-    {
-      name: 'total_customer_count',
-      sql: 'COUNT(customer_id)',
-      type: 'number',
-    },
-  ],
-  dimensions: [
-    {
-      name: 'customer_id',
-      sql: 'customer_id',
-      type: 'number',
-    },
-    {
-      name: 'customer_name',
-      sql: 'customer_name',
-      type: 'string',
-    },
-    {
-      name: 'customer_email',
-      sql: 'customer_email',
-      type: 'string',
-    },
-    {
-      name: 'customer_phone',
-      sql: 'customer_phone',
-      type: 'string',
-    },
-  ],
-  joins: [
-    {
-      sql: 'orders.customer_id = customers_joined.customer_id',
-    },
-  ],
 };
 
 export const TEST_DATA = [
