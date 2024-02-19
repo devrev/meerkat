@@ -1,4 +1,4 @@
-import { TableSchema } from '@devrev/meerkat-core';
+import { TableSchema } from '../types/cube-types';
 
 type Graph = { [key: string]: { [key: string]: string } };
 
@@ -7,7 +7,7 @@ function generateSqlQuery(
   tableSchemaSqlMap: { [key: string]: string },
   directedGraph: Graph
 ): string {
-  let query: string = `${tableSchemaSqlMap[path[0]]}`;
+  let query = `${tableSchemaSqlMap[path[0]]}`;
 
   console.info('tableSchemaSqlMap', tableSchemaSqlMap);
   console.info('directedGraph', directedGraph);
@@ -15,7 +15,7 @@ function generateSqlQuery(
   for (let i = 1; i < path.length; i++) {
     console.info('path[i]', path[i]);
     console.info('path[i - 1]', path[i - 1]);
-    query += ` LEFT JOIN (${tableSchemaSqlMap[path[i]]}) ON ${
+    query += ` LEFT JOIN (${tableSchemaSqlMap[path[i]]}) AS ${path[i]}  ON ${
       directedGraph[path[i - 1]][path[i]]
     }`;
   }
@@ -65,7 +65,7 @@ const getStartingNodes = (graph: Graph): string[] => {
 };
 
 const createDirectedGraph = (tableSchema: TableSchema[]) => {
-  let directedGraph: { [key: string]: { [key: string]: string } } = {};
+  const directedGraph: { [key: string]: { [key: string]: string } } = {};
 
   function addEdge(table1: string, table2: string, joinCondition: string) {
     if (
@@ -79,7 +79,7 @@ const createDirectedGraph = (tableSchema: TableSchema[]) => {
   }
 
   tableSchema.forEach((schema) => {
-    schema.joins.forEach((join) => {
+    schema?.joins?.forEach((join) => {
       const tables = join.sql.split('=').map((str) => str.split('.')[0].trim());
 
       if (tables.length !== 2) {

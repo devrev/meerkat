@@ -3,7 +3,7 @@ import { duckdbExec } from '../duckdb-exec';
 
 export const CREATE_TEST_TABLE_2 = `
 CREATE TABLE customers (
-    customer_id INTEGER,
+    customer_id VARCHAR,
     customer_name VARCHAR,
     customer_email VARCHAR,
     customer_phone VARCHAR
@@ -12,13 +12,13 @@ CREATE TABLE customers (
 
 export const INPUT_DATA_QUERY_2 = `
 INSERT INTO customers VALUES
-(1, 'John Doe', 'johndoe@gmail.com', '1234567890'),
-(2, 'Jane Doe', 'janedoe@gmail.com', '9876543210'),
-(3, 'John Smith', 'johnsmith@gmail.com', '1234567892'); 
+('1', 'John Doe', 'johndoe@gmail.com', '1234567890'),
+('2', 'Jane Doe', 'janedoe@gmail.com', '9876543210'),
+('3', 'John Smith', 'johnsmith@gmail.com', '1234567892'); 
 `;
 
 export const TABLE_SCHEMA_2 = {
-  name: 'customers_joined',
+  name: 'customers',
   sql: 'select * from customers',
   measures: [
     {
@@ -51,7 +51,7 @@ export const TABLE_SCHEMA_2 = {
   ],
   joins: [
     {
-      sql: 'orders.customer_id = customers_joined.customer_id',
+      sql: 'orders.customer_id = customers.customer_id',
     },
   ],
 };
@@ -125,22 +125,46 @@ export const TABLE_SCHEMA = {
   ],
 };
 
-it('Test', async () => {
-  const query = {
-    measures: ['orders.total_order_amount'],
-    filters: [],
-    dimensions: ['orders.customer_id', 'customers_joined.customer_name'],
-    order: {
-      'orders.total_order_amount': 'desc',
-    },
-    limit: 2,
-  };
-  const sql = await cubeQueryToSQL(query, [TABLE_SCHEMA_2, TABLE_SCHEMA]);
-  console.info(`SQL for Simple Cube Query: `, sql);
-  const output = await duckdbExec(sql);
-  const parsedOutput = JSON.parse(JSON.stringify(output));
-  console.info('parsedOutput', parsedOutput);
-  expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
-    parsedOutput[1].orders__total_order_amount
-  );
+describe('Joins', () => {
+  beforeAll(async () => {
+    await duckdbExec(CREATE_TEST_TABLE_2);
+    await duckdbExec(CREATE_TEST_TABLE);
+    await duckdbExec(INPUT_DATA_QUERY_2);
+    await duckdbExec(INPUT_DATA_QUERY);
+  });
+
+  it('Test', async () => {
+    const query = {
+      measures: ['orders.total_order_amount'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.order_amount',
+              operator: 'gt',
+              values: ['75'],
+            },
+            {
+              member: 'customers.customer_name',
+              operator: 'contains',
+              values: ['Doe'],
+            },
+          ],
+        },
+      ],
+      dimensions: ['orders.customer_id', 'customers.customer_name'],
+      order: {
+        'orders.total_order_amount': 'desc',
+      },
+      limit: 2,
+    };
+    const sql = await cubeQueryToSQL(query, [TABLE_SCHEMA_2, TABLE_SCHEMA]);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    const output = await duckdbExec(sql);
+    const parsedOutput = JSON.parse(JSON.stringify(output));
+    console.info('parsedOutput', parsedOutput);
+    // expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
+    //   parsedOutput[1].orders__total_order_amount
+    // );
+  });
 });

@@ -106,6 +106,7 @@ export const valueBuilder = (
   value: string,
   memberInfo: Measure | Dimension
 ) => {
+  console.info(memberInfo);
   switch (memberInfo.type) {
     case 'string':
       return {
