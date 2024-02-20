@@ -92,8 +92,6 @@ export const cubeQueryToSQL = async (
 
   const updatedTableSchema = await getCombinedTableSchema(updatedTableSchemas);
 
-  console.info('updatedTableSchema', updatedTableSchema);
-
   const ast = cubeToDuckdbAST(cubeQuery, updatedTableSchema);
   if (!ast) {
     throw new Error('Could not generate AST');

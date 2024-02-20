@@ -38,10 +38,10 @@ export const cubeMeasureToSQLSelectString = (
     //Replace all the columnsUsedInMeasure with safeKey
     columnsUsedInMeasure?.forEach((measureKey) => {
       const column = measureKey.split('.')[1];
-      console.info('column', column, tableSchemaName);
-      const columnKey = memberKeyToSafeKey(`${tableSchemaName}.${column}`);
+      const memberKey = `${tableSchemaName}.${column}`;
+      const columnKey = memberKeyToSafeKey(memberKey);
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
-        `${tableSchemaName}.${column}`,
+        memberKey,
         columnKey
       );
     });

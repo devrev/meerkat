@@ -2,19 +2,18 @@ import { TableSchema } from '../types/cube-types';
 
 type Graph = { [key: string]: { [key: string]: string } };
 
-function generateSqlQuery(
+export function generateSqlQuery(
   path: string[],
   tableSchemaSqlMap: { [key: string]: string },
   directedGraph: Graph
 ): string {
+  console.log('path', path);
+  console.log('tableSchemaSqlMap', tableSchemaSqlMap);
+  console.log('directedGraph', directedGraph);
+
   let query = `${tableSchemaSqlMap[path[0]]}`;
 
-  console.info('tableSchemaSqlMap', tableSchemaSqlMap);
-  console.info('directedGraph', directedGraph);
-
-  for (let i = 1; i < path.length; i++) {
-    console.info('path[i]', path[i]);
-    console.info('path[i - 1]', path[i - 1]);
+  for (let i = 1; i < path.length; i += 2) {
     query += ` LEFT JOIN (${tableSchemaSqlMap[path[i]]}) AS ${path[i]}  ON ${
       directedGraph[path[i - 1]][path[i]]
     }`;
@@ -23,26 +22,32 @@ function generateSqlQuery(
   return query;
 }
 
-const getJoinPathAsArray = (startingNode: string, graph: Graph): string[] => {
-  function DFS(node: string, visited: Set<string>, path: string[]): string[] {
-    visited.add(node);
-    path.push(node);
+export const getJoinPathAsArray = (
+  startingNode: string,
+  graph: Graph
+): string[] => {
+  let queue = [startingNode];
+  let visitedNodes = new Set<string>();
+  let path: string[] = [];
 
-    for (const connectedNode in graph[node]) {
-      if (!visited.has(connectedNode)) {
-        DFS(connectedNode, visited, path);
+  while (queue.length) {
+    let currentNode = queue.shift() as string;
+    visitedNodes.add(currentNode);
+
+    for (const connectedNode in graph[currentNode]) {
+      if (!visitedNodes.has(connectedNode)) {
+        queue.push(connectedNode);
+
+        path.push(currentNode); // This node is the source node for direct edge
+        path.push(connectedNode); // This node is the target node for direct edge
       }
     }
-    return path;
   }
 
-  const visitedNodes = new Set<string>();
-  const path: string[] = [];
-
-  return DFS(startingNode, visitedNodes, path);
+  return path;
 };
 
-const getStartingNodes = (graph: Graph): string[] => {
+export const getStartingNodes = (graph: Graph): string[] => {
   const incomingEdgesCount: { [key: string]: number } = {};
 
   for (const sourceNode in graph) {
@@ -64,7 +69,7 @@ const getStartingNodes = (graph: Graph): string[] => {
   );
 };
 
-const createDirectedGraph = (tableSchema: TableSchema[]) => {
+export const createDirectedGraph = (tableSchema: TableSchema[]) => {
   const directedGraph: { [key: string]: { [key: string]: string } } = {};
 
   function addEdge(table1: string, table2: string, joinCondition: string) {
@@ -107,7 +112,7 @@ const createDirectedGraph = (tableSchema: TableSchema[]) => {
   return directedGraph;
 };
 
-const checkLoopInGraph = (graph: Graph): boolean | Error => {
+export const checkLoopInGraph = (graph: Graph): boolean | Error => {
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
 

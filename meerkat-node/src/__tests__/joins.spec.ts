@@ -307,7 +307,7 @@ describe('Joins Tests', () => {
   });
 
   it('Three tables join - Direct', async () => {
-    const DEMO_SCHEMA = ORDER_SCHEMA;
+    const DEMO_SCHEMA = structuredClone(ORDER_SCHEMA);
 
     DEMO_SCHEMA.joins = [
       {
@@ -317,7 +317,22 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
-      filters: [],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.order_amount',
+              operator: 'gt',
+              values: ['40'],
+            },
+            {
+              member: 'customers.customer_name',
+              operator: 'contains',
+              values: ['Doe'],
+            },
+          ],
+        },
+      ],
       dimensions: [
         'products.product_id',
         'orders.product_id',
@@ -336,7 +351,54 @@ describe('Joins Tests', () => {
     expect(parsedOutput).toHaveLength(3);
   });
 
-  it.skip('Success Join with filters', async () => {
+  it('Three tables join - Indirect', async () => {
+    const DEMO_SCHEMA = structuredClone(CUSTOMER_SCHEMA);
+
+    DEMO_SCHEMA.joins.push({
+      sql: 'products.product_id = customers.customer_id',
+    });
+
+    const query = {
+      measures: ['orders.total_order_amount'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.order_amount',
+              operator: 'gt',
+              values: ['79'],
+            },
+            {
+              member: 'customers.customer_name',
+              operator: 'contains',
+              values: ['Doe'],
+            },
+          ],
+        },
+      ],
+      dimensions: [
+        'products.product_id',
+        'orders.product_id',
+        'customers.customer_id',
+      ],
+    };
+    const sql = await cubeQueryToSQL(query, [
+      ORDER_SCHEMA,
+      DEMO_SCHEMA,
+      PRODUCT_SCHEMA,
+    ]);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    const output = await duckdbExec(sql);
+    const parsedOutput = JSON.parse(JSON.stringify(output));
+    console.info('parsedOutput', parsedOutput);
+    expect(parsedOutput).toHaveLength(1);
+    expect(parsedOutput[0].customers__customer_id).toBe('1');
+    expect(parsedOutput[0].products__product_id).toBe('1');
+    expect(parsedOutput[0].orders__product_id).toBe('2');
+    expect(parsedOutput[0].orders__total_order_amount).toBe(80);
+  });
+
+  it('Success Join with filters', async () => {
     const query = {
       measures: ['orders.total_order_amount'],
       filters: [
