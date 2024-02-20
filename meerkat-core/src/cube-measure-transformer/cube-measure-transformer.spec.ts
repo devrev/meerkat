@@ -178,10 +178,10 @@ describe('getAllColumnUsedInMeasures', () => {
       'test.id',
       'test.next_resp_time_arr',
       'test.first_resp_time_arr',
-      'test..resolution_time_arr',
-      'test.id',
-      'test.sla_stage',
-      'test.id',
+      'test.resolution_time_arr',
+      'test.total_second_resp_breaches_ever',
+      'test.total_first_resp_breaches_ever',
+      'test.total_resolution_breaches_ever',
     ]);
   });
 });

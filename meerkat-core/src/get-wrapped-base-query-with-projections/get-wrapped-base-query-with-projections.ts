@@ -131,7 +131,6 @@ export const getWrappedBaseQueryWithProjections = ({
   const formattedMemberProjection = memberProjections
     ? `, ${memberProjections}`
     : '';
-  console.log('formattedMemberProjection', formattedMemberProjection);
 
   const finalAliasedColumnsClause =
     aliasFromFilters + formattedMemberProjection;
