@@ -30,7 +30,7 @@ export const cubeMeasureToSQLSelectString = (
       measureSchema.sql,
       joinedTableSchema.name
     );
-    const columnsUsedInMeasure = applyRegexToSQL(
+    const columnsUsedInMeasure = getColumnsFromSQL(
       meerkatReplacedSqlString,
       tableSchemaName
     );
@@ -99,13 +99,21 @@ export const getSelectReplacedSql = (sql: string, selectString: string) => {
   return `${beforeSelect}${selectString}${afterSelect}`;
 };
 
+/**
+ * Get all the columns used in the measures.
+ * This is used for extracting the columns used in the measures needed for the projection.
+ * Example: The joins implementation uses this to get the columns used in the measures to join the tables.
+ * like the SQL for the measure is `SUM(table.total)` and the table name is `table`, then the column used is `total`
+ * table cannot be used directly here because the joined table would have column name ambiguity.
+ * Thus these columns are projected and directly used in the join.
+ */
 export const getAllColumnUsedInMeasures = (
   measures: Measure[],
   tableSchema: TableSchema
 ) => {
   let columns: string[] = [];
   measures.forEach((measure) => {
-    const columnMatch = applyRegexToSQL(measure.sql, tableSchema.name);
+    const columnMatch = getColumnsFromSQL(measure.sql, tableSchema.name);
     if (columnMatch && columnMatch.length > 0) {
       columns = [...columns, ...columnMatch];
     }
@@ -114,7 +122,7 @@ export const getAllColumnUsedInMeasures = (
   return [...new Set(columns)];
 };
 
-const applyRegexToSQL = (sql: string, tableName: string) => {
+const getColumnsFromSQL = (sql: string, tableName: string) => {
   const regex = new RegExp(`(${tableName}\\.[a-zA-Z0-9_]+)`, 'g');
   const columnMatch = sql.match(regex);
   return columnMatch;

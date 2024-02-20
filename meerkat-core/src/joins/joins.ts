@@ -26,12 +26,12 @@ export const getJoinPathAsArray = (
   startingNode: string,
   graph: Graph
 ): string[] => {
-  let queue = [startingNode];
-  let visitedNodes = new Set<string>();
-  let path: string[] = [];
+  const queue = [startingNode];
+  const visitedNodes = new Set<string>();
+  const path: string[] = [];
 
   while (queue.length) {
-    let currentNode = queue.shift() as string;
+    const currentNode = queue.shift() as string;
     visitedNodes.add(currentNode);
 
     for (const connectedNode in graph[currentNode]) {
