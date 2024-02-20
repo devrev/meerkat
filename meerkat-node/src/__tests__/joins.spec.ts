@@ -296,13 +296,19 @@ describe('Joins Tests', () => {
   });
 
   it('Discrete Islands on data graph', async () => {
+    BOOK_SCHEMA.joins = [];
     const query = {
-      measures: ['books.total_book_count'],
+      measures: ['books.total_book_count', 'authors.total_author_count'],
       filters: [],
       dimensions: ['customers.customer_id', 'orders.customer_id'],
     };
     await expect(
-      cubeQueryToSQL(query, [BOOK_SCHEMA, CUSTOMER_SCHEMA, ORDER_SCHEMA])
+      cubeQueryToSQL(query, [
+        BOOK_SCHEMA,
+        CUSTOMER_SCHEMA,
+        ORDER_SCHEMA,
+        AUTHOR_SCHEMA,
+      ])
     ).rejects.toThrow('Multiple starting nodes found in the graph.');
   });
 
