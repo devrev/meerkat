@@ -1,11 +1,11 @@
 import { Member } from '../types/cube-types/query';
-import { TableSchema } from '../types/cube-types/table';
+import { Measure, TableSchema } from '../types/cube-types/table';
 import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replacer';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema,
+  tableSchema: TableSchema
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -25,16 +25,19 @@ export const cubeMeasureToSQLSelectString = (
     if (i > 0) {
       base += ', ';
     }
-    const meerkatReplacedSqlString = meerkatPlaceholderReplacer(measureSchema.sql, tableSchema.name)
+    const meerkatReplacedSqlString = meerkatPlaceholderReplacer(
+      measureSchema.sql,
+      tableSchema.name
+    );
     base += ` ${meerkatReplacedSqlString} AS ${aliasKey} `;
   }
-  return base
+  return base;
 };
 
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema,
+  tableSchema: TableSchema
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -57,13 +60,13 @@ const addDimensionToSQLProjection = (
     // since alias key is expected to have been unfurled in the base query, we can just use it as is.
     newSelectString += `  ${aliasKey}`;
   }
-  return newSelectString
+  return newSelectString;
 };
 
 export const getSelectReplacedSql = (sql: string, selectString: string) => {
   /*
-  ** Replaces the select portion of a SQL string with the selectString passed.
-  */
+   ** Replaces the select portion of a SQL string with the selectString passed.
+   */
   const selectRegex = /SELECT\s\*/;
   const match = sql.match(selectRegex);
   if (!match) {
@@ -77,7 +80,25 @@ export const getSelectReplacedSql = (sql: string, selectString: string) => {
   const beforeSelect = sql.substring(0, selectIndex);
   const afterSelect = sql.substring(selectIndex + selectLength);
   return `${beforeSelect}${selectString}${afterSelect}`;
-}
+};
+
+export const getAllColumnUsedInMeasures = (
+  measures: Measure[],
+  tableSchema: TableSchema
+) => {
+  let columns: string[] = [];
+  measures.forEach((measure) => {
+    const regex = new RegExp(`(${tableSchema.name}\\.[a-zA-Z0-9_]+)`, 'g');
+    console.info('regex', regex);
+    const columnMatch = measure.sql.match(regex);
+    console.info('columnMatch', columnMatch);
+    if (columnMatch && columnMatch.length > 0) {
+      columns = [...columns, ...columnMatch];
+    }
+  });
+  // Remove duplicates
+  return [...new Set(columns)];
+};
 
 /**
  * Replace the first SELECT * from the sqlToReplace with the cube measure
@@ -90,7 +111,7 @@ export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string,
+  sqlToReplace: string
 ) => {
   let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
 
@@ -100,8 +121,8 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema,
+    tableSchema
   );
 
-  return getSelectReplacedSql(sqlToReplace, selectString)
+  return getSelectReplacedSql(sqlToReplace, selectString);
 };

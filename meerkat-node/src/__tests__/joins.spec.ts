@@ -23,7 +23,7 @@ export const CUSTOMER_SCHEMA = {
   measures: [
     {
       name: 'total_customer_count',
-      sql: 'COUNT(customer_id)',
+      sql: 'COUNT({MEERKAT}.customer_id)',
       type: 'number',
     },
   ],
@@ -77,7 +77,7 @@ export const PRODUCT_SCHEMA = {
   measures: [
     {
       name: 'total_product_count',
-      sql: 'COUNT(products.product_id)',
+      sql: 'COUNT({MEERKAT}.product_id)',
       type: 'number',
     },
   ],
@@ -131,16 +131,21 @@ export const ORDER_SCHEMA = {
   measures: [
     {
       name: 'order_amount',
-      sql: 'orders.order_amount',
+      sql: '{MEERKAT}.order_amount',
       type: 'number',
     },
     {
       name: 'total_order_amount',
-      sql: 'SUM(orders.order_amount)',
+      sql: 'SUM({MEERKAT}.order_amount)',
       type: 'number',
     },
   ],
   dimensions: [
+    {
+      name: 'order_amount',
+      sql: 'orders.order_amount',
+      type: 'number',
+    },
     {
       name: 'order_date',
       sql: 'orders.order_date',
@@ -302,7 +307,7 @@ describe('Joins Tests', () => {
   });
 
   it('Three tables join - Direct', async () => {
-    var DEMO_SCHEMA = ORDER_SCHEMA;
+    const DEMO_SCHEMA = ORDER_SCHEMA;
 
     DEMO_SCHEMA.joins = [
       {
