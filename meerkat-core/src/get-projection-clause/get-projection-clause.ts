@@ -1,3 +1,4 @@
+import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
 import { TableSchema } from '../types/cube-types';
 import {
   findInDimensionSchema,
@@ -62,13 +63,11 @@ const aggregator = ({
   member,
   aliasedColumnSet,
   acc,
-  currentIndex,
-  members,
   sql,
 }: {
   member: string;
   aliasedColumnSet: Set<string>;
-  acc: string;
+  acc: string[];
   sql?: string;
   currentIndex: number;
   members: string[];
@@ -77,10 +76,7 @@ const aggregator = ({
     return acc;
   }
   aliasedColumnSet.add(member);
-  acc += sql;
-  if (currentIndex !== members.length - 1) {
-    acc += `, `;
-  }
+  acc.push(sql);
   return acc;
 };
 
@@ -96,7 +92,7 @@ export const getProjectionClause = (
   const filteredMeasures = measures.filter((measure) => {
     return measure.split('.')[0] === tableSchema.name;
   });
-  const dimensionsProjections = filteredDimensions.reduce(
+  const dimensionsProjectionsArr = filteredDimensions.reduce(
     (acc, member, currentIndex, members) => {
       const { sql: memberSql } = getDimensionProjection({
         key: member,
@@ -111,9 +107,11 @@ export const getProjectionClause = (
         sql: memberSql,
       });
     },
-    ''
+    [] as string[]
   );
-  const measureProjections = filteredMeasures.reduce(
+  const dimensionsProjections = dimensionsProjectionsArr.join(', ');
+
+  const measureProjectionsArr = filteredMeasures.reduce(
     (acc, member, currentIndex, members) => {
       const { sql: memberSql } = getFilterMeasureProjection({
         key: member,
@@ -129,13 +127,38 @@ export const getProjectionClause = (
         sql: memberSql,
       });
     },
-    ''
+    [] as string[]
   );
-  console.log('dimensionsProjections', dimensionsProjections);
-  console.log('measureProjections', measureProjections);
-  return (
-    dimensionsProjections +
-    (dimensionsProjections.length && measureProjections.length ? ', ' : '') +
-    measureProjections
+
+  const measureProjections = measureProjectionsArr.join(', ');
+
+  const usedMeasureObjects = tableSchema.measures.filter((measure) => {
+    return (
+      measures.findIndex((key) => {
+        const keyWithoutTable = key.split('.')[1];
+        return keyWithoutTable === measure.name;
+      }) !== -1
+    );
+  });
+  const columnsUsedInMeasures = getAllColumnUsedInMeasures(
+    usedMeasureObjects,
+    tableSchema
   );
+
+  let columnsUsedInMeasuresInProjection = '';
+  columnsUsedInMeasures.forEach((column, index) => {
+    const safeKey = memberKeyToSafeKey(column);
+    columnsUsedInMeasuresInProjection += `${column} AS ${safeKey}`;
+    if (index !== columnsUsedInMeasures.length - 1) {
+      columnsUsedInMeasuresInProjection += ', ';
+    }
+  });
+
+  const combinedStr = [
+    dimensionsProjections,
+    measureProjections,
+    columnsUsedInMeasuresInProjection,
+  ];
+
+  return combinedStr.filter((str) => str.length > 0).join(', ');
 };

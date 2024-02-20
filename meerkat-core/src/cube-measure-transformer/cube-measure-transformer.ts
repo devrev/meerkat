@@ -5,18 +5,19 @@ import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema
+  joinedTableSchema: TableSchema
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i];
     if (measure === '*') {
-      base += ` ${tableSchema.name}.*`;
+      base += ` ${joinedTableSchema.name}.*`;
       continue;
     }
+    const tableSchemaName = measure.split('.')[0];
     const measureKeyWithoutTable = measure.split('.')[1];
     const aliasKey = memberKeyToSafeKey(measure);
-    const measureSchema = tableSchema.measures.find(
+    const measureSchema = joinedTableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
     );
     if (!measureSchema) {
@@ -25,10 +26,26 @@ export const cubeMeasureToSQLSelectString = (
     if (i > 0) {
       base += ', ';
     }
-    const meerkatReplacedSqlString = meerkatPlaceholderReplacer(
+    let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
-      tableSchema.name
+      joinedTableSchema.name
     );
+    const columnsUsedInMeasure = applyRegexToSQL(
+      meerkatReplacedSqlString,
+      tableSchemaName
+    );
+
+    //Replace all the columnsUsedInMeasure with safeKey
+    columnsUsedInMeasure?.forEach((measureKey) => {
+      const column = measureKey.split('.')[1];
+      console.info('column', column, tableSchemaName);
+      const columnKey = memberKeyToSafeKey(`${tableSchemaName}.${column}`);
+      meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
+        `${tableSchemaName}.${column}`,
+        columnKey
+      );
+    });
+
     base += ` ${meerkatReplacedSqlString} AS ${aliasKey} `;
   }
   return base;
@@ -88,16 +105,19 @@ export const getAllColumnUsedInMeasures = (
 ) => {
   let columns: string[] = [];
   measures.forEach((measure) => {
-    const regex = new RegExp(`(${tableSchema.name}\\.[a-zA-Z0-9_]+)`, 'g');
-    console.info('regex', regex);
-    const columnMatch = measure.sql.match(regex);
-    console.info('columnMatch', columnMatch);
+    const columnMatch = applyRegexToSQL(measure.sql, tableSchema.name);
     if (columnMatch && columnMatch.length > 0) {
       columns = [...columns, ...columnMatch];
     }
   });
   // Remove duplicates
   return [...new Set(columns)];
+};
+
+const applyRegexToSQL = (sql: string, tableName: string) => {
+  const regex = new RegExp(`(${tableName}\\.[a-zA-Z0-9_]+)`, 'g');
+  const columnMatch = sql.match(regex);
+  return columnMatch;
 };
 
 /**
