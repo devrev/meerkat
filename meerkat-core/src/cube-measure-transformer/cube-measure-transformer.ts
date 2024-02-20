@@ -5,19 +5,19 @@ import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  joinedTableSchema: TableSchema
+  tableSchema: TableSchema
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
     const measure = measures[i];
     if (measure === '*') {
-      base += ` ${joinedTableSchema.name}.*`;
+      base += ` ${tableSchema.name}.*`;
       continue;
     }
-    const tableSchemaName = measure.split('.')[0];
-    const measureKeyWithoutTable = measure.split('.')[1];
+    const [tableSchemaName, measureKeyWithoutTable] = measure.split('.');
+
     const aliasKey = memberKeyToSafeKey(measure);
-    const measureSchema = joinedTableSchema.measures.find(
+    const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
     );
     if (!measureSchema) {
@@ -28,8 +28,15 @@ export const cubeMeasureToSQLSelectString = (
     }
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
-      joinedTableSchema.name
+      tableSchema.name
     );
+
+    /**
+     * Here we extract the columns used in the measure and replace them with the safeKey.
+     * We need to do this because the columns used in the measure are not directly available in the joined table.
+     * Thus we need to project them and use them in the join.
+     */
+
     const columnsUsedInMeasure = getColumnsFromSQL(
       meerkatReplacedSqlString,
       tableSchemaName

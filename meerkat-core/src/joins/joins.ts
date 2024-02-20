@@ -7,11 +7,15 @@ export function generateSqlQuery(
   tableSchemaSqlMap: { [key: string]: string },
   directedGraph: Graph
 ): string {
-  console.log('path', path);
-  console.log('tableSchemaSqlMap', tableSchemaSqlMap);
-  console.log('directedGraph', directedGraph);
-
   let query = `${tableSchemaSqlMap[path[0]]}`;
+
+  /**
+   * The path array contains the nodes in the order they are connected.
+   * As the paths are in pairs of edges, the edge is only between the nodes at even index and next odd index.
+   * So, we do i+=2 to get the edge between the nodes.
+   * Example path: ['table1', 'table2', 'table2', 'table3', 'table3', 'table4']
+   * The edges are: table1->table2, table2->table3, table3->table4
+   */
 
   for (let i = 1; i < path.length; i += 2) {
     query += ` LEFT JOIN (${tableSchemaSqlMap[path[i]]}) AS ${path[i]}  ON ${
@@ -69,7 +73,10 @@ export const getStartingNodes = (graph: Graph): string[] => {
   );
 };
 
-export const createDirectedGraph = (tableSchema: TableSchema[]) => {
+export const createDirectedGraph = (
+  tableSchema: TableSchema[],
+  tableSchemaSqlMap: { [key: string]: string }
+) => {
   const directedGraph: { [key: string]: { [key: string]: string } } = {};
 
   function addEdge(table1: string, table2: string, joinCondition: string) {
@@ -82,18 +89,33 @@ export const createDirectedGraph = (tableSchema: TableSchema[]) => {
     if (!directedGraph[table1]) directedGraph[table1] = {};
     directedGraph[table1][table2] = joinCondition;
   }
-
+  /**
+   * Iterate through the table schema and add the edges to the directed graph.
+   * The edges are added based on the join conditions provided in the table schema.
+   * The SQL is split by the '=' sign and the tables columns involved in the joins are extracted.
+   * The tables are then added as edges to the directed graph.
+   */
   tableSchema.forEach((schema) => {
     schema?.joins?.forEach((join) => {
       const tables = join.sql.split('=').map((str) => str.split('.')[0].trim());
 
+      /**
+       * If the join SQL does not contain exactly 2 tables, then the join is invalid.
+       */
       if (tables.length !== 2) {
         throw new Error(`Invalid join SQL: ${join.sql}`);
       }
 
+      /**
+       * If the tables are the same, then the join is invalid.
+       */
       if (tables[0] === tables[1]) {
         throw new Error(`Invalid join SQL: ${join.sql}`);
       }
+
+      /**
+       * If the tables are not found in the table schema, then the join is invalid.
+       */
 
       if (tables[0] !== schema.name && tables[1] !== schema.name) {
         throw new Error(
@@ -101,6 +123,16 @@ export const createDirectedGraph = (tableSchema: TableSchema[]) => {
         );
       }
 
+      /**
+       * Check if the tables are found in the table schema SQL map.
+       */
+      if (!tableSchemaSqlMap[tables[0]] || !tableSchemaSqlMap[tables[1]]) {
+        return;
+      }
+      /**
+       * If the table is the source table, then add the edge from the source to the target.
+       * Thus find which table is the source and which is the target and add the edge accordingly.
+       */
       if (tables[0] === schema.name) {
         addEdge(tables[0], tables[1], join.sql);
       } else {
@@ -150,18 +182,18 @@ export const getCombinedTableSchema = async (tableSchema: TableSchema[]) => {
     return tableSchema[0];
   }
 
-  const directedGraph = createDirectedGraph(tableSchema);
-  const hasLoop = checkLoopInGraph(directedGraph);
-  if (hasLoop) {
-    throw new Error('A loop was detected in the joins.');
-  }
-
   const tableSchemaSqlMap = tableSchema.reduce(
     (acc: { [key: string]: string }, schema: TableSchema) => {
       return { ...acc, [schema.name]: schema.sql };
     },
     {}
   );
+
+  const directedGraph = createDirectedGraph(tableSchema, tableSchemaSqlMap);
+  const hasLoop = checkLoopInGraph(directedGraph);
+  if (hasLoop) {
+    throw new Error('A loop was detected in the joins.');
+  }
 
   const startingNodes = getStartingNodes(directedGraph);
 
@@ -180,7 +212,7 @@ export const getCombinedTableSchema = async (tableSchema: TableSchema[]) => {
   const combinedTableSchema = tableSchema.reduce(
     (acc: TableSchema, schema: TableSchema) => {
       return {
-        name: 'joined_table',
+        name: 'MEERKAT_GENERATED_TABLE',
         sql: baseSql,
         measures: [...acc.measures, ...schema.measures],
         dimensions: [...acc.dimensions, ...schema.dimensions],

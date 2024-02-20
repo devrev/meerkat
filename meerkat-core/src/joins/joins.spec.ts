@@ -8,6 +8,11 @@ import {
 
 describe('Table schema functions', () => {
   it('should create a directed graph from the table schema', () => {
+    const sqlQueryMap = {
+      table1: 'select * from table1',
+      table2: 'select * from table2',
+      table3: 'select * from table3',
+    };
     const tableSchema = [
       {
         name: 'table1',
@@ -21,11 +26,39 @@ describe('Table schema functions', () => {
       },
       { name: 'table3', sql: 'select * from table3', joins: [] },
     ];
-    const directedGraph = createDirectedGraph(tableSchema);
+    const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
 
     expect(directedGraph).toEqual({
       table1: { table2: 'table1.id = table2.id' },
       table2: { table3: 'table2.id = table3.id' },
+    });
+  });
+
+  it('should ignore a directed graph edge from the table schema if not present in query map', () => {
+    const sqlQueryMap = {
+      table1: 'select * from table1',
+      table2: 'select * from table2',
+    };
+    const tableSchema = [
+      {
+        name: 'table1',
+        sql: 'select * from table1',
+        joins: [
+          { sql: 'table1.id = table2.id' },
+          { sql: 'table1.id = table4.id' },
+        ],
+      },
+      {
+        name: 'table2',
+        sql: 'select * from table2',
+        joins: [{ sql: 'table2.id = table3.id' }],
+      },
+      { name: 'table3', sql: 'select * from table3', joins: [] },
+    ];
+    const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
+
+    expect(directedGraph).toEqual({
+      table1: { table2: 'table1.id = table2.id' },
     });
   });
 
