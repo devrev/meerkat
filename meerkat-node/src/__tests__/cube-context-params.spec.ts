@@ -57,7 +57,7 @@ describe('context-param-tests', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL(query, SCHEMA, {
+    const sql = await cubeQueryToSQL(query, [SCHEMA], {
       TABLE_NAME: 'orders',
     });
     console.info('SQL: ', sql);

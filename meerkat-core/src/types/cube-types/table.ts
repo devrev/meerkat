@@ -26,11 +26,16 @@ export type Dimension = {
   type: DimensionType;
 };
 
+export type Join = {
+  sql: string;
+};
+
 export type TableSchema = {
   name: string;
   sql: string;
   measures: Measure[];
   dimensions: Dimension[];
+  joins?: Join[];
 };
 
 export interface ContextParams {

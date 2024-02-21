@@ -466,7 +466,7 @@ export const TEST_DATA = [
         customer_id: '2',
         product_id: '1',
         order_date: '2022-03-01',
-        orders__order_date:'2022-03-01',
+        orders__order_date: '2022-03-01',
         order_amount: 75.0,
       },
       {

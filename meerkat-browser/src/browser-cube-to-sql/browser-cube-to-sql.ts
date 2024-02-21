@@ -10,14 +10,28 @@ import {
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
+  getCombinedTableSchema,
   getFilterParamsAST,
   getWrappedBaseQueryWithProjections,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 
-
-const getFilterParamsSQL = async ({cubeQuery, tableSchema, filterType, connection }:  { cubeQuery: Query, tableSchema: TableSchema, filterType?: FilterType; connection: AsyncDuckDBConnection }) => {
-  const filterParamsAST = getFilterParamsAST(cubeQuery, tableSchema, filterType);
+const getFilterParamsSQL = async ({
+  cubeQuery,
+  tableSchema,
+  filterType,
+  connection,
+}: {
+  cubeQuery: Query;
+  tableSchema: TableSchema;
+  filterType?: FilterType;
+  connection: AsyncDuckDBConnection;
+}) => {
+  const filterParamsAST = getFilterParamsAST(
+    cubeQuery,
+    tableSchema,
+    filterType
+  );
   const filterParamsSQL = [];
 
   for (const filterParamAST of filterParamsAST) {
@@ -38,28 +52,57 @@ const getFilterParamsSQL = async ({cubeQuery, tableSchema, filterType, connectio
       matchKey: filterParamAST.matchKey,
     });
   }
-  return filterParamsSQL
-}
+  return filterParamsSQL;
+};
 
-const getFinalBaseSQL = async (cubeQuery: Query, tableSchema: TableSchema, connection: AsyncDuckDBConnection) => {
+const getFinalBaseSQL = async (
+  cubeQuery: Query,
+  tableSchema: TableSchema,
+  connection: AsyncDuckDBConnection
+) => {
   /**
    * Apply transformation to the supplied base query.
-   * This involves updating the filter placeholder with the actual filter values. 
+   * This involves updating the filter placeholder with the actual filter values.
    */
-  const baseFilterParamsSQL = await getFilterParamsSQL({ cubeQuery: cubeQuery, tableSchema, filterType: 'BASE_FILTER', connection })
-  const baseSQL = applyFilterParamsToBaseSQL(tableSchema.sql, baseFilterParamsSQL)
-  const baseSQLWithFilterProjection = getWrappedBaseQueryWithProjections({ baseQuery: baseSQL, tableSchema, query: cubeQuery })
-  return baseSQLWithFilterProjection
-}
+  const baseFilterParamsSQL = await getFilterParamsSQL({
+    cubeQuery: cubeQuery,
+    tableSchema,
+    filterType: 'BASE_FILTER',
+    connection,
+  });
+  const baseSQL = applyFilterParamsToBaseSQL(
+    tableSchema.sql,
+    baseFilterParamsSQL
+  );
+  const baseSQLWithFilterProjection = getWrappedBaseQueryWithProjections({
+    baseQuery: baseSQL,
+    tableSchema,
+    query: cubeQuery,
+  });
+  return baseSQLWithFilterProjection;
+};
 
 export const cubeQueryToSQL = async (
   connection: AsyncDuckDBConnection,
   cubeQuery: Query,
-  tableSchema: TableSchema,
+  tableSchemas: TableSchema[],
   contextParams?: ContextParams
 ) => {
-  const baseFilterParamsSQL = await getFinalBaseSQL(cubeQuery, tableSchema, connection)
-  const updatedTableSchema: TableSchema = { ...tableSchema, sql: baseFilterParamsSQL }
+  const updatedTableSchemas: TableSchema[] = await Promise.all(
+    tableSchemas.map(async (schema: TableSchema) => {
+      const baseFilterParamsSQL = await getFinalBaseSQL(
+        cubeQuery,
+        schema,
+        connection
+      );
+      return {
+        ...schema,
+        sql: baseFilterParamsSQL,
+      };
+    })
+  );
+
+  const updatedTableSchema = await getCombinedTableSchema(updatedTableSchemas);
 
   const ast = cubeToDuckdbAST(cubeQuery, updatedTableSchema);
   if (!ast) {
@@ -76,7 +119,7 @@ export const cubeQueryToSQL = async (
     connection,
     cubeQuery,
     tableSchema: updatedTableSchema,
-    filterType: 'BASE_FILTER'
+    filterType: 'BASE_FILTER',
   });
 
   const filterParamQuery = applyFilterParamsToBaseSQL(

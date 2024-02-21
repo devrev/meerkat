@@ -1,11 +1,11 @@
 import { Member } from '../types/cube-types/query';
-import { TableSchema } from '../types/cube-types/table';
+import { Measure, TableSchema } from '../types/cube-types/table';
 import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replacer';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema,
+  tableSchema: TableSchema
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -14,7 +14,8 @@ export const cubeMeasureToSQLSelectString = (
       base += ` ${tableSchema.name}.*`;
       continue;
     }
-    const measureKeyWithoutTable = measure.split('.')[1];
+    const [tableSchemaName, measureKeyWithoutTable] = measure.split('.');
+
     const aliasKey = memberKeyToSafeKey(measure);
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
@@ -25,16 +26,42 @@ export const cubeMeasureToSQLSelectString = (
     if (i > 0) {
       base += ', ';
     }
-    const meerkatReplacedSqlString = meerkatPlaceholderReplacer(measureSchema.sql, tableSchema.name)
+    let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
+      measureSchema.sql,
+      tableSchema.name
+    );
+
+    /**
+     * Here we extract the columns used in the measure and replace them with the safeKey.
+     * We need to do this because the columns used in the measure are not directly available in the joined table.
+     * Thus we need to project them and use them in the join.
+     */
+
+    const columnsUsedInMeasure = getColumnsFromSQL(
+      meerkatReplacedSqlString,
+      tableSchemaName
+    );
+
+    //Replace all the columnsUsedInMeasure with safeKey
+    columnsUsedInMeasure?.forEach((measureKey) => {
+      const column = measureKey.split('.')[1];
+      const memberKey = `${tableSchemaName}.${column}`;
+      const columnKey = memberKeyToSafeKey(memberKey);
+      meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
+        memberKey,
+        columnKey
+      );
+    });
+
     base += ` ${meerkatReplacedSqlString} AS ${aliasKey} `;
   }
-  return base
+  return base;
 };
 
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema,
+  tableSchema: TableSchema
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -57,13 +84,13 @@ const addDimensionToSQLProjection = (
     // since alias key is expected to have been unfurled in the base query, we can just use it as is.
     newSelectString += `  ${aliasKey}`;
   }
-  return newSelectString
+  return newSelectString;
 };
 
 export const getSelectReplacedSql = (sql: string, selectString: string) => {
   /*
-  ** Replaces the select portion of a SQL string with the selectString passed.
-  */
+   ** Replaces the select portion of a SQL string with the selectString passed.
+   */
   const selectRegex = /SELECT\s\*/;
   const match = sql.match(selectRegex);
   if (!match) {
@@ -77,7 +104,36 @@ export const getSelectReplacedSql = (sql: string, selectString: string) => {
   const beforeSelect = sql.substring(0, selectIndex);
   const afterSelect = sql.substring(selectIndex + selectLength);
   return `${beforeSelect}${selectString}${afterSelect}`;
-}
+};
+
+/**
+ * Get all the columns used in the measures.
+ * This is used for extracting the columns used in the measures needed for the projection.
+ * Example: The joins implementation uses this to get the columns used in the measures to join the tables.
+ * like the SQL for the measure is `SUM(table.total)` and the table name is `table`, then the column used is `total`
+ * table cannot be used directly here because the joined table would have column name ambiguity.
+ * Thus these columns are projected and directly used in the join.
+ */
+export const getAllColumnUsedInMeasures = (
+  measures: Measure[],
+  tableSchema: TableSchema
+) => {
+  let columns: string[] = [];
+  measures.forEach((measure) => {
+    const columnMatch = getColumnsFromSQL(measure.sql, tableSchema.name);
+    if (columnMatch && columnMatch.length > 0) {
+      columns = [...columns, ...columnMatch];
+    }
+  });
+  // Remove duplicates
+  return [...new Set(columns)];
+};
+
+const getColumnsFromSQL = (sql: string, tableName: string) => {
+  const regex = new RegExp(`(${tableName}\\.[a-zA-Z0-9_]+)`, 'g');
+  const columnMatch = sql.match(regex);
+  return columnMatch;
+};
 
 /**
  * Replace the first SELECT * from the sqlToReplace with the cube measure
@@ -90,7 +146,7 @@ export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string,
+  sqlToReplace: string
 ) => {
   let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
 
@@ -100,8 +156,8 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema,
+    tableSchema
   );
 
-  return getSelectReplacedSql(sqlToReplace, selectString)
+  return getSelectReplacedSql(sqlToReplace, selectString);
 };
