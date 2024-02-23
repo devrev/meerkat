@@ -1,93 +1,85 @@
-import { TableSchema } from '../types/cube-types';
+import { JoinEdge, Query, TableSchema } from '../types/cube-types';
 
-type Graph = { [key: string]: { [key: string]: string } };
+export type Graph = {
+  [key: string]: { [key: string]: { [key: string]: string } };
+};
 
 export function generateSqlQuery(
-  path: string[],
+  path: JoinEdge[][],
   tableSchemaSqlMap: { [key: string]: string },
   directedGraph: Graph
 ): string {
-  let query = `${tableSchemaSqlMap[path[0]]}`;
+  if (path.length === 0) {
+    throw new Error(
+      'Invalid path, multiple data sources are present without a join path.'
+    );
+  }
 
-  /**
-   * The path array contains the nodes in the order they are connected.
-   * As the paths are in pairs of edges, the edge is only between the nodes at even index and next odd index.
-   * So, we do i+=2 to get the edge between the nodes.
-   * Example path: ['table1', 'table2', 'table2', 'table3', 'table3', 'table4']
-   * The edges are: table1->table2, table2->table3, table3->table4
-   */
+  const startingNode = path[0][0].left;
+  let query = `${tableSchemaSqlMap[startingNode]}`;
 
-  for (let i = 1; i < path.length; i += 2) {
-    query += ` LEFT JOIN (${tableSchemaSqlMap[path[i]]}) AS ${path[i]}  ON ${
-      directedGraph[path[i - 1]][path[i]]
-    }`;
+  const visitedNodes = new Map();
+
+  for (let i = 0; i < path.length; i++) {
+    if (path[i][0].left !== startingNode) {
+      throw new Error(
+        'Invalid path, starting node is not the same for all paths.'
+      );
+    }
+    for (let j = 0; j < path[i].length; j++) {
+      const currentEdge = path[i][j];
+      const visitedFrom = visitedNodes.get(currentEdge.right);
+
+      // If node is already visited from the same edge, continue to next iteration
+      if (visitedFrom && visitedFrom.left === currentEdge.left) {
+        continue;
+      }
+      // If node is already visited from a different edge, throw ambiguity error
+      if (visitedFrom) {
+        throw new Error(
+          `Path ambiguity, node ${currentEdge.right} visited from different sources`
+        );
+      }
+
+      // If visitedFrom is undefined, this is the first visit to the node
+      visitedNodes.set(currentEdge.right, currentEdge);
+
+      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
+        currentEdge.right
+      }  ON ${
+        directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
+      }`;
+    }
   }
 
   return query;
 }
 
-export const getJoinPathAsArray = (
-  startingNode: string,
-  graph: Graph
-): string[] => {
-  const queue = [startingNode];
-  const visitedNodes = new Set<string>();
-  const path: string[] = [];
-
-  while (queue.length) {
-    const currentNode = queue.shift() as string;
-    visitedNodes.add(currentNode);
-
-    for (const connectedNode in graph[currentNode]) {
-      if (!visitedNodes.has(connectedNode)) {
-        queue.push(connectedNode);
-
-        path.push(currentNode); // This node is the source node for direct edge
-        path.push(connectedNode); // This node is the target node for direct edge
-      }
-    }
-  }
-
-  return path;
-};
-
-export const getStartingNodes = (graph: Graph): string[] => {
-  const incomingEdgesCount: { [key: string]: number } = {};
-
-  for (const sourceNode in graph) {
-    if (!(sourceNode in incomingEdgesCount)) {
-      incomingEdgesCount[sourceNode] = 0;
-    }
-
-    for (const targetNode in graph[sourceNode]) {
-      if (!(targetNode in incomingEdgesCount)) {
-        incomingEdgesCount[targetNode] = 0;
-      }
-
-      incomingEdgesCount[targetNode]++;
-    }
-  }
-
-  return Object.keys(incomingEdgesCount).filter(
-    (node) => incomingEdgesCount[node] === 0
-  );
-};
-
 export const createDirectedGraph = (
   tableSchema: TableSchema[],
   tableSchemaSqlMap: { [key: string]: string }
 ) => {
-  const directedGraph: { [key: string]: { [key: string]: string } } = {};
+  const directedGraph: {
+    [key: string]: { [key: string]: { [key: string]: string } };
+  } = {};
 
-  function addEdge(table1: string, table2: string, joinCondition: string) {
+  function addEdge(
+    table1: string,
+    table2: string,
+    joinOn: string,
+    joinCondition: string
+  ) {
     if (
       table1 === table2 ||
-      (directedGraph[table1] && directedGraph[table1][table2])
+      (directedGraph[table1] &&
+        directedGraph[table1][table2] &&
+        directedGraph[table1][table2][joinOn])
     ) {
       throw new Error('An invalid path was detected.');
     }
     if (!directedGraph[table1]) directedGraph[table1] = {};
-    directedGraph[table1][table2] = joinCondition;
+    if (!directedGraph[table1][table2]) directedGraph[table1][table2] = {};
+    directedGraph[table1][table2][joinOn] = joinCondition;
   }
   /**
    * Iterate through the table schema and add the edges to the directed graph.
@@ -98,6 +90,9 @@ export const createDirectedGraph = (
   tableSchema.forEach((schema) => {
     schema?.joins?.forEach((join) => {
       const tables = join.sql.split('=').map((str) => str.split('.')[0].trim());
+      const conditions = join.sql
+        .split('=')
+        .map((str) => str.split('.')[1].trim());
 
       /**
        * If the join SQL does not contain exactly 2 tables, then the join is invalid.
@@ -134,9 +129,9 @@ export const createDirectedGraph = (
        * Thus find which table is the source and which is the target and add the edge accordingly.
        */
       if (tables[0] === schema.name) {
-        addEdge(tables[0], tables[1], join.sql);
+        addEdge(tables[0], tables[1], conditions[0], join.sql);
       } else {
-        addEdge(tables[1], tables[0], join.sql);
+        addEdge(tables[1], tables[0], conditions[1], join.sql);
       }
     });
   });
@@ -144,40 +139,44 @@ export const createDirectedGraph = (
   return directedGraph;
 };
 
-export const checkLoopInGraph = (graph: Graph): boolean | Error => {
-  const visited = new Set<string>();
-  const recursionStack = new Set<string>();
+function DFS(
+  graph: any,
+  node: string,
+  visited: Set<string>,
+  recStack: Set<string>
+): boolean {
+  visited.add(node);
+  recStack.add(node);
 
-  // depth-first search
-  function DFS(node: string): boolean {
-    visited.add(node);
-    recursionStack.add(node);
-
-    for (const connectedNode in graph[node]) {
-      if (!visited.has(connectedNode)) {
-        const hasCycle = DFS(connectedNode);
-        if (hasCycle) return true;
-      } else if (recursionStack.has(connectedNode)) {
-        return true;
-      }
+  for (const neighbor in graph[node]) {
+    if (!visited.has(neighbor) && DFS(graph, neighbor, visited, recStack)) {
+      return true;
+    } else if (recStack.has(neighbor)) {
+      return true;
     }
-
-    // remove the node from the recursion stack after all descendants have been visited
-    recursionStack.delete(node);
-    return false;
   }
 
+  recStack.delete(node);
+  return false;
+}
+
+export function checkLoopInGraph(graph: any): boolean {
+  const visited = new Set<string>();
+  const recStack = new Set<string>();
+
   for (const node in graph) {
-    if (!visited.has(node)) {
-      const hasCycle = DFS(node);
-      if (hasCycle) return true;
+    if (DFS(graph, node, visited, recStack)) {
+      return true;
     }
   }
 
   return false;
-};
+}
 
-export const getCombinedTableSchema = async (tableSchema: TableSchema[]) => {
+export const getCombinedTableSchema = async (
+  tableSchema: TableSchema[],
+  cubeQuery: Query
+) => {
   if (tableSchema.length === 1) {
     return tableSchema[0];
   }
@@ -195,19 +194,13 @@ export const getCombinedTableSchema = async (tableSchema: TableSchema[]) => {
     throw new Error('A loop was detected in the joins.');
   }
 
-  const startingNodes = getStartingNodes(directedGraph);
+  console.log('directedGraph', directedGraph);
 
-  if (startingNodes.length === 0) {
-    throw new Error('No starting nodes found in the graph.');
-  }
-
-  if (startingNodes.length > 1) {
-    throw new Error('Multiple starting nodes found in the graph.');
-  }
-
-  const joinPath = getJoinPathAsArray(startingNodes[0], directedGraph);
-
-  const baseSql = generateSqlQuery(joinPath, tableSchemaSqlMap, directedGraph);
+  const baseSql = generateSqlQuery(
+    cubeQuery.joinPath || [],
+    tableSchemaSqlMap,
+    directedGraph
+  );
 
   const combinedTableSchema = tableSchema.reduce(
     (acc: TableSchema, schema: TableSchema) => {

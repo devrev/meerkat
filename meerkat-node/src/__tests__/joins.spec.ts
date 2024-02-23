@@ -4,6 +4,7 @@ import { duckdbExec } from '../duckdb-exec';
 export const CREATE_CUTOMERS_TABLE = `
 CREATE TABLE customers (
     customer_id VARCHAR,
+    order_id VARCHAR,
     customer_name VARCHAR,
     customer_email VARCHAR,
     customer_phone VARCHAR
@@ -12,9 +13,9 @@ CREATE TABLE customers (
 
 export const INPUT_CUSTOMERS_DATA = `
 INSERT INTO customers VALUES
-('1', 'John Doe', 'johndoe@gmail.com', '1234567890'),
-('2', 'Jane Doe', 'janedoe@gmail.com', '9876543210'),
-('3', 'John Smith', 'johnsmith@gmail.com', '1234567892'); 
+('1', '3', 'John Doe', 'johndoe@gmail.com', '1234567890'),
+('2', '2', 'Jane Doe', 'janedoe@gmail.com', '9876543210'),
+('3', '1', 'John Smith', 'johnsmith@gmail.com', '1234567892'); 
 `;
 
 export const CUSTOMER_SCHEMA = {
@@ -31,6 +32,11 @@ export const CUSTOMER_SCHEMA = {
     {
       name: 'customer_id',
       sql: 'customers.customer_id',
+      type: 'number',
+    },
+    {
+      name: 'order_id',
+      sql: 'customers.order_id',
       type: 'number',
     },
     {
@@ -52,6 +58,9 @@ export const CUSTOMER_SCHEMA = {
   joins: [
     {
       sql: 'orders.customer_id = customers.customer_id',
+    },
+    {
+      sql: 'orders.order_id = customers.order_id',
     },
   ],
 };
@@ -299,6 +308,23 @@ describe('Joins Tests', () => {
     BOOK_SCHEMA.joins = [];
     const query = {
       measures: ['books.total_book_count', 'authors.total_author_count'],
+      joinPath: [
+        [
+          {
+            left: 'authors',
+            right: 'books',
+            on: 'author_id',
+          },
+        ],
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+        ],
+      ],
+
       filters: [],
       dimensions: ['customers.customer_id', 'orders.customer_id'],
     };
@@ -309,7 +335,9 @@ describe('Joins Tests', () => {
         ORDER_SCHEMA,
         AUTHOR_SCHEMA,
       ])
-    ).rejects.toThrow('Multiple starting nodes found in the graph.');
+    ).rejects.toThrow(
+      'Invalid path, starting node is not the same for all paths.'
+    );
   });
 
   it('Three tables join - Direct', async () => {
@@ -323,6 +351,20 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+          {
+            left: 'orders',
+            right: 'products',
+            on: 'product_id',
+          },
+        ],
+      ],
       filters: [
         {
           and: [
@@ -366,6 +408,22 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+        ],
+        [
+          {
+            left: 'customers',
+            right: 'products',
+            on: 'customer_id',
+          },
+        ],
+      ],
       filters: [
         {
           and: [
@@ -404,9 +462,108 @@ describe('Joins Tests', () => {
     expect(parsedOutput[0].orders__total_order_amount).toBe(80);
   });
 
+  it('Joins with Different Paths', async () => {
+    const query1 = {
+      measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+        ],
+      ],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.order_amount',
+              operator: 'gt',
+              values: ['40'],
+            },
+            {
+              member: 'customers.customer_name',
+              operator: 'contains',
+              values: ['Doe'],
+            },
+          ],
+        },
+      ],
+      dimensions: [
+        'orders.product_id',
+        'customers.customer_id',
+        'customers.order_id',
+      ],
+    };
+
+    const sql = await cubeQueryToSQL(query1, [ORDER_SCHEMA, CUSTOMER_SCHEMA]);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    const output = await duckdbExec(sql);
+    const parsedOutput = JSON.parse(JSON.stringify(output));
+    console.info('parsedOutput', parsedOutput);
+    expect(parsedOutput).toHaveLength(3);
+    expect(parsedOutput[0].customers__customer_id).toBe('2');
+    expect(parsedOutput[1].customers__customer_id).toBe('1');
+    expect(parsedOutput[2].customers__customer_id).toBe('1');
+    expect(parsedOutput[0].customers__order_id).toBe('2');
+    expect(parsedOutput[1].customers__order_id).toBe('3');
+    expect(parsedOutput[2].customers__order_id).toBe('3');
+
+    const query2 = {
+      measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'order_id',
+          },
+        ],
+      ],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.order_amount',
+              operator: 'gt',
+              values: ['40'],
+            },
+            {
+              member: 'customers.customer_name',
+              operator: 'contains',
+              values: ['Doe'],
+            },
+          ],
+        },
+      ],
+      dimensions: [
+        'orders.product_id',
+        'customers.customer_id',
+        'customers.order_id',
+      ],
+    };
+
+    const sql2 = await cubeQueryToSQL(query2, [ORDER_SCHEMA, CUSTOMER_SCHEMA]);
+    const output2 = await duckdbExec(sql2);
+    const parsedOutput2 = JSON.parse(JSON.stringify(output2));
+    expect(parsedOutput2).toHaveLength(1);
+    expect(parsedOutput2[0].customers__customer_id).toBe('2');
+    expect(parsedOutput2[0].customers__order_id).toBe('2');
+  });
+
   it('Success Join with filters', async () => {
     const query = {
       measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+        ],
+      ],
       filters: [
         {
           and: [
