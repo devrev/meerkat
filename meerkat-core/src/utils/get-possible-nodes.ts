@@ -1,5 +1,3 @@
-import path = require('path');
-import fs = require('fs');
 import { Graph, checkLoopInGraph, createDirectedGraph } from '../joins/joins';
 import { Dimension, JoinEdge, Measure, TableSchema } from '../types/cube-types';
 
@@ -24,7 +22,7 @@ export const getNestedTableSchema = async (
   joinPath: JoinEdge[][]
 ) => {
   const tableSchemaSqlMap: { [key: string]: string } = {};
-  for (let schema of tableSchemas) {
+  for (const schema of tableSchemas) {
     if (!schema) {
       throw new Error('Schema is undefined');
     }
@@ -86,7 +84,7 @@ export const getNestedTableSchema = async (
     // Mark the path as checked
     checkedPaths[pathKey] = true;
 
-    let nestedRightSchema: NestedTableSchema = {
+    const nestedRightSchema: NestedTableSchema = {
       name: rightSchema.name,
       measures: (rightSchema.measures || []).map(
         (measure) => ({ schema: measure, children: [] } as NestedMeasure)
@@ -151,7 +149,7 @@ const getNextPossibleNodes = (
       return;
     }
 
-    for (let [node] of Object.entries(nextPossibleNodes)) {
+    for (const [node] of Object.entries(nextPossibleNodes)) {
       const nextSchema = tableSchemas.find(
         (schema) => schema.name === node
       ) as TableSchema;
@@ -160,7 +158,7 @@ const getNextPossibleNodes = (
         throw new Error(`The schema for ${node} does not exist.`);
       }
 
-      for (let children of dimension.children || []) {
+      for (const children of dimension.children || []) {
         getNextPossibleNodes(
           directedGraph,
           children,
