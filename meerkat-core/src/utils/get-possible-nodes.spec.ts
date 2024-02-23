@@ -1,6 +1,6 @@
 import { getNestedTableSchema } from './get-possible-nodes';
 describe('Table schema functions', () => {
-  it('Test', () => {
+  it('Test', async () => {
     const tableSchema = [
       {
         name: 'node1',
@@ -190,6 +190,167 @@ describe('Table schema functions', () => {
       ],
     ];
     ``;
-    getNestedTableSchema(tableSchema, complexJoinPath);
+    const nestedSchema = await getNestedTableSchema(
+      tableSchema,
+      complexJoinPath
+    );
+    expect(nestedSchema).toEqual(expectedOutput);
   });
 });
+
+const expectedOutput = {
+  name: 'node1',
+  measures: [],
+  dimensions: [
+    {
+      schema: {
+        name: 'id',
+        sql: 'node1.id',
+      },
+      children: [
+        {
+          name: 'node2',
+          measures: [],
+          dimensions: [
+            {
+              schema: {
+                name: 'id',
+                sql: 'node2.id',
+              },
+              children: [
+                {
+                  name: 'node4',
+                  measures: [],
+                  dimensions: [
+                    {
+                      schema: {
+                        name: 'id',
+                        sql: 'node4.id',
+                      },
+                      children: [
+                        {
+                          name: 'node7',
+                          measures: [],
+                          dimensions: [
+                            {
+                              schema: {
+                                name: 'id',
+                                sql: 'node7.id',
+                              },
+                              children: [
+                                {
+                                  name: 'node10',
+                                  measures: [],
+                                  dimensions: [
+                                    {
+                                      schema: {
+                                        name: 'id',
+                                        sql: 'node10.id',
+                                      },
+                                      children: [],
+                                    },
+                                  ],
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                        {
+                          name: 'node5',
+                          measures: [],
+                          dimensions: [
+                            {
+                              schema: {
+                                name: 'id',
+                                sql: 'node5.id',
+                              },
+                              children: [],
+                            },
+                          ],
+                        },
+                        {
+                          name: 'node6',
+                          measures: [],
+                          dimensions: [
+                            {
+                              schema: {
+                                name: 'id',
+                                sql: 'node6.id',
+                              },
+                              children: [],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              schema: {
+                name: 'node11_id',
+                sql: 'node2.node11_id',
+              },
+              children: [
+                {
+                  name: 'node11',
+                  measures: [],
+                  dimensions: [
+                    {
+                      schema: {
+                        name: 'id',
+                        sql: 'node11.id',
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'node3',
+          measures: [],
+          dimensions: [
+            {
+              schema: {
+                name: 'id',
+                sql: 'node3.id',
+              },
+              children: [
+                {
+                  name: 'node5',
+                  measures: [],
+                  dimensions: [
+                    {
+                      schema: {
+                        name: 'id',
+                        sql: 'node5.id',
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'node6',
+          measures: [],
+          dimensions: [
+            {
+              schema: {
+                name: 'id',
+                sql: 'node6.id',
+              },
+              children: [],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};

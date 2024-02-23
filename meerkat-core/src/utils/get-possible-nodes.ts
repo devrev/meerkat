@@ -1,13 +1,16 @@
 import path = require('path');
+import fs = require('fs');
 import { Graph, checkLoopInGraph, createDirectedGraph } from '../joins/joins';
 import { Dimension, JoinEdge, Measure, TableSchema } from '../types/cube-types';
 
-export interface NestedMeasure extends Measure {
-  children?: NestedTableSchema[];
+export interface NestedMeasure {
+  schema: Measure;
+  children: NestedTableSchema[];
 }
 
-export interface NestedDimension extends Dimension {
-  children?: NestedTableSchema[];
+export interface NestedDimension {
+  schema: Dimension;
+  children: NestedTableSchema[];
 }
 
 export interface NestedTableSchema {
@@ -22,7 +25,6 @@ export const getNestedTableSchema = async (
 ) => {
   const tableSchemaSqlMap: { [key: string]: string } = {};
   for (let schema of tableSchemas) {
-    console.info(tableSchemaSqlMap);
     if (!schema) {
       throw new Error('Schema is undefined');
     }
@@ -45,11 +47,11 @@ export const getNestedTableSchema = async (
   const nestedTableSchema: NestedTableSchema = {
     name: startingNode.name,
     measures: startingNode.measures.map((measure) => ({
-      ...measure,
+      schema: measure,
       children: [],
     })),
     dimensions: startingNode.dimensions.map((dimension) => ({
-      ...dimension,
+      schema: dimension,
       children: [],
     })),
   };
@@ -71,6 +73,7 @@ export const getNestedTableSchema = async (
           if (child.name === edge.right) {
             return buildNestedSchema(edges, index + 1, child, tableSchemas);
           }
+          return;
         });
       });
       return nestedTableSchema;
@@ -86,15 +89,15 @@ export const getNestedTableSchema = async (
     let nestedRightSchema: NestedTableSchema = {
       name: rightSchema.name,
       measures: (rightSchema.measures || []).map(
-        (measure) => ({ ...measure, children: [] } as NestedMeasure)
+        (measure) => ({ schema: measure, children: [] } as NestedMeasure)
       ),
       dimensions: (rightSchema.dimensions || []).map(
-        (dimension) => ({ ...dimension, children: [] } as NestedDimension)
+        (dimension) => ({ schema: dimension, children: [] } as NestedDimension)
       ),
     };
 
     const nestedDimension = nestedTableSchema.dimensions.find(
-      (dimension) => dimension.name === edge.on
+      (dimension) => dimension.schema.name === edge.on
     ) as NestedMeasure;
 
     if (!nestedDimension) {
@@ -120,7 +123,6 @@ export const getNestedTableSchema = async (
   };
 
   for (let i = 0; i < joinPath.length; i++) {
-    console.info(nestedTableSchema);
     buildNestedSchema(joinPath[i], 0, nestedTableSchema, tableSchemas);
   }
 
@@ -130,15 +132,6 @@ export const getNestedTableSchema = async (
     visitedNodes,
     tableSchemas
   );
-
-  getNextPossibleNodes(
-    directedGraph,
-    nestedTableSchema,
-    visitedNodes,
-    tableSchemas
-  );
-
-  console.log(JSON.stringify(nestedTableSchema, null, 2));
 
   return nestedTableSchema;
 };
@@ -153,17 +146,12 @@ const getNextPossibleNodes = (
 
   for (let i = 0; i < nestedTableSchema.dimensions.length; i++) {
     const dimension = nestedTableSchema.dimensions[i];
-    const dimensionName = dimension.name;
     const nextPossibleNodes = directedGraph[currentNode];
-
-    if (!nextPossibleNodes) {
+    if (!nextPossibleNodes || !visitedNodes[currentNode]) {
       return;
     }
 
-    for (let [node, edge_on] of Object.entries(nextPossibleNodes)) {
-      if (visitedNodes[node]) {
-        continue;
-      }
+    for (let [node] of Object.entries(nextPossibleNodes)) {
       const nextSchema = tableSchemas.find(
         (schema) => schema.name === node
       ) as TableSchema;
@@ -180,19 +168,27 @@ const getNextPossibleNodes = (
           tableSchemas
         );
       }
-      for (let key in edge_on) {
-        const nestedNextSchema: NestedTableSchema = {
-          name: nextSchema.name,
-          measures: nextSchema.measures.map((measure) => ({
-            ...measure,
-            children: [],
-          })),
-          dimensions: nextSchema.dimensions.map((dimension) => ({
-            ...dimension,
-            children: [],
-          })),
-        };
 
+      if (visitedNodes[node]) {
+        continue;
+      }
+
+      const nestedNextSchema: NestedTableSchema = {
+        name: nextSchema.name,
+        measures: nextSchema.measures.map((measure) => ({
+          schema: measure,
+          children: [],
+        })),
+        dimensions: nextSchema.dimensions.map((dimension) => ({
+          schema: dimension,
+          children: [],
+        })),
+      };
+      if (
+        !dimension.children?.some(
+          (child) => child.name === nestedNextSchema.name
+        )
+      ) {
         dimension.children?.push(nestedNextSchema);
       }
     }
