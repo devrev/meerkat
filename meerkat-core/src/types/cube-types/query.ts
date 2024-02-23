@@ -80,7 +80,7 @@ type QueryOrderType = 'asc' | 'desc';
  */
 type ApiScopes = 'graphql' | 'meta' | 'data' | 'jobs';
 
-export type FilterType = 'BASE_FILTER' | 'PROJECTION_FILTER'
+export type FilterType = 'BASE_FILTER' | 'PROJECTION_FILTER';
 
 interface QueryFilter {
   member: Member;
@@ -112,16 +112,58 @@ interface QueryTimeDimension {
 }
 
 /**
+ * Join Edge data type.
+ */
+
+interface JoinEdge {
+  /**
+   * Left node.
+   */
+  left: Member;
+
+  /**
+   * Right node.
+   */
+  right: Member;
+
+  /**
+   * On condition.
+   */
+  on: string;
+
+  /**
+   * Example
+   * [
+   *  [
+   *    {
+   *      left:  dim_ticket,
+   *      right: dim_user
+   *      on: 'created_by_id'
+   *    },
+   *   {
+   *     left : dim_user,
+   *     right: dim_user_role,
+   *     on: 'role_id'
+   *   }
+   *  ]
+   * ]
+   *
+   *
+   */
+}
+
+/**
  * Incoming network query data type.
  */
 
-type MeerkatQueryFilter = (QueryFilter | LogicalAndFilter | LogicalOrFilter)
+type MeerkatQueryFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 
 interface Query {
   measures: Member[];
   dimensions?: (Member | TimeMember)[];
   filters?: MeerkatQueryFilter[];
   timeDimensions?: QueryTimeDimension[];
+  joinPath?: JoinEdge[][];
   segments?: Member[];
   limit?: null | number;
   offset?: number;
@@ -150,13 +192,15 @@ interface NormalizedQuery extends Query {
   order?: [{ id: string; desc: boolean }];
 }
 
-
-
 export {
   ApiScopes,
   ApiType,
-  FilterOperator, LogicalAndFilter,
-  LogicalOrFilter, MeerkatQueryFilter, Member,
+  FilterOperator,
+  JoinEdge,
+  LogicalAndFilter,
+  LogicalOrFilter,
+  MeerkatQueryFilter,
+  Member,
   MemberType,
   NormalizedQuery,
   NormalizedQueryFilter,
@@ -168,6 +212,5 @@ export {
   QueryType,
   RequestType,
   ResultType,
-  TimeMember
+  TimeMember,
 };
-

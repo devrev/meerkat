@@ -2,8 +2,6 @@ import {
   checkLoopInGraph,
   createDirectedGraph,
   generateSqlQuery,
-  getJoinPathAsArray,
-  getStartingNodes,
 } from './joins';
 
 describe('Table schema functions', () => {
@@ -29,8 +27,8 @@ describe('Table schema functions', () => {
     const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
 
     expect(directedGraph).toEqual({
-      table1: { table2: 'table1.id = table2.id' },
-      table2: { table3: 'table2.id = table3.id' },
+      table1: { table2: { id: 'table1.id = table2.id' } },
+      table2: { table3: { id: 'table2.id = table3.id' } },
     });
   });
 
@@ -58,46 +56,46 @@ describe('Table schema functions', () => {
     const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
 
     expect(directedGraph).toEqual({
-      table1: { table2: 'table1.id = table2.id' },
+      table1: { table2: { id: 'table1.id = table2.id' } },
     });
   });
 
   it('should correctly identify if a loop exists in the graph', () => {
     const graph = {
-      node1: { node2: 'node1->node2' },
-      node2: { node1: 'node2->node1' },
+      table1: {
+        table2: {
+          field1: 'table2.field3 = table1.field4',
+        },
+        table3: {
+          field2: 'table3.field5 = table1.field2',
+        },
+      },
+      table2: {
+        table3: {
+          field3: 'table3.field4 = table2.field3',
+        },
+      },
+      table3: {
+        table1: {
+          field5: 'table1.field1 = table3.field2',
+        },
+      },
     };
     const hasLoop = checkLoopInGraph(graph);
 
     expect(hasLoop).toBe(true);
   });
 
-  it('should correctly identify starting nodes in the graph', () => {
-    const graph = {
-      node1: { node2: 'node1->node2', node3: 'node1->node3' },
-      node2: {},
-      node3: {},
-    };
-    const startingNodes = getStartingNodes(graph);
-
-    expect(startingNodes).toEqual(['node1']);
-  });
-
-  it('should correctly generate a join path from the provided starting node and graph', () => {
-    const graph = {
-      node1: { node2: 'node1->node2' },
-      node2: { node3: 'node2->node3' },
-    };
-    const joinPath = getJoinPathAsArray('node1', graph);
-
-    expect(joinPath).toEqual(['node1', 'node2', 'node2', 'node3']);
-  });
-
   it('should correctly generate a SQL query from the provided join path, table schema SQL map, and directed graph', () => {
-    const joinPath = ['table1', 'table2', 'table2', 'table3'];
+    const joinPath = [
+      [
+        { left: 'table1', right: 'table2', on: 'id' },
+        { left: 'table2', right: 'table3', on: 'id' },
+      ],
+    ];
     const directedGraph = {
-      table1: { table2: 'table1.id = table2.id' },
-      table2: { table3: 'table2.id = table3.id' },
+      table1: { table2: { id: 'table1.id = table2.id' } },
+      table2: { table3: { id: 'table2.id = table3.id' } },
     };
     const tableSchemaSqlMap = {
       table1: 'select * from table1',
@@ -117,65 +115,19 @@ describe('Table schema functions', () => {
 
   it('should throw an error when a cycle exists in checkLoopInGraph', () => {
     const graph = {
-      node1: { node2: 'node1->node2' },
-      node2: { node3: 'node2->node3' },
-      node3: { node1: 'node3->node1' },
+      node1: { node2: { id: 'node1.id = node2.id' } },
+      node2: { node3: { id: 'node2.id = node3.id ' } },
+      node3: { node1: { id: 'node3.id = node1.id' } },
     };
     const output = checkLoopInGraph(graph);
     expect(output).toBe(true);
   });
 
-  it('should return empty array if starting node does not exist in getJoinPathAsArray', () => {
-    const graph = {
-      node1: { node2: 'node1->node2' },
-      node2: { node3: 'node2->node3' },
-    };
-    const joinPath = getJoinPathAsArray('nonExistingNode', graph);
-
-    expect(joinPath).toEqual([]);
-  });
-
   it('checkLoopInGraph should return false for disconnected graph', () => {
     const graph = {
-      node1: { node2: 'node1->node2' },
-      node3: { node4: 'node3->node4' },
+      node1: { node2: { id: 'node1.id = node2.id ' } },
+      node3: { node4: { id: 'node3.id = node4.id ' } },
     };
     expect(checkLoopInGraph(graph)).toBe(false);
-  });
-
-  it('getStartingNodes should return all nodes in disconnected graph', () => {
-    const graph = {
-      node1: {},
-      node2: {},
-      node3: {},
-    };
-    expect(getStartingNodes(graph)).toEqual(['node1', 'node2', 'node3']);
-  });
-
-  it('getJoinPathAsArray should return unvisited nodes in the path', () => {
-    const graph = {
-      node1: { node2: 'node1->node2' },
-      node2: { node3: 'node2->node3' },
-      node3: {},
-      node4: {},
-    };
-    const joinPath = getJoinPathAsArray('node1', graph);
-    expect(joinPath).toContain('node1');
-    expect(joinPath).toContain('node2');
-    expect(joinPath).toContain('node3');
-  });
-
-  it('generateSqlQuery should handle empty join path and graph', () => {
-    const joinPath = [];
-    const directedGraph = {};
-    const tableSchemaSqlMap = {
-      table1: 'select * from table1',
-    };
-    const sqlQuery = generateSqlQuery(
-      joinPath,
-      tableSchemaSqlMap,
-      directedGraph
-    );
-    expect(sqlQuery).toBe('undefined');
   });
 });

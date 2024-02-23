@@ -299,6 +299,23 @@ describe('Joins Tests', () => {
     BOOK_SCHEMA.joins = [];
     const query = {
       measures: ['books.total_book_count', 'authors.total_author_count'],
+      joinPath: [
+        [
+          {
+            left: 'authors',
+            right: 'books',
+            on: 'author_id',
+          },
+        ],
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+        ],
+      ],
+
       filters: [],
       dimensions: ['customers.customer_id', 'orders.customer_id'],
     };
@@ -309,7 +326,9 @@ describe('Joins Tests', () => {
         ORDER_SCHEMA,
         AUTHOR_SCHEMA,
       ])
-    ).rejects.toThrow('Multiple starting nodes found in the graph.');
+    ).rejects.toThrow(
+      'Invalid path, starting node is not the same for all paths.'
+    );
   });
 
   it('Three tables join - Direct', async () => {
@@ -323,6 +342,20 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+          {
+            left: 'orders',
+            right: 'products',
+            on: 'product_id',
+          },
+        ],
+      ],
       filters: [
         {
           and: [
@@ -366,6 +399,22 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+        ],
+        [
+          {
+            left: 'customers',
+            right: 'products',
+            on: 'customer_id',
+          },
+        ],
+      ],
       filters: [
         {
           and: [
@@ -407,6 +456,15 @@ describe('Joins Tests', () => {
   it('Success Join with filters', async () => {
     const query = {
       measures: ['orders.total_order_amount'],
+      joinPath: [
+        [
+          {
+            left: 'customers',
+            right: 'orders',
+            on: 'customer_id',
+          },
+        ],
+      ],
       filters: [
         {
           and: [
