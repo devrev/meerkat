@@ -17,9 +17,10 @@ export interface NestedTableSchema {
   dimensions: NestedDimension[];
 }
 
-export const getNestedTableSchema = async (
+export const getNestedTableSchema = (
   tableSchemas: TableSchema[],
-  joinPath: JoinEdge[][]
+  joinPath: JoinEdge[][],
+  depth: number
 ) => {
   const tableSchemaSqlMap: { [key: string]: string } = {};
   for (const schema of tableSchemas) {
@@ -124,11 +125,14 @@ export const getNestedTableSchema = async (
     buildNestedSchema(joinPath[i], 0, nestedTableSchema, tableSchemas);
   }
 
+  console.log(visitedNodes, 'visitedNodes');
+
   getNextPossibleNodes(
     directedGraph,
     nestedTableSchema,
     visitedNodes,
-    tableSchemas
+    tableSchemas,
+    depth
   );
 
   return nestedTableSchema;
@@ -138,18 +142,40 @@ const getNextPossibleNodes = (
   directedGraph: Graph,
   nestedTableSchema: NestedTableSchema,
   visitedNodes: { [key: string]: boolean },
-  tableSchemas: TableSchema[]
+  tableSchemas: TableSchema[],
+  depth: number,
+  currentDepth: number = 0
 ) => {
   const currentNode = nestedTableSchema.name;
 
+  /**
+   * We are already iterating the next nodes for each dimension. It means we are already at the next level of depth.
+   * So we should return if the current depth is greater than or equal to the depth we want to go to.
+   */
+  if (currentDepth >= depth) {
+    return;
+  }
+
+  /**
+   * Iterating through each dimension of the current node
+   */
   for (let i = 0; i < nestedTableSchema.dimensions.length; i++) {
     const dimension = nestedTableSchema.dimensions[i];
+    /**
+     * Gettting the next possible nodes for the current dimension
+     */
     const nextPossibleNodes = directedGraph[currentNode];
-    if (!nextPossibleNodes || !visitedNodes[currentNode]) {
+    if (!nextPossibleNodes) {
       return;
     }
 
     for (const [node] of Object.entries(nextPossibleNodes)) {
+      /**
+       * If the next node is not possible with the current dimension, continue to the next node
+       */
+      if (!nextPossibleNodes[node][dimension.schema.name]) {
+        continue;
+      }
       const nextSchema = tableSchemas.find(
         (schema) => schema.name === node
       ) as TableSchema;
@@ -158,36 +184,46 @@ const getNextPossibleNodes = (
         throw new Error(`The schema for ${node} does not exist.`);
       }
 
+      if (!visitedNodes[nextSchema.name]) {
+        const nestedNextSchema: NestedTableSchema = {
+          name: nextSchema.name,
+          measures: nextSchema.measures.map((measure) => ({
+            schema: measure,
+            children: [],
+          })),
+          dimensions: nextSchema.dimensions.map((dimension) => ({
+            schema: dimension,
+            children: [],
+          })),
+        };
+        if (
+          !dimension.children?.some(
+            (child) => child.name === nestedNextSchema.name
+          )
+        ) {
+          dimension.children?.push(nestedNextSchema);
+        }
+      }
       for (const children of dimension.children || []) {
+        if (visitedNodes[children.name] && currentDepth > 0) {
+          continue;
+        }
+
+        console.log(
+          'going into recusion with',
+          children.name,
+          'and depth ',
+          visitedNodes[children.name] ? 0 : currentDepth + 1
+        );
+
         getNextPossibleNodes(
           directedGraph,
           children,
           visitedNodes,
-          tableSchemas
+          tableSchemas,
+          depth,
+          visitedNodes[children.name] ? 0 : currentDepth + 1
         );
-      }
-
-      if (visitedNodes[node]) {
-        continue;
-      }
-
-      const nestedNextSchema: NestedTableSchema = {
-        name: nextSchema.name,
-        measures: nextSchema.measures.map((measure) => ({
-          schema: measure,
-          children: [],
-        })),
-        dimensions: nextSchema.dimensions.map((dimension) => ({
-          schema: dimension,
-          children: [],
-        })),
-      };
-      if (
-        !dimension.children?.some(
-          (child) => child.name === nestedNextSchema.name
-        )
-      ) {
-        dimension.children?.push(nestedNextSchema);
       }
     }
   }
