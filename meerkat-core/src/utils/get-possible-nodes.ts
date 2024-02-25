@@ -125,8 +125,6 @@ export const getNestedTableSchema = (
     buildNestedSchema(joinPath[i], 0, nestedTableSchema, tableSchemas);
   }
 
-  console.log(visitedNodes, 'visitedNodes');
-
   getNextPossibleNodes(
     directedGraph,
     nestedTableSchema,
@@ -208,13 +206,6 @@ const getNextPossibleNodes = (
         if (visitedNodes[children.name] && currentDepth > 0) {
           continue;
         }
-
-        console.log(
-          'going into recusion with',
-          children.name,
-          'and depth ',
-          visitedNodes[children.name] ? 0 : currentDepth + 1
-        );
 
         getNextPossibleNodes(
           directedGraph,
