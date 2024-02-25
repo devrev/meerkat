@@ -142,7 +142,7 @@ const getNextPossibleNodes = (
   visitedNodes: { [key: string]: boolean },
   tableSchemas: TableSchema[],
   depth: number,
-  currentDepth: number = 0
+  currentDepth = 0
 ) => {
   const currentNode = nestedTableSchema.name;
 
