@@ -115,7 +115,7 @@ interface QueryTimeDimension {
  * Join Edge data type.
  */
 
-interface JoinEdge {
+interface JoinNode {
   /**
    * Left node.
    */
@@ -123,9 +123,8 @@ interface JoinEdge {
 
   /**
    * Right node.
-   * If right node is not defined, then there is only one node in the path.
    */
-  right?: Member;
+  right: Member;
 
   /**
    * On condition.
@@ -154,6 +153,23 @@ interface JoinEdge {
 }
 
 /**
+ * Single node data type.
+ * This is the case when there is no join. Just a single node.
+ */
+interface SingleNode {
+  /**
+   * Left node.
+   */
+  left: Member;
+}
+
+type JoinPath = [JoinNode | SingleNode, ...JoinNode[]];
+
+export const isJoinNode = (node: JoinNode | SingleNode): node is JoinNode => {
+  return 'right' in node;
+};
+
+/**
  * Incoming network query data type.
  */
 
@@ -164,7 +180,7 @@ interface Query {
   dimensions?: (Member | TimeMember)[];
   filters?: MeerkatQueryFilter[];
   timeDimensions?: QueryTimeDimension[];
-  joinPath?: JoinEdge[][];
+  joinPaths?: JoinPath[];
   segments?: Member[];
   limit?: null | number;
   offset?: number;
@@ -197,7 +213,7 @@ export {
   ApiScopes,
   ApiType,
   FilterOperator,
-  JoinEdge,
+  JoinPath,
   LogicalAndFilter,
   LogicalOrFilter,
   MeerkatQueryFilter,

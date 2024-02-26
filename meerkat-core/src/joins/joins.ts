@@ -1,11 +1,11 @@
-import { JoinEdge, Query, TableSchema } from '../types/cube-types';
+import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
 
 export type Graph = {
   [key: string]: { [key: string]: { [key: string]: string } };
 };
 
 export function generateSqlQuery(
-  path: JoinEdge[][],
+  path: JoinPath[],
   tableSchemaSqlMap: { [key: string]: string },
   directedGraph: Graph
 ): string {
@@ -18,7 +18,11 @@ export function generateSqlQuery(
   const startingNode = path[0][0].left;
   let query = `${tableSchemaSqlMap[startingNode]}`;
 
-  if (!path[0][0].right) {
+  /**
+   * If the starting node is not a join node, then return the query as is.
+   * It means that the query is a single node query.
+   */
+  if (!isJoinNode(path[0][0])) {
     return query;
   }
 
@@ -32,6 +36,11 @@ export function generateSqlQuery(
     }
     for (let j = 0; j < path[i].length; j++) {
       const currentEdge = path[i][j];
+
+      if (!isJoinNode(currentEdge)) {
+        continue;
+      }
+
       const visitedFrom = visitedNodes.get(currentEdge.right);
 
       // If node is already visited from the same edge, continue to next iteration
@@ -203,7 +212,7 @@ export const getCombinedTableSchema = async (
   console.log('directedGraph', directedGraph);
 
   const baseSql = generateSqlQuery(
-    cubeQuery.joinPath || [],
+    cubeQuery.joinPaths || [],
     tableSchemaSqlMap,
     directedGraph
   );

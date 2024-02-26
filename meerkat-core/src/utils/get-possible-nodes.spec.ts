@@ -165,8 +165,6 @@ describe('Table schema functions', () => {
     [
       {
         left: 'node1',
-        right: '',
-        on: '',
       },
     ],
   ];

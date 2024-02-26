@@ -1,5 +1,11 @@
 import { Graph, checkLoopInGraph, createDirectedGraph } from '../joins/joins';
-import { Dimension, JoinEdge, Measure, TableSchema } from '../types/cube-types';
+import {
+  Dimension,
+  JoinPath,
+  Measure,
+  TableSchema,
+  isJoinNode,
+} from '../types/cube-types';
 
 export interface NestedMeasure {
   schema: Measure;
@@ -19,7 +25,7 @@ export interface NestedTableSchema {
 
 export const getNestedTableSchema = (
   tableSchemas: TableSchema[],
-  joinPath: JoinEdge[][],
+  joinPath: JoinPath[],
   depth: number
 ) => {
   const tableSchemaSqlMap: { [key: string]: string } = {};
@@ -58,7 +64,7 @@ export const getNestedTableSchema = (
   const checkedPaths: { [key: string]: boolean } = {};
 
   const buildNestedSchema = (
-    edges: JoinEdge[],
+    edges: JoinPath,
     index: number,
     nestedTableSchema: NestedTableSchema,
     tableSchemas: TableSchema[]
@@ -70,7 +76,7 @@ export const getNestedTableSchema = (
      * This means there is a single node in the path.
      */
 
-    if (!edge.right) {
+    if (!isJoinNode(edge)) {
       return nestedTableSchema;
     }
 

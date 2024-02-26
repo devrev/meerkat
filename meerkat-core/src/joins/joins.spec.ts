@@ -87,7 +87,7 @@ describe('Table schema functions', () => {
   });
 
   it('should correctly generate a SQL query from the provided join path, table schema SQL map, and directed graph', () => {
-    const joinPath = [
+    const joinPaths = [
       [
         { left: 'table1', right: 'table2', on: 'id' },
         { left: 'table2', right: 'table3', on: 'id' },
@@ -103,7 +103,7 @@ describe('Table schema functions', () => {
       table3: 'select * from table3',
     };
     const sqlQuery = generateSqlQuery(
-      joinPath,
+      joinPaths,
       tableSchemaSqlMap,
       directedGraph
     );
