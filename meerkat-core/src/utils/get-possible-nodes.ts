@@ -64,6 +64,16 @@ export const getNestedTableSchema = (
     tableSchemas: TableSchema[]
   ): NestedTableSchema => {
     const edge = edges[index];
+
+    /**
+     * If there is no right table, return the nested schema immediately
+     * This means there is a single node in the path.
+     */
+
+    if (edge.right === '') {
+      return nestedTableSchema;
+    }
+
     // If the path has been checked before, return the nested schema immediately
     const pathKey = `${edge.left}-${edge.right}-${edge.on}`;
     if (checkedPaths[pathKey]) {
@@ -81,6 +91,10 @@ export const getNestedTableSchema = (
     const rightSchema = tableSchemas.find(
       (schema) => schema.name === edge.right
     ) as TableSchema;
+
+    if (!rightSchema) {
+      throw new Error(`The schema for ${edge.right} does not exist.`);
+    }
 
     // Mark the path as checked
     checkedPaths[pathKey] = true;
