@@ -1,5 +1,11 @@
 import { Graph, checkLoopInGraph, createDirectedGraph } from '../joins/joins';
-import { Dimension, JoinEdge, Measure, TableSchema } from '../types/cube-types';
+import {
+  Dimension,
+  JoinPath,
+  Measure,
+  TableSchema,
+  isJoinNode,
+} from '../types/cube-types';
 
 export interface NestedMeasure {
   schema: Measure;
@@ -19,7 +25,7 @@ export interface NestedTableSchema {
 
 export const getNestedTableSchema = (
   tableSchemas: TableSchema[],
-  joinPath: JoinEdge[][],
+  joinPath: JoinPath[],
   depth: number
 ) => {
   const tableSchemaSqlMap: { [key: string]: string } = {};
@@ -58,12 +64,22 @@ export const getNestedTableSchema = (
   const checkedPaths: { [key: string]: boolean } = {};
 
   const buildNestedSchema = (
-    edges: JoinEdge[],
+    edges: JoinPath,
     index: number,
     nestedTableSchema: NestedTableSchema,
     tableSchemas: TableSchema[]
   ): NestedTableSchema => {
     const edge = edges[index];
+
+    /**
+     * If there is no right table, return the nested schema immediately
+     * This means there is a single node in the path.
+     */
+
+    if (!isJoinNode(edge)) {
+      return nestedTableSchema;
+    }
+
     // If the path has been checked before, return the nested schema immediately
     const pathKey = `${edge.left}-${edge.right}-${edge.on}`;
     if (checkedPaths[pathKey]) {
@@ -81,6 +97,10 @@ export const getNestedTableSchema = (
     const rightSchema = tableSchemas.find(
       (schema) => schema.name === edge.right
     ) as TableSchema;
+
+    if (!rightSchema) {
+      throw new Error(`The schema for ${edge.right} does not exist.`);
+    }
 
     // Mark the path as checked
     checkedPaths[pathKey] = true;

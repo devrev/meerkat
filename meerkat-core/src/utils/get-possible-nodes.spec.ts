@@ -161,6 +161,14 @@ describe('Table schema functions', () => {
     ],
   ];
 
+  const singleNodeJoinPath = [
+    [
+      {
+        left: 'node1',
+      },
+    ],
+  ];
+
   const intermediateJoinPath = [
     [
       {
@@ -221,6 +229,75 @@ describe('Table schema functions', () => {
       },
     ],
   ];
+
+  it('Test single node join path', async () => {
+    const nestedSchema = await getNestedTableSchema(
+      tableSchema,
+      singleNodeJoinPath,
+      1
+    );
+
+    expect(nestedSchema).toEqual({
+      name: 'node1',
+      measures: [],
+      dimensions: [
+        {
+          schema: {
+            name: 'id',
+            sql: 'node1.id',
+          },
+          children: [
+            {
+              name: 'node2',
+              measures: [],
+              dimensions: [
+                {
+                  schema: {
+                    name: 'id',
+                    sql: 'node2.id',
+                  },
+                  children: [],
+                },
+                {
+                  schema: {
+                    name: 'node11_id',
+                    sql: 'node2.node11_id',
+                  },
+                  children: [],
+                },
+              ],
+            },
+            {
+              name: 'node3',
+              measures: [],
+              dimensions: [
+                {
+                  schema: {
+                    name: 'id',
+                    sql: 'node3.id',
+                  },
+                  children: [],
+                },
+              ],
+            },
+            {
+              name: 'node6',
+              measures: [],
+              dimensions: [
+                {
+                  schema: {
+                    name: 'id',
+                    sql: 'node6.id',
+                  },
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
 
   it('Test basic join path with depth 0 (should return original graph)', async () => {
     const nestedSchema = await getNestedTableSchema(

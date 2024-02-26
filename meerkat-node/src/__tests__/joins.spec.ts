@@ -308,7 +308,7 @@ describe('Joins Tests', () => {
     BOOK_SCHEMA.joins = [];
     const query = {
       measures: ['books.total_book_count', 'authors.total_author_count'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'authors',
@@ -340,6 +340,31 @@ describe('Joins Tests', () => {
     );
   });
 
+  it('Single node in the path', async () => {
+    const query = {
+      measures: [],
+      filters: [],
+      dimensions: ['orders.order_id'],
+      joinPaths: [
+        [
+          {
+            left: 'orders',
+            on: 'order_id',
+          },
+        ],
+      ],
+    };
+    const sql = await cubeQueryToSQL(query, [AUTHOR_SCHEMA, ORDER_SCHEMA]);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    const output = await duckdbExec(sql);
+    const parsedOutput = JSON.parse(JSON.stringify(output));
+    console.info('parsedOutput', parsedOutput);
+    expect(sql).toEqual(
+      'SELECT  orders__order_id FROM (SELECT *, orders.order_id AS orders__order_id FROM (select * from orders) AS orders) AS MEERKAT_GENERATED_TABLE GROUP BY orders__order_id'
+    );
+    expect(parsedOutput).toHaveLength(11);
+  });
+
   it('Three tables join - Direct', async () => {
     const DEMO_SCHEMA = structuredClone(ORDER_SCHEMA);
 
@@ -351,7 +376,7 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -408,7 +433,7 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -465,7 +490,7 @@ describe('Joins Tests', () => {
   it('Joins with Different Paths', async () => {
     const query1 = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -512,7 +537,7 @@ describe('Joins Tests', () => {
 
     const query2 = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -555,7 +580,7 @@ describe('Joins Tests', () => {
   it('Success Join with filters', async () => {
     const query = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
