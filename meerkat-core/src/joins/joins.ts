@@ -57,12 +57,10 @@ export function generateSqlQuery(
       // If visitedFrom is undefined, this is the first visit to the node
       visitedNodes.set(currentEdge.right, currentEdge);
 
-      query += ` LEFT JOIN (${
-        tableSchemaSqlMap[currentEdge.right as string]
-      }) AS ${currentEdge.right}  ON ${
-        directedGraph[currentEdge.left][currentEdge.right as string][
-          currentEdge.on
-        ]
+      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
+        currentEdge.right
+      }  ON ${
+        directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
       }`;
     }
   }
@@ -208,8 +206,6 @@ export const getCombinedTableSchema = async (
   if (hasLoop) {
     throw new Error('A loop was detected in the joins.');
   }
-
-  console.log('directedGraph', directedGraph);
 
   const baseSql = generateSqlQuery(
     cubeQuery.joinPaths || [],
