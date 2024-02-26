@@ -123,8 +123,9 @@ interface JoinEdge {
 
   /**
    * Right node.
+   * If right node is not defined, then there is only one node in the path.
    */
-  right: Member;
+  right?: Member;
 
   /**
    * On condition.

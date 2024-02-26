@@ -70,7 +70,7 @@ export const getNestedTableSchema = (
      * This means there is a single node in the path.
      */
 
-    if (edge.right === '') {
+    if (!edge.right) {
       return nestedTableSchema;
     }
 
