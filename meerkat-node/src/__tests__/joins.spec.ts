@@ -340,6 +340,31 @@ describe('Joins Tests', () => {
     );
   });
 
+  it('Single node in the path', async () => {
+    const query = {
+      measures: [],
+      filters: [],
+      dimensions: ['orders.order_id'],
+      joinPath: [
+        [
+          {
+            left: 'orders',
+            on: 'order_id',
+          },
+        ],
+      ],
+    };
+    const sql = await cubeQueryToSQL(query, [AUTHOR_SCHEMA, ORDER_SCHEMA]);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    const output = await duckdbExec(sql);
+    const parsedOutput = JSON.parse(JSON.stringify(output));
+    console.info('parsedOutput', parsedOutput);
+    expect(sql).toEqual(
+      'SELECT  orders__order_id FROM (SELECT *, orders.order_id AS orders__order_id FROM (select * from orders) AS orders) AS MEERKAT_GENERATED_TABLE GROUP BY orders__order_id'
+    );
+    expect(parsedOutput).toHaveLength(11);
+  });
+
   it('Three tables join - Direct', async () => {
     const DEMO_SCHEMA = structuredClone(ORDER_SCHEMA);
 

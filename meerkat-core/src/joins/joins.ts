@@ -18,6 +18,10 @@ export function generateSqlQuery(
   const startingNode = path[0][0].left;
   let query = `${tableSchemaSqlMap[startingNode]}`;
 
+  if (!path[0][0].right) {
+    return query;
+  }
+
   const visitedNodes = new Map();
 
   for (let i = 0; i < path.length; i++) {
@@ -44,10 +48,12 @@ export function generateSqlQuery(
       // If visitedFrom is undefined, this is the first visit to the node
       visitedNodes.set(currentEdge.right, currentEdge);
 
-      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
-        currentEdge.right
-      }  ON ${
-        directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
+      query += ` LEFT JOIN (${
+        tableSchemaSqlMap[currentEdge.right as string]
+      }) AS ${currentEdge.right}  ON ${
+        directedGraph[currentEdge.left][currentEdge.right as string][
+          currentEdge.on
+        ]
       }`;
     }
   }
