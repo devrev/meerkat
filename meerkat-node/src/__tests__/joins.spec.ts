@@ -308,7 +308,7 @@ describe('Joins Tests', () => {
     BOOK_SCHEMA.joins = [];
     const query = {
       measures: ['books.total_book_count', 'authors.total_author_count'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'authors',
@@ -345,7 +345,7 @@ describe('Joins Tests', () => {
       measures: [],
       filters: [],
       dimensions: ['orders.order_id'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'orders',
@@ -376,7 +376,7 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -433,7 +433,7 @@ describe('Joins Tests', () => {
 
     const query = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -490,7 +490,7 @@ describe('Joins Tests', () => {
   it('Joins with Different Paths', async () => {
     const query1 = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -537,7 +537,7 @@ describe('Joins Tests', () => {
 
     const query2 = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
@@ -580,7 +580,7 @@ describe('Joins Tests', () => {
   it('Success Join with filters', async () => {
     const query = {
       measures: ['orders.total_order_amount'],
-      joinPath: [
+      joinPaths: [
         [
           {
             left: 'customers',
