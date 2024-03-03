@@ -2,6 +2,7 @@ import { cubeQueryToSQL } from '@devrev/meerkat-browser';
 import { useState } from 'react';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { JsonEditor } from './json-editor';
 
 export const TABLE_SCHEMA: any = {
   name: 'orders',
@@ -75,5 +76,12 @@ export const QueryBenchmarking = () => {
     })();
   }, []);
 
-  return <div>Query: {output}</div>;
+  return (
+    <div className="flex flex-col flex-grow">
+      <div className="flex">Query: {output}</div>
+      <div className="flex flex-1 min-h-0">
+        <JsonEditor onChange={(val) => console.log('change:-', val)} />
+      </div>
+    </div>
+  );
 };
