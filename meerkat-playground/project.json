@@ -1,0 +1,91 @@
+{
+  "name": "meerkat-playground",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "meerkat-playground/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "compiler": "babel",
+        "outputPath": "dist/meerkat-playground",
+        "index": "meerkat-playground/src/index.html",
+        "baseHref": "/",
+        "main": "meerkat-playground/src/main.tsx",
+        "tsConfig": "meerkat-playground/tsconfig.app.json",
+        "assets": [
+          "meerkat-playground/src/favicon.ico",
+          "meerkat-playground/src/assets"
+        ],
+        "styles": ["meerkat-playground/src/styles.css"],
+        "scripts": [],
+        "isolatedConfig": true,
+        "webpackConfig": "meerkat-playground/webpack.config.js",
+        "postcssConfig": "meerkat-playground/postcss.config.js"
+      },
+      "configurations": {
+        "development": {
+          "extractLicenses": false,
+          "optimization": false,
+          "sourceMap": true,
+          "vendorChunk": true
+        },
+        "production": {
+          "fileReplacements": [
+            {
+              "replace": "meerkat-playground/src/environments/environment.ts",
+              "with": "meerkat-playground/src/environments/environment.prod.ts"
+            }
+          ],
+          "optimization": true,
+          "outputHashing": "all",
+          "sourceMap": false,
+          "namedChunks": false,
+          "extractLicenses": true,
+          "vendorChunk": false
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/webpack:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "meerkat-playground:build",
+        "hmr": true
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "meerkat-playground:build:development"
+        },
+        "production": {
+          "buildTarget": "meerkat-playground:build:production",
+          "hmr": false
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["meerkat-playground/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "meerkat-playground/jest.config.ts",
+        "passWithNoTests": true
+      },
+      "configurations": {
+        "ci": {
+          "ci": true,
+          "codeCoverage": true
+        }
+      }
+    }
+  },
+  "tags": []
+}
