@@ -1,3 +1,5 @@
-export default async function Index() {
-  return <div>Index</div>;
+import HomePage from './home/page';
+
+export default function App() {
+  return <HomePage />;
 }
