@@ -1,10 +1,10 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+'use client';
 
-import { DataTable } from '../components/data-table';
-import { QueryBenchmarking } from '../components/query-benchmarking';
-import { Sidebar } from '../components/sidebar';
-import { columns, data } from '../constants/table-data';
-import { IndexedDBMProvider } from '../duckdb/indexed-dbm-context';
+import { DataTable } from './components/data-table';
+import { QueryBenchmarking } from './components/query-benchmarking';
+import { Sidebar } from './components/sidebar';
+import { columns, data } from './constants/table-data';
+import { IndexedDBMProvider } from './duckdb/indexed-dbm-context';
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '../ui/dialog';
+} from './ui/dialog';
 
-export function App() {
+export default async function Index() {
+  /*
+   * Replace the elements below with your own.
+   *
+   * Note: The corresponding styles are in the ./index.scss file.
+   */
   return (
     <div className="bg-background ">
       <div className="grid lg:grid-cols-10">
@@ -48,5 +53,3 @@ export function App() {
     </div>
   );
 }
-
-export default App;

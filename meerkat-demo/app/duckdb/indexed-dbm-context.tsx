@@ -1,3 +1,5 @@
+'use client';
+
 import { DBM, IndexedDBFileManager } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
 import React, { useState } from 'react';

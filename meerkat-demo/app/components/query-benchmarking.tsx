@@ -1,3 +1,5 @@
+'use client';
+
 import { cubeQueryToSQL } from '@devrev/meerkat-browser';
 import { useState } from 'react';
 import { useDBM } from '../hooks/dbm-context';
