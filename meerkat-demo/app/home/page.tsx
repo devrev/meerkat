@@ -6,8 +6,8 @@ import { Button } from '../ui/button';
 export default function HomePage() {
   return (
     <div className="relative isolate pt-4">
-      <div className="py-24 sm:py-32 lg:pb-40">
-        <div className="w-full rounded-md bg-neutral-950 relative flex flex-col flex-grow items-center justify-center antialiased">
+      <div className="py-24 sm:py-32 lg:pb-40 bg-neutral-950">
+        <div className="w-full rounded-md relative flex flex-col flex-grow items-center justify-center antialiased">
           <div className="mx-auto max-w-4xl px-2 md:px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h1 className="relative z-10 text-4xl md:text-7xl bg-clip-text text-transparent bg-gradient-to-b from-neutral-200 to-neutral-600 text-center font-sans font-bold">

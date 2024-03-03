@@ -8,7 +8,7 @@ export default function PlaygroundLayout({
   return (
     <div className="grid h-screen lg:grid-cols-10">
       <Sidebar playlists={[]} />
-      {children}
+      <div className="col-span-9">{children}</div>
     </div>
   );
 }
