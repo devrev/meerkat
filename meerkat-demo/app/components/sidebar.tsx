@@ -41,9 +41,11 @@ export function Sidebar({ className, playlists }: SidebarProps) {
     <div className={cn('pb-12 col-span-1 lg:border-r', className)}>
       <div className="space-y-4 py-4">
         <div className="px-3 py-2 h-full">
-          <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-            Meerkat
-          </h2>
+          <Link href="/">
+            <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
+              Meerkat
+            </h2>
+          </Link>
           <div className="space-y-1">
             <ActiveLink
               href={'/playground/explore'}
