@@ -6,7 +6,7 @@ export default function PlaygroundLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid lg:grid-cols-10">
+    <div className="grid h-screen lg:grid-cols-10">
       <Sidebar playlists={[]} />
       {children}
     </div>
