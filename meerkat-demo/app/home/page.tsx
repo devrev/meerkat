@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { BackgroundBeams } from '../ui/background-beams';
-import { Button } from '../ui/button';
+import { BackgroundBeams } from '../../ui/background-beams';
+import { Button } from '../../ui/button';
 
 export default function HomePage() {
   return (

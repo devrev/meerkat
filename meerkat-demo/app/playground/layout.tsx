@@ -1,4 +1,6 @@
-import { Sidebar } from '../components/sidebar';
+'use client';
+
+import { Sidebar } from '../../components/sidebar';
 
 export default function PlaygroundLayout({
   children, // will be a page or nested layout

@@ -1,3 +1,5 @@
+'use client';
+
 import PlaygroundLayout from './layout';
 
 export function Playground() {
