@@ -1,4 +1,4 @@
-import { convertCubeToTableSchema } from './cube-to-table-schema';
+import { convertCubeStringToTableSchema } from './cube-to-table-schema';
 describe('cube-to-table-schema', () => {
   it('Should convert to table schema', async () => {
     const files = [
@@ -34,13 +34,13 @@ describe('cube-to-table-schema', () => {
           { name: 'created_at', sql: 'created_at', type: 'time' },
         ],
         joins: [
-          { sql: 'MEERKAT.order_id = orders.id' },
-          { sql: 'MEERKAT.product_id = products.id' },
+          { sql: '{MEERKAT}.order_id = orders.id' },
+          { sql: '{MEERKAT}.product_id = products.id' },
         ],
       },
     ];
     for (let i = 0; i < files.length; i++) {
-      const tableSchema = convertCubeToTableSchema(files[i]);
+      const tableSchema = convertCubeStringToTableSchema(files[i]);
       expect(tableSchema).toEqual(outputTableSchemas[i]);
     }
   });
