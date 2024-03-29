@@ -125,6 +125,12 @@ export interface FileManagerType {
    * Handler to be executed on database shutdown.
    */
   onDBShutdownHandler: () => Promise<void>;
+
+  /**
+   * @description
+   * Total number of files registered in the file manager.
+   */
+  getTotalFilesCount: () => Promise<number>;
 }
 
 export type BaseFileStore = {
