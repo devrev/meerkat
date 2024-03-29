@@ -11,7 +11,7 @@
     "axios": "^1.6.0",
     "dexie": "^3.2.4",
     "duckdb": "^0.8.1",
-    "express": "^4.18.1",
+    "express": "^4.19.2",
     "fake-indexeddb": "^5.0.1",
     "loglevel": "^1.8.1",
     "next": "13.5.4",
