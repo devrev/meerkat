@@ -1,4 +1,4 @@
-import { TableSchema } from '@devrev/meerkat-core';
+import { TableSchema } from '../types/cube-types/table';
 
 export function convertCubeToTableSchema(file: string): TableSchema | null {
   const cube = (name: any, object: any) => ({ name, object });
