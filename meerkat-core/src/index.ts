@@ -14,6 +14,7 @@ export { FilterType } from './types/cube-types';
 export * from './types/cube-types/index';
 export * from './types/duckdb-serialization-types/index';
 export { BASE_TABLE_NAME } from './utils/base-ast';
+export * from './utils/cube-to-table-schema';
 export * from './utils/get-possible-nodes';
 export { meerkatPlaceholderReplacer } from './utils/meerkat-placeholder-replacer';
 export { memberKeyToSafeKey } from './utils/member-key-to-safe-key';

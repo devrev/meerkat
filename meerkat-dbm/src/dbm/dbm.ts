@@ -264,7 +264,9 @@ export class DBM {
       /**
        * Lock the tables
        */
-      this.lockTables(this.currentQueryItem.tables.map((table) => table.name));
+      await this.lockTables(
+        this.currentQueryItem.tables.map((table) => table.name)
+      );
 
       const startTime = Date.now();
       this.logger.debug(
@@ -313,7 +315,7 @@ export class DBM {
       /**
        * Unlock the tables
        */
-      this.unlockTables(
+      await this.unlockTables(
         this.currentQueryItem.tables.map((table) => table.name)
       );
     }

@@ -198,7 +198,7 @@ export class IndexedDBFileManager implements FileManagerType {
     return tables.map((table) => ({
       tableName: table.name,
       files: getFilesByPartition(
-        tableData[table.name]?.files,
+        tableData[table.name]?.files ?? [],
         table.partitions
       ),
     }));
