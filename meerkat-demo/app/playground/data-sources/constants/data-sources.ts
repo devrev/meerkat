@@ -1,4 +1,4 @@
-export const DEFAULT_FILES = {
+export const DEFAULT_DATA_SOURCES = {
   files: [
     'line_items',
     'orders',

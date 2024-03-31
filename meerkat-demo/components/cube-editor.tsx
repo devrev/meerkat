@@ -1,6 +1,6 @@
 import Editor from '@monaco-editor/react';
 
-const EDITOR_LANGUAGE = 'json';
+const EDITOR_LANGUAGE = 'typescript';
 
 enum EDITOR_THEME {
   DARK = 'vs-dark',
@@ -14,17 +14,17 @@ const EDITOR_OPTIONS = {
   overviewRulerLanes: 0,
   padding: { top: 8 },
   renderLineHighlight: 'none' as const,
+  readOnly: true,
 };
 
-export const JsonEditor = ({
-  json,
+export const CubeEditor = ({
+  txt,
   onChange,
 }: {
-  json?: object;
+  txt?: string;
   onChange: (input?: string) => void;
 }) => {
   // Only valid valid JSON is allowed in the editor
-  const editorVal = JSON.stringify(json, null, 2);
 
   return (
     <Editor
@@ -34,7 +34,7 @@ export const JsonEditor = ({
       onChange={onChange}
       options={EDITOR_OPTIONS}
       theme={EDITOR_THEME.DARK}
-      value={editorVal}
+      value={txt}
     />
   );
 };

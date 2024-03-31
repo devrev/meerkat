@@ -1,11 +1,11 @@
 'use client';
 
 import { MeerkatDatabase } from '@devrev/meerkat-dbm';
-import { useLiveQuery } from 'dexie-react-hooks';
 import Link, { LinkProps } from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '../../../../ui/button';
 import { cn } from '../../../../utils/utils';
+import { DEFAULT_DATA_SOURCES } from '../constants/data-sources';
 
 type FilesListProps = React.HTMLAttributes<HTMLDivElement>;
 
@@ -38,23 +38,21 @@ const NavItem = ({ label, isActive }: { label: string; isActive: boolean }) => {
   );
 };
 
-export function FilesList({ className }: FilesListProps) {
-  const lists = useLiveQuery(() => db.files.toArray());
-
+export function DataSourcesList({ className }: FilesListProps) {
   return (
     <div className={cn('pb-12 col-span-3 lg:border-r', className)}>
       <div className="space-y-4 py-4">
         <div className="px-3 py-2 h-full">
           <div className="border-b  pb-2 flex justify-between items-center">
-            <p className="text-small  text-muted-foreground">Files</p>
+            <p className="text-small  text-muted-foreground">Data Sources</p>
           </div>
           <div className="space-y-1 pt-2">
-            {lists?.map((file) => (
+            {DEFAULT_DATA_SOURCES.files?.map((file) => (
               <ActiveLink
-                key={file.fileName}
-                href={`/playground/files/${file.fileName}`}
+                key={file}
+                href={`/playground/data-sources/${file}`}
                 renderer={(isActive) => {
-                  return <NavItem label={file.fileName} isActive={isActive} />;
+                  return <NavItem label={file} isActive={isActive} />;
                 }}
               ></ActiveLink>
             ))}

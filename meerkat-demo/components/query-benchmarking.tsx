@@ -4,7 +4,7 @@ import { cubeQueryToSQL } from '@devrev/meerkat-browser';
 import { useState } from 'react';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
-import { JsonEditor } from './json-editor';
+import { JsonEditor } from './cube-editor';
 
 export const TABLE_SCHEMA: any = {
   name: 'orders',
