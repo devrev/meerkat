@@ -42,7 +42,8 @@ describe('filter-param-tests', () => {
              (4, DATE '2022-03-01', 'cancelled', 40.00),
              (5, DATE '2022-01-28', 'completed', 80.75),
              (6, DATE '2022-02-15', 'pending', 120.00),
-             (7, DATE '2022-04-01', 'completed', 210.00);`);
+             (7, DATE '2022-02-15', 'pending', 120.00),
+             (8, DATE '2022-04-01', 'initiated', null);`);
   });
 
   it('Should apply filter params to base SQL', async () => {
@@ -60,7 +61,7 @@ describe('filter-param-tests', () => {
     const sql = await cubeQueryToSQL(query, [SCHEMA]);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(1);
+    expect(output).toHaveLength(2);
     expect(output[0].id).toBe(6);
   });
 
@@ -93,7 +94,7 @@ describe('filter-param-tests', () => {
     const sql = await cubeQueryToSQL(query, [SCHEMA]);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(2);
+    expect(output).toHaveLength(3);
     expect(output[0].id).toBe(6);
   });
 
@@ -107,7 +108,7 @@ describe('filter-param-tests', () => {
     const sql = await cubeQueryToSQL(query, [SCHEMA]);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(7);
+    expect(output).toHaveLength(8);
   });
 
   it('Should apply true filter if filters are present but are not matching', async () => {
@@ -139,6 +140,31 @@ describe('filter-param-tests', () => {
     const sql = await cubeQueryToSQL(query, [SCHEMA]);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(4);
+    expect(output).toHaveLength(5);
+  });
+  it('Should apply notSet and set filters', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.amount',
+              operator: 'notSet',
+            },
+            {
+              member: 'orders.status',
+              operator: 'set',
+            }
+          ],
+        }, 
+      ],
+      dimensions: [],
+    };
+
+    const sql = await cubeQueryToSQL(query, [SCHEMA]);
+    console.info('SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(1);
   });
 });
