@@ -20,7 +20,8 @@ INSERT INTO orders VALUES
 (8, '5', '1', '2022-05-02', 65),
 (9, '5', '2', '2022-05-05', 85),
 (10, '6', '3', '2022-06-01', 120),
-(11, '6aa6', '3', '2024-06-01', 0);
+(11, '6aa6', '3', '2024-06-01', 0),
+(12, NULL, '3', '2024-07-01', 100);
 `;
 
 export const TABLE_SCHEMA = {
@@ -121,6 +122,10 @@ export const TEST_DATA = [
         orders__customer_id: '6aa6',
         orders__total_order_amount: 0,
       },
+      {
+        orders__customer_id: null,
+        orders__total_order_amount: 100,
+      }
     ],
   },
   {
@@ -395,6 +400,15 @@ export const TEST_DATA = [
         order_amount: 120.0,
         orders__order_amount: 120.0,
       },
+      {
+        "customer_id": null,
+        "order_amount": 100,
+        "order_date": "2024-07-01T00:00:00.000Z",
+        "order_id": 12,
+        "orders__order_amount": 100,
+        "orders__order_date": undefined,
+        "product_id": "3",
+      }
     ],
   },
   {
@@ -558,6 +572,14 @@ export const TEST_DATA = [
         orders__order_date: '2024-06-01',
         order_amount: 0.0,
       },
+      {
+        "customer_id": null,
+        "order_amount": 100,
+        "order_date": "2024-07-01T00:00:00.000Z",
+        "order_id": 12,
+        "orders__order_date": "2024-07-01T00:00:00.000Z",
+        "product_id": "3",
+      }
     ],
   },
   // {
@@ -706,6 +728,116 @@ export const TEST_DATA = [
         order_amount: 120.0,
         orders__order_amount: 120.0,
       },
+    ],
+  },
+  {
+    testName: 'Set',
+    expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount, product_id AS orders__product_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount IS NOT NULL) AND (orders__product_id = '3'))`,
+    cubeInput: {
+      measures: ['*'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.order_amount',
+              operator: 'set',
+            },
+            {
+              member: 'orders.product_id',
+              operator: 'equals',
+              values: ['3']
+            }
+        ],
+        },
+      ],
+      dimensions: [],
+    },
+    expectedOutput: [
+      {
+        "customer_id": "2",
+        "order_amount": 25,
+        "order_date": "2022-02-01T00:00:00.000Z",
+        "order_id": 3,
+        "orders__order_amount": 25,
+        "orders__order_date": undefined,
+        "orders__product_id": "3",
+        "product_id": "3",
+      },
+      {
+        "customer_id": "4",
+        "order_amount": 90,
+        "order_date": "2022-05-01T00:00:00.000Z",
+        "order_id": 7,
+        "orders__order_amount": 90,
+        "orders__order_date": undefined,
+        "orders__product_id": "3",
+        "product_id": "3",
+      },
+      {
+        "customer_id": "6",
+        "order_amount": 120,
+        "order_date": "2022-06-01T00:00:00.000Z",
+        "order_id": 10,
+        "orders__order_amount": 120,
+        "orders__order_date": undefined,
+        "orders__product_id": "3",
+        "product_id": "3",
+      },
+      {
+        "customer_id": "6aa6",
+        "order_amount": 0,
+        "order_date": "2024-06-01T00:00:00.000Z",
+        "order_id": 11,
+        "orders__order_amount": 0,
+        "orders__order_date": undefined,
+        "orders__product_id": "3",
+        "product_id": "3",
+      },
+      {
+        "customer_id": null,
+        "order_amount": 100,
+        "order_date": "2024-07-01T00:00:00.000Z",
+        "order_id": 12,
+        "orders__order_amount": 100,
+        "orders__order_date": undefined,
+        "orders__product_id": "3",
+        "product_id": "3",
+      },
+    ],
+  },
+  {
+    testName: 'Not Set',
+    expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id, product_id AS orders__product_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id IS NULL) AND (orders__product_id = '3'))`,
+    cubeInput: {
+      measures: ['*'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.customer_id',
+              operator: 'notSet',
+            },
+            {
+              member: 'orders.product_id',
+              operator: 'equals',
+              values: ['3']
+            }
+        ],
+        },
+      ],
+      dimensions: [],
+    },
+    expectedOutput: [
+      {
+        "orders__customer_id": null,
+        "customer_id": null,
+        "order_amount": 100,
+        "order_date": "2024-07-01T00:00:00.000Z",
+        "order_id": 12,
+        "orders__order_date": undefined,
+        "orders__product_id": "3",
+        "product_id": "3",
+      }
     ],
   },
 ];
