@@ -1,11 +1,11 @@
+import { ExpressionClass, ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { CubeToParseExpressionTransform } from "../factory";
 
-// @ts-ignore
 export const setTransform: CubeToParseExpressionTransform = (query)  => {
     const { member } = query;
     return {
-        class: "OPERATOR",
-        type: "OPERATOR_IS_NOT_NULL",
+        class: ExpressionClass.OPERATOR,
+        type: ExpressionType.OPERATOR_IS_NOT_NULL,
         alias: "",
         children: [
             {
