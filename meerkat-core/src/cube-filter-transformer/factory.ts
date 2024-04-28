@@ -25,7 +25,9 @@ import { lteTransform } from './lte/lte';
 import { notInDataRangeTransform } from './not-In-date-range/not-In-date-range';
 import { notContainsTransform } from './not-contains/not-contains';
 import { notEqualsTransform } from './not-equals/not-equals';
+import { notSetTransform } from './not-set/not-set';
 import { orDuckdbCondition } from './or/or';
+import { setTransform } from './set/set';
 
 export type CubeToParseExpressionTransform = (
   query: QueryOperatorsWithInfo
@@ -54,6 +56,12 @@ const cubeFilterOperatorsToDuckdb = (cubeFilter: QueryOperatorsWithInfo) => {
       return inDataRangeTransform(cubeFilter);
     case 'notInDateRange':
       return notInDataRangeTransform(cubeFilter);
+    case 'notSet': {
+      return notSetTransform(cubeFilter);
+    }
+    case 'set': {
+      return setTransform(cubeFilter);
+    }
     default:
       throw new Error('Could not transform the filter');
   }
