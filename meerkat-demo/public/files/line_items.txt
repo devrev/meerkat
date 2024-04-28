@@ -1,14 +1,14 @@
 cube(`line_items`, {
-  sql_table: `public.line_items`,
+  sql_table: `select * from line_items`,
 
   joins: {
     orders: {
-      sql: `${CUBE}.order_id = ${orders}.id`,
+      sql: `line_items.order_id = ${orders}.id`,
       relationship: `many_to_one`,
     },
 
     products: {
-      sql: `${CUBE}.product_id = ${products}.id`,
+      sql: `line_items.product_id = ${products}.id`,
       relationship: `many_to_one`,
     },
   },

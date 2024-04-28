@@ -1,5 +1,5 @@
 cube(`users`, {
-  sql_table: `public.users`,
+  sql_table: `select * from users`,
   
   joins: {
     

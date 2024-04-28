@@ -1,5 +1,5 @@
 cube(`suppliers`, {
-  sql_table: `public.suppliers`,
+  sql_table: `select * from suppliers`,
   
   joins: {
     

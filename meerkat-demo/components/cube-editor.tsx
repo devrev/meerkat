@@ -22,10 +22,8 @@ export const CubeEditor = ({
   onChange,
 }: {
   txt?: string;
-  onChange: (input?: string) => void;
+  onChange?: (input?: string) => void;
 }) => {
-  // Only valid valid JSON is allowed in the editor
-
   return (
     <Editor
       className="border-y border-default bg-overlay"

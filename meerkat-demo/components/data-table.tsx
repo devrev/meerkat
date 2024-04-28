@@ -22,7 +22,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
-import { Input } from '../ui/input';
 import {
   Table,
   TableBody,
@@ -69,14 +68,6 @@ export function DataTable<T>({
   return (
     <div className="w-full h-full">
       <div className="flex items-center py-4">
-        <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn('email')?.getFilterValue() as string) ?? ''}
-          onChange={(event) =>
-            table.getColumn('email')?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { DataTable } from '../../../../components/data-table';
 import { useDBM } from '../../../../hooks/dbm-context';
 import { useClassicEffect } from '../../../../hooks/use-classic-effect';
+import { parseDuckdbArrowOutput } from '../../../../utils/utils';
 export interface FilesProps {
   params: {
     file: string;
@@ -38,32 +39,18 @@ export function File({ params }: FilesProps) {
         options: {
           preQuery: async () => {
             await dbm.query(
-              `CREATE TABLE ${tableName} AS SELECT * FROM read_parquet('${params.file}')`
+              `CREATE or REPLACE VIEW ${tableName} AS SELECT * FROM read_parquet('${params.file}')`
             );
           },
         },
       });
-      const parsedOutputQuery = result
-        .toArray()
-        .map((row: any) => row.toJSON());
-
-      //Convert all the BigInt to string
-      for (let i = 0; i < parsedOutputQuery.length; i++) {
-        for (const key in parsedOutputQuery[i]) {
-          if (typeof parsedOutputQuery[i][key] === 'bigint') {
-            parsedOutputQuery[i][key] = parsedOutputQuery[i][key].toString();
-          }
-        }
-      }
+      const parsedOutputQuery = parseDuckdbArrowOutput(result);
       // Get keys from first row
       const firstRow = parsedOutputQuery[0];
       const columns: ColumnDef<any> = Object.keys(firstRow).map((key) => ({
         id: key,
-        header: key,
         accessorKey: key,
         cell: (prop) => {
-          console.log('prop', prop, key, prop.getValue());
-          debugger;
           return (
             <div className="capitalize">
               {parsedOutputQuery[prop.row.index][key]}

@@ -1,6 +1,5 @@
 'use client';
 
-import { MeerkatDatabase } from '@devrev/meerkat-dbm';
 import Link, { LinkProps } from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '../../../../ui/button';
@@ -8,8 +7,6 @@ import { cn } from '../../../../utils/utils';
 import { DEFAULT_DATA_SOURCES } from '../constants/data-sources';
 
 type FilesListProps = React.HTMLAttributes<HTMLDivElement>;
-
-const db = new MeerkatDatabase();
 
 const ActiveLink = ({
   renderer,
@@ -19,12 +16,7 @@ const ActiveLink = ({
   const pathName = usePathname();
 
   const isActive = pathName === href;
-  return (
-    // you get a global isActive class name, it is better than
-    // nothing, but it means you do not have scoping ability in
-    // certain cases
-    <Link {...rest}>{renderer(isActive)}</Link>
-  );
+  return <Link {...rest}>{renderer(isActive)}</Link>;
 };
 
 const NavItem = ({ label, isActive }: { label: string; isActive: boolean }) => {

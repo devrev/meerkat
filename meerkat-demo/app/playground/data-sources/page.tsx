@@ -1,10 +1,9 @@
-/* eslint-disable-next-line */
-export interface DataSourcesProps {}
-
-export function DataSources(props: DataSourcesProps) {
+export function DataSources() {
   return (
-    <div>
-      <h1>Welcome to DataSources!</h1>
+    <div className="grid h-full lg:grid-cols-12">
+      <div className="col-span-12 flex h-full items-center justify-center ">
+        Select a data source to view
+      </div>
     </div>
   );
 }

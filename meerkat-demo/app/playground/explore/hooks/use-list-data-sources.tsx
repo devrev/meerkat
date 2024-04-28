@@ -1,10 +1,14 @@
+import {
+  TableSchema,
+  convertCubeStringToTableSchema,
+} from '@devrev/meerkat-core';
 import axios from 'axios';
 import { useState } from 'react';
 import { useClassicEffect } from '../../../../hooks/use-classic-effect';
 import { DEFAULT_DATA_SOURCES } from '../../data-sources/constants/data-sources';
 
 export const useListDataSources = () => {
-  const [dataSources, setDataSources] = useState([]);
+  const [dataSources, setDataSources] = useState<TableSchema[]>([]);
 
   useClassicEffect(() => {
     (async () => {
@@ -19,15 +23,22 @@ export const useListDataSources = () => {
 
       const filesRes = await Promise.all(promiseArray);
 
-      const files = filesRes.map((file, index) => {
-        return {
-          name: DEFAULT_DATA_SOURCES.files[index],
-          content: file.data,
-        };
-      });
+      const files = filesRes
+        .map((file) => {
+          if (!file.data) return null;
+          const fileData = new TextDecoder().decode(file.data);
+          const dataSource = convertCubeStringToTableSchema(fileData);
+          if (!dataSource) return null;
+          return dataSource;
+        })
+        .filter(Boolean) as TableSchema[];
+
+      if (!files) return;
 
       setDataSources(files);
       console.info(files);
     })();
   }, []);
+
+  return { dataSources };
 };
