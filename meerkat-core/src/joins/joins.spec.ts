@@ -1,5 +1,6 @@
 import {
   checkLoopInGraph,
+  checkLoopInJoinPath,
   createDirectedGraph,
   generateSqlQuery,
 } from './joins';
@@ -130,4 +131,34 @@ describe('Table schema functions', () => {
     };
     expect(checkLoopInGraph(graph)).toBe(false);
   });
+  describe('checkLoopInJoinPath', () => {
+    it ('should return false if there is no loop in the join path', () => {
+      const joinPath = [
+        [
+          { left: 'table1', right: 'table2', on: 'id' },
+          { left: 'table2', right: 'table3', on: 'id' },
+        ],
+      ];
+      expect(checkLoopInJoinPath(joinPath)).toBe(false);
+    })
+    it ('should return true if there is a loop in the join path', () => {
+      const joinPath = [
+        [
+          { left: 'table1', right: 'table2', on: 'id' },
+          { left: 'table2', right: 'table3', on: 'id' },
+          { left: 'table3', right: 'table1', on: 'id' },
+        ],
+      ];
+      expect(checkLoopInJoinPath(joinPath)).toBe(true);
+    })
+    it ('should return false for single node', () => {
+      const joinPath = [
+        [
+          { left: 'table1',  },
+          { left: 'table1' },
+        ],
+      ];
+      expect(checkLoopInJoinPath(joinPath)).toBe(false);
+    })
+  })
 });

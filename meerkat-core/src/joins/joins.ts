@@ -185,11 +185,10 @@ export function checkLoopInGraph(graph: any): boolean {
 }
 
 export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
-  const visitedNodes = new Set<string>();
   for (let i = 0; i < joinPath.length; i++) {
+    const visitedNodes = new Set<string>();
     const currentJoinPath = joinPath[i];
-    const startingNode = currentJoinPath[0].left;
-    visitedNodes.add(startingNode);
+    visitedNodes.add(currentJoinPath[0].left);
     for (let j = 0; j < currentJoinPath.length; j++) {
       const currentEdge = currentJoinPath[j];
       if (isJoinNode(currentEdge) && visitedNodes.has(currentEdge.right)) {
