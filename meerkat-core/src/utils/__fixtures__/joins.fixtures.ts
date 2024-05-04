@@ -253,6 +253,35 @@ export const INTERMEDIATE_JOIN_PATH = [
     ],
 ];
 
+export const CIRCULAR_JOIN_PATH = [
+    [
+        {
+            left: 'node1',
+            right: 'node3',
+            on: 'id',
+        },
+    ],
+    [
+        {
+            left: 'node1',
+            right: 'node2',
+            on: 'id',
+        },
+        {
+            left: 'node2',
+            right: 'node4',
+            on: 'id',
+        },
+        {
+            left: 'node4',
+            right: 'node1',
+            on: 'id',
+        },
+    ],
+   
+];
+
+
 export const COMPLEX_JOIN_PATH = [
     [
         {

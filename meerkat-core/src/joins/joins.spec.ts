@@ -132,7 +132,7 @@ describe('Table schema functions', () => {
     expect(checkLoopInGraph(graph)).toBe(false);
   });
   describe('checkLoopInJoinPath', () => {
-    it ('should return false if there is no loop in the join path', () => {
+    it('should return false if there is no loop in the join path', () => {
       const joinPath = [
         [
           { left: 'table1', right: 'table2', on: 'id' },
@@ -141,7 +141,7 @@ describe('Table schema functions', () => {
       ];
       expect(checkLoopInJoinPath(joinPath)).toBe(false);
     })
-    it ('should return true if there is a loop in the join path', () => {
+    it('should return true if there is a loop in the join path', () => {
       const joinPath = [
         [
           { left: 'table1', right: 'table2', on: 'id' },
@@ -151,10 +151,10 @@ describe('Table schema functions', () => {
       ];
       expect(checkLoopInJoinPath(joinPath)).toBe(true);
     })
-    it ('should return false for single node', () => {
+    it('should return false for single node', () => {
       const joinPath = [
         [
-          { left: 'table1',  },
+          { left: 'table1', },
           { left: 'table1' },
         ],
       ];

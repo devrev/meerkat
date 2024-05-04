@@ -1,4 +1,4 @@
-import { BASIC_JOIN_PATH, CIRCULAR_TABLE_SCHEMA, CIRCULAR_TABLE_SCHEMA_SINGLE_JOIN_PATH, COMPLEX_JOIN_PATH, EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH, EXPECTED_OUTPUT_WITH_ONE_DEPTH, EXPECTED_OUTPUT_WITH_TWO_DEPTH, INTERMEDIATE_JOIN_PATH, LINEAR_TABLE_SCHEMA, SINGLE_NODE_JOIN_PATH } from './__fixtures__/joins.fixtures';
+import { BASIC_JOIN_PATH, CIRCULAR_JOIN_PATH, CIRCULAR_TABLE_SCHEMA, CIRCULAR_TABLE_SCHEMA_SINGLE_JOIN_PATH, COMPLEX_JOIN_PATH, EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH, EXPECTED_OUTPUT_WITH_ONE_DEPTH, EXPECTED_OUTPUT_WITH_TWO_DEPTH, INTERMEDIATE_JOIN_PATH, LINEAR_TABLE_SCHEMA, SINGLE_NODE_JOIN_PATH } from './__fixtures__/joins.fixtures';
 import { getNestedTableSchema } from './get-possible-nodes';
 
 describe('Table schema functions', () => {
@@ -636,6 +636,19 @@ describe('Table schema functions', () => {
       );
       console.log(JSON.stringify(nestedSchema, null, 2))
       expect(nestedSchema).toEqual(EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH);
+    });
+    it('Should fail for circular selection path', async () => {
+      try {
+        await getNestedTableSchema(CIRCULAR_TABLE_SCHEMA, CIRCULAR_JOIN_PATH, 2)
+        fail("Expected asyncFunction to throw an error");
+      } catch (e) {
+        if (e instanceof Error) {
+          // Check the error message if e is an Error object
+          expect(e.message).toBe("A loop was detected in the joins paths, [[{\"left\":\"node1\",\"right\":\"node3\",\"on\":\"id\"}],[{\"left\":\"node1\",\"right\":\"node2\",\"on\":\"id\"},{\"left\":\"node2\",\"right\":\"node4\",\"on\":\"id\"},{\"left\":\"node4\",\"right\":\"node1\",\"on\":\"id\"}]]");
+        } else {
+          fail("Expected e to be an instance of Error");
+        }
+      }
     });
   })
 });
