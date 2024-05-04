@@ -150,39 +150,6 @@ export const createDirectedGraph = (
   return directedGraph;
 };
 
-function DFS(
-  graph: any,
-  node: string,
-  visited: Set<string>,
-  recStack: Set<string>
-): boolean {
-  visited.add(node);
-  recStack.add(node);
-
-  for (const neighbor in graph[node]) {
-    if (!visited.has(neighbor) && DFS(graph, neighbor, visited, recStack)) {
-      return true;
-    } else if (recStack.has(neighbor)) {
-      return true;
-    }
-  }
-
-  recStack.delete(node);
-  return false;
-}
-
-export function checkLoopInGraph(graph: any): boolean {
-  const visited = new Set<string>();
-  const recStack = new Set<string>();
-
-  for (const node in graph) {
-    if (DFS(graph, node, visited, recStack)) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
   for (let i = 0; i < joinPath.length; i++) {

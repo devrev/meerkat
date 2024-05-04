@@ -1,5 +1,4 @@
 import {
-  checkLoopInGraph,
   checkLoopInJoinPath,
   createDirectedGraph,
   generateSqlQuery,
@@ -61,32 +60,6 @@ describe('Table schema functions', () => {
     });
   });
 
-  it('should correctly identify if a loop exists in the graph', () => {
-    const graph = {
-      table1: {
-        table2: {
-          field1: 'table2.field3 = table1.field4',
-        },
-        table3: {
-          field2: 'table3.field5 = table1.field2',
-        },
-      },
-      table2: {
-        table3: {
-          field3: 'table3.field4 = table2.field3',
-        },
-      },
-      table3: {
-        table1: {
-          field5: 'table1.field1 = table3.field2',
-        },
-      },
-    };
-    const hasLoop = checkLoopInGraph(graph);
-
-    expect(hasLoop).toBe(true);
-  });
-
   it('should correctly generate a SQL query from the provided join path, table schema SQL map, and directed graph', () => {
     const joinPaths = [
       [
@@ -114,23 +87,6 @@ describe('Table schema functions', () => {
     );
   });
 
-  it('should throw an error when a cycle exists in checkLoopInGraph', () => {
-    const graph = {
-      node1: { node2: { id: 'node1.id = node2.id' } },
-      node2: { node3: { id: 'node2.id = node3.id ' } },
-      node3: { node1: { id: 'node3.id = node1.id' } },
-    };
-    const output = checkLoopInGraph(graph);
-    expect(output).toBe(true);
-  });
-
-  it('checkLoopInGraph should return false for disconnected graph', () => {
-    const graph = {
-      node1: { node2: { id: 'node1.id = node2.id ' } },
-      node3: { node4: { id: 'node3.id = node4.id ' } },
-    };
-    expect(checkLoopInGraph(graph)).toBe(false);
-  });
   describe('checkLoopInJoinPath', () => {
     it('should return false if there is no loop in the join path', () => {
       const joinPath = [
