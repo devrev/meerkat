@@ -1,6 +1,5 @@
-import { TableSchema } from '../../types/cube-types/table';
 
-export const CIRCULAR_TABLE_SCHEMA: TableSchema[] = [
+export const CIRCULAR_TABLE_SCHEMA = [
     {
         name: 'node1',
         dimensions: [
