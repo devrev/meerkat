@@ -301,7 +301,7 @@ describe('Joins Tests', () => {
     };
     await expect(
       cubeQueryToSQL(query, [BOOK_SCHEMA, AUTHOR_SCHEMA])
-    ).rejects.toThrow('A loop was detected in the joins.');
+    ).rejects.toThrow('Invalid path, multiple data sources are present without a join path.');
   });
 
   it('Discrete Islands on data graph', async () => {
