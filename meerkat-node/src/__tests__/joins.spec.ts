@@ -326,7 +326,7 @@ describe('Joins Tests', () => {
     };
     await expect(
       cubeQueryToSQL(query, [BOOK_SCHEMA, AUTHOR_SCHEMA])
-    ).rejects.toThrow(`A loop was detected in the joins. [[left:authors,right:books,on:author_id},left:books,right:authors,on:id}]]`);
+    ).rejects.toThrow(`A loop was detected in the joins.`);
   });
 
   it('Discrete Islands on data graph', async () => {

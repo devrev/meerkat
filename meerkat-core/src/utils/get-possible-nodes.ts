@@ -40,7 +40,7 @@ export const getNestedTableSchema = (
 
   const hasLoop = checkLoopInJoinPath(joinPath);
   if (hasLoop) {
-    throw new Error(`A loop was detected in the joins paths, ${JSON.stringify(joinPath)}`,);
+    throw new Error('A loop was detected in the joins paths',);
   }
   const visitedNodes: { [key: string]: boolean } = {};
 

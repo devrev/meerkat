@@ -621,34 +621,23 @@ describe('Table schema functions', () => {
 
   describe('graph with loops', () => {
     it('Test circular graphs', async () => {
-      const nestedSchema = await getNestedTableSchema(
+      const nestedSchema = getNestedTableSchema(
         CIRCULAR_TABLE_SCHEMA,
         SINGLE_NODE_JOIN_PATH,
         2
       );
       expect(nestedSchema).toEqual(CIRCULAR_TABLE_SCHEMA_SINGLE_JOIN_PATH);
     });
-    it('Test circular graphs', async () => {
-      const nestedSchema = await getNestedTableSchema(
+    it('Test circular graphs with intermdiate path', async () => {
+      const nestedSchema = getNestedTableSchema(
         CIRCULAR_TABLE_SCHEMA,
         INTERMEDIATE_JOIN_PATH,
         2
       );
-      console.log(JSON.stringify(nestedSchema, null, 2))
       expect(nestedSchema).toEqual(EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH);
     });
-    it('Should fail for circular selection path', async () => {
-      try {
-        await getNestedTableSchema(CIRCULAR_TABLE_SCHEMA, CIRCULAR_JOIN_PATH, 2)
-        fail("Expected asyncFunction to throw an error");
-      } catch (e) {
-        if (e instanceof Error) {
-          // Check the error message if e is an Error object
-          expect(e.message).toBe("A loop was detected in the joins paths, [[{\"left\":\"node1\",\"right\":\"node3\",\"on\":\"id\"}],[{\"left\":\"node1\",\"right\":\"node2\",\"on\":\"id\"},{\"left\":\"node2\",\"right\":\"node4\",\"on\":\"id\"},{\"left\":\"node4\",\"right\":\"node1\",\"on\":\"id\"}]]");
-        } else {
-          fail("Expected e to be an instance of Error");
-        }
-      }
+    it('Should fail for circular selection path', () => {
+      expect(() => getNestedTableSchema(CIRCULAR_TABLE_SCHEMA, CIRCULAR_JOIN_PATH, 2)).toThrow('A loop was detected in the joins paths')
     });
   })
 });
