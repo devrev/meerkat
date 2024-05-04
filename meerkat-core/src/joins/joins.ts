@@ -57,11 +57,9 @@ export function generateSqlQuery(
       // If visitedFrom is undefined, this is the first visit to the node
       visitedNodes.set(currentEdge.right, currentEdge);
 
-      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
-        currentEdge.right
-      }  ON ${
-        directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
-      }`;
+      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${currentEdge.right
+        }  ON ${directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
+        }`;
     }
   }
 
@@ -152,38 +150,23 @@ export const createDirectedGraph = (
   return directedGraph;
 };
 
-function DFS(
-  graph: any,
-  node: string,
-  visited: Set<string>,
-  recStack: Set<string>
-): boolean {
-  visited.add(node);
-  recStack.add(node);
 
-  for (const neighbor in graph[node]) {
-    if (!visited.has(neighbor) && DFS(graph, neighbor, visited, recStack)) {
-      return true;
-    } else if (recStack.has(neighbor)) {
-      return true;
+export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
+  for (let i = 0; i < joinPath.length; i++) {
+    const visitedNodes = new Set<string>();
+    const currentJoinPath = joinPath[i];
+    visitedNodes.add(currentJoinPath[0].left);
+    for (let j = 0; j < currentJoinPath.length; j++) {
+      const currentEdge = currentJoinPath[j];
+      if (isJoinNode(currentEdge) && visitedNodes.has(currentEdge.right)) {
+        if (visitedNodes.has(currentEdge.right)) {
+          return true;
+        }
+        visitedNodes.add(currentEdge.right);
+      }
     }
   }
-
-  recStack.delete(node);
-  return false;
-}
-
-export function checkLoopInGraph(graph: any): boolean {
-  const visited = new Set<string>();
-  const recStack = new Set<string>();
-
-  for (const node in graph) {
-    if (DFS(graph, node, visited, recStack)) {
-      return true;
-    }
-  }
-
-  return false;
+  return false
 }
 
 export const getCombinedTableSchema = async (
@@ -202,9 +185,9 @@ export const getCombinedTableSchema = async (
   );
 
   const directedGraph = createDirectedGraph(tableSchema, tableSchemaSqlMap);
-  const hasLoop = checkLoopInGraph(directedGraph);
+  const hasLoop = checkLoopInJoinPath(cubeQuery.joinPaths || []);
   if (hasLoop) {
-    throw new Error('A loop was detected in the joins.');
+    throw new Error(`A loop was detected in the joins. ${JSON.stringify(cubeQuery.joinPaths || [])}`);
   }
 
   const baseSql = generateSqlQuery(

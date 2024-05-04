@@ -1,4 +1,4 @@
-import { Graph, checkLoopInGraph, createDirectedGraph } from '../joins/joins';
+import { Graph, checkLoopInJoinPath, createDirectedGraph } from '../joins/joins';
 import {
   Dimension,
   JoinPath,
@@ -37,9 +37,10 @@ export const getNestedTableSchema = (
   }
 
   const directedGraph = createDirectedGraph(tableSchemas, tableSchemaSqlMap);
-  const hasLoop = checkLoopInGraph(directedGraph);
+
+  const hasLoop = checkLoopInJoinPath(joinPath);
   if (hasLoop) {
-    throw new Error('A loop was detected in the joins.');
+    throw new Error('A loop was detected in the joins paths',);
   }
   const visitedNodes: { [key: string]: boolean } = {};
 

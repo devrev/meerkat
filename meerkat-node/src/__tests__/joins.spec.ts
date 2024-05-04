@@ -301,7 +301,32 @@ describe('Joins Tests', () => {
     };
     await expect(
       cubeQueryToSQL(query, [BOOK_SCHEMA, AUTHOR_SCHEMA])
-    ).rejects.toThrow('A loop was detected in the joins.');
+    ).rejects.toThrow('Invalid path, multiple data sources are present without a join path.');
+  });
+
+  it('Loops in the join paths', async () => {
+    const query = {
+      measures: ['books.total_book_count'],
+      filters: [],
+      joinPaths: [
+        [
+          {
+            left: 'authors',
+            right: 'books',
+            on: 'author_id',
+          },
+          {
+            left: 'books',
+            right: 'authors',
+            on: 'id',
+          },
+        ],
+      ],
+      dimensions: ['authors.author_name'],
+    };
+    await expect(
+      cubeQueryToSQL(query, [BOOK_SCHEMA, AUTHOR_SCHEMA])
+    ).rejects.toThrow(`A loop was detected in the joins.`);
   });
 
   it('Discrete Islands on data graph', async () => {
