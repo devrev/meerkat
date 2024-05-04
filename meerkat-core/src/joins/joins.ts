@@ -221,7 +221,7 @@ export const getCombinedTableSchema = async (
   const directedGraph = createDirectedGraph(tableSchema, tableSchemaSqlMap);
   const hasLoop = checkLoopInJoinPath(cubeQuery.joinPaths || []);
   if (hasLoop) {
-    throw new Error('A loop was detected in the joins.');
+    throw new Error(`A loop was detected in the joins. ${JSON.stringify(cubeQuery.joinPaths || [])}`);
   }
 
   const baseSql = generateSqlQuery(
