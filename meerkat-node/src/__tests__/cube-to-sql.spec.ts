@@ -15,7 +15,7 @@ describe('cube-to-sql', () => {
     await duckdbExec(INPUT_DATA_QUERY);
   });
 
-  for (const data of [TEST_DATA[TEST_DATA.length - 1]]) {
+  for (const data of TEST_DATA) {
     it(`Testing ${data.testName}`, async () => {
       const sql = await cubeQueryToSQL(data.cubeInput, [TABLE_SCHEMA]);
       // expect(sql).toEqual(data.expectedSQL);

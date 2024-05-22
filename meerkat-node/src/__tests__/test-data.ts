@@ -156,6 +156,11 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-01-01',
         order_amount: 50.0,
+        vendors:  [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 2,
@@ -164,6 +169,9 @@ export const TEST_DATA = [
         product_id: '2',
         order_date: '2022-01-02',
         order_amount: 80.0,
+        vendors:  [
+          "myntra",
+        ],
       },
     ],
   },
@@ -189,6 +197,7 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2022-02-01',
         order_amount: 25.0,
+        vendors: [],
       },
       {
         order_id: 4,
@@ -197,6 +206,9 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-03-01',
         order_amount: 75.0,
+        "vendors":  [
+          "flipkart",
+        ],
       },
       {
         order_id: 5,
@@ -205,6 +217,11 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-03-02',
         order_amount: 100.0,
+        vendors:  [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 6,
@@ -213,6 +230,7 @@ export const TEST_DATA = [
         product_id: '2',
         order_date: '2022-04-01',
         order_amount: 45.0,
+        vendors: [],
       },
       {
         order_id: 7,
@@ -221,6 +239,10 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2022-05-01',
         order_amount: 90.0,
+        "vendors": [
+          "myntra",
+          "flipkart",
+        ],
       },
       {
         order_id: 8,
@@ -229,6 +251,10 @@ export const TEST_DATA = [
         product_id: '1',
         order_date: '2022-05-02',
         order_amount: 65.0,
+        vendors:  [
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 9,
@@ -237,6 +263,7 @@ export const TEST_DATA = [
         product_id: '2',
         order_date: '2022-05-05',
         order_amount: 85.0,
+        "vendors": [],
       },
       {
         order_id: 10,
@@ -245,6 +272,10 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2022-06-01',
         order_amount: 120.0,
+        "vendors":  [
+          "myntra",
+          "amazon",
+        ],
       },
       {
         order_id: 11,
@@ -253,6 +284,9 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2024-06-01',
         order_amount: 0.0,
+        "vendors":  [
+          "amazon",
+        ],
       },
     ],
   },
@@ -278,6 +312,7 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2024-06-01',
         order_amount: 0.0,
+        "vendors":  ["amazon"],
       },
     ],
   },
@@ -332,6 +367,10 @@ export const TEST_DATA = [
         product_id: '3',
         order_date: '2022-06-01',
         order_amount: 120,
+        vendors:  [
+          "myntra",
+          "amazon",
+        ],
       },
     ],
   },
@@ -357,6 +396,9 @@ export const TEST_DATA = [
         order_date: '2022-01-02',
         order_amount: 80.0,
         orders__order_amount: 80.0,
+        "vendors":  [
+          "myntra",
+        ],
       },
       {
         order_id: 4,
@@ -365,6 +407,9 @@ export const TEST_DATA = [
         order_date: '2022-03-01',
         order_amount: 75.0,
         orders__order_amount: 75.0,
+        "vendors":  [
+          "flipkart",
+        ],
       },
       {
         order_id: 5,
@@ -373,6 +418,11 @@ export const TEST_DATA = [
         order_date: '2022-03-02',
         order_amount: 100.0,
         orders__order_amount: 100.0,
+        "vendors": [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 7,
@@ -381,6 +431,10 @@ export const TEST_DATA = [
         order_date: '2022-05-01',
         order_amount: 90.0,
         orders__order_amount: 90.0,
+        "vendors": [
+          "myntra",
+          "flipkart",
+        ],
       },
       {
         order_id: 8,
@@ -389,6 +443,10 @@ export const TEST_DATA = [
         order_date: '2022-05-02',
         order_amount: 65.0,
         orders__order_amount: 65.0,
+        "vendors": [
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 9,
@@ -397,6 +455,7 @@ export const TEST_DATA = [
         order_date: '2022-05-05',
         order_amount: 85.0,
         orders__order_amount: 85.0,
+        "vendors": [],
       },
       {
         order_id: 10,
@@ -405,6 +464,10 @@ export const TEST_DATA = [
         order_date: '2022-06-01',
         order_amount: 120.0,
         orders__order_amount: 120.0,
+        "vendors":  [
+          "myntra",
+          "amazon",
+        ],
       },
       {
         "customer_id": null,
@@ -414,6 +477,9 @@ export const TEST_DATA = [
         "orders__order_amount": 100,
         "orders__order_date": undefined,
         "product_id": "3",
+        "vendors": [
+          "flipkart",
+        ],
       }
     ],
   },
@@ -439,6 +505,7 @@ export const TEST_DATA = [
         order_date: '2022-02-01',
         order_amount: 25.0,
         orders__order_amount: 25.0,
+        "vendors": [],
       },
       {
         order_id: 6,
@@ -447,6 +514,7 @@ export const TEST_DATA = [
         order_date: '2022-04-01',
         order_amount: 45.0,
         orders__order_amount: 45.0,
+        "vendors": [],
       },
       {
         order_id: 11,
@@ -455,6 +523,9 @@ export const TEST_DATA = [
         order_date: '2024-06-01',
         order_amount: 0.0,
         orders__order_amount: 0.0,
+        "vendors": [
+          "amazon",
+        ],
       },
     ],
   },
@@ -480,6 +551,7 @@ export const TEST_DATA = [
         order_date: '2022-02-01',
         orders__order_date: '2022-02-01',
         order_amount: 25.0,
+        "vendors": [],
       },
       {
         order_id: 4,
@@ -488,6 +560,9 @@ export const TEST_DATA = [
         order_date: '2022-03-01',
         orders__order_date: '2022-03-01',
         order_amount: 75.0,
+        "vendors": [
+          "flipkart",
+        ],
       },
       {
         order_id: 5,
@@ -496,6 +571,11 @@ export const TEST_DATA = [
         order_date: '2022-03-02',
         orders__order_date: '2022-03-02',
         order_amount: 100.0,
+        "vendors": [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
       },
     ],
   },
@@ -521,6 +601,11 @@ export const TEST_DATA = [
         order_date: '2022-01-01',
         order_amount: 50.0,
         orders__order_date: '2022-01-01',
+        "vendors": [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 2,
@@ -529,6 +614,9 @@ export const TEST_DATA = [
         order_date: '2022-01-02',
         order_amount: 80.0,
         orders__order_date: '2022-01-02',
+        "vendors": [
+          "myntra",
+        ],
       },
       {
         order_id: 6,
@@ -537,6 +625,7 @@ export const TEST_DATA = [
         order_date: '2022-04-01',
         orders__order_date: '2022-04-01',
         order_amount: 45.0,
+        "vendors": [],
       },
       {
         order_id: 7,
@@ -545,6 +634,10 @@ export const TEST_DATA = [
         order_date: '2022-05-01',
         orders__order_date: '2022-05-01',
         order_amount: 90.0,
+        "vendors": [
+          "myntra",
+          "flipkart",
+        ],
       },
       {
         order_id: 8,
@@ -553,6 +646,10 @@ export const TEST_DATA = [
         order_date: '2022-05-02',
         orders__order_date: '2022-05-02',
         order_amount: 65.0,
+        "vendors": [
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 9,
@@ -561,6 +658,7 @@ export const TEST_DATA = [
         order_date: '2022-05-05',
         orders__order_date: '2022-05-05',
         order_amount: 85.0,
+        "vendors": [],
       },
       {
         order_id: 10,
@@ -569,6 +667,10 @@ export const TEST_DATA = [
         order_date: '2022-06-01',
         orders__order_date: '2022-06-01',
         order_amount: 120.0,
+        "vendors": [
+          "myntra",
+          "amazon",
+        ],
       },
       {
         order_id: 11,
@@ -577,6 +679,9 @@ export const TEST_DATA = [
         order_date: '2024-06-01',
         orders__order_date: '2024-06-01',
         order_amount: 0.0,
+        "vendors": [
+          "amazon",
+        ],
       },
       {
         "customer_id": null,
@@ -585,6 +690,9 @@ export const TEST_DATA = [
         "order_id": 12,
         "orders__order_date": "2024-07-01T00:00:00.000Z",
         "product_id": "3",
+        "vendors":  [
+          "flipkart",
+        ],
       }
     ],
   },
@@ -688,6 +796,9 @@ export const TEST_DATA = [
         order_amount: 75.0,
         orders__order_amount: 75.0,
         orders__order_date: '2022-03-01',
+        "vendors": [
+          "flipkart",
+        ],
       },
       {
         order_id: 5,
@@ -697,6 +808,11 @@ export const TEST_DATA = [
         orders__order_date: '2022-03-02',
         order_amount: 100.0,
         orders__order_amount: 100.0,
+        "vendors":  [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 7,
@@ -706,6 +822,10 @@ export const TEST_DATA = [
         orders__order_date: '2022-05-01',
         order_amount: 90.0,
         orders__order_amount: 90.0,
+        "vendors": [
+          "myntra",
+          "flipkart",
+        ],
       },
       {
         order_id: 8,
@@ -715,6 +835,10 @@ export const TEST_DATA = [
         orders__order_date: '2022-05-02',
         order_amount: 65,
         orders__order_amount: 65,
+        "vendors": [
+          "amazon",
+          "flipkart",
+        ],
       },
       {
         order_id: 9,
@@ -724,6 +848,7 @@ export const TEST_DATA = [
         orders__order_date: '2022-05-05',
         order_amount: 85.0,
         orders__order_amount: 85.0,
+        "vendors": [],
       },
       {
         order_id: 10,
@@ -733,6 +858,10 @@ export const TEST_DATA = [
         orders__order_date: '2022-06-01',
         order_amount: 120.0,
         orders__order_amount: 120.0,
+        "vendors":  [
+          "myntra",
+          "amazon",
+        ],
       },
     ],
   },
@@ -768,6 +897,7 @@ export const TEST_DATA = [
         "orders__order_date": undefined,
         "orders__product_id": "3",
         "product_id": "3",
+        "vendors": [],
       },
       {
         "customer_id": "4",
@@ -778,6 +908,10 @@ export const TEST_DATA = [
         "orders__order_date": undefined,
         "orders__product_id": "3",
         "product_id": "3",
+        "vendors": [
+          "myntra",
+          "flipkart",
+        ],
       },
       {
         "customer_id": "6",
@@ -788,6 +922,10 @@ export const TEST_DATA = [
         "orders__order_date": undefined,
         "orders__product_id": "3",
         "product_id": "3",
+        "vendors": [
+          "myntra",
+          "amazon",
+        ],
       },
       {
         "customer_id": "6aa6",
@@ -798,6 +936,9 @@ export const TEST_DATA = [
         "orders__order_date": undefined,
         "orders__product_id": "3",
         "product_id": "3",
+        "vendors": [
+          "amazon",
+        ],
       },
       {
         "customer_id": null,
@@ -808,6 +949,9 @@ export const TEST_DATA = [
         "orders__order_date": undefined,
         "orders__product_id": "3",
         "product_id": "3",
+        "vendors": [
+          "flipkart",
+        ],
       },
     ],
   },
@@ -843,6 +987,7 @@ export const TEST_DATA = [
         "orders__order_date": undefined,
         "orders__product_id": "3",
         "product_id": "3",
+        "vendors":  ["flipkart"],
       }
     ],
   },
