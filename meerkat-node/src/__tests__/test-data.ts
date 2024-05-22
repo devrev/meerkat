@@ -93,46 +93,50 @@ export const TEST_DATA = [
   },
   {
     testName: 'GroupBy',
-    expectedSQL: `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders GROUP BY orders__customer_id`,
+    expectedSQL: `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders GROUP BY orders__customer_id ORDER BY orders__total_order_amount ASC, orders__customer_id ASC`,
     cubeInput: {
       measures: ['orders.total_order_amount'],
       filters: [],
       dimensions: ['orders.customer_id'],
+      order: {
+        'orders.total_order_amount': 'asc',
+        'orders.customer_id': 'asc',
+      }
     },
     expectedOutput: [
-      {
-        orders__customer_id: '1',
-        orders__total_order_amount: 130,
+       {
+        "orders__customer_id": "6aa6",
+        "orders__total_order_amount": 0,
       },
-      {
-        orders__customer_id: '2',
-        orders__total_order_amount: 100,
+       {
+        "orders__customer_id": "2",
+        "orders__total_order_amount": 100,
       },
-      {
-        orders__customer_id: '3',
-        orders__total_order_amount: 100,
+       {
+        "orders__customer_id": "3",
+        "orders__total_order_amount": 100,
       },
-      {
-        orders__customer_id: '4',
-        orders__total_order_amount: 135,
+       {
+        "orders__customer_id": null,
+        "orders__total_order_amount": 100,
       },
-      {
-        orders__customer_id: '5',
-        orders__total_order_amount: 150,
+       {
+        "orders__customer_id": "6",
+        "orders__total_order_amount": 120,
       },
-      {
-        orders__customer_id: '6',
-        orders__total_order_amount: 120,
+       {
+        "orders__customer_id": "1",
+        "orders__total_order_amount": 130,
       },
-      {
-        orders__customer_id: '6aa6',
-        orders__total_order_amount: 0,
+       {
+        "orders__customer_id": "4",
+        "orders__total_order_amount": 135,
       },
-      {
-        orders__customer_id: null,
-        orders__total_order_amount: 100,
-      }
-    ],
+       {
+        "orders__customer_id": "5",
+        "orders__total_order_amount": 150,
+      },
+    ]
   },
   {
     testName: 'Equals',
