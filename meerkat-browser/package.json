@@ -1,6 +1,6 @@
 {
   "name": "@devrev/meerkat-browser",
-  "version": "0.0.73",
+  "version": "0.0.74",
   "dependencies": {
     "@swc/helpers": "~0.5.0",
     "@devrev/meerkat-core": "*",
