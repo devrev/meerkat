@@ -1,12 +1,10 @@
 import { Dimension, Measure } from '../../types/cube-types/table';
-import { CubeToParseExpressionTransform } from "../factory";
-
-
 import {
     ExpressionClass,
     ExpressionType
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { valueBuilder } from "../base-condition-builder/base-condition-builder";
+import { CubeToParseExpressionTransform } from "../factory";
 
 
 const inDuckDbCondition = (
@@ -28,7 +26,6 @@ const inDuckDbCondition = (
         alias: "",
         column_names: columnName.split('.')
     }
-    console.log('memberInfo', memberInfo)
     switch (memberInfo.type) {
         case 'number_array':
         case 'string_array': {
@@ -76,12 +73,8 @@ const inDuckDbCondition = (
 
 export const inTransform: CubeToParseExpressionTransform = (query) => {
   const { member, values, memberInfo } = query;
-  if (!values || values.length === 0) {
-    throw new Error('Equals filter must have at least one value');
+  if (!values) {
+    throw new Error('In filter must have at least one value');
   }
-
-  /**
-   * If there is only one value, we can create a simple equals condition
-   */
   return inDuckDbCondition(member, values, memberInfo);
 }

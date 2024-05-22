@@ -906,4 +906,67 @@ export const TEST_DATA = [
       },
     ],
   },
+  {
+    testName: 'Not In',
+    expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id, vendors AS orders__vendors FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id NOT IN ('1', '2')) AND (NOT (orders__vendors && (ARRAY['myntra', 'flipkart']))))`,
+    cubeInput: {
+      measures: ['*'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.customer_id',
+              operator: 'notIn',
+              values: ['1', '2'],
+            },
+            {
+              member: 'orders.vendors',
+              operator: 'notIn',
+              values: ['myntra', 'flipkart'],
+            }
+          ]
+        }
+      ],
+      dimensions: [],
+    },
+    expectedOutput:[
+      {
+         "customer_id": "4",
+         "order_amount": 45,
+         "order_date": "2022-04-01T00:00:00.000Z",
+         "order_id": 6,
+         "orders__customer_id": "4",
+         "orders__order_date": undefined,
+         "orders__vendors":  [],
+         "product_id": "2",
+         "vendors":  [],
+      },
+      {
+        "customer_id": "5",
+        "order_amount": 85,
+        "order_date": "2022-05-05T00:00:00.000Z",
+        "order_id": 9,
+        "orders__customer_id": "5",
+        "orders__order_date": undefined,
+        "orders__vendors":  [],
+        "product_id": "2",
+        "vendors":  [],
+    },
+      {
+        "customer_id": "6aa6",
+        "order_amount": 0,
+        "order_date": "2024-06-01T00:00:00.000Z",
+        "order_id": 11,
+        "orders__customer_id": "6aa6",
+        "orders__order_date": undefined,
+        "orders__vendors":  [
+          "amazon",
+        ],
+        "product_id": "3",
+        "vendors":  [
+          "amazon",
+        ],
+      },
+    ],
+  },
 ];
