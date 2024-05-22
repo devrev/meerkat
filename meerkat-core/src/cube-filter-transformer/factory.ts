@@ -20,6 +20,7 @@ import { equalsTransform } from './equals/equals';
 import { gtTransform } from './gt/gt';
 import { gteTransform } from './gte/gte';
 import { inDataRangeTransform } from './in-date-range/in-date-range';
+import { inTransform } from './in/in';
 import { ltTransform } from './lt/lt';
 import { lteTransform } from './lte/lte';
 import { notInDataRangeTransform } from './not-In-date-range/not-In-date-range';
@@ -40,6 +41,8 @@ const cubeFilterOperatorsToDuckdb = (cubeFilter: QueryOperatorsWithInfo) => {
       return equalsTransform(cubeFilter);
     case 'notEquals':
       return notEqualsTransform(cubeFilter);
+    case 'in':
+      return inTransform(cubeFilter);
     case 'contains':
       return containsTransform(cubeFilter);
     case 'notContains':

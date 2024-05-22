@@ -4,24 +4,25 @@ CREATE TABLE orders (
     customer_id VARCHAR,
     product_id VARCHAR,
     order_date DATE,
-    order_amount FLOAT
+    order_amount FLOAT,
+    vendors VARCHAR[]
 );
 `;
 
 export const INPUT_DATA_QUERY = `
 INSERT INTO orders VALUES
-(1, '1', '1', '2022-01-01', 50),
-(2, '1', '2', '2022-01-02', 80),
-(3, '2', '3', '2022-02-01', 25),
-(4, '2', '1', '2022-03-01', 75),
-(5, '3', '1', '2022-03-02', 100),
-(6, '4', '2', '2022-04-01', 45),
-(7, '4', '3', '2022-05-01', 90),
-(8, '5', '1', '2022-05-02', 65),
-(9, '5', '2', '2022-05-05', 85),
-(10, '6', '3', '2022-06-01', 120),
-(11, '6aa6', '3', '2024-06-01', 0),
-(12, NULL, '3', '2024-07-01', 100);
+(1, '1', '1', '2022-01-01', 50, ['myntra', 'amazon', 'flipkart']),
+(2, '1', '2', '2022-01-02', 80, ['myntra']),
+(3, '2', '3', '2022-02-01', 25, []),
+(4, '2', '1', '2022-03-01', 75, ['flipkart']),
+(5, '3', '1', '2022-03-02', 100, ['myntra', 'amazon', 'flipkart']),
+(6, '4', '2', '2022-04-01', 45, []),
+(7, '4', '3', '2022-05-01', 90, ['myntra', 'flipkart']),
+(8, '5', '1', '2022-05-02', 65, ['amazon', 'flipkart']),
+(9, '5', '2', '2022-05-05', 85, []),
+(10, '6', '3', '2022-06-01', 120, ['myntra', 'amazon']),
+(11, '6aa6', '3', '2024-06-01', 0, ['amazon']),
+(12, NULL, '3', '2024-07-01', 100, ['flipkart']);
 `;
 
 export const TABLE_SCHEMA = {
@@ -65,6 +66,11 @@ export const TABLE_SCHEMA = {
       sql: `DATE_TRUNC('month', order_date)`,
       type: 'string',
     },
+    {
+      name: 'vendors',
+      sql: 'vendors',
+      type: 'string_array',
+    }
   ],
 };
 
@@ -838,6 +844,66 @@ export const TEST_DATA = [
         "orders__product_id": "3",
         "product_id": "3",
       }
+    ],
+  },
+  {
+    testName: 'In',
+    expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id, vendors AS orders__vendors FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id IN ('1', '2')) AND (orders__vendors && (ARRAY['myntra', 'amazon'])))`,
+    cubeInput: {
+      measures: ['*'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'orders.customer_id',
+              operator: 'in',
+              values: ['1', '2'],
+            },
+            {
+              member: 'orders.vendors',
+              operator: 'in',
+              values: ['myntra', 'amazon'],
+            }
+          ]
+        }
+      ],
+      dimensions: [],
+    },
+    expectedOutput: [
+      {
+        customer_id: "1",
+        order_amount: 50,
+        order_date: "2022-01-01T00:00:00.000Z",
+        order_id: 1,
+        orders__customer_id: "1",
+        orders__order_date: undefined,
+        orders__vendors:  [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
+        product_id: "1",
+        vendors:  [
+          "myntra",
+          "amazon",
+          "flipkart",
+        ],
+      },
+      {
+        customer_id: "1",
+        order_amount: 80,
+        order_date: "2022-01-02T00:00:00.000Z",
+        order_id: 2,
+        orders__customer_id: "1",
+        orders__order_date: undefined,
+        orders__vendors:  [
+          "myntra",
+        ],
+        product_id: "2",
+        vendors:  [
+          "myntra",
+        ],
+      },
     ],
   },
 ];
