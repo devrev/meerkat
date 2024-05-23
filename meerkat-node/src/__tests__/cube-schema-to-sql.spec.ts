@@ -66,11 +66,10 @@ describe('Cube Schema to SQL', () => {
     const sql = await cubeQueryToSQL(query, [productsSchema, suppliersSchema]);
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
-    const parsedOutput = JSON.parse(JSON.stringify(output));
-    console.info('parsedOutput', parsedOutput);
+    console.info('parsedOutput', output);
     expect(sql).toEqual(
       'SELECT COUNT(*) AS products__count ,   suppliers__created_at,  products__created_at FROM (SELECT *, products.created_at AS products__created_at FROM (select * from products) AS products LEFT JOIN (SELECT *, suppliers.created_at AS suppliers__created_at FROM (select * from suppliers) AS suppliers) AS suppliers  ON products.supplier_id = suppliers.id) AS MEERKAT_GENERATED_TABLE GROUP BY suppliers__created_at, products__created_at'
     );
-    expect(parsedOutput).toHaveLength(3);
+    expect(output).toHaveLength(3);
   });
 });

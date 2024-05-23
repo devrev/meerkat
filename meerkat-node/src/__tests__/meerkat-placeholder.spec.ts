@@ -36,6 +36,9 @@ describe('meerkat placeholder', () => {
       measures: ['orders.sum_amount', 'orders.total_sum_amount'],
       order: {
         orders__total_sum_amount: 'desc',
+        'orders.sum_amount': 'desc',
+        'orders.stage': 'desc',
+        'orders.owned_by_id': 'desc'
       },
       timeDimensions: [],
       type: 'sql',
@@ -82,21 +85,21 @@ describe('meerkat placeholder', () => {
     const sql = await cubeQueryToSQL(query, [tableSchema]);
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toEqual(
-      `SELECT SUM(amount) AS orders__sum_amount ,  SUM(SUM(amount)) OVER (PARTITION BY orders__owned_by_id) AS orders__total_sum_amount ,   orders__owned_by_id,  orders__stage FROM (SELECT *, owned_by_id AS orders__owned_by_id, stage AS orders__stage FROM (SELECT * FROM orders) AS orders) AS orders GROUP BY orders__owned_by_id, orders__stage ORDER BY orders__total_sum_amount DESC`
+     `SELECT SUM(amount) AS orders__sum_amount ,  SUM(SUM(amount)) OVER (PARTITION BY orders__owned_by_id) AS orders__total_sum_amount ,   orders__owned_by_id,  orders__stage FROM (SELECT *, owned_by_id AS orders__owned_by_id, stage AS orders__stage FROM (SELECT * FROM orders) AS orders) AS orders GROUP BY orders__owned_by_id, orders__stage ORDER BY orders__total_sum_amount DESC, orders__sum_amount DESC, orders__stage DESC, orders__owned_by_id DESC`
     );
     const output = await duckdbExec(sql);
     expect(output).toEqual([
-      {
-        orders__sum_amount: 110,
-        orders__total_sum_amount: 9110,
-        orders__owned_by_id: 'user_3',
-        orders__stage: 'stage_a',
-      },
       {
         orders__sum_amount: 9000,
         orders__total_sum_amount: 9110,
         orders__owned_by_id: 'user_3',
         orders__stage: 'stage_b',
+      },
+      {
+        orders__sum_amount: 110,
+        orders__total_sum_amount: 9110,
+        orders__owned_by_id: 'user_3',
+        orders__stage: 'stage_a',
       },
       {
         orders__sum_amount: 190,
@@ -111,22 +114,22 @@ describe('meerkat placeholder', () => {
         orders__stage: 'stage_b',
       },
       {
+        "orders__stage": "stage_c",
+        "orders__sum_amount": 80,
+        orders__total_sum_amount: 145,
+        orders__owned_by_id: 'user_1',
+      },
+      {
         orders__sum_amount: 60,
         orders__total_sum_amount: 145,
         orders__owned_by_id: 'user_1',
         orders__stage: 'stage_a',
       },
       {
+        orders__stage: "stage_b",
         orders__sum_amount: 5,
         orders__total_sum_amount: 145,
         orders__owned_by_id: 'user_1',
-        orders__stage: 'stage_b',
-      },
-      {
-        orders__sum_amount: 80,
-        orders__total_sum_amount: 145,
-        orders__owned_by_id: 'user_1',
-        orders__stage: 'stage_c',
       },
     ]);
   });
