@@ -80,7 +80,7 @@ describe('cube-to-sql', () => {
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     const expectQueryResult = [
-      { person__count_star: 2, person__other_dimension: 'dashboard_others' },
+      { person__count_star: BigInt(2), person__other_dimension: 'dashboard_others' },
     ];
     expect(output).toEqual(expectQueryResult);
   });
@@ -117,7 +117,7 @@ describe('cube-to-sql', () => {
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     const expectQueryResult = [
-      { person__count_star: 4, person__other_dimension: 'dashboard_others' },
+      { person__count_star: BigInt(4), person__other_dimension: 'dashboard_others' },
     ];
     expect(output).toEqual(expectQueryResult);
   });
@@ -159,7 +159,7 @@ describe('cube-to-sql', () => {
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     const expectQueryResult = [
-      { person__count_star: 3, person__other_dimension: 'dashboard_others' },
+      { person__count_star: BigInt(3), person__other_dimension: 'dashboard_others' },
     ];
     expect(output).toEqual(expectQueryResult);
   });

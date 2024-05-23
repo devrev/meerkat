@@ -1,6 +1,6 @@
 {
   "name": "@devrev/meerkat-core",
-  "version": "0.0.75",
+  "version": "0.0.76",
   "dependencies": {
     "@swc/helpers": "~0.5.0"
   },
