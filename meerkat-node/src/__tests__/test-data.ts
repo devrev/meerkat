@@ -104,7 +104,7 @@ export const TEST_DATA = [
       }
     },
     expectedOutput: [
-       {
+      {
         "orders__customer_id": "6aa6",
         "orders__total_order_amount": 0,
       },
@@ -112,27 +112,27 @@ export const TEST_DATA = [
         "orders__customer_id": "2",
         "orders__total_order_amount": 100,
       },
-       {
+      {
         "orders__customer_id": "3",
         "orders__total_order_amount": 100,
       },
-       {
+      {
         "orders__customer_id": null,
         "orders__total_order_amount": 100,
       },
-       {
+      {
         "orders__customer_id": "6",
         "orders__total_order_amount": 120,
       },
-       {
+      {
         "orders__customer_id": "1",
         "orders__total_order_amount": 130,
       },
-       {
+      {
         "orders__customer_id": "4",
         "orders__total_order_amount": 135,
       },
-       {
+      {
         "orders__customer_id": "5",
         "orders__total_order_amount": 150,
       },
