@@ -4,7 +4,7 @@
   "dependencies": {
     "@swc/helpers": "~0.5.0",
     "@devrev/meerkat-core": "*",
-    "duckdb": "^0.8.1"
+    "duckdb": "^0.10.2"
   },
   "scripts": {
     "release": "semantic-release"
