@@ -99,7 +99,9 @@ function getReferencedColumns(
       const tableName =
         (baseTableRef.schema_name ? baseTableRef.schema_name + '.' : '') +
         baseTableRef.table_name;
-      referencedColumns.set(tableName, new Set<string>());
+      if (!referencedColumns.has(tableName)) {
+        referencedColumns.set(tableName, new Set<string>());
+      }
       return tableName;
     } else if (tableRef.type === TableReferenceType.JOIN) {
       const joinRef = tableRef as JoinRef;
@@ -185,7 +187,7 @@ export const sqlQueryToAST = async (
     `SELECT json_serialize_sql('${escapedSQL}') as ast;`
   )) as any;
   const astString = result[0]['ast'];
-  console.log(astString);
+  //   console.log(astString);
   const astParsed = JSON.parse(astString);
 
   const statements = astParsed?.statements as SelectStatement[];
