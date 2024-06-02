@@ -1,6 +1,8 @@
 import {
   BaseTypeTableRef,
+  CaseExpression,
   ColumnRefExpression,
+  ComparisonExpression,
   ExpressionType,
   JoinRef,
   OrderModifier,
@@ -11,6 +13,7 @@ import {
   SelectNode,
   SelectStatement,
   SetOperationNode,
+  SubqueryExpression,
   SubqueryRef,
   TableRef,
   TableReferenceType,
@@ -39,6 +42,7 @@ function getReferencedColumns(
     expr: ParsedExpression,
     currentTableAlias: string
   ) {
+    if (!expr) return;
     if (expr.type === ExpressionType.COLUMN_REF) {
       const columnRef = expr as ColumnRefExpression;
       const columnName =
@@ -59,6 +63,27 @@ function getReferencedColumns(
       } else {
         referencedColumns.get(currentTableAlias)?.add(columnName);
       }
+    } else if (expr.type === ExpressionType.SUBQUERY) {
+      const subqueryExpr = expr as SubqueryExpression;
+      processQueryNode(subqueryExpr.subquery.node, currentTableAlias);
+    } else if (
+      expr.type === ExpressionType.COMPARE_EQUAL ||
+      expr.type === ExpressionType.COMPARE_NOTEQUAL ||
+      expr.type === ExpressionType.COMPARE_LESSTHAN ||
+      expr.type === ExpressionType.COMPARE_GREATERTHAN ||
+      expr.type === ExpressionType.COMPARE_LESSTHANOREQUALTO ||
+      expr.type === ExpressionType.COMPARE_GREATERTHANOREQUALTO
+    ) {
+      const comparison = expr as ComparisonExpression;
+      processExpression(comparison.left, currentTableAlias);
+      processExpression(comparison.right, currentTableAlias);
+    } else if (expr.type === ExpressionType.CASE_EXPR) {
+      const caseExpr = expr as CaseExpression;
+      caseExpr.case_checks.forEach((check) => {
+        processExpression(check.when_expr, currentTableAlias);
+        processExpression(check.then_expr, currentTableAlias);
+      });
+      processExpression(caseExpr.else_expr, currentTableAlias);
     } else if (isExpressionWithChildren(expr)) {
       expr.children.forEach((child) =>
         processExpression(child, currentTableAlias)
@@ -105,9 +130,9 @@ function getReferencedColumns(
         tableAlias = processTableRef(selectNode.from_table, tableAlias);
       }
 
-      selectNode.select_list.forEach((expr) =>
-        processExpression(expr, tableAlias)
-      );
+      selectNode.select_list.forEach((expr) => {
+        return processExpression(expr, tableAlias);
+      });
 
       if (selectNode.where_clause) {
         processExpression(selectNode.where_clause, tableAlias);
