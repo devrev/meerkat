@@ -24,8 +24,8 @@
       "editor.wordWrapColumn": 120
     },
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
-      "source.organizeImports": true
+      "source.fixAll.eslint": "explicit",
+      "source.organizeImports": "explicit"
     },
     "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
   }
