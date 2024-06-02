@@ -1179,4 +1179,41 @@ describe('filter-param-tests', () => {
       ])
     );
   });
+
+  it('41. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT 
+        COALESCE(MEDIAN(first_resp_time), 0) AS support_insights_conversation_metrics_summary__median_first_resp_time
+      FROM (
+        SELECT *, stage_name AS support_insights_conversation_metrics_summary__stage_name, record_date AS support_insights_conversation_metrics_summary__record_date, group_id AS support_insights_conversation_metrics_summary__group_id
+        FROM (
+          SELECT *, DATE_TRUNC('day', record_hour) AS record_date,
+            UNNEST(
+              CASE
+                WHEN ARRAY_LENGTH(first_resp_time_arr) > 0 THEN first_resp_time_arr
+                ELSE ARRAY[null]
+              END
+            ) AS first_resp_time
+          FROM system.support_insights_conversation_metrics_summary
+        ) AS support_insights_conversation_metrics_summary
+      ) AS support_insights_conversation_metrics_summary
+      WHERE ((((support_insights_conversation_metrics_summary__stage_name = 'archived')) 
+              AND ((support_insights_conversation_metrics_summary__record_date >= '2024-05-03T15:30:00.000Z') 
+              AND (support_insights_conversation_metrics_summary__record_date <= '2024-06-02T16:29:59.999Z')) 
+              AND ((support_insights_conversation_metrics_summary__group_id = 'don:identity:dvrv-us-1:devo/0:group/38'))))
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(
+      references['system.support_insights_conversation_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'first_resp_time_arr',
+        'stage_name',
+        'record_hour',
+        'group_id',
+      ])
+    );
+  });
 });
