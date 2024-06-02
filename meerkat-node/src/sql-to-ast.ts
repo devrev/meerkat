@@ -185,7 +185,7 @@ export const sqlQueryToAST = async (
     `SELECT json_serialize_sql('${escapedSQL}') as ast;`
   )) as any;
   const astString = result[0]['ast'];
-  //   console.log(astString);
+  console.log(astString);
   const astParsed = JSON.parse(astString);
 
   const statements = astParsed?.statements as SelectStatement[];

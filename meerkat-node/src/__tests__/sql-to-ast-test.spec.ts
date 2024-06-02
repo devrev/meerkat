@@ -132,6 +132,7 @@ describe('filter-param-tests', () => {
     const sql = `
     SELECT CASE WHEN COUNT(CASE WHEN total_responses > 0 THEN 1 END) > 0 THEN COUNT(CASE WHEN total_responses > 0 AND floor(sum_rating / NULLIF(total_responses, 0)) IN (4, 5) THEN 1 END) * 100.0 / COUNT(CASE WHEN total_responses > 0 THEN 1 END) ELSE NULL END AS support_insights_ticket_metrics_summary__average_rating  FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z'))))
     `;
+
     const references = await sqlQueryToAST(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
@@ -149,6 +150,7 @@ describe('filter-param-tests', () => {
     const sql = `
     SELECT MEDIAN(DATEDIFF('minute', created_date, actual_close_date)) AS support_insights_ticket_metrics_summary__median_diff_minutes  FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * FROM system.support_insights_ticket_metrics_summary WHERE state = 'closed' and actual_close_date > created_date) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z'))))
     `;
+
     const references = await sqlQueryToAST(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
@@ -159,6 +161,164 @@ describe('filter-param-tests', () => {
         'created_date',
         'actual_close_date',
         'state',
+      ])
+    );
+  });
+
+  it('9. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+    SELECT COUNT(*) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__account_id FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, account_id AS support_insights_ticket_metrics_summary__account_id FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT * FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where account_id!='' and account_id is not null and state!='closed' ORDER BY record_date DESC) as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) and state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__account_id ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC LIMIT 5
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'record_hour',
+        'record_date',
+        'account_id',
+        'state',
+      ])
+    );
+  });
+
+  it('10. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+    select count(*) as count from (SELECT COUNT(*) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__account_id FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, account_id AS support_insights_ticket_metrics_summary__account_id FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT * FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where account_id!='' and account_id is not null and state!='closed' ORDER BY record_date DESC) as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) and state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__account_id ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC)
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'record_hour',
+        'record_date',
+        'account_id',
+        'state',
+      ])
+    );
+  });
+
+  it('11. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+    SELECT COUNT(*) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__primary_part_id FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, primary_part_id AS support_insights_ticket_metrics_summary__primary_part_id FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT * FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where state!='closed' and primary_part_id is not null and primary_part_id!='' ORDER BY record_date DESC) as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) and state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__primary_part_id ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC LIMIT 5
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'record_hour',
+        'record_date',
+        'state',
+        'primary_part_id',
+      ])
+    );
+  });
+
+  it('12. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT COUNT(sla_stage) AS support_insights_ticket_metrics_summary__count_sla_stage ,   support_insights_ticket_metrics_summary__record_date,  support_insights_ticket_metrics_summary__sla_stage FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, record_date AS support_insights_ticket_metrics_summary__record_date, sla_stage AS support_insights_ticket_metrics_summary__sla_stage FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary where sla_stage IN ('breached', 'warning', 'paused')) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__record_date, support_insights_ticket_metrics_summary__sla_stage ORDER BY support_insights_ticket_metrics_summary__record_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining(['record_hour', 'record_date', 'sla_stage'])
+    );
+  });
+
+  it('13. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT SUM(total_responses) AS support_insights_ticket_metrics_summary__sum_total_responses ,  SUM(total_survey_dispatched) AS support_insights_ticket_metrics_summary__sum_total_survey_dispatched ,   support_insights_ticket_metrics_summary__record_date FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__record_date ORDER BY support_insights_ticket_metrics_summary__record_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'record_hour',
+        'record_date',
+        'total_responses',
+        'total_survey_dispatched',
+      ])
+    );
+  });
+
+  it('14. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT COUNT(DISTINCT id) AS support_insights_ticket_metrics_summary__count_star ,   support_insights_ticket_metrics_summary__is_conversation_linked FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, is_conversation_linked AS support_insights_ticket_metrics_summary__is_conversation_linked FROM (SELECT   DATE_TRUNC('day', record_hour) AS record_date,   CASE       WHEN (primary_part_id LIKE '%enhancement%' OR is_issue_linked = 'yes') THEN 'yes'       ELSE 'no'   END AS ticket_prioritized,   * FROM system.support_insights_ticket_metrics_summary where state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__is_conversation_linked LIMIT 2
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'record_hour',
+        'record_date',
+        'state',
+        'primary_part_id',
+        'is_issue_linked',
+        'id',
+        'is_conversation_linked',
+      ])
+    );
+  });
+
+  it('15. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT COUNT(DISTINCT id) AS support_insights_ticket_metrics_summary__count_star ,   support_insights_ticket_metrics_summary__ticket_prioritized FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, CASE WHEN primary_part_id LIKE '%enhancement%' OR is_issue_linked = 'yes' THEN 'yes' ELSE 'no' END AS support_insights_ticket_metrics_summary__ticket_prioritized FROM (SELECT *, DATE_TRUNC('day', record_hour) AS record_date FROM system.support_insights_ticket_metrics_summary where state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__ticket_prioritized
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'record_hour',
+        'record_date',
+        'state',
+        'primary_part_id',
+        'is_issue_linked',
+        'id',
+      ])
+    );
+  });
+
+  it('16. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT COUNT(DISTINCT CASE WHEN state != 'closed' THEN id END) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__owned_by_ids FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, owned_by_ids AS support_insights_ticket_metrics_summary__owned_by_ids FROM (SELECT id, stage_id, account_id, subtype ,severity_name, created_date, state,source_channel,created_by_id, primary_part_id, tag_ids, group_id, sla_stage, rev_oid, record_hour,DATE_TRUNC('day', record_hour) as record_date, UNNEST(owned_by_ids) as owned_by_ids FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where state!='closed') as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__owned_by_ids ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC LIMIT 5
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(
+      references['system.support_insights_ticket_metrics_summary']
+    ).toEqual(
+      expect.arrayContaining([
+        'id',
+        'stage_id',
+        'account_id',
+        'subtype',
+        'severity_name',
+        'created_date',
+        'state',
+        'source_channel',
+        'created_by_id',
+        'primary_part_id',
+        'tag_ids',
+        'group_id',
+        'sla_stage',
+        'rev_oid',
+        'record_hour',
+        'record_date',
+        'owned_by_ids',
       ])
     );
   });
