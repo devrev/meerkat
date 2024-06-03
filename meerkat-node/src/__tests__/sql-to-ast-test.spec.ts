@@ -1216,4 +1216,330 @@ describe('filter-param-tests', () => {
       ])
     );
   });
+
+  it('42. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT COUNT(*) AS dim_opportunity__active_opportunity_count
+      FROM (
+        SELECT *
+        FROM (
+          SELECT *,
+          FROM (
+            SELECT *,
+            UNNEST(owned_by_ids) AS owned_by_id,
+            FROM system.dim_opportunity
+            WHERE is_deleted = FALSE
+          )
+          WHERE state IN ('open', 'in_progress')
+        ) AS dim_opportunity
+      ) AS dim_opportunity
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(references['system.dim_opportunity']).toEqual(
+      expect.arrayContaining(['owned_by_ids', 'is_deleted', 'state'])
+    );
+  });
+
+  it('43. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT SUM(CASE WHEN state = 'open' OR state = 'in_progress' THEN (amount*fprobability/100) ELSE 0 END) AS dim_opportunity__opportunity_total_amount
+      FROM (
+        SELECT *
+        FROM (
+          SELECT *,
+          UNNEST(owned_by_ids) AS owned_by_id,
+          (CASE
+            WHEN probability != 0 THEN probability
+            WHEN forecast_category = 1 THEN 15
+            WHEN forecast_category = 2 THEN 30
+            WHEN forecast_category = 5 THEN 80
+            WHEN forecast_category = 6 THEN 100
+            WHEN forecast_category = 7 THEN 40
+            WHEN forecast_category = 8 THEN 60
+            WHEN probability = 0 THEN 5
+          END) AS fprobability
+          FROM system.dim_opportunity
+          WHERE is_deleted = FALSE
+        ) AS dim_opportunity
+      ) AS dim_opportunity
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(references['system.dim_opportunity']).toEqual(
+      expect.arrayContaining([
+        'owned_by_ids',
+        'is_deleted',
+        'state',
+        'amount',
+        'probability',
+        'forecast_category',
+      ])
+    );
+  });
+
+  it('44. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT COUNT(*) AS dim_account__count_of_rows
+      FROM (
+        SELECT *
+        FROM (
+          SELECT *,
+          owned_by AS owned_by_id,
+          id AS account_id
+          FROM system.dim_account
+          WHERE is_deleted = FALSE
+        ) AS dim_account
+      ) AS dim_account
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(references['system.dim_account']).toEqual(
+      expect.arrayContaining(['owned_by', 'id', 'is_deleted'])
+    );
+  });
+
+  it('45. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT SUM(amount) AS dim_opportunity__sum_amount,
+        MAX(stage_ordinal) AS dim_opportunity__distinct_stage_ordinal,
+        dim_opportunity__stage_id,
+        dim_opportunity__forecast_category_str
+      FROM (
+        SELECT *,
+          stage_id AS dim_opportunity__stage_id,
+          forecast_category_str AS dim_opportunity__forecast_category_str
+        FROM (
+          SELECT *,
+            json_extract_string(stage_json, '$.ordinal')::double as stage_ordinal,
+            'opportunity' as type,
+          FROM (
+            SELECT *,
+            UNNEST(owned_by_ids) AS owned_by_id,
+            JSON_EXTRACT_STRING(stage_json, '$.stage_id') AS stage_id,
+            (CASE
+              WHEN forecast_category = 1 THEN 'Omitted'
+              WHEN forecast_category = 2 THEN 'Pipeline'
+              WHEN forecast_category = 5 THEN 'Commit'
+              WHEN forecast_category = 6 THEN 'Won'
+              WHEN forecast_category = 7 THEN 'Upside'
+              WHEN forecast_category = 8 THEN 'Strong Upside'
+              WHEN forecast_category NOT IN (1,2,5,6,7,8) THEN 'Other'
+            END) AS forecast_category_str
+            FROM system.dim_opportunity
+            WHERE is_deleted = FALSE
+          )
+        ) AS dim_opportunity
+      ) AS dim_opportunity
+      GROUP BY dim_opportunity__stage_id, dim_opportunity__forecast_category_str
+      ORDER BY dim_opportunity__distinct_stage_ordinal ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(references['system.dim_opportunity']).toEqual(
+      expect.arrayContaining([
+        'owned_by_ids',
+        'is_deleted',
+        'amount',
+        'stage_json',
+        'forecast_category',
+      ])
+    );
+  });
+
+  it('46. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT SUM(amount) AS dim_opportunity__sum_amount,
+        SUM(SUM(amount)) OVER (PARTITION BY dim_opportunity__owned_by_id) AS dim_opportunity__total_sum_amount,
+        dim_opportunity__owned_by_id,
+        dim_opportunity__stage_id
+      FROM (
+        SELECT *,
+          owned_by_id AS dim_opportunity__owned_by_id,
+          stage_id AS dim_opportunity__stage_id
+        FROM (
+          SELECT *
+          FROM (
+            SELECT *,
+              UNNEST(owned_by_ids) AS owned_by_id,
+              JSON_EXTRACT_STRING(stage_json, '$.name') AS stage_enum_str,
+              JSON_EXTRACT_STRING(stage_json, '$.stage_id') AS stage_id,
+              'opportunity' AS type,
+              REPLACE(CONCAT(UPPER(LEFT(stage_enum_str, 1)), SUBSTRING(stage_enum_str, 2)), '_', ' ') AS stage,
+              (CASE
+                WHEN forecast_category = 1 THEN 'Omitted'
+                WHEN forecast_category = 2 THEN 'Pipeline'
+                WHEN forecast_category = 5 THEN 'Commit'
+                WHEN forecast_category = 6 THEN 'Won'
+                WHEN forecast_category = 7 THEN 'Upside'
+                WHEN forecast_category = 8 THEN 'Strong Upside'
+                WHEN forecast_category NOT IN (1,2,5,6,7,8) THEN 'Other'
+              END) AS forecast_category_str,
+              (CASE WHEN state = 'open' THEN amount ELSE 0 END) AS 'Open',
+              (CASE WHEN state = 'in_progress' THEN amount ELSE 0 END) AS 'In Progress',
+              (CASE WHEN state = 'closed' THEN amount ELSE 0 END) AS 'Closed',
+              (CASE
+                WHEN probability != 0 THEN probability
+                WHEN forecast_category = 1 THEN 15
+                WHEN forecast_category = 2 THEN 30
+                WHEN forecast_category = 5 THEN 80
+                WHEN forecast_category = 6 THEN 100
+                WHEN forecast_category = 7 THEN 40
+                WHEN forecast_category = 8 THEN 60
+                WHEN probability = 0 THEN 5
+              END) AS fprobability,
+              FROM system.dim_opportunity
+              WHERE is_deleted = FALSE
+          )
+          WHERE owned_by_id IN (
+            SELECT owned_by_id
+            FROM (
+              SELECT UNNEST(owned_by_ids) AS owned_by_id, is_deleted, created_date, created_by_id, amount
+              FROM system.dim_opportunity
+            ) AS dim_opportunity
+            WHERE is_deleted = FALSE
+              AND TRUE
+              AND TRUE
+              AND TRUE
+            GROUP BY owned_by_id
+            ORDER BY SUM(amount) DESC
+            LIMIT 10
+          )
+        ) AS dim_opportunity
+      ) AS dim_opportunity
+      GROUP BY dim_opportunity__owned_by_id, dim_opportunity__stage_id
+      ORDER BY dim_opportunity__total_sum_amount DESC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(references['system.dim_opportunity']).toEqual(
+      expect.arrayContaining([
+        'owned_by_ids',
+        'is_deleted',
+        'created_date',
+        'created_by_id',
+        'amount',
+        'stage_json',
+        'state',
+        'forecast_category',
+        'probability',
+      ])
+    );
+  });
+
+  it('47. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT COUNT(*) AS account_owner_wo_stage__count_of_rows,
+        account_owner_wo_stage__owned_by_id
+      FROM (
+        SELECT *,
+          owned_by_id AS account_owner_wo_stage__owned_by_id
+        FROM (
+          SELECT *,
+            UNNEST(owned_by) AS owned_by_id,
+            id AS account_id
+          FROM system.dim_account
+          WHERE is_deleted = FALSE
+        ) AS account_owner_wo_stage
+      ) AS account_owner_wo_stage
+      GROUP BY account_owner_wo_stage__owned_by_id
+      ORDER BY account_owner_wo_stage__count_of_rows
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(references['system.dim_account']).toEqual(
+      expect.arrayContaining(['owned_by', 'id', 'is_deleted'])
+    );
+  });
+
+  it('48. Should return the correct referenced columns from original tables', async () => {
+    const sql = `
+      SELECT
+        (CASE
+          WHEN (opp_forecast__opp_close_date >= (MAX(CASE WHEN date_diff('day', current_date(), opp_forecast__opp_close_date) < 0 THEN opp_forecast__opp_close_date ELSE '1754-08-30' END) OVER ()))
+          THEN ((SUM(CASE WHEN SUM(forecast_amount) IS NOT NULL THEN SUM(forecast_amount) ELSE 0 END) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING) + (SUM(CASE WHEN SUM(actual_amount) IS NOT NULL THEN SUM(actual_amount) ELSE 0 END) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING))))
+        END) AS opp_forecast__total_forecast_amount,
+        (CASE
+          WHEN (opp_forecast__opp_close_date <= (MAX(CASE WHEN date_diff('day', current_date(), opp_forecast__opp_close_date) < 0 THEN opp_forecast__opp_close_date ELSE '1754-08-30' END) OVER ()))
+          THEN (SUM(SUM(actual_amount)) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING))
+        END) AS opp_forecast__total_actual_amount,
+        opp_forecast__opp_close_date
+      FROM (
+        SELECT *,
+          opp_close_date AS opp_forecast__opp_close_date
+        FROM (
+          SELECT *,
+            UNNEST(owned_by_ids) AS owned_by_id
+          FROM (
+            (
+              SELECT
+                * exclude (actual_close_date, target_close_date),
+                DATE_TRUNC('day', actual_close_date) AS opp_close_date,
+                (amount) AS actual_amount
+              FROM system.dim_opportunity
+              WHERE
+                extract('year' FROM opp_close_date) > 1900
+                AND date_diff('day', current_date(), opp_close_date) < 0
+                AND state = 'closed'
+                AND forecast_category = 6
+                AND is_deleted = FALSE
+            )
+            UNION BY NAME
+            (
+              SELECT
+                * exclude fprobability,
+                (amount*fprobability/100) AS forecast_amount,
+              FROM (
+                (
+                  SELECT
+                    * exclude (actual_close_date, target_close_date),
+                    DATE_TRUNC('day', target_close_date) AS opp_close_date,
+                    CASE
+                      WHEN probability != 0 THEN probability
+                      WHEN forecast_category = 1 THEN 15
+                      WHEN forecast_category = 2 THEN 30
+                      WHEN forecast_category = 5 THEN 80
+                      WHEN forecast_category = 6 THEN 100
+                      WHEN forecast_category = 7 THEN 40
+                      WHEN forecast_category = 8 THEN 60
+                      WHEN probability = 0 THEN 5
+                    END AS fprobability
+                  FROM system.dim_opportunity
+                  WHERE
+                    extract('year' FROM opp_close_date) > 1900
+                    AND date_diff('day', current_date(), opp_close_date) >= 0
+                    AND forecast_category != 1 AND state != 'closed'
+                    AND is_deleted = FALSE
+                )
+              )
+            )
+          )
+        ) AS opp_forecast
+      ) AS opp_forecast
+      GROUP BY opp_forecast__opp_close_date
+      ORDER BY opp_forecast__opp_close_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+    expect(references['system.dim_opportunity']).toEqual(
+      expect.arrayContaining([
+        'owned_by_ids',
+        'is_deleted',
+        'amount',
+        'actual_close_date',
+        'target_close_date',
+        'opp_close_date',
+        'state',
+        'forecast_category',
+        'probability',
+      ])
+    );
+  });
 });

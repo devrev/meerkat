@@ -13,6 +13,7 @@ import {
   SelectNode,
   SelectStatement,
   SetOperationNode,
+  StarExpression,
   SubqueryExpression,
   SubqueryRef,
   TableRef,
@@ -63,6 +64,14 @@ function getReferencedColumns(
       } else {
         referencedColumns.get(currentTableAlias)?.add(columnName);
       }
+    } else if (expr.type === ExpressionType.STAR) {
+      const starExpr = expr as StarExpression;
+      starExpr.exclude_list.forEach((excludedColumn) => {
+        if (!referencedColumns.has(currentTableAlias)) {
+          referencedColumns.set(currentTableAlias, new Set<string>());
+        }
+        referencedColumns.get(currentTableAlias)?.add(excludedColumn);
+      });
     } else if (expr.type === ExpressionType.SUBQUERY) {
       const subqueryExpr = expr as SubqueryExpression;
       processQueryNode(subqueryExpr.subquery.node, currentTableAlias);
@@ -155,6 +164,7 @@ function getReferencedColumns(
       return tableAlias;
     } else if (node.type === QueryNodeType.SET_OPERATION_NODE) {
       const setOpNode = node as SetOperationNode;
+      console.log(JSON.stringify(setOpNode.left, null, 2));
       processQueryNode(setOpNode.left, parentTableAlias);
       processQueryNode(setOpNode.right, parentTableAlias);
       return parentTableAlias;
@@ -187,7 +197,7 @@ export const sqlQueryToAST = async (
     `SELECT json_serialize_sql('${escapedSQL}') as ast;`
   )) as any;
   const astString = result[0]['ast'];
-  //   console.log(astString);
+  console.log(astString);
   const astParsed = JSON.parse(astString);
 
   const statements = astParsed?.statements as SelectStatement[];
