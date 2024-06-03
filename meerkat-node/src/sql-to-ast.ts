@@ -26,7 +26,7 @@ function getReferencedColumns(
   selectStatement: SelectStatement
 ): Map<string, Set<string>> {
   const referencedColumns = new Map<string, Set<string>>();
-  const aliasedColumns = new Map<string, string>();
+  const aliasedColumns = new Map<string, Map<string, string>>();
   const availableSchema = new Set<string>();
 
   function isExpressionWithChildren(
@@ -41,6 +41,34 @@ function getReferencedColumns(
     return 'child' in expr;
   }
 
+  function resolveAliasedColumn(
+    tableAlias: string,
+    columnName: string,
+    aliasedColumns: Map<string, Map<string, string>>,
+    referencedColumns: Map<string, Set<string>>
+  ): void {
+    if (!referencedColumns.has(tableAlias)) {
+      referencedColumns.set(tableAlias, new Set<string>());
+    }
+
+    if (aliasedColumns.has(tableAlias)) {
+      const tableAliases = aliasedColumns.get(tableAlias);
+      if (tableAliases?.has(columnName)) {
+        const aliasedColumn = tableAliases.get(columnName) as string;
+        resolveAliasedColumn(
+          tableAlias,
+          aliasedColumn,
+          aliasedColumns,
+          referencedColumns
+        );
+      } else {
+        referencedColumns.get(tableAlias)?.add(columnName);
+      }
+    } else {
+      referencedColumns.get(tableAlias)?.add(columnName);
+    }
+  }
+
   function processExpression(
     expr: ParsedExpression,
     currentTableAlias: string
@@ -52,7 +80,10 @@ function getReferencedColumns(
         columnRef.column_names[columnRef.column_names.length - 1];
 
       if (columnRef.alias) {
-        aliasedColumns.set(columnRef.alias, columnName);
+        const tableAliasMap =
+          aliasedColumns.get(currentTableAlias) || new Map<string, string>();
+        tableAliasMap.set(columnRef.alias, columnName);
+        aliasedColumns.set(currentTableAlias, tableAliasMap);
       }
 
       let tableAlias = currentTableAlias;
@@ -78,13 +109,12 @@ function getReferencedColumns(
         referencedColumns.set(tableAlias, new Set<string>());
       }
 
-      if (aliasedColumns.has(columnName)) {
+      resolveAliasedColumn(
+        tableAlias,
+        columnName,
+        aliasedColumns,
         referencedColumns
-          .get(tableAlias)
-          ?.add(aliasedColumns.get(columnName) as string);
-      } else {
-        referencedColumns.get(tableAlias)?.add(columnName);
-      }
+      );
     } else if (expr.type === ExpressionType.STAR) {
       const starExpr = expr as StarExpression;
       starExpr.exclude_list.forEach((excludedColumn) => {
