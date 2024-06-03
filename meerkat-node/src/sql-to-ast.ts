@@ -4,6 +4,7 @@ import {
   ColumnRefExpression,
   ComparisonExpression,
   ExpressionType,
+  FunctionExpression,
   JoinRef,
   OrderModifier,
   ParsedExpression,
@@ -26,6 +27,7 @@ function getReferencedColumns(
 ): Map<string, Set<string>> {
   const referencedColumns = new Map<string, Set<string>>();
   const aliasedColumns = new Map<string, string>();
+  const availableSchema = new Set<string>();
 
   function isExpressionWithChildren(
     expr: ParsedExpression
@@ -53,16 +55,35 @@ function getReferencedColumns(
         aliasedColumns.set(columnRef.alias, columnName);
       }
 
-      if (!referencedColumns.has(currentTableAlias)) {
-        referencedColumns.set(currentTableAlias, new Set<string>());
+      let tableAlias = currentTableAlias;
+      if (columnRef.column_names.length > 1) {
+        let found = false;
+        const refTableAlias = columnRef.column_names[0];
+        if (!referencedColumns.has(refTableAlias)) {
+          for (const schema of availableSchema) {
+            const fullTableName = schema + '.' + refTableAlias;
+            if (referencedColumns.has(fullTableName)) {
+              tableAlias = fullTableName;
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
+          return;
+        }
+      }
+
+      if (!referencedColumns.has(tableAlias)) {
+        referencedColumns.set(tableAlias, new Set<string>());
       }
 
       if (aliasedColumns.has(columnName)) {
         referencedColumns
-          .get(currentTableAlias)
+          .get(tableAlias)
           ?.add(aliasedColumns.get(columnName) as string);
       } else {
-        referencedColumns.get(currentTableAlias)?.add(columnName);
+        referencedColumns.get(tableAlias)?.add(columnName);
       }
     } else if (expr.type === ExpressionType.STAR) {
       const starExpr = expr as StarExpression;
@@ -93,6 +114,11 @@ function getReferencedColumns(
         processExpression(check.then_expr, currentTableAlias);
       });
       processExpression(caseExpr.else_expr, currentTableAlias);
+    } else if (expr.type === ExpressionType.FUNCTION) {
+      const functionExpr = expr as FunctionExpression;
+      functionExpr.children.forEach((child) =>
+        processExpression(child, currentTableAlias)
+      );
     } else if (isExpressionWithChildren(expr)) {
       expr.children.forEach((child) =>
         processExpression(child, currentTableAlias)
@@ -108,6 +134,9 @@ function getReferencedColumns(
       const tableName =
         (baseTableRef.schema_name ? baseTableRef.schema_name + '.' : '') +
         baseTableRef.table_name;
+      if (baseTableRef.schema_name) {
+        availableSchema.add(baseTableRef.schema_name);
+      }
       if (!referencedColumns.has(tableName)) {
         referencedColumns.set(tableName, new Set<string>());
       }
@@ -164,7 +193,6 @@ function getReferencedColumns(
       return tableAlias;
     } else if (node.type === QueryNodeType.SET_OPERATION_NODE) {
       const setOpNode = node as SetOperationNode;
-      console.log(JSON.stringify(setOpNode.left, null, 2));
       processQueryNode(setOpNode.left, parentTableAlias);
       processQueryNode(setOpNode.right, parentTableAlias);
       return parentTableAlias;

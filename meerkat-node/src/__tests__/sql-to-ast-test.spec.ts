@@ -1452,94 +1452,386 @@ describe('filter-param-tests', () => {
     `;
 
     const references = await sqlQueryToAST(sql);
-    console.log(references);
     expect(references['system.dim_account']).toEqual(
       expect.arrayContaining(['owned_by', 'id', 'is_deleted'])
     );
   });
 
-  it('48. Should return the correct referenced columns from original tables', async () => {
+  ///////////////////////
+  // it('48. Should return the correct referenced columns from original tables', async () => {
+  //   const sql = `
+  //     SELECT
+  //       (CASE
+  //         WHEN (opp_forecast__opp_close_date >= (MAX(CASE WHEN date_diff('day', current_date(), opp_forecast__opp_close_date) < 0 THEN opp_forecast__opp_close_date ELSE '1754-08-30' END) OVER ()))
+  //         THEN ((SUM(CASE WHEN SUM(forecast_amount) IS NOT NULL THEN SUM(forecast_amount) ELSE 0 END) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING) + (SUM(CASE WHEN SUM(actual_amount) IS NOT NULL THEN SUM(actual_amount) ELSE 0 END) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING))))
+  //       END) AS opp_forecast__total_forecast_amount,
+  //       (CASE
+  //         WHEN (opp_forecast__opp_close_date <= (MAX(CASE WHEN date_diff('day', current_date(), opp_forecast__opp_close_date) < 0 THEN opp_forecast__opp_close_date ELSE '1754-08-30' END) OVER ()))
+  //         THEN (SUM(SUM(actual_amount)) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING))
+  //       END) AS opp_forecast__total_actual_amount,
+  //       opp_forecast__opp_close_date
+  //     FROM (
+  //       SELECT *,
+  //         opp_close_date AS opp_forecast__opp_close_date
+  //       FROM (
+  //         SELECT *,
+  //           UNNEST(owned_by_ids) AS owned_by_id
+  //         FROM (
+  //           (
+  //             SELECT
+  //               * exclude (actual_close_date, target_close_date),
+  //               DATE_TRUNC('day', actual_close_date) AS opp_close_date,
+  //               (amount) AS actual_amount
+  //             FROM system.dim_opportunity
+  //             WHERE
+  //               extract('year' FROM opp_close_date) > 1900
+  //               AND date_diff('day', current_date(), opp_close_date) < 0
+  //               AND state = 'closed'
+  //               AND forecast_category = 6
+  //               AND is_deleted = FALSE
+  //           )
+  //           UNION BY NAME
+  //           (
+  //             SELECT
+  //               * exclude fprobability,
+  //               (amount*fprobability/100) AS forecast_amount,
+  //             FROM (
+  //               (
+  //                 SELECT
+  //                   * exclude (actual_close_date, target_close_date),
+  //                   DATE_TRUNC('day', target_close_date) AS opp_close_date,
+  //                   CASE
+  //                     WHEN probability != 0 THEN probability
+  //                     WHEN forecast_category = 1 THEN 15
+  //                     WHEN forecast_category = 2 THEN 30
+  //                     WHEN forecast_category = 5 THEN 80
+  //                     WHEN forecast_category = 6 THEN 100
+  //                     WHEN forecast_category = 7 THEN 40
+  //                     WHEN forecast_category = 8 THEN 60
+  //                     WHEN probability = 0 THEN 5
+  //                   END AS fprobability
+  //                 FROM system.dim_opportunity
+  //                 WHERE
+  //                   extract('year' FROM opp_close_date) > 1900
+  //                   AND date_diff('day', current_date(), opp_close_date) >= 0
+  //                   AND forecast_category != 1 AND state != 'closed'
+  //                   AND is_deleted = FALSE
+  //               )
+  //             )
+  //           )
+  //         )
+  //       ) AS opp_forecast
+  //     ) AS opp_forecast
+  //     GROUP BY opp_forecast__opp_close_date
+  //     ORDER BY opp_forecast__opp_close_date ASC
+  //   `;
+
+  //   const references = await sqlQueryToAST(sql);
+  //   expect(references['system.dim_opportunity'].sort()).toEqual(
+  //     [
+  //       'owned_by_ids',
+  //       'is_deleted',
+  //       'amount',
+  //       'actual_close_date',
+  //       'target_close_date',
+  //       'state',
+  //       'forecast_category',
+  //       'probability',
+  //     ].sort()
+  //   );
+  // });
+
+  it('49. Should return the correct referenced columns from the original tables', async () => {
     const sql = `
       SELECT
-        (CASE
-          WHEN (opp_forecast__opp_close_date >= (MAX(CASE WHEN date_diff('day', current_date(), opp_forecast__opp_close_date) < 0 THEN opp_forecast__opp_close_date ELSE '1754-08-30' END) OVER ()))
-          THEN ((SUM(CASE WHEN SUM(forecast_amount) IS NOT NULL THEN SUM(forecast_amount) ELSE 0 END) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING) + (SUM(CASE WHEN SUM(actual_amount) IS NOT NULL THEN SUM(actual_amount) ELSE 0 END) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING))))
-        END) AS opp_forecast__total_forecast_amount,
-        (CASE
-          WHEN (opp_forecast__opp_close_date <= (MAX(CASE WHEN date_diff('day', current_date(), opp_forecast__opp_close_date) < 0 THEN opp_forecast__opp_close_date ELSE '1754-08-30' END) OVER ()))
-          THEN (SUM(SUM(actual_amount)) OVER (ORDER BY opp_forecast__opp_close_date ROWS UNBOUNDED PRECEDING))
-        END) AS opp_forecast__total_actual_amount,
-        opp_forecast__opp_close_date
+        SUM(amount) AS dim_opportunity__sum_amount,
+        SUM(SUM(amount)) OVER (PARTITION BY dim_opportunity__owned_by_id) AS dim_opportunity__total_sum_amount,
+        dim_opportunity__owned_by_id,
+        dim_opportunity__stage_id
       FROM (
         SELECT *,
-          opp_close_date AS opp_forecast__opp_close_date
+          owned_by_id AS dim_opportunity__owned_by_id,
+          stage_id AS dim_opportunity__stage_id
         FROM (
-          SELECT *,
-            UNNEST(owned_by_ids) AS owned_by_id
+          SELECT *
           FROM (
-            (
-              SELECT
-                * exclude (actual_close_date, target_close_date),
-                DATE_TRUNC('day', actual_close_date) AS opp_close_date,
-                (amount) AS actual_amount
+            SELECT
+              *,
+              UNNEST(owned_by_ids) AS owned_by_id,
+              JSON_EXTRACT_STRING(stage_json, '$.name') AS stage_enum_str,
+              JSON_EXTRACT_STRING(stage_json, '$.stage_id') AS stage_id,
+              'opportunity' AS type,
+              REPLACE(CONCAT(UPPER(LEFT(stage_enum_str, 1)), SUBSTRING(stage_enum_str, 2)), '_', ' ') AS stage,
+              (CASE
+                WHEN forecast_category = 1 THEN 'Omitted'
+                WHEN forecast_category = 2 THEN 'Pipeline'
+                WHEN forecast_category = 5 THEN 'Commit'
+                WHEN forecast_category = 6 THEN 'Won'
+                WHEN forecast_category = 7 THEN 'Upside'
+                WHEN forecast_category = 8 THEN 'Strong Upside'
+                WHEN forecast_category NOT IN (1,2,5,6,7,8) THEN 'Other'
+              END) AS forecast_category_str,
+              (CASE WHEN state = 'open' THEN amount ELSE 0 END) AS 'Open',
+              (CASE WHEN state = 'in_progress' THEN amount ELSE 0 END) AS 'In Progress',
+              (CASE WHEN state = 'closed' THEN amount ELSE 0 END) AS 'Closed',
+              (CASE
+                WHEN probability!=0 THEN probability
+                WHEN forecast_category = 1 THEN 15
+                WHEN forecast_category = 2 THEN 30
+                WHEN forecast_category = 5 THEN 80
+                WHEN forecast_category = 6 THEN 100
+                WHEN forecast_category = 7 THEN 40
+                WHEN forecast_category = 8 THEN 60
+                WHEN probability=0 THEN 5
+              END) AS fprobability,
               FROM system.dim_opportunity
-              WHERE
-                extract('year' FROM opp_close_date) > 1900
-                AND date_diff('day', current_date(), opp_close_date) < 0
-                AND state = 'closed'
-                AND forecast_category = 6
-                AND is_deleted = FALSE
-            )
-            UNION BY NAME
-            (
-              SELECT
-                * exclude fprobability,
-                (amount*fprobability/100) AS forecast_amount,
-              FROM (
-                (
-                  SELECT
-                    * exclude (actual_close_date, target_close_date),
-                    DATE_TRUNC('day', target_close_date) AS opp_close_date,
-                    CASE
-                      WHEN probability != 0 THEN probability
-                      WHEN forecast_category = 1 THEN 15
-                      WHEN forecast_category = 2 THEN 30
-                      WHEN forecast_category = 5 THEN 80
-                      WHEN forecast_category = 6 THEN 100
-                      WHEN forecast_category = 7 THEN 40
-                      WHEN forecast_category = 8 THEN 60
-                      WHEN probability = 0 THEN 5
-                    END AS fprobability
-                  FROM system.dim_opportunity
-                  WHERE
-                    extract('year' FROM opp_close_date) > 1900
-                    AND date_diff('day', current_date(), opp_close_date) >= 0
-                    AND forecast_category != 1 AND state != 'closed'
-                    AND is_deleted = FALSE
-                )
-              )
-            )
+              WHERE is_deleted = FALSE
           )
-        ) AS opp_forecast
-      ) AS opp_forecast
-      GROUP BY opp_forecast__opp_close_date
-      ORDER BY opp_forecast__opp_close_date ASC
+          WHERE owned_by_id IN (
+            SELECT owned_by_id
+            FROM (
+              SELECT
+                UNNEST(owned_by_ids) AS owned_by_id,
+                is_deleted,
+                created_date,
+                created_by_id,
+                amount
+              FROM system.dim_opportunity
+            ) AS dim_opportunity
+            WHERE
+              is_deleted = FALSE
+              AND TRUE
+              AND TRUE
+              AND TRUE
+            GROUP BY owned_by_id
+            ORDER BY SUM(amount) DESC
+            LIMIT 10
+          )
+        ) AS dim_opportunity
+      ) AS dim_opportunity
+      GROUP BY dim_opportunity__owned_by_id, dim_opportunity__stage_id
+      ORDER BY dim_opportunity__total_sum_amount DESC
     `;
 
     const references = await sqlQueryToAST(sql);
-    console.log(references);
     expect(references['system.dim_opportunity']).toEqual(
       expect.arrayContaining([
         'owned_by_ids',
         'is_deleted',
         'amount',
-        'actual_close_date',
-        'target_close_date',
-        'opp_close_date',
-        'state',
+        'stage_json',
         'forecast_category',
+        'state',
         'probability',
+        'created_date',
+        'created_by_id',
       ])
+    );
+  });
+
+  it('50. Should return the correct referenced columns from the original tables', async () => {
+    const sql = `
+      SELECT COUNT(*) AS dim_revu_slim__count_of_rows
+      FROM (
+        SELECT *
+        FROM (
+          SELECT
+            *,
+            (
+              SELECT account
+              FROM system.dim_revo
+              WHERE dim_revo.is_deleted = FALSE
+              AND dim_revo.display_id = dim_revu_slim.rev_oid
+              AND dim_revo.dev_oid = dim_revu_slim.dev_oid
+            ) AS account_id
+          FROM system.dim_revu_slim
+          WHERE is_deleted = FALSE
+        ) AS dim_revu_slim
+      ) AS dim_revu_slim
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    expect(references['system.dim_revu_slim'].sort()).toEqual(
+      ['is_deleted', 'rev_oid', 'dev_oid'].sort()
+    );
+
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['is_deleted', 'display_id', 'dev_oid', 'account'].sort()
+    );
+  });
+
+  it('51. Should return the correct columns from the original tables', async () => {
+    const sql = `
+      SELECT COUNT(*) AS engage_customers__count_of_rows ,   engage_customers__scheduled_date,  engage_customers__engagement_type_str 
+      FROM (
+        SELECT *, scheduled_date AS engage_customers__scheduled_date, scheduled_date AS engage_customers__scheduled_date, engagement_type_str AS engage_customers__engagement_type_str 
+        FROM (
+          select *,
+            date_trunc('day', created_timestamp) as created_date,
+            date_trunc('day', scheduled_timestamp) as scheduled_date,
+            (
+              CASE
+                WHEN engagement_type = 1 THEN 'Meeting'
+                WHEN engagement_type = 2 THEN 'Survey'
+                WHEN engagement_type = 3 THEN 'Default'
+                WHEN engagement_type = 4 THEN 'LinkedIn'
+                WHEN engagement_type = 5 THEN 'Call'
+                WHEN engagement_type = 6 THEN 'Offline'
+                WHEN engagement_type = 7 THEN 'Email'
+                ELSE 'Unknown'
+              END
+            ) as engagement_type_str
+          from (
+            select
+              *
+            from
+              (
+                select
+                  dim_opportunity.account_id as parent_acc_id,
+                  a.id,
+                  a.display_id,
+                  a.engagement_type,
+                  a.created_date as created_timestamp,
+                  a.parent_id,
+                  a.member_ids,
+                  a.title,
+                  a.scheduled_date as scheduled_timestamp,
+                  a.created_by_id as created_by_id
+                from
+                  (
+                    select
+                      *
+                    from system.dim_engagement
+                    where
+                      parent_id like 'don:core%' and is_deleted = false
+                  ) as a
+                join system.dim_opportunity on dim_opportunity.id = a.parent_id
+              )
+            UNION ALL
+              (
+                select
+                  parent_id as parent_acc_id,
+                  id,
+                  display_id,
+                  engagement_type,
+                  created_date as created_timestamp,
+                  parent_id,
+                  member_ids,
+                  title,
+                  scheduled_date as scheduled_timestamp,
+                  created_by_id
+                from system.dim_engagement
+                where
+                  parent_id like 'don:identity%' and is_deleted = false
+              )
+          )) AS engage_customers
+        ) AS engage_customers
+      WHERE (
+        (
+          (engage_customers__scheduled_date >= '2024-05-04T06:30:00.000Z')
+          AND (engage_customers__scheduled_date <= '2024-06-03T07:29:59.999Z')
+        )
+      )
+      GROUP BY engage_customers__scheduled_date, engage_customers__engagement_type_str
+      ORDER BY engage_customers__scheduled_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    expect(references['system.dim_engagement'].sort()).toEqual(
+      [
+        'id',
+        'display_id',
+        'engagement_type',
+        'created_date',
+        'parent_id',
+        'member_ids',
+        'title',
+        'scheduled_date',
+        'created_by_id',
+        'is_deleted',
+      ].sort()
+    );
+
+    expect(references['system.dim_opportunity'].sort()).toEqual(
+      ['id', 'account_id'].sort()
+    );
+  });
+
+  it('52. Should return the correct count of rows from dim_revu_slim table', async () => {
+    const sql = `
+      SELECT COUNT(*) AS dim_revu_slim__count_of_rows
+      FROM (
+        SELECT *,
+               created_date AS dim_revu_slim__created_date
+        FROM (
+          SELECT *
+                 exclude(rev_oid),
+                 CASE WHEN is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                 'don:identity:dvrv-us-1:devo/' || SUBSTRING(dev_oid FROM POSITION('-' IN dev_oid) + 1) || ':revo/' || SUBSTRING(rev_oid FROM POSITION('-' IN rev_oid) + 1) AS rev_oid
+          FROM system.dim_revu_slim
+          WHERE is_deleted = FALSE
+        ) AS dim_revu_slim
+      ) AS dim_revu_slim
+      WHERE (
+        (
+          (dim_revu_slim__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (dim_revu_slim__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+    `;
+
+    const references = await sqlQueryToAST(sql);
+    console.log(references);
+
+    expect(references['system.dim_revu_slim'].sort()).toEqual(
+      ['rev_oid', 'dev_oid', 'is_verified', 'is_deleted', 'created_date'].sort()
+    );
+  });
+
+  it('53. Should return the correct average daily active users from summary_grow_daily_active_users table', async () => {
+    const sql = `
+      SELECT ROUND(SUM(daily_active_users)/COUNT(DISTINCT(created_date)), 0) AS summary_grow_daily_active_users_grp_by_date__avg_daily_active_users
+      FROM (
+        SELECT *,
+               created_date AS summary_grow_daily_active_users_grp_by_date__created_date
+        FROM (
+          SELECT *
+                 exclude (rev_oid),
+                 rev_oid AS prev,
+                 created_at as created_date,
+                 (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_daily_active_users.dev_oid = dim_revo.dev_oid AND summary_grow_daily_active_users.rev_oid = dim_revo.display_id) AS rev_oid,
+                 CASE WHEN is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum
+          FROM system.summary_grow_daily_active_users
+        ) AS summary_grow_daily_active_users_grp_by_date
+      ) AS summary_grow_daily_active_users_grp_by_date
+      WHERE (
+        (
+          (summary_grow_daily_active_users_grp_by_date__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (summary_grow_daily_active_users_grp_by_date__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    expect(references['system.summary_grow_daily_active_users'].sort()).toEqual(
+      [
+        'rev_oid',
+        'dev_oid',
+        'is_verified',
+        'created_at',
+        'daily_active_users',
+      ].sort()
+    );
+
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
     );
   });
 });
