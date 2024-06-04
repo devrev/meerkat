@@ -22,10 +22,15 @@ export interface CommonTableExpressionInfo {
   materialized: CTEMaterialize;
 }
 
+export interface CommonTableExpressionInfoEntry {
+  key: string;
+  value: CommonTableExpressionInfo;
+}
+
 export interface CommonTableExpressionMap {
   map:
     | Record<string, CommonTableExpressionInfo>
-    | Array<CommonTableExpressionInfo>;
+    | Array<CommonTableExpressionInfoEntry>;
 }
 
 export enum OrderType {

@@ -79,7 +79,11 @@ function getReferencedColumns(
       const columnName =
         columnRef.column_names[columnRef.column_names.length - 1];
 
-      if (columnRef.alias) {
+      if (columnName === 'is_verified') {
+        console.log('is_verified', columnRef);
+      }
+
+      if (columnRef.alias && columnRef.alias !== columnName) {
         const tableAliasMap =
           aliasedColumns.get(currentTableAlias) || new Map<string, string>();
         tableAliasMap.set(columnRef.alias, columnName);
@@ -195,6 +199,17 @@ function getReferencedColumns(
     if (node.type === QueryNodeType.SELECT_NODE) {
       const selectNode = node as SelectNode;
       let tableAlias = parentTableAlias;
+
+      if (selectNode.cte_map) {
+        const cteMap = selectNode.cte_map.map;
+        if (Array.isArray(cteMap)) {
+          cteMap.forEach((cte) => {
+            const cteAlias = cte.key;
+            const cteQuery = cte.value.query;
+            processQueryNode(cteQuery.node, cteAlias);
+          });
+        }
+      }
 
       if (selectNode.from_table) {
         tableAlias = processTableRef(selectNode.from_table, tableAlias);

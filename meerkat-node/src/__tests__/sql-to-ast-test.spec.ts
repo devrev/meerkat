@@ -1834,4 +1834,635 @@ describe('filter-param-tests', () => {
       ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
     );
   });
+
+  it('54. Should return the correct total user sessions from user_sessions_track_events_summary table', async () => {
+    const sql = `
+      SELECT SUM(total_user_sessions) AS user_sessions_track_events_summary__total_user_sessions
+      FROM (
+        SELECT *,
+               created_date AS user_sessions_track_events_summary__created_date
+        FROM (
+          SELECT *
+                 exclude (rev_oid),
+                 created_at as created_date,
+                 CASE WHEN is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                 (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND user_sessions_track_events_summary.dev_oid = dim_revo.dev_oid AND user_sessions_track_events_summary.rev_oid = dim_revo.display_id) AS rev_oid
+          FROM system.user_sessions_track_events_summary
+        ) AS user_sessions_track_events_summary
+      ) AS user_sessions_track_events_summary
+      WHERE (
+        (
+          (user_sessions_track_events_summary__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (user_sessions_track_events_summary__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    expect(
+      references['system.user_sessions_track_events_summary'].sort()
+    ).toEqual(
+      [
+        'rev_oid',
+        'dev_oid',
+        'is_verified',
+        'created_at',
+        'total_user_sessions',
+      ].sort()
+    );
+
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+    );
+  });
+
+  it('55. Should return the correct median session length from user_sessions_track_events_summary table', async () => {
+    const sql = `
+      SELECT MEDIAN(CASE WHEN total_user_sessions != 0 THEN (total_session_length/total_user_sessions) ELSE 0 END) AS user_sessions_track_events_summary__median_session_length
+      FROM (
+        SELECT *,
+               created_date AS user_sessions_track_events_summary__created_date
+        FROM (
+          SELECT *
+                 exclude (rev_oid),
+                 created_at as created_date,
+                 CASE WHEN is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                 (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND user_sessions_track_events_summary.dev_oid = dim_revo.dev_oid AND user_sessions_track_events_summary.rev_oid = dim_revo.display_id) AS rev_oid
+          FROM system.user_sessions_track_events_summary
+        ) AS user_sessions_track_events_summary
+      ) AS user_sessions_track_events_summary
+      WHERE (
+        (
+          (user_sessions_track_events_summary__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (user_sessions_track_events_summary__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    expect(
+      references['system.user_sessions_track_events_summary'].sort()
+    ).toEqual(
+      [
+        'rev_oid',
+        'dev_oid',
+        'is_verified',
+        'created_at',
+        'total_user_sessions',
+        'total_session_length',
+      ].sort()
+    );
+
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+    );
+  });
+
+  it('56. Should return the correct rolling average DAU, total DAU, and total returning users from summary_grow_daily_active_users table', async () => {
+    const sql = `
+      SELECT ROUND(AVG(SUM(daily_active_users)) OVER (ORDER BY summary_grow_daily_active_users__created_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW), 0) AS summary_grow_daily_active_users__rolling_avg_dau,
+             SUM(daily_active_users) AS summary_grow_daily_active_users__total_daily_active_users,
+             SUM(returning_users_count) AS summary_grow_daily_active_users__total_returning_users,
+             summary_grow_daily_active_users__created_date
+      FROM (
+        SELECT *,
+               created_date AS summary_grow_daily_active_users__created_date,
+               created_date AS summary_grow_daily_active_users__created_date
+        FROM (
+          SELECT *
+                 exclude (rev_oid),
+                 rev_oid AS prev,
+                 created_at as created_date,
+                 CASE WHEN is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                 (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_daily_active_users.dev_oid = dim_revo.dev_oid AND summary_grow_daily_active_users.rev_oid = dim_revo.display_id) AS rev_oid
+          FROM system.summary_grow_daily_active_users
+        ) AS summary_grow_daily_active_users
+      ) AS summary_grow_daily_active_users
+      WHERE (
+        (
+          (summary_grow_daily_active_users__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (summary_grow_daily_active_users__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+      GROUP BY summary_grow_daily_active_users__created_date
+      ORDER BY summary_grow_daily_active_users__created_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    expect(references['system.summary_grow_daily_active_users'].sort()).toEqual(
+      [
+        'rev_oid',
+        'dev_oid',
+        'is_verified',
+        'created_at',
+        'daily_active_users',
+        'returning_users_count',
+      ].sort()
+    );
+
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+    );
+  });
+
+  it('57. Should return the correct total user sessions grouped by date from user_sessions_track_events_summary table', async () => {
+    const sql = `
+      SELECT SUM(total_user_sessions) AS user_sessions_track_events_summary__total_user_sessions,
+             user_sessions_track_events_summary__created_date
+      FROM (
+        SELECT *,
+               created_date AS user_sessions_track_events_summary__created_date,
+               created_date AS user_sessions_track_events_summary__created_date
+        FROM (
+          SELECT *
+                 exclude (rev_oid),
+                 created_at as created_date,
+                 CASE WHEN is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                 (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND user_sessions_track_events_summary.dev_oid = dim_revo.dev_oid AND user_sessions_track_events_summary.rev_oid = dim_revo.display_id) AS rev_oid
+          FROM system.user_sessions_track_events_summary
+        ) AS user_sessions_track_events_summary
+      ) AS user_sessions_track_events_summary
+      WHERE (
+        (
+          (user_sessions_track_events_summary__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (user_sessions_track_events_summary__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+      GROUP BY user_sessions_track_events_summary__created_date
+      ORDER BY user_sessions_track_events_summary__created_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    expect(
+      references['system.user_sessions_track_events_summary'].sort()
+    ).toEqual(
+      [
+        'rev_oid',
+        'dev_oid',
+        'is_verified',
+        'created_at',
+        'total_user_sessions',
+      ].sort()
+    );
+
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+    );
+  });
+
+  it('58. Should return the correct average session length grouped by date from user_sessions_track_events_summary table', async () => {
+    const sql = `
+      SELECT CASE WHEN SUM(total_user_sessions) != 0 THEN (SUM(total_session_length) / SUM(total_user_sessions)) ELSE 0 END AS user_sessions_track_events_summary__avg_session_length,
+             user_sessions_track_events_summary__created_date
+      FROM (
+        SELECT *,
+               created_date AS user_sessions_track_events_summary__created_date,
+               created_date AS user_sessions_track_events_summary__created_date
+        FROM (
+          SELECT *
+                 exclude (rev_oid),
+                 created_at as created_date,
+                 CASE WHEN is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                 (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND user_sessions_track_events_summary.dev_oid = dim_revo.dev_oid AND user_sessions_track_events_summary.rev_oid = dim_revo.display_id) AS rev_oid
+          FROM system.user_sessions_track_events_summary
+        ) AS user_sessions_track_events_summary
+      ) AS user_sessions_track_events_summary
+      WHERE (
+        (
+          (user_sessions_track_events_summary__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (user_sessions_track_events_summary__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+      GROUP BY user_sessions_track_events_summary__created_date
+      ORDER BY user_sessions_track_events_summary__created_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    expect(
+      references['system.user_sessions_track_events_summary'].sort()
+    ).toEqual(
+      [
+        'rev_oid',
+        'dev_oid',
+        'is_verified',
+        'created_at',
+        'total_user_sessions',
+        'total_session_length',
+      ].sort()
+    );
+
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+    );
+  });
+
+  it('59. Should return the correct cumulative user count by date from dim_revu_slim and dim_revo tables', async () => {
+    const sql = `
+      SELECT total_users_data__created_date,
+             total_users_data__cumulative_user_count
+      FROM (
+        SELECT *,
+               created_date AS total_users_data__created_date,
+               created_date AS total_users_data__created_date,
+               cumulative_user_count AS total_users_data__cumulative_user_count
+        FROM (
+          SELECT created_date_day AS created_date,
+                 COALESCE(cumulative_user_count, LAST_VALUE(cumulative_user_count IGNORE NULLS) OVER (ORDER BY created_date_day)) AS cumulative_user_count,
+                 COALESCE(rev_oid, LAST_VALUE(rev_oid IGNORE NULLS) OVER (ORDER BY created_date_day)) AS rev_oid,
+                 verified_enum
+          FROM ((
+            SELECT *
+            FROM (
+              SELECT unnest(generate_series(MIN(DATE_TRUNC('day', created_date)), MAX(DATE_TRUNC('day', created_date)), INTERVAL '1 DAY')) AS created_date_day
+              FROM system.dim_revu_slim
+            ) AS date_series
+            LEFT JOIN (
+              SELECT (SUM(COUNT(*)) OVER (ORDER BY created_date_day ROWS UNBOUNDED PRECEDING)) AS cumulative_user_count,
+                     created_date_day,
+                     ANY_VALUE(rev_oid) AS rev_oid,
+                     ANY_VALUE(verified_enum) AS verified_enum
+              FROM (
+                WITH filtered_revu AS (
+                  SELECT *
+                  FROM system.dim_revu_slim
+                  WHERE is_deleted = FALSE
+                ),
+                filtered_revo AS (
+                  SELECT *,
+                         id as rev_oid
+                  FROM system.dim_revo
+                  WHERE is_deleted = FALSE
+                )
+                SELECT filtered_revu.id AS id,
+                       filtered_revo.id AS rev_oid,
+                       DATE_TRUNC('day', filtered_revu.created_date) AS created_date_day,
+                       CASE WHEN filtered_revu.is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum
+                FROM filtered_revu
+                LEFT JOIN filtered_revo ON filtered_revu.rev_oid = filtered_revo.display_id
+              ) AS total_users_data
+              WHERE TRUE AND TRUE
+              GROUP BY created_date_day
+            ) AS data_table ON data_table.created_date_day = date_series.created_date_day
+          )) AS total_users_data
+        ) AS total_users_data
+      ) AS total_users_data
+      WHERE (
+        (
+          (total_users_data__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (total_users_data__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+      GROUP BY total_users_data__created_date, total_users_data__cumulative_user_count
+      ORDER BY total_users_data__created_date ASC
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.dim_revu_slim'].sort()).toEqual(
+      ['created_date', 'is_deleted'].sort()
+    );
+
+    // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted'].sort()
+    );
+  });
+
+  it('60. Should return the correct top 5 rev_uids from summary_grow_users_event_count table', async () => {
+    const sql = `
+      SELECT SUM(total_events) AS summary_grow_users_event_count__total_usage_events,
+             summary_grow_users_event_count__rev_uid
+      FROM (
+        SELECT *,
+               created_date AS summary_grow_users_event_count__created_date,
+               rev_uid AS summary_grow_users_event_count__rev_uid
+        FROM (
+          SELECT summary_grow_users_event_count.created_at AS created_date,
+                 summary_grow_users_event_count.total_events AS total_events,
+                 revu.id AS rev_uid,
+                 CASE WHEN revu.is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                 (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_users_event_count.dev_oid = dim_revo.dev_oid AND summary_grow_users_event_count.rev_oid = dim_revo.display_id) AS rev_oid
+          FROM system.summary_grow_users_event_count
+          INNER JOIN (
+            SELECT *,
+                   'REVU-' || REVERSE(SPLIT_PART(REVERSE(id), '/', 1)) AS display_id
+            FROM system.dim_revu_slim
+            WHERE is_deleted = FALSE
+          ) AS revu ON summary_grow_users_event_count.rev_uid = revu.display_id
+                      AND summary_grow_users_event_count.rev_oid = revu.rev_oid
+                      AND summary_grow_users_event_count.dev_oid = revu.dev_oid
+        ) AS summary_grow_users_event_count
+      ) AS summary_grow_users_event_count
+      WHERE (
+        (
+          (summary_grow_users_event_count__created_date >= '2024-05-04T10:30:00.000Z')
+          AND (summary_grow_users_event_count__created_date <= '2024-06-03T11:29:59.999Z')
+        )
+      )
+      GROUP BY summary_grow_users_event_count__rev_uid
+      ORDER BY summary_grow_users_event_count__total_usage_events DESC
+      LIMIT 5
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
+      ['created_at', 'total_events', 'rev_uid', 'dev_oid', 'rev_oid'].sort()
+    );
+
+    // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.dim_revu_slim'].sort()).toEqual(
+      ['id', 'is_deleted'].sort()
+    );
+
+    // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+    );
+  });
+
+  it('61. Should return the correct count of rev_uids from summary_grow_users_event_count table', async () => {
+    const sql = `
+      SELECT COUNT(*) AS count
+      FROM (
+        SELECT SUM(total_events) AS summary_grow_users_event_count__total_usage_events,
+               summary_grow_users_event_count__rev_uid
+        FROM (
+          SELECT *,
+                 created_date AS summary_grow_users_event_count__created_date,
+                 rev_uid AS summary_grow_users_event_count__rev_uid
+          FROM (
+            SELECT summary_grow_users_event_count.created_at AS created_date,
+                   summary_grow_users_event_count.total_events AS total_events,
+                   revu.id AS rev_uid,
+                   CASE WHEN revu.is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+                   (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_users_event_count.dev_oid = dim_revo.dev_oid AND summary_grow_users_event_count.rev_oid = dim_revo.display_id) AS rev_oid
+            FROM system.summary_grow_users_event_count
+            INNER JOIN (
+              SELECT *,
+                     'REVU-' || REVERSE(SPLIT_PART(REVERSE(id), '/', 1)) AS display_id
+              FROM system.dim_revu_slim
+              WHERE is_deleted = FALSE
+            ) AS revu ON summary_grow_users_event_count.rev_uid = revu.display_id
+                        AND summary_grow_users_event_count.rev_oid = revu.rev_oid
+                        AND summary_grow_users_event_count.dev_oid = revu.dev_oid
+          ) AS summary_grow_users_event_count
+        ) AS summary_grow_users_event_count
+        WHERE (
+          (
+            (summary_grow_users_event_count__created_date >= '2024-05-04T10:30:00.000Z')
+            AND (summary_grow_users_event_count__created_date <= '2024-06-03T11:29:59.999Z')
+          )
+        )
+        GROUP BY summary_grow_users_event_count__rev_uid
+        ORDER BY summary_grow_users_event_count__total_usage_events DESC
+      )
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    console.log(references);
+
+    // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
+      ['created_at', 'total_events', 'rev_uid', 'dev_oid', 'rev_oid'].sort()
+    );
+
+    // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.dim_revu_slim'].sort()).toEqual(
+      ['id', 'is_deleted', 'rev_oid', 'dev_oid', 'is_verified'].sort()
+    );
+
+    // // Only columns which can be figured out without the original table schema are expected
+    expect(references['system.dim_revo'].sort()).toEqual(
+      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+    );
+  });
+
+  // it('62. Should return the bottom 5 rev_uids with total usage events from summary_grow_users_event_count table', async () => {
+  //   const sql = `
+  //     SELECT SUM(total_events) AS summary_grow_users_event_count__total_usage_events,
+  //            summary_grow_users_event_count__rev_uid
+  //     FROM (
+  //       SELECT *,
+  //              created_date AS summary_grow_users_event_count__created_date,
+  //              rev_uid AS summary_grow_users_event_count__rev_uid
+  //       FROM (
+  //         SELECT summary_grow_users_event_count.created_at AS created_date,
+  //                summary_grow_users_event_count.total_events AS total_events,
+  //                revu.id AS rev_uid,
+  //                CASE WHEN revu.is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+  //                (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_users_event_count.dev_oid = dim_revo.dev_oid AND summary_grow_users_event_count.rev_oid = dim_revo.display_id) AS rev_oid
+  //         FROM system.summary_grow_users_event_count
+  //         INNER JOIN (
+  //           SELECT *,
+  //                  'REVU-' || REVERSE(SPLIT_PART(REVERSE(id), '/', 1)) AS display_id
+  //           FROM system.dim_revu_slim
+  //           WHERE is_deleted = FALSE
+  //         ) AS revu ON summary_grow_users_event_count.rev_uid = revu.display_id
+  //                     AND summary_grow_users_event_count.rev_oid = revu.rev_oid
+  //                     AND summary_grow_users_event_count.dev_oid = revu.dev_oid
+  //       ) AS summary_grow_users_event_count
+  //     ) AS summary_grow_users_event_count
+  //     WHERE (
+  //       (
+  //         (summary_grow_users_event_count__created_date >= '2024-05-04T10:30:00.000Z')
+  //         AND (summary_grow_users_event_count__created_date <= '2024-06-03T11:29:59.999Z')
+  //       )
+  //     )
+  //     GROUP BY summary_grow_users_event_count__rev_uid
+  //     ORDER BY summary_grow_users_event_count__total_usage_events ASC
+  //     LIMIT 5
+  //   `;
+
+  //   const references = await sqlQueryToAST(sql);
+
+  //   console.log(references);
+
+  //   expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
+  //     ['created_at', 'total_events', 'rev_uid', 'rev_oid', 'dev_oid'].sort()
+  //   );
+
+  //   expect(references['system.dim_revu_slim'].sort()).toEqual(
+  //     ['id', 'rev_oid', 'dev_oid', 'is_verified', 'is_deleted'].sort()
+  //   );
+
+  //   expect(references['system.dim_revo'].sort()).toEqual(
+  //     ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+  //   );
+  // });
+
+  // it('63. Should return the correct count of rev_uids from summary_grow_users_event_count table', async () => {
+  //   const sql = `
+  //     SELECT COUNT(*) AS count
+  //     FROM (
+  //       SELECT SUM(total_events) AS summary_grow_users_event_count__total_usage_events,
+  //              summary_grow_users_event_count__rev_uid
+  //       FROM (
+  //         SELECT *,
+  //                created_date AS summary_grow_users_event_count__created_date,
+  //                rev_uid AS summary_grow_users_event_count__rev_uid
+  //         FROM (
+  //           SELECT summary_grow_users_event_count.created_at AS created_date,
+  //                  summary_grow_users_event_count.total_events AS total_events,
+  //                  revu.id AS rev_uid,
+  //                  CASE WHEN revu.is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+  //                  (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_users_event_count.dev_oid = dim_revo.dev_oid AND summary_grow_users_event_count.rev_oid = dim_revo.display_id) AS rev_oid
+  //           FROM system.summary_grow_users_event_count
+  //           INNER JOIN (
+  //             SELECT *,
+  //                    'REVU-' || REVERSE(SPLIT_PART(REVERSE(id), '/', 1)) AS display_id
+  //             FROM system.dim_revu_slim
+  //             WHERE is_deleted = FALSE
+  //           ) AS revu ON summary_grow_users_event_count.rev_uid = revu.display_id
+  //                       AND summary_grow_users_event_count.rev_oid = revu.rev_oid
+  //                       AND summary_grow_users_event_count.dev_oid = revu.dev_oid
+  //         ) AS summary_grow_users_event_count
+  //       ) AS summary_grow_users_event_count
+  //       WHERE (
+  //         (
+  //           (summary_grow_users_event_count__created_date >= '2024-05-04T10:30:00.000Z')
+  //           AND (summary_grow_users_event_count__created_date <= '2024-06-03T11:29:59.999Z')
+  //         )
+  //       )
+  //       GROUP BY summary_grow_users_event_count__rev_uid
+  //       ORDER BY summary_grow_users_event_count__total_usage_events ASC
+  //     )
+  //   `;
+
+  //   const references = await sqlQueryToAST(sql);
+
+  //   console.log(references);
+
+  //   expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
+  //     ['created_at', 'total_events', 'rev_uid', 'rev_oid', 'dev_oid'].sort()
+  //   );
+
+  //   expect(references['system.dim_revu_slim'].sort()).toEqual(
+  //     ['id', 'rev_oid', 'dev_oid', 'is_verified', 'is_deleted'].sort()
+  //   );
+
+  //   expect(references['system.dim_revo'].sort()).toEqual(
+  //     ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+  //   );
+  // });
+
+  it('64. Should return the average customer health scores daily summary for accounts with forecast category "Closed Won"', async () => {
+    const sql = `
+      SELECT
+        avg(curr_score_value) * 100 AS customer_health_scores_daily_summary__curr_score_value,
+        avg(prev_score_value) * 100 AS customer_health_scores_daily_summary__prev_score_value,
+        avg(delta_percent) AS customer_health_scores_daily_summary__delta_percent,
+        customer_health_scores_daily_summary__account_id,
+        customer_health_scores_daily_summary__curr_category,
+        customer_health_scores_daily_summary__prev_category,
+        customer_health_scores_daily_summary__transition_end_date
+      FROM (
+        SELECT
+          *,
+          forecast_category AS customer_health_scores_daily_summary__forecast_category,
+          account_id AS customer_health_scores_daily_summary__account_id,
+          curr_category AS customer_health_scores_daily_summary__curr_category,
+          prev_category AS customer_health_scores_daily_summary__prev_category,
+          transition_end_date AS customer_health_scores_daily_summary__transition_end_date
+        FROM (
+          WITH ranked_scores AS (
+            SELECT
+              score_id,
+              metric_set_id,
+              account_id,
+              score_value,
+              category,
+              record_date,
+              LAG(category) OVER (PARTITION BY score_id, metric_set_id, account_id ORDER BY record_date) AS prev_category,
+              LAG(score_value) OVER (PARTITION BY score_id, metric_set_id, account_id ORDER BY record_date) AS prev_score_value,
+              LAG(record_date) OVER (PARTITION BY score_id, metric_set_id, account_id ORDER BY record_date) AS prev_record_date
+            FROM system.customer_health_scores_daily_summary
+            WHERE score_id = 'don:core:dvrv-us-1:devo/0:score/l1VEjGTl' AND TRUE
+          ),
+          transitions AS (
+            SELECT
+              score_id,
+              metric_set_id,
+              account_id,
+              record_date,
+              prev_category,
+              category AS curr_category,
+              prev_score_value,
+              score_value AS curr_score_value,
+              prev_record_date AS transition_start_date,
+              record_date AS transition_end_date
+            FROM ranked_scores
+            WHERE prev_category IS NOT NULL AND curr_category != prev_category
+          ),
+          final_results AS (
+            SELECT
+              distinct on (account_id)
+              account_id,
+              record_date,
+              prev_category,
+              curr_category,
+              prev_score_value,
+              curr_score_value,
+              ROUND(((curr_score_value - prev_score_value) / NULLIF(ABS(prev_score_value), 0)) * 100, 2) AS delta_percent,
+              transition_start_date,
+              transition_end_date
+            FROM transitions
+            ORDER BY record_date desc
+          )
+          SELECT
+            final_results.*,
+            dim_account.tier,
+            dim_account.owned_by,
+            json_extract_string(dim_account.custom_fields, '$.tnt__forecast_category') AS forecast_category
+          FROM final_results
+          JOIN system.dim_account ON dim_account.id = final_results.account_id
+        ) AS customer_health_scores_daily_summary
+      ) AS customer_health_scores_daily_summary
+      WHERE (customer_health_scores_daily_summary__forecast_category = 'Closed Won')
+      GROUP BY
+        customer_health_scores_daily_summary__account_id,
+        customer_health_scores_daily_summary__curr_category,
+        customer_health_scores_daily_summary__prev_category,
+        customer_health_scores_daily_summary__transition_end_date
+      ORDER BY customer_health_scores_daily_summary__transition_end_date DESC
+      LIMIT 5
+    `;
+
+    const references = await sqlQueryToAST(sql);
+
+    expect(
+      references['system.customer_health_scores_daily_summary'].sort()
+    ).toEqual(
+      [
+        'account_id',
+        'category',
+        'metric_set_id',
+        'record_date',
+        'score_id',
+        'score_value',
+      ].sort()
+    );
+
+    expect(references['system.dim_account'].sort()).toEqual(
+      ['custom_fields', 'id', 'owned_by', 'tier'].sort()
+    );
+  });
 });
