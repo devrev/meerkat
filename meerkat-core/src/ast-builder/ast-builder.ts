@@ -83,8 +83,7 @@ export const cubeToDuckdbAST = (query: Query, tableSchema: TableSchema, options?
     node.where_clause = whereClause;
     node.having = havingClause
   }
-
-  if (query.dimensions && query.dimensions?.length > 0) {
+  if (query.measures.length && query.dimensions && query.dimensions?.length > 0) {
     node.group_expressions = cubeDimensionToGroupByAST(query.dimensions);
     const groupSets = [];
     /**
