@@ -385,7 +385,7 @@ describe('Joins Tests', () => {
     const parsedOutput = JSON.parse(JSON.stringify(output));
     console.info('parsedOutput', parsedOutput);
     expect(sql).toEqual(
-      'SELECT  orders__order_id FROM (SELECT *, orders.order_id AS orders__order_id FROM (select * from orders) AS orders) AS MEERKAT_GENERATED_TABLE GROUP BY orders__order_id'
+      'SELECT  orders__order_id FROM (SELECT *, orders.order_id AS orders__order_id FROM (select * from orders) AS orders) AS MEERKAT_GENERATED_TABLE'
     );
     expect(parsedOutput).toHaveLength(11);
   });
