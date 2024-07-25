@@ -94,10 +94,9 @@ export class DBM {
   }
 
   private async _getConnection() {
-    if (!this.connection) {
-      const db = await this.instanceManager.getDB();
-      this.connection = await db.connect();
-    }
+    const db = await this.instanceManager.getDB();
+    this.connection = await db.connect();
+    console.log(this.connection);
     return this.connection;
   }
 
@@ -264,9 +263,9 @@ export class DBM {
       /**
        * Lock the tables
        */
-      await this.lockTables(
-        this.currentQueryItem.tables.map((table) => table.name)
-      );
+      // await this.lockTables(
+      //   this.currentQueryItem.tables.map((table) => table.name)
+      // );
 
       const startTime = Date.now();
       this.logger.debug(
@@ -315,9 +314,9 @@ export class DBM {
       /**
        * Unlock the tables
        */
-      await this.unlockTables(
-        this.currentQueryItem.tables.map((table) => table.name)
-      );
+      // await this.unlockTables(
+      //   this.currentQueryItem.tables.map((table) => table.name)
+      // );
     }
 
     /**
@@ -335,10 +334,10 @@ export class DBM {
    * Start the query queue execution if it is not running
    */
   private _startQueryQueue() {
-    if (this.queryQueueRunning) {
-      this.logger.debug('Query queue is already running');
-      return;
-    }
+    // if (this.queryQueueRunning) {
+    //   this.logger.debug('Query queue is already running');
+    //   return;
+    // }
     this.logger.debug('Starting query queue');
     this.queryQueueRunning = true;
     this._startQueryExecution();

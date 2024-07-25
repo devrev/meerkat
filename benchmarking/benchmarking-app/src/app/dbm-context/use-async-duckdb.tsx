@@ -15,20 +15,43 @@ export const useAsyncDuckDB = () => {
 
   useClassicEffect(() => {
     (async () => {
-      const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+      const jsBundle = {
+        mvp: {
+          mainModule: 'http://localhost:4200/assets/duckdb/duckdb-mvp.wasm',
+          mainWorker:
+            'http://localhost:4200/assets/duckdb/duckdb-browser-mvp.worker.js',
+        },
+        eh: {
+          mainModule: 'http://localhost:4200/assets/duckdb/duckdb-eh.wasm',
+          mainWorker:
+            'http://localhost:4200/assets/duckdb/duckdb-browser-eh.worker.js',
+        },
+        coi: {
+          mainModule: 'http://localhost:4200/assets/duckdb/duckdb-coi.wasm',
+          mainWorker:
+            'http://localhost:4200/assets/duckdb/duckdb-browser-coi.worker.js',
+          pthreadWorker:
+            'http://localhost:4200/assets/duckdb/duckdb-browser-coi.pthread.worker.js',
+        },
+      };
 
-      const worker_url = URL.createObjectURL(
-        new Blob([`importScripts("${bundle.mainWorker!}");`], {
-          type: 'text/javascript',
-        })
-      );
+      const bundle = await duckdb.selectBundle(jsBundle);
+      console.log(bundle);
+      // const worker_url = URL.createObjectURL(
+      //   new Blob([`importScripts("${bundle.mainWorker!}");`], {
+      //     type: 'text/javascript',
+      //   })
+      // );
 
       // Instantiate the asynchronus version of DuckDB-wasm
-      const worker = new Worker(worker_url);
+      const worker = new Worker(bundle.mainWorker!);
       const logger = new duckdb.ConsoleLogger();
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-      URL.revokeObjectURL(worker_url);
+
+      await db.open({ maximumThreads: 4 });
+
+      // URL.revokeObjectURL(worker_url);
       setdbState(db);
     })();
   }, []);
