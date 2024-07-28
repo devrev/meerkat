@@ -10,41 +10,44 @@ export const DBMContext = React.createContext<{
   fileManager: FileManagerType;
 }>(null as any);
 
+const jsBundle = {
+  mvp: {
+    mainModule: 'http://localhost:4200/assets/duckdb/duckdb-mvp.wasm',
+    mainWorker:
+      'http://localhost:4200/assets/duckdb/duckdb-browser-mvp.worker.js',
+  },
+  eh: {
+    mainModule: 'http://localhost:4200/assets/duckdb/opfs/duckdb-eh.wasm',
+    mainWorker:
+      'http://localhost:4200/assets/duckdb/opfs/duckdb-browser-eh.worker.js',
+  },
+  coi: {
+    mainModule: 'http://localhost:4200/assets/duckdb/duckdb-coi.wasm',
+    mainWorker:
+      'http://localhost:4200/assets/duckdb/duckdb-browser-coi.worker.js',
+    pthreadWorker:
+      'http://localhost:4200/assets/duckdb/duckdb-browser-coi.pthread.worker.js',
+  },
+};
+
 export const useAsyncDuckDB = () => {
   const [dbState, setdbState] = useState<AsyncDuckDB | null>(null);
 
   useClassicEffect(() => {
     (async () => {
-      const jsBundle = {
-        mvp: {
-          mainModule: 'http://localhost:4200/assets/duckdb/duckdb-mvp.wasm',
-          mainWorker:
-            'http://localhost:4200/assets/duckdb/duckdb-browser-mvp.worker.js',
-        },
-        eh: {
-          mainModule: 'http://localhost:4200/assets/duckdb/opfs/duckdb-eh.wasm',
-          mainWorker:
-            'http://localhost:4200/assets/duckdb/opfs/duckdb-browser-eh.worker.js',
-        },
-        coi: {
-          mainModule: 'http://localhost:4200/assets/duckdb/duckdb-coi.wasm',
-          mainWorker:
-            'http://localhost:4200/assets/duckdb/duckdb-browser-coi.worker.js',
-          pthreadWorker:
-            'http://localhost:4200/assets/duckdb/duckdb-browser-coi.pthread.worker.js',
-        },
-      };
-
-      const bundle = await duckdb.selectBundle(jsBundle);
-      console.log(bundle);
-      // const worker_url = URL.createObjectURL(
-      //   new Blob([`importScripts("${bundle.mainWorker!}");`], {
-      //     type: 'text/javascript',
-      //   })
-      // );
+      const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+      const worker_url = URL.createObjectURL(
+        new Blob([`importScripts("${bundle.mainWorker!}");`], {
+          type: 'text/javascript',
+        })
+      );
+      const worker = new Worker(worker_url);
 
       // Instantiate the asynchronus version of DuckDB-wasm
-      const worker = new Worker(bundle.mainWorker!);
+      // const bundle = await duckdb.selectBundle(jsBundle);
+
+      // const worker = new Worker(bundle.mainWorker!);
+
       const logger = new duckdb.ConsoleLogger();
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
@@ -62,11 +65,11 @@ export const useAsyncDuckDB = () => {
       //   emptyAsAbsent: true,
       // });
 
-      db.open({
-        // path: 'opfs://test.db',
-        accessMode: duckdb.DuckDBAccessMode.READ_WRITE,
-      });
-      // URL.revokeObjectURL(worker_url);
+      // db.open({
+      //   // path: 'opfs://test.db',
+      //   accessMode: duckdb.DuckDBAccessMode.READ_WRITE,
+      // });
+      URL.revokeObjectURL(worker_url);
       setdbState(db);
     })();
   }, []);

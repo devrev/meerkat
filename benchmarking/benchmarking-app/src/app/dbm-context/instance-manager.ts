@@ -27,22 +27,25 @@ export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
 
   private async initDB() {
-    const bundle = await duckdb.selectBundle(jsBundle);
-
-    // const worker_url = URL.createObjectURL(
-    //   new Blob([`importScripts("${bundle.mainWorker!}");`], {
-    //     type: 'text/javascript',
-    //   })
-    // );
+    const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+    const worker_url = URL.createObjectURL(
+      new Blob([`importScripts("${bundle.mainWorker!}");`], {
+        type: 'text/javascript',
+      })
+    );
+    const worker = new Worker(worker_url);
 
     // Instantiate the asynchronus version of DuckDB-wasm
-    const worker = new Worker(bundle.mainWorker!);
+    // const bundle = await duckdb.selectBundle(jsBundle);
+
+    // const worker = new Worker(bundle.mainWorker!);
+
     const logger = {
       log: (msg: LogEntryVariant) => console.log(msg),
     };
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-    // URL.revokeObjectURL(worker_url);
+    URL.revokeObjectURL(worker_url);
     return db;
   }
 
