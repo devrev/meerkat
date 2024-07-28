@@ -5,6 +5,7 @@
   "private": true,
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.28.1-dev242.0",
+    "@kunal-mohta/duckdb-wasm": "file:../../../../../opt/homebrew/lib/node_modules/@kunal-mohta/duckdb-wasm",
     "@nx/next": "16.8.1",
     "@swc/helpers": "~0.5.0",
     "@types/puppeteer": "^7.0.4",

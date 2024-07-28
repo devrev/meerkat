@@ -26,7 +26,7 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
       },
       logger: log,
       onEvent: (event) => {
-        console.info(event);
+        // console.info(event);
       },
     });
     // log.setLevel('DEBUG');
@@ -38,6 +38,7 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
         // console.info(event);
       },
     });
+
     setdbm(dbm);
   }, [dbState]);
 

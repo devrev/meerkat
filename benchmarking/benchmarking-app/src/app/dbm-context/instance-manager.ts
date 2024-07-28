@@ -1,7 +1,7 @@
 import { InstanceManagerType } from '@devrev/meerkat-dbm';
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { AsyncDuckDB, LogEntryVariant } from '@duckdb/duckdb-wasm';
-// const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 
 const jsBundle = {
   mvp: {
@@ -10,9 +10,9 @@ const jsBundle = {
       'http://localhost:4200/assets/duckdb/duckdb-browser-mvp.worker.js',
   },
   eh: {
-    mainModule: 'http://localhost:4200/assets/duckdb/duckdb-eh.wasm',
+    mainModule: 'http://localhost:4200/assets/duckdb/opfs/duckdb-eh.wasm',
     mainWorker:
-      'http://localhost:4200/assets/duckdb/duckdb-browser-eh.worker.js',
+      'http://localhost:4200/assets/duckdb/opfs/duckdb-browser-eh.worker.js',
   },
   coi: {
     mainModule: 'http://localhost:4200/assets/duckdb/duckdb-coi.wasm',

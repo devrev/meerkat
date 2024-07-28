@@ -22,9 +22,9 @@ export const useAsyncDuckDB = () => {
             'http://localhost:4200/assets/duckdb/duckdb-browser-mvp.worker.js',
         },
         eh: {
-          mainModule: 'http://localhost:4200/assets/duckdb/duckdb-eh.wasm',
+          mainModule: 'http://localhost:4200/assets/duckdb/opfs/duckdb-eh.wasm',
           mainWorker:
-            'http://localhost:4200/assets/duckdb/duckdb-browser-eh.worker.js',
+            'http://localhost:4200/assets/duckdb/opfs/duckdb-browser-eh.worker.js',
         },
         coi: {
           mainModule: 'http://localhost:4200/assets/duckdb/duckdb-coi.wasm',
@@ -49,8 +49,23 @@ export const useAsyncDuckDB = () => {
       const db = new duckdb.AsyncDuckDB(logger, worker);
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 
-      await db.open({ maximumThreads: 4 });
+      // await db.open({ maximumThreads: 4 });
 
+      const dirHandle = await navigator.storage.getDirectory();
+      // console.log(createOPFSFileHandle);
+      // const dbHandle = await createOPFSFileHandle(`attach.db`, dirHandle, {
+      //   create: true,
+      //   emptyAsAbsent: true,
+      // });
+      // const walHandle = await createOPFSFileHandle(`attach.db.wal`, dirHandle, {
+      //   create: true,
+      //   emptyAsAbsent: true,
+      // });
+
+      db.open({
+        // path: 'opfs://test.db',
+        accessMode: duckdb.DuckDBAccessMode.READ_WRITE,
+      });
       // URL.revokeObjectURL(worker_url);
       setdbState(db);
     })();
