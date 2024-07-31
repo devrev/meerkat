@@ -94,10 +94,10 @@ export class DBM {
   }
 
   private async _getConnection() {
-    if (!this.connection) {
-      const db = await this.instanceManager.getDB();
-      this.connection = await db.connect();
-    }
+    // if (!this.connection) {
+    const db = await this.instanceManager.getDB();
+    this.connection = await db.connect();
+    // }
     return this.connection;
   }
 
