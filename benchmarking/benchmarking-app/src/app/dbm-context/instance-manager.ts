@@ -23,22 +23,25 @@ const jsBundle = {
   },
 };
 
+const isCOI = true;
+
 export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
 
   private async initDB() {
-    // const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
-    // const worker_url = URL.createObjectURL(
-    //   new Blob([`importScripts("${bundle.mainWorker!}");`], {
-    //     type: 'text/javascript',
-    //   })
-    // );
-    // const worker = new Worker(worker_url);
-
-    // Instantiate the asynchronus version of DuckDB-wasm
-    const bundle = await duckdb.selectBundle(jsBundle);
-
-    const worker = new Worker(bundle.mainWorker!);
+    let worker: Worker, bundle: duckdb.DuckDBBundle;
+    if (isCOI) {
+      bundle = await duckdb.selectBundle(jsBundle);
+      worker = new Worker(bundle.mainWorker!);
+    } else {
+      bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+      const worker_url = URL.createObjectURL(
+        new Blob([`importScripts("${bundle.mainWorker!}");`], {
+          type: 'text/javascript',
+        })
+      );
+      worker = new Worker(worker_url);
+    }
 
     const logger = {
       log: (msg: LogEntryVariant) => console.log(msg),
