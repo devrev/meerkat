@@ -10,9 +10,9 @@ const jsBundle = {
       'http://localhost:4200/assets/duckdb/duckdb-browser-mvp.worker.js',
   },
   eh: {
-    mainModule: 'http://localhost:4200/assets/duckdb/opfs/duckdb-eh.wasm',
+    mainModule: 'http://localhost:4200/assets/duckdb/duckdb-eh.wasm',
     mainWorker:
-      'http://localhost:4200/assets/duckdb/opfs/duckdb-browser-eh.worker.js',
+      'http://localhost:4200/assets/duckdb/duckdb-browser-eh.worker.js',
   },
   coi: {
     mainModule: 'http://localhost:4200/assets/duckdb/duckdb-coi.wasm',
@@ -27,25 +27,31 @@ export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
 
   private async initDB() {
-    const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
-    const worker_url = URL.createObjectURL(
-      new Blob([`importScripts("${bundle.mainWorker!}");`], {
-        type: 'text/javascript',
-      })
-    );
-    const worker = new Worker(worker_url);
+    // const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+    // const worker_url = URL.createObjectURL(
+    //   new Blob([`importScripts("${bundle.mainWorker!}");`], {
+    //     type: 'text/javascript',
+    //   })
+    // );
+    // const worker = new Worker(worker_url);
 
     // Instantiate the asynchronus version of DuckDB-wasm
-    // const bundle = await duckdb.selectBundle(jsBundle);
+    const bundle = await duckdb.selectBundle(jsBundle);
 
-    // const worker = new Worker(bundle.mainWorker!);
+    const worker = new Worker(bundle.mainWorker!);
 
     const logger = {
       log: (msg: LogEntryVariant) => console.log(msg),
     };
     const db = new duckdb.AsyncDuckDB(logger, worker);
+
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-    URL.revokeObjectURL(worker_url);
+
+    db.open({ maximumThreads: 4 });
+
+    const con = await db.connect();
+
+    // URL.revokeObjectURL(worker_url);
     return db;
   }
 
