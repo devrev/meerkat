@@ -115,7 +115,7 @@ interface QueryTimeDimension {
  * Join Edge data type.
  */
 
-interface JoinNode {
+export interface JoinNode {
   /**
    * Left node.
    */
