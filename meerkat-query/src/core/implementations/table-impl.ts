@@ -3,20 +3,46 @@ import { Field } from '../interfaces/field';
 import { Relationship } from '../interfaces/relationship';
 import { Table } from '../interfaces/table';
 
+interface TableImplOptions {
+  id: string;
+  databaseId: number;
+  schema: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  entityType: string | null;
+  active: boolean;
+  visibilityType: VisibilityType;
+  fields: Field[];
+  relationships: Relationship[];
+}
+
 export class TableImpl implements Table {
-  constructor(
-    public id: string,
-    public databaseId: number,
-    public schema: string,
-    public name: string,
-    public displayName: string,
-    public description: string | null,
-    public entityType: string | null,
-    public active: boolean,
-    public visibilityType: VisibilityType,
-    public fields: Field[],
-    public relationships: Relationship[]
-  ) {}
+  public id: string;
+  public databaseId: number;
+  public schema: string;
+  public name: string;
+  public displayName: string;
+  public description: string | null;
+  public entityType: string | null;
+  public active: boolean;
+  public visibilityType: VisibilityType;
+  public fields: Field[];
+  public relationships: Relationship[];
+
+  constructor(options: TableImplOptions) {
+    this.id = options.id;
+    this.databaseId = options.databaseId;
+    this.schema = options.schema;
+    this.name = options.name;
+    this.displayName = options.displayName;
+    this.description = options.description;
+    this.entityType = options.entityType;
+    this.active = options.active;
+    this.visibilityType = options.visibilityType;
+    this.fields = options.fields;
+    this.relationships = options.relationships;
+  }
 
   getFieldByName(name: string): Field | undefined {
     return this.fields.find((field) => field.name === name);

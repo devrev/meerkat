@@ -4,10 +4,20 @@ import { Relationship, RelationshipType } from '../interfaces/relationship';
 import { Table } from '../interfaces/table';
 import { RelationshipImpl } from './relationship-impl';
 
+interface DatabaseImplOptions {
+  id: number;
+  name: string;
+}
+
 export class DatabaseImpl {
   private tables: Map<string, Table | Model> = new Map();
+  public id: number;
+  public name: string;
 
-  constructor(public id: number, public name: string) {}
+  constructor(options: DatabaseImplOptions) {
+    this.id = options.id;
+    this.name = options.name;
+  }
 
   addTable(table: Table | Model): void {
     this.tables.set(table.id, table);
@@ -42,6 +52,7 @@ export class DatabaseImpl {
     const targetTable = this.getTable(targetTableId);
 
     if (!sourceTable || !targetTable) {
+      console.error('Source or target table not found');
       return null;
     }
 
@@ -49,18 +60,19 @@ export class DatabaseImpl {
     const targetField = targetTable.getFieldByName(targetFieldName);
 
     if (!sourceField || !targetField) {
+      console.error('Source or target field not found');
       return null;
     }
 
-    const relationship = new RelationshipImpl(
-      uuidv4(),
-      `${sourceTable.name}_${sourceField.name}_${targetTable.name}_${targetField.name}`,
+    const relationship = new RelationshipImpl({
+      id: uuidv4(),
+      name: `${sourceTable.name}_${sourceField.name}_${targetTable.name}_${targetField.name}`,
       type,
       sourceTable,
       targetTable,
       sourceField,
-      targetField
-    );
+      targetField,
+    });
 
     sourceTable.addRelationship(relationship);
     targetTable.addRelationship(relationship);

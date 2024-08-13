@@ -93,7 +93,7 @@ function convertMeasure(measure: Measure, schema: SchemaDefinition): Member {
       sql: customMeasure.expression,
       type: 'number', // Assuming custom measures are always numbers
     });
-    return `${schema.name}.${measure.name}`;
+    return `${measure.name}`;
   } else {
     const stockMeasure = measure as StockMeasure;
     const measureName = `${stockMeasure.fieldId}_${stockMeasure.type}`;
@@ -102,7 +102,7 @@ function convertMeasure(measure: Measure, schema: SchemaDefinition): Member {
       sql: `${stockMeasure.type.toUpperCase()}(${stockMeasure.fieldId})`,
       type: 'number',
     });
-    return `${schema.name}.${measureName}`;
+    return `${measureName}`;
   }
 }
 
@@ -183,9 +183,11 @@ function convertJoins(
       };
     }
 
+    console.info('join.conditions', join.conditions);
+
     // Add join to source schema
     schemas[join.sourceId].joins!.push({
-      sql: `${join.sourceId}.${join.conditions[0].leftFieldId} = ${join.targetId}.${join.conditions[0].rightFieldId}`,
+      sql: `${join.conditions[0].leftFieldId} = ${join.conditions[0].rightFieldId}`,
     });
 
     return [joinNode];

@@ -36,6 +36,7 @@ export interface Field {
   semanticType: SemanticType | null;
   active: boolean;
   visibilityType: VisibilityType;
+  referenceName: string;
 
   /**
    * Checks if the field is of a numeric type.

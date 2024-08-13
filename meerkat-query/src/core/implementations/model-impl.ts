@@ -5,35 +5,43 @@ import { Model } from '../interfaces/model';
 import { Relationship } from '../interfaces/relationship';
 import { TableImpl } from './table-impl';
 
+interface ModelImplOptions {
+  id: string;
+  databaseId: number;
+  schema: string;
+  name: string;
+  displayName: string;
+  description: string | null;
+  entityType: string | null;
+  active: boolean;
+  visibilityType: VisibilityType;
+  fields: Field[];
+  relationships: Relationship[];
+  query: QueryBuilder;
+  lastMaterialized?: Date | null;
+}
+
 export class ModelImpl extends TableImpl implements Model {
-  constructor(
-    id: string,
-    databaseId: number,
-    schema: string,
-    name: string,
-    displayName: string,
-    description: string | null,
-    entityType: string | null,
-    active: boolean,
-    visibilityType: VisibilityType,
-    fields: Field[],
-    relationships: Relationship[],
-    public query: QueryBuilder,
-    public lastMaterialized: Date | null = null
-  ) {
-    super(
-      id,
-      databaseId,
-      schema,
-      name,
-      displayName,
-      description,
-      entityType,
-      active,
-      visibilityType,
-      fields,
-      relationships
-    );
+  public query: QueryBuilder;
+  public lastMaterialized: Date | null;
+
+  constructor(options: ModelImplOptions) {
+    super({
+      id: options.id,
+      databaseId: options.databaseId,
+      schema: options.schema,
+      name: options.name,
+      displayName: options.displayName,
+      description: options.description,
+      entityType: options.entityType,
+      active: options.active,
+      visibilityType: options.visibilityType,
+      fields: options.fields,
+      relationships: options.relationships,
+    });
+
+    this.query = options.query;
+    this.lastMaterialized = options.lastMaterialized ?? null;
   }
 
   async materialize(): Promise<boolean> {
