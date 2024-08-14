@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Iframe Example</title>
+    <style>
+        iframe {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Local Iframe Example</h1>
+    
+    <iframe allow="cross-origin-isolated" src="http://localhost:4200/memory-dbm" title="Memory DBM 1"></iframe>
+    <iframe allow="cross-origin-isolated" src="http://localhost:4200/memory-dbm" title="Memory DBM 2"></iframe>
+    <iframe allow="cross-origin-isolated" src="http://localhost:4200/memory-dbm" title="Memory DBM 3"></iframe>
+
+</body>
+</html>

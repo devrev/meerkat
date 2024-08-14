@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckDB Query Executor</title>
+</head>
+<body>
+    <h1>DuckDB Query Executor</h1>
+    <p>This page listens for messages from the parent window, executes DuckDB queries, and sends results back.</p>
+
+    <script type="module">
+        import * as duckdb from 'https://cdn.skypack.dev/@duckdb/duckdb-wasm@1.28.0';
+
+        const EVENT_TYPE = {
+            'ON_READY': 'ON_READY',
+            'QUERY_RESULT': 'QUERY_RESULT',
+        }
+
+        let db;
+
+        async function initDuckDB() {
+            try {
+                const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+                const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+                const worker_url = URL.createObjectURL(
+                    new Blob([`importScripts("${bundle.mainWorker}");`], {type: 'text/javascript'})
+                );
+                const worker = new Worker(worker_url);
+                const logger = new duckdb.ConsoleLogger();
+                db = new duckdb.AsyncDuckDB(logger, worker);
+                await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+                URL.revokeObjectURL(worker_url);
+                
+                console.log("DuckDB initialized");
+                
+                await runTestQuery();
+
+                console.log("Sending ready message to parent window");
+
+                window.parent.postMessage({
+                    event_type: EVENT_TYPE.ON_READY,
+                    payload: {
+                        type: EVENT_TYPE.ON_READY,
+                        message: "DuckDB initialized",
+                    }
+                }, '*');
+            } catch (error) {
+                console.error("Error initializing DuckDB:", error);
+            }
+        }
+
+        async function executeQuery(query) {
+            try {
+                const conn = await db.connect();
+                const result = await conn.query(query);
+                await conn.close();
+                return result;
+            } catch (error) {
+                console.error("Error executing query:", error);
+                return { error: error.message };
+            }
+        }
+
+        async function runTestQuery() {
+            const testQuery = "SELECT 'Hello, DuckDB!' AS greeting, 42 AS meaning_of_life";
+            const result = await executeQuery(testQuery);
+            console.log("Test query result:", result);
+        }
+
+        window.addEventListener("message", async (event) => {
+            const { event_type, query, uuid } = event.data;
+            console.info('iframe received message:', event.data);
+
+            if (event_type === 'EXEC_QUERY' && query) {
+                console.info('window.fileBufferView:', window.fileBufferView);
+                const buffer = new Uint8Array(window.fileBufferView);
+                await db.registerFileBuffer('taxi.parquet', buffer)
+                
+                const result = await executeQuery(query);
+                console.info('result:', result);
+                window.parent.postMessage({
+                    event_type: EVENT_TYPE.QUERY_RESULT,
+                    uuid,
+                    payload: {
+                        type: EVENT_TYPE.QUERY_RESULT,
+                        results: result
+                    }
+                }, '*');
+            }
+        });
+
+        // Initialize DuckDB immediately
+        initDuckDB();
+    </script>
+</body>
+</html>

@@ -28,6 +28,19 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         fileName: 'taxijson.parquet',
       });
 
+      //Find all iframe and add fileBufferView & TAXI_JSON_DATA to the window
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach((iframe) => {
+        const win = iframe.contentWindow;
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        win.fileBufferView = fileBufferView;
+        console.log('fileBufferView', fileBufferView);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        //@ts-ignore
+        win.TAXI_JSON_DATA = TAXI_JSON_DATA;
+      });
+
       setIsFileLoader(true);
     })();
   }, []);

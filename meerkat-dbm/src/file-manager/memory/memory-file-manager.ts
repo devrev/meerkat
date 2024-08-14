@@ -42,6 +42,8 @@ export class MemoryDBFileManager implements FileManagerType {
   async registerFileBuffer(props: FileBufferStore): Promise<void> {
     console.info('registerFileBuffer', props);
     const db = await this.instanceManager.getDB();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
     return db.registerFileBuffer(props.fileName, props.buffer);
   }
 

@@ -238,7 +238,7 @@ export class DBM {
    * If there is no query in the queue, stop the queue
    * Recursively call itself to execute the next query
    */
-  private async _startQueryExecution(metadata?: object) {
+  private async _startQueryExecution(index: number, metadata?: object) {
     this.logger.debug('Query queue length:', this.queriesQueue.length);
 
     this._emitEvent({
@@ -250,12 +250,12 @@ export class DBM {
     /**
      * Get the first query
      */
-    this.currentQueryItem = this.queriesQueue.shift();
+    const currentQueryItem = this.queriesQueue[index];
 
     /**
      * If there is no query, stop the queue
      */
-    if (!this.currentQueryItem) {
+    if (!currentQueryItem) {
       await this._stopQueryQueue();
       return;
     }
@@ -264,21 +264,19 @@ export class DBM {
       /**
        * Lock the tables
        */
-      await this.lockTables(
-        this.currentQueryItem.tables.map((table) => table.name)
-      );
+      await this.lockTables(currentQueryItem.tables.map((table) => table.name));
 
       const startTime = Date.now();
       this.logger.debug(
         'Time since query was added to the queue:',
-        startTime - this.currentQueryItem.timestamp,
+        startTime - currentQueryItem.timestamp,
         'ms',
-        this.currentQueryItem.query
+        currentQueryItem.query
       );
 
       this._emitEvent({
         event_name: 'query_queue_duration',
-        duration: startTime - this.currentQueryItem.timestamp,
+        duration: startTime - currentQueryItem.timestamp,
         metadata,
       });
 
@@ -286,37 +284,34 @@ export class DBM {
        * Execute the query
        */
       const result = await this._queryWithTables(
-        this.currentQueryItem.query,
-        this.currentQueryItem.tables,
-        this.currentQueryItem.options
+        currentQueryItem.query,
+        currentQueryItem.tables,
+        currentQueryItem.options
       );
       const endTime = Date.now();
 
       this.logger.debug(
         'Total time spent along with queue time',
-        endTime - this.currentQueryItem.timestamp,
+        endTime - currentQueryItem.timestamp,
         'ms',
-        this.currentQueryItem.query
+        currentQueryItem.query
       );
       /**
        * Resolve the promise
        */
-      this.currentQueryItem.promise.resolve(result);
+      currentQueryItem.promise.resolve(result);
     } catch (error) {
-      this.logger.warn(
-        'Error while executing query:',
-        this.currentQueryItem?.query
-      );
+      this.logger.warn('Error while executing query:', currentQueryItem?.query);
       /**
        * Reject the promise, so the caller can catch the error
        */
-      this.currentQueryItem?.promise.reject(error);
+      currentQueryItem?.promise.reject(error);
     } finally {
       /**
        * Unlock the tables
        */
       await this.unlockTables(
-        this.currentQueryItem.tables.map((table) => table.name)
+        currentQueryItem.tables.map((table) => table.name)
       );
     }
 
@@ -328,7 +323,7 @@ export class DBM {
     /**
      * Start the next query
      */
-    this._startQueryExecution();
+    // this._startQueryExecution();
   }
 
   /**
@@ -341,7 +336,9 @@ export class DBM {
     }
     this.logger.debug('Starting query queue');
     this.queryQueueRunning = true;
-    this._startQueryExecution();
+    for (let i = 0; i < this.queriesQueue.length; i++) {
+      this._startQueryExecution(i);
+    }
   }
 
   public getQueueLength() {
@@ -416,6 +413,8 @@ export class DBM {
     return promise;
   }
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  //@ts-ignore
   async query(query: string) {
     /**
      * Get the connection or create a new one
