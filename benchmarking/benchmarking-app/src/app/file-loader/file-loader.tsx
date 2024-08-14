@@ -9,8 +9,11 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
   const [isFileLoader, setIsFileLoader] = useState<boolean>(false);
   useClassicEffect(() => {
     (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const key = params.get('key') ?? '1';
+
       const file = await axios.get(
-        'http://localhost:4200/assets/data-sets/fhvhv_tripdata_2023-01.parquet',
+        `http://localhost:4200/assets/data-sets/fhvhv_tripdata_2023-0${key}.parquet`,
         { responseType: 'arraybuffer' }
       );
       const fileBuffer = file.data;
