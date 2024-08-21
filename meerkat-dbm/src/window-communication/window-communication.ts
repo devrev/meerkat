@@ -9,7 +9,7 @@ export interface WindowMessage<MessageType> {
 
 class Logger {
   private readonly app_name: string;
-  private enable_logger = false;
+  private enable_logger = true;
 
   constructor({ app_name }: { app_name: string }) {
     this.app_name = app_name;
@@ -117,6 +117,8 @@ export class WindowCommunication<MessageType>
         return;
       }
 
+      console.info('IframeCommunication: received message', event.data);
+
       const { message, timestamp, uuid } = event.data;
       const promise = this.messagesPromiseMap.get(uuid);
       if (promise) {
@@ -143,6 +145,7 @@ export class WindowCommunication<MessageType>
    * @returns Promise<iFrameMessages>
    */
   public sendRequest<Response>(message: any): Promise<WindowMessage<Response>> {
+    console.info('IframeCommunication: sendRequest', message);
     if (!this._targetWindow) {
       this.logger.warn('IframeCommunication: iframe has no contentWindow');
       return Promise.reject();

@@ -1,4 +1,8 @@
-import { DBMParallel, ParallelMemoryFileManager } from '@devrev/meerkat-dbm';
+import {
+  DBMParallel,
+  IFrameRunnerManager,
+  ParallelMemoryFileManager,
+} from '@devrev/meerkat-dbm';
 import log from 'loglevel';
 import { useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
@@ -11,15 +15,6 @@ export const ParallelDBMProvider = ({
 }: {
   children: JSX.Element;
 }) => {
-  // const communicationRef = useRef<CommunicationInterface<BrowserRunnerMessage>>(
-  //   new WindowCommunication<BrowserRunnerMessage>({
-  //     app_name: 'PARENT',
-  //     origin: 'localhost:4205',
-  //     targetApp: 'PARENT',
-  //     targetWindow: ,
-  //   })
-  // );
-
   const fileManagerRef = useRef<ParallelMemoryFileManager | null>(null);
   const [dbm, setdbm] = useState<DBMParallel | null>(null);
   const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
@@ -39,7 +34,12 @@ export const ParallelDBMProvider = ({
       onEvent: (event) => {
         console.info(event);
       },
-      communication: communicationRef.current,
+    });
+    const iframeManager = new IFrameRunnerManager({
+      //@ts-ignore
+      fetchTableFileBuffers: async (table) => {
+        return fileManagerRef.current?.getTableBufferData(table);
+      },
     });
 
     const dbm = new DBMParallel({
@@ -52,6 +52,7 @@ export const ParallelDBMProvider = ({
       options: {
         shutdownInactiveTime: 1000,
       },
+      iFrameRunnerManager: iframeManager,
     });
 
     setdbm(dbm);

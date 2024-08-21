@@ -3,8 +3,6 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { getBufferFromJSON } from '../../utils';
-import { BrowserRunnerMessage } from '../../window-communication/runner-types';
-import { CommunicationInterface } from '../../window-communication/window-communication';
 import {
   FileBufferStore,
   FileJsonStore,
@@ -14,7 +12,6 @@ import {
 
 export class ParallelMemoryFileManager implements FileManagerType {
   private instanceManager: InstanceManagerType;
-  private communication: CommunicationInterface<BrowserRunnerMessage>;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
@@ -26,14 +23,10 @@ export class ParallelMemoryFileManager implements FileManagerType {
     instanceManager,
     logger,
     onEvent,
-    communication,
-  }: FileManagerConstructorOptions & {
-    communication: CommunicationInterface<BrowserRunnerMessage>;
-  }) {
+  }: FileManagerConstructorOptions) {
     this.instanceManager = instanceManager;
     this.logger = logger;
     this.onEvent = onEvent;
-    this.communication = communication;
   }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {

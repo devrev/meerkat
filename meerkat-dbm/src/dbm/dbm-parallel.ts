@@ -94,6 +94,7 @@ class IFrameManager {
   }
 }
 
+
 class IframeInstanceManager implements InstanceManagerType {
   private iFrameManagers: IFrameManager[] = [];
   private number = 0;
