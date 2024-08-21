@@ -14,6 +14,7 @@ export class DBMParallel {
   private options: DBMConstructorOptions['options'];
   private onDuckDBShutdown?: () => void;
   iFrameRunnerManager: IFrameRunnerManager;
+  counter: number = 0;
 
   constructor({
     fileManager,
@@ -43,9 +44,19 @@ export class DBMParallel {
     tables: TableConfig[];
     options?: QueryOptions;
   }) {
-    //wait for 5s
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    const runner = this.iFrameRunnerManager.iFrameManagers.get('1');
+    this.counter++;
+    console.info(
+      'Sending query to runner',
+      this.counter,
+      this.counter % 2,
+      this.counter % 2 === 0 ? '1' : '2',
+      query
+    );
+    const runner = this.iFrameRunnerManager.iFrameManagers.get(
+      this.counter % 2 === 0 ? '1' : '2'
+    );
+    await this.iFrameRunnerManager.isFrameRunnerReady();
+
     if (!runner) {
       throw new Error('No runner found');
     }

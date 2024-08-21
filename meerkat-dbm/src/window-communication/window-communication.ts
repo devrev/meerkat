@@ -76,7 +76,7 @@ export class WindowCommunication<MessageType>
     this._targetApp = targetApp;
     this.registerMessageListener();
     //Garbage collector every 30 seconds
-    this.gcRunnerIntervalRef = setInterval(this.gc, 1000 * 30);
+    this.gcRunnerIntervalRef = setInterval(this.gc, 1000 * 60 * 5);
     this.logger = new Logger({ app_name: this.app_name });
   }
 
@@ -100,14 +100,14 @@ export class WindowCommunication<MessageType>
 
   private registerMessageListener() {
     window.addEventListener('message', (event) => {
-      if (event.origin !== this._origin) {
-        this.logger.warn(
-          'IframeCommunication: origin mismatch',
-          event.origin,
-          this._origin
-        );
-        return;
-      }
+      // if (event.origin !== this._origin) {
+      //   this.logger.warn(
+      //     'IframeCommunication: origin mismatch',
+      //     event.origin,
+      //     this._origin
+      //   );
+      //   return;
+      // }
       if (event.data.target_app !== this.app_name) {
         this.logger.warn(
           'IframeCommunication: target_app mismatch',
@@ -116,8 +116,6 @@ export class WindowCommunication<MessageType>
         );
         return;
       }
-
-      console.info('IframeCommunication: received message', event.data);
 
       const { message, timestamp, uuid } = event.data;
       const promise = this.messagesPromiseMap.get(uuid);
@@ -145,7 +143,6 @@ export class WindowCommunication<MessageType>
    * @returns Promise<iFrameMessages>
    */
   public sendRequest<Response>(message: any): Promise<WindowMessage<Response>> {
-    console.info('IframeCommunication: sendRequest', message);
     if (!this._targetWindow) {
       this.logger.warn('IframeCommunication: iframe has no contentWindow');
       return Promise.reject();

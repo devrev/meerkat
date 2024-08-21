@@ -9,6 +9,7 @@ import {
 } from '../../window-communication/runner-types';
 import { CommunicationInterface } from '../../window-communication/window-communication';
 import {
+  BaseFileStore,
   FileBufferStore,
   FileJsonStore,
   FileManagerConstructorOptions,
@@ -23,6 +24,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
+  private mountedFiles: Set<string> = new Set();
 
   private tableFileBuffersMap: Map<string, File[]> = new Map();
 
@@ -43,15 +45,23 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
+    console.info('bulkRegisterFileBuffer', props);
     const promiseArr = props.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
     );
+    console.info('Promise.all(promiseArr)');
     await Promise.all(promiseArr);
   }
 
   async registerFileBuffer(props: FileBufferStore): Promise<void> {
-    const instanceManager = await this.instanceManager.getDB();
+    console.info('before registerFileBuffer', props);
 
+    const instanceManager = await this.instanceManager.getDB();
+    // get ?uuid= from url
+    const url = new URL(window.location.href);
+    const uuid = url.searchParams.get('uuid');
+
+    console.info('registerFileBuffer', uuid, props);
     instanceManager.registerFileBuffer(props.fileName, props.buffer);
   }
 
@@ -93,16 +103,35 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
+    if (tables.every((table) => this.mountedFiles.has(table.name))) {
+      return;
+    }
+
     const tableFileBuffers = await this.communication.sendRequest<{
-      tableBuffers: FileBufferStore[];
+      tableBuffers: (BaseFileStore & {
+        buffer: SharedArrayBuffer;
+      })[];
     }>({
       type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
       payload: {
         tables: tables,
       },
     });
-
-    this.bulkRegisterFileBuffer(tableFileBuffers.message.tableBuffers);
+    console.info('mountFileBufferByTables tableFileBuffers', tableFileBuffers);
+    debugger;
+    const { tableBuffers } = tableFileBuffers.message;
+    //Create a deep copy of the buffers
+    const tableBuffersCopy = tableBuffers.map((buffer) => {
+      debugger;
+      const newBuffer = new Uint8Array(buffer.buffer);
+      return {
+        ...buffer,
+        buffer: newBuffer, // Create a new Uint8Array with a copy of the buffer
+      };
+    });
+    console.info('mountFileBufferByTables');
+    await this.bulkRegisterFileBuffer(tableBuffersCopy);
+    tables.forEach((table) => this.mountedFiles.add(table.name));
   }
 
   async getFilesNameForTables(

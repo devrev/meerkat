@@ -7,10 +7,11 @@ import {
   WindowCommunication,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { InstanceManager } from './instance-manager';
 
 export function App() {
+  const messageRefSet = React.useRef<boolean>(false);
   const communicationRef = React.useRef<
     WindowCommunication<BrowserRunnerMessage>
   >(
@@ -50,27 +51,39 @@ export function App() {
     })
   );
 
-  communicationRef.current.onMessage((message) => {
-    console.log(message, 'message');
-    switch (message.message.type) {
-      case BROWSER_RUNNER_TYPE.EXEC_QUERY:
-        // eslint-disable-next-line no-lone-blocks
-        {
-          dbmRef.current
-            .queryWithTables(message.message.payload)
-            .then((result) => {
-              console.log('result', result);
-              communicationRef.current.sendResponse(message.uuid, result);
-            });
-        }
+  if (!messageRefSet.current) {
+    communicationRef.current.onMessage((message) => {
+      console.log(message, 'message');
+      switch (message.message.type) {
+        case BROWSER_RUNNER_TYPE.EXEC_QUERY:
+          {
+            //Read ?uuid= from the URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const uuid = urlParams.get('uuid');
+            console.info('EXEC_QUERY', uuid, message.message.payload.query);
+            dbmRef.current
+              .queryWithTables(message.message.payload)
+              .then((result) => {
+                console.log('result', result);
+                communicationRef.current.sendResponse(message.uuid, result);
+              });
+          }
 
-        break;
-      default:
-        break;
-    }
-  });
+          break;
+        default:
+          break;
+      }
+    });
+    messageRefSet.current = true;
+  }
 
   log.setLevel('DEBUG');
+
+  useEffect(() => {
+    communicationRef.current.sendRequestWithoutResponse({
+      type: BROWSER_RUNNER_TYPE.RUNNER_ON_READY,
+    });
+  }, []);
 
   return <div>FK </div>;
 }

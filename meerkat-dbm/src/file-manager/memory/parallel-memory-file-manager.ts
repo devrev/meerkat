@@ -78,11 +78,29 @@ export class ParallelMemoryFileManager implements FileManagerType {
   }
 
   async getTableBufferData(tables: TableConfig[]) {
-    const tableBuffers = tables.flatMap((table) => {
-      return this.tableFileBuffersMap.get(table.name) || [];
+    console.info('tableFileBuffersMap', this.tableFileBuffersMap);
+
+    // Return all the buffers
+    const tableBuffers = Array.from(this.tableFileBuffersMap.values()).flat();
+
+    // Create a copy of the buffers, using SharedArrayBuffer internally but exposing Uint8Array
+    const tableBuffersCopy = tableBuffers.map((buffer) => {
+      // Create a SharedArrayBuffer with the same length as the original buffer
+      // const sharedBuffer = new SharedArrayBuffer(10);
+
+      // Create a new Uint8Array view of the SharedArrayBuffer
+      // const sharedArray = new Int32Array(buffer.buffer);
+
+      // Copy the contents of the original buffer to the shared array
+      // sharedArray.set(new Uint8Array(1));
+
+      return {
+        ...buffer,
+        buffer: buffer.buffer, // Expose as Uint8Array
+      };
     });
 
-    return { tableBuffers };
+    return { tableBuffers: tableBuffersCopy };
   }
 
   getFileBuffer(name: string): Promise<Uint8Array> {
