@@ -1,8 +1,13 @@
+import { CommunicationInterface } from 'meerkat-dbm/src/window-communication/window-communication';
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON } from '../../utils';
+import {
+  BROWSER_RUNNER_TYPE,
+  BrowserRunnerMessage,
+} from '../../window-communication/runner-types';
 import {
   FileBufferStore,
   FileJsonStore,
@@ -10,9 +15,10 @@ import {
   FileManagerType,
 } from '../file-manager-type';
 
-export class MemoryDBFileManager implements FileManagerType {
+export class RunnerMemoryDBFileManager implements FileManagerType {
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
   instanceManager: InstanceManagerType;
+  communication: CommunicationInterface<BrowserRunnerMessage>;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
@@ -22,11 +28,15 @@ export class MemoryDBFileManager implements FileManagerType {
     instanceManager,
     logger,
     onEvent,
-  }: FileManagerConstructorOptions) {
+    communication,
+  }: FileManagerConstructorOptions & {
+    communication: CommunicationInterface<BrowserRunnerMessage>;
+  }) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
     this.logger = logger;
     this.onEvent = onEvent;
+    this.communication = communication;
   }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
@@ -83,7 +93,16 @@ export class MemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    // not needed for memory file manager
+    const fileBuffer = await this.communication.sendRequest<{
+      tableBuffers: FileBufferStore[];
+    }>({
+      type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
+      payload: {
+        tables: tables,
+      },
+    });
+
+    await this.bulkRegisterFileBuffer(fileBuffer.message.tableBuffers);
   }
 
   async getFilesNameForTables(

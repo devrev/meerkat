@@ -3,4 +3,7 @@ export * from './dbm/dbm-parallel';
 export * from './file-manager/file-manager-type';
 export * from './file-manager/indexed-db/indexed-db-file-manager';
 export * from './file-manager/memory/memory-file-manager';
+export * from './file-manager/memory/runner-memory-file-manager';
 export * from './logger';
+export * from './window-communication/runner-types';
+export * from './window-communication/window-communication';

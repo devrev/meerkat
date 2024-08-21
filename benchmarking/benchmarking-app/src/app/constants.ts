@@ -61,7 +61,7 @@ ON
     group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
 LIMIT 1
   `,
-  //   'SELECT * FROM taxijson.parquet WHERE price >= 1.0005812645 LIMIT 100',
-  //   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxijson.parquet GROUP BY order_count',
-  //   'SELECT * as total_count FROM taxijson.parquet ORDER BY seconds_in_bucket LIMIT 100',
+  'SELECT * FROM taxijson.parquet WHERE price >= 1.0005812645 LIMIT 100',
+  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxijson.parquet GROUP BY order_count',
+  'SELECT * as total_count FROM taxijson.parquet ORDER BY seconds_in_bucket LIMIT 100',
 ];

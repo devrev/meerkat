@@ -68,14 +68,21 @@
             console.log("Test query result:", result);
         }
 
+        async function loadFiles(fileNames) {
+            //1. Post message to parent window to send the sharedFileBuffer as Message
+            //2. Receive the sharedFileBuffer and load it into the DuckDB instance as Uint8Array
+        }
+
         window.addEventListener("message", async (event) => {
             const { event_type, query, uuid } = event.data;
             console.info('iframe received message:', event.data);
 
             if (event_type === 'EXEC_QUERY' && query) {
                 console.info('window.fileBufferView:', window.fileBufferView);
-                const buffer = new Uint8Array(window.fileBufferView);
-                await db.registerFileBuffer('taxi.parquet', buffer)
+                // const buffer = new Uint8Array(window.fileBufferView);
+                // // await db.registerFileBuffer('taxi.parquet', buffer)
+
+                await loadFiles([]);
                 
                 const result = await executeQuery(query);
                 console.info('result:', result);
