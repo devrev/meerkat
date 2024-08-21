@@ -43,6 +43,8 @@ export class DBMParallel {
     tables: TableConfig[];
     options?: QueryOptions;
   }) {
+    //wait for 5s
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     const runner = this.iFrameRunnerManager.iFrameManagers.get('1');
     if (!runner) {
       throw new Error('No runner found');
