@@ -125,6 +125,10 @@ export interface FileManagerType {
    * Handler to be executed on database shutdown.
    */
   onDBShutdownHandler: () => Promise<void>;
+
+  getTableBufferData?: (tables: TableConfig[]) => Promise<{
+    tableBuffers: FileBufferStore[];
+  }>;
 }
 
 export type BaseFileStore = {

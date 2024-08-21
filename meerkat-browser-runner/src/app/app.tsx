@@ -16,7 +16,7 @@ export function App() {
   >(
     new WindowCommunication<BrowserRunnerMessage>({
       app_name: 'RUNNER',
-      origin: '*',
+      origin: 'localhost:4200',
       targetApp: 'PARENT',
       // eslint-disable-next-line no-restricted-globals
       targetWindow: parent,

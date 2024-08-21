@@ -1,10 +1,4 @@
-import {
-  BrowserRunnerMessage,
-  CommunicationInterface,
-  DBMParallel,
-  RunnerMemoryDBFileManager,
-  WindowCommunication,
-} from '@devrev/meerkat-dbm';
+import { DBMParallel, ParallelMemoryFileManager } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
 import { useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
@@ -17,16 +11,16 @@ export const ParallelDBMProvider = ({
 }: {
   children: JSX.Element;
 }) => {
-  const communicationRef = useRef<CommunicationInterface<BrowserRunnerMessage>>(
-    new WindowCommunication<BrowserRunnerMessage>({
-      app_name: 'PARENT',
-      origin: '*',
-      targetApp: 'RUNNER',
-      targetWindow: window,
-    })
-  );
+  // const communicationRef = useRef<CommunicationInterface<BrowserRunnerMessage>>(
+  //   new WindowCommunication<BrowserRunnerMessage>({
+  //     app_name: 'PARENT',
+  //     origin: 'localhost:4205',
+  //     targetApp: 'PARENT',
+  //     targetWindow: ,
+  //   })
+  // );
 
-  const fileManagerRef = useRef<RunnerMemoryDBFileManager | null>(null);
+  const fileManagerRef = useRef<ParallelMemoryFileManager | null>(null);
   const [dbm, setdbm] = useState<DBMParallel | null>(null);
   const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
 
@@ -36,7 +30,7 @@ export const ParallelDBMProvider = ({
     if (!dbState) {
       return;
     }
-    fileManagerRef.current = new RunnerMemoryDBFileManager({
+    fileManagerRef.current = new ParallelMemoryFileManager({
       instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async (table) => {
         return [];

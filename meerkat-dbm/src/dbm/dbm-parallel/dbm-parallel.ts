@@ -13,7 +13,7 @@ export class DBMParallel {
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
   private onDuckDBShutdown?: () => void;
-  private iFrameManagers: IFrameManager[];
+  iFrameManagers: IFrameManager[];
 
   constructor({
     fileManager,
@@ -30,6 +30,26 @@ export class DBMParallel {
     this.onDuckDBShutdown = onDuckDBShutdown;
     this.iFrameManagers = [];
     this.iFrameManagers.push(new IFrameManager('1'));
+
+    this.iFrameManagers[0].communication.onMessage((message) => {
+      switch (message.message.type) {
+        case BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS:
+          if (this.fileManager.getTableBufferData) {
+            this.fileManager
+              .getTableBufferData(message.message.payload.tables)
+              .then((result) => {
+                this.iFrameManagers[0].communication.sendResponse(
+                  message.uuid,
+                  result
+                );
+              });
+          }
+
+          break;
+        default:
+          break;
+      }
+    });
   }
 
   public async queryWithTables({

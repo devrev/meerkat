@@ -1,12 +1,9 @@
+import { Table, TableWiseFiles } from 'meerkat-dbm/src/types';
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
-import { File, Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON } from '../../utils';
-import {
-  BROWSER_RUNNER_TYPE,
-  BrowserRunnerMessage,
-} from '../../window-communication/runner-types';
+import { BrowserRunnerMessage } from '../../window-communication/runner-types';
 import { CommunicationInterface } from '../../window-communication/window-communication';
 import {
   FileBufferStore,
@@ -14,17 +11,15 @@ import {
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
-export class RunnerMemoryDBFileManager implements FileManagerType {
-  private fetchTableFileBuffers: (
-    tableName: string
-  ) => Promise<FileBufferStore[]>;
+
+export class ParallelMemoryFileManager implements FileManagerType {
   private instanceManager: InstanceManagerType;
   private communication: CommunicationInterface<BrowserRunnerMessage>;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
 
-  private tableFileBuffersMap: Map<string, File[]> = new Map();
+  private tableFileBuffersMap: Map<string, FileBufferStore[]> = new Map();
 
   constructor({
     fetchTableFileBuffers,
@@ -35,7 +30,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }: FileManagerConstructorOptions & {
     communication: CommunicationInterface<BrowserRunnerMessage>;
   }) {
-    this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
     this.logger = logger;
     this.onEvent = onEvent;
@@ -50,9 +44,11 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async registerFileBuffer(props: FileBufferStore): Promise<void> {
-    const instanceManager = await this.instanceManager.getDB();
+    const existingFiles = this.tableFileBuffersMap.get(props.tableName) || [];
 
-    instanceManager.registerFileBuffer(props.fileName, props.buffer);
+    existingFiles.push(props);
+
+    this.tableFileBuffersMap.set(props.fileName, existingFiles);
   }
 
   async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
@@ -88,27 +84,25 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
   }
 
+  async getTableBufferData(tables: TableConfig[]) {
+    const tableBuffers = tables.flatMap((table) => {
+      return this.tableFileBuffersMap.get(table.name) || [];
+    });
+
+    return { tableBuffers };
+  }
+
   getFileBuffer(name: string): Promise<Uint8Array> {
     throw new Error('Method not implemented.');
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    const tableFileBuffers = await this.communication.sendRequest<{
-      tableBuffers: FileBufferStore[];
-    }>({
-      type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
-      payload: {
-        tables: tables,
-      },
-    });
-
-    this.bulkRegisterFileBuffer(tableFileBuffers.message.tableBuffers);
+    // no-op
   }
 
   async getFilesNameForTables(
     tables: TableConfig[]
   ): Promise<TableWiseFiles[]> {
-    // not needed for memory file manager
     return [];
   }
 
