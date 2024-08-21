@@ -16,7 +16,10 @@ export class IFrameRunnerManager {
     ) => Promise<FileBufferStore[]>;
   }) {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
-    this.iFrameManagers.set('1', new IFrameManager('1', this.messageListener));
+    this.iFrameManagers.set(
+      '1',
+      new IFrameManager('1', this.messageListener.bind(this))
+    );
   }
 
   private messageListener(
