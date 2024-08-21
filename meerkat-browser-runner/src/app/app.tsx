@@ -1,4 +1,5 @@
 import {
+  BROWSER_RUNNER_TYPE,
   BrowserRunnerMessage,
   DBM,
   FileManagerType,
@@ -47,6 +48,20 @@ export function App() {
       },
     })
   );
+
+  communicationRef.current.onMessage((message) => {
+    switch (message.message.type) {
+      case BROWSER_RUNNER_TYPE.EXEC_QUERY:
+        dbmRef.current
+          .queryWithTables(message.message.payload)
+          .then((result) => {
+            communicationRef.current.sendResponse(message.uuid, result);
+          });
+        break;
+      default:
+        break;
+    }
+  });
 
   log.setLevel('DEBUG');
 
