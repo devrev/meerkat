@@ -143,6 +143,7 @@ export class WindowCommunication<MessageType>
    * @returns Promise<iFrameMessages>
    */
   public sendRequest<Response>(message: any): Promise<WindowMessage<Response>> {
+    console.log('sendRequest', message, this._targetWindow);
     if (!this._targetWindow) {
       this.logger.warn('IframeCommunication: iframe has no contentWindow');
       return Promise.reject();

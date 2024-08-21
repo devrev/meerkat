@@ -1,13 +1,13 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
+import react from '@vitejs/plugin-react-swc';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   cacheDir: '../node_modules/.vite/meerkat-browser-runner',
 
   server: {
-    port: 4200,
+    port: 4205,
     host: 'localhost',
   },
 

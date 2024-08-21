@@ -18,6 +18,7 @@ export function App() {
       app_name: 'RUNNER',
       origin: '*',
       targetApp: 'PARENT',
+      // eslint-disable-next-line no-restricted-globals
       targetWindow: parent,
     })
   );
@@ -50,13 +51,19 @@ export function App() {
   );
 
   communicationRef.current.onMessage((message) => {
+    console.log(message, 'message');
     switch (message.message.type) {
       case BROWSER_RUNNER_TYPE.EXEC_QUERY:
-        dbmRef.current
-          .queryWithTables(message.message.payload)
-          .then((result) => {
-            communicationRef.current.sendResponse(message.uuid, result);
-          });
+        // eslint-disable-next-line no-lone-blocks
+        {
+          dbmRef.current
+            .queryWithTables(message.message.payload)
+            .then((result) => {
+              console.log('result', result);
+              communicationRef.current.sendResponse(message.uuid, result);
+            });
+        }
+
         break;
       default:
         break;

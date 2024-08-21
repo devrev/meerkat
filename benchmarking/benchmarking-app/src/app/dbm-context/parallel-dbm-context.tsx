@@ -1,6 +1,12 @@
-import { DBM, DBMParallel, IndexedDBFileManager } from '@devrev/meerkat-dbm';
+import {
+  BrowserRunnerMessage,
+  CommunicationInterface,
+  DBMParallel,
+  RunnerMemoryDBFileManager,
+  WindowCommunication,
+} from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import React, { useState } from 'react';
+import { useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
@@ -11,11 +17,18 @@ export const ParallelDBMProvider = ({
 }: {
   children: JSX.Element;
 }) => {
-  const fileManagerRef = React.useRef<IndexedDBFileManager | null>(null);
-  const [dbm, setdbm] = useState<DBM | null>(null);
-  const instanceManagerRef = React.useRef<InstanceManager>(
-    new InstanceManager()
+  const communicationRef = useRef<CommunicationInterface<BrowserRunnerMessage>>(
+    new WindowCommunication<BrowserRunnerMessage>({
+      app_name: 'PARENT',
+      origin: '*',
+      targetApp: 'RUNNER',
+      targetWindow: window,
+    })
   );
+
+  const fileManagerRef = useRef<RunnerMemoryDBFileManager | null>(null);
+  const [dbm, setdbm] = useState<DBMParallel | null>(null);
+  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
 
   const dbState = useAsyncDuckDB();
 
@@ -23,14 +36,17 @@ export const ParallelDBMProvider = ({
     if (!dbState) {
       return;
     }
-    fileManagerRef.current = new IndexedDBFileManager({
+    fileManagerRef.current = new RunnerMemoryDBFileManager({
       instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async (table) => {
         return [];
       },
+      logger: log,
+      onEvent: (event) => {
+        console.info(event);
+      },
+      communication: communicationRef.current,
     });
-
-    fileManagerRef.current.initializeDB();
 
     const dbm = new DBMParallel({
       instanceManager: instanceManagerRef.current,
