@@ -79,6 +79,7 @@ export class DBMParallel {
     if (!runner) {
       throw new Error('No runner found');
     }
+
     return runner.communication.sendRequest<BrowserRunnerExecQueryMessage>({
       type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
       payload: {
