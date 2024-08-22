@@ -32,6 +32,8 @@ export class IFrameRunnerManager {
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.addIFrameManager('1');
     this.addIFrameManager('2');
+    this.addIFrameManager('3');
+    this.addIFrameManager('4');
   }
 
   public async isFrameRunnerReady() {

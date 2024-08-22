@@ -24,6 +24,7 @@ export class IFrameManager {
       targetApp: 'RUNNER',
       app_name: 'dbm',
     });
+    this.iframe.style.visibility = 'hidden';
     this.communication.onMessage((message) => onMessage(uuid, message));
   }
 

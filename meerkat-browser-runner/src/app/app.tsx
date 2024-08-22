@@ -63,8 +63,11 @@ export function App() {
             console.info('EXEC_QUERY', uuid, message.message.payload.query);
             dbmRef.current
               .queryWithTables(message.message.payload)
-              .then((result) => {
-                console.log('result', result);
+              .then((result: any) => {
+                console.log(
+                  'result',
+                  result.toArray().map((row: any) => row.toJSON())
+                );
                 communicationRef.current.sendResponse(message.uuid, result);
               });
           }
@@ -85,7 +88,7 @@ export function App() {
     });
   }, []);
 
-  return <div>FK </div>;
+  return <div>Runners </div>;
 }
 
 export default App;

@@ -7,6 +7,26 @@ import {
 import { DBMConstructorOptions, QueryOptions, TableConfig } from '../types';
 import { IFrameRunnerManager } from './runner-manager';
 
+//Round Robin for multiple runners like 10
+const roundRobin = (
+  counter: number,
+  maxValue: number
+): {
+  counter: number;
+} => {
+  if (counter === maxValue) {
+    return {
+      counter: 0,
+    };
+  }
+
+  return {
+    counter: counter + 1,
+  };
+};
+
+const runners = ['1', '2', '3', '4'];
+
 export class DBMParallel {
   private fileManager: FileManagerType;
   private logger: DBMLogger;
@@ -14,7 +34,7 @@ export class DBMParallel {
   private options: DBMConstructorOptions['options'];
   private onDuckDBShutdown?: () => void;
   iFrameRunnerManager: IFrameRunnerManager;
-  counter: number = 0;
+  counter = 0;
 
   constructor({
     fileManager,
@@ -44,16 +64,15 @@ export class DBMParallel {
     tables: TableConfig[];
     options?: QueryOptions;
   }) {
-    this.counter++;
+    this.counter = roundRobin(this.counter, 3).counter;
     console.info(
       'Sending query to runner',
       this.counter,
-      this.counter % 2,
-      this.counter % 2 === 0 ? '1' : '2',
+      runners[this.counter],
       query
     );
     const runner = this.iFrameRunnerManager.iFrameManagers.get(
-      this.counter % 2 === 0 ? '1' : '2'
+      runners[this.counter]
     );
     await this.iFrameRunnerManager.isFrameRunnerReady();
 
