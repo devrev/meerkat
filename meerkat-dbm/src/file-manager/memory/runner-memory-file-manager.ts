@@ -103,6 +103,8 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
+    const starttime = performance.now();
+    console.log('mountFileBufferByTables tables 123', tables);
     if (tables.every((table) => this.mountedFiles.has(table.name))) {
       return;
     }
@@ -118,11 +120,13 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
       },
     });
     console.info('mountFileBufferByTables tableFileBuffers', tableFileBuffers);
-    debugger;
+    console.log(
+      'Time taken to get table buffers',
+      performance.now() - starttime
+    );
     const { tableBuffers } = tableFileBuffers.message;
     //Create a deep copy of the buffers
     const tableBuffersCopy = tableBuffers.map((buffer) => {
-      debugger;
       const newBuffer = new Uint8Array(buffer.buffer);
       return {
         ...buffer,

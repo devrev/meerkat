@@ -14,7 +14,7 @@ export class DBMParallel {
   private options: DBMConstructorOptions['options'];
   private onDuckDBShutdown?: () => void;
   iFrameRunnerManager: IFrameRunnerManager;
-  counter: number = 0;
+  counter = 0;
 
   constructor({
     fileManager,
@@ -60,6 +60,7 @@ export class DBMParallel {
     if (!runner) {
       throw new Error('No runner found');
     }
+
     return runner.communication.sendRequest<BrowserRunnerExecQueryMessage>({
       type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
       payload: {

@@ -51,31 +51,32 @@ export function App() {
     })
   );
 
-  if (!messageRefSet.current) {
-    communicationRef.current.onMessage((message) => {
-      console.log(message, 'message');
-      switch (message.message.type) {
-        case BROWSER_RUNNER_TYPE.EXEC_QUERY:
-          {
-            //Read ?uuid= from the URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const uuid = urlParams.get('uuid');
-            console.info('EXEC_QUERY', uuid, message.message.payload.query);
-            dbmRef.current
-              .queryWithTables(message.message.payload)
-              .then((result) => {
-                console.log('result', result);
-                communicationRef.current.sendResponse(message.uuid, result);
-              });
-          }
+  useEffect(() => {
+    if (!messageRefSet.current) {
+      communicationRef.current.onMessage((message) => {
+        switch (message.message.type) {
+          case BROWSER_RUNNER_TYPE.EXEC_QUERY:
+            {
+              //Read ?uuid= from the URL
+              const urlParams = new URLSearchParams(window.location.search);
+              const uuid = urlParams.get('uuid');
+              console.info('EXEC_QUERY', uuid, message.message.payload.query);
+              dbmRef.current
+                .queryWithTables(message.message.payload)
+                .then((result) => {
+                  console.log('result', result);
+                  communicationRef.current.sendResponse(message.uuid, result);
+                });
+            }
 
-          break;
-        default:
-          break;
-      }
-    });
-    messageRefSet.current = true;
-  }
+            break;
+          default:
+            break;
+        }
+      });
+      messageRefSet.current = true;
+    }
+  }, []);
 
   log.setLevel('DEBUG');
 
