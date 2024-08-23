@@ -1,5 +1,5 @@
 {
-  "name": "benchmarking-app-v2",
+  "name": "benchmarking-app",
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "benchmarking/src",
   "projectType": "application",
@@ -24,15 +24,15 @@
       "executor": "@nx/vite:dev-server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "benchmarking-app-v2:build"
+        "buildTarget": "benchmarking-app:build"
       },
       "configurations": {
         "development": {
-          "buildTarget": "benchmarking-app-v2:build:development",
+          "buildTarget": "benchmarking-app:build:development",
           "hmr": true
         },
         "production": {
-          "buildTarget": "benchmarking-app-v2:build:production",
+          "buildTarget": "benchmarking-app:build:production",
           "hmr": false
         }
       }
@@ -41,14 +41,14 @@
       "executor": "@nx/vite:preview-server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "benchmarking-app-v2:build"
+        "buildTarget": "benchmarking-app:build"
       },
       "configurations": {
         "development": {
-          "buildTarget": "benchmarking-app-v2:build:development"
+          "buildTarget": "benchmarking-app:build:development"
         },
         "production": {
-          "buildTarget": "benchmarking-app-v2:build:production"
+          "buildTarget": "benchmarking-app:build:production"
         }
       }
     },
