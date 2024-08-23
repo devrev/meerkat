@@ -119,6 +119,21 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
         tables: tables,
       },
     });
+    /**
+     * Task -
+     * If tableFileBuffers is not taking a lot of time
+     *  - Maintain an array of the files that are already mounted
+     *  - Check tableFileBuffers for the files that are already mounted
+     *  - If true, skip rgiestering the file
+     *
+     * If tableFileBuffers is taking a lot of time
+     *  - Implement another window communication to get the just the file names
+     *  - Maintain an array of the files that are already mounted
+     *  - Check the file names for the files that are already mounted
+     *  - If true, skip rgiestering the file
+     *  - Do another window communication to get the file buffers for the files that are not mounted
+     */
+
     console.info('mountFileBufferByTables tableFileBuffers', tableFileBuffers);
     console.log(
       'Time taken to get table buffers',
