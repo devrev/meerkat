@@ -104,7 +104,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     // Fetch file buffers for the tables to be registered
     const fileBuffersResponse = await this.communication.sendRequest<
       (BaseFileStore & {
-        buffer: SharedArrayBuffer;
+        buffer: Uint8Array;
       })[]
     >({
       type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
@@ -114,18 +114,13 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
 
     const tableBuffers = fileBuffersResponse.message;
-
-    //Create a deep copy of the buffers
-    const tableBuffersCopy = tableBuffers.map((buffer) => {
-      const newBuffer = new Uint8Array(buffer.buffer);
-      return {
-        ...buffer,
-        buffer: newBuffer, // Create a new Uint8Array with a copy of the buffer
-      };
-    });
+    //Get UUID from URL
+    const url = new URL(window.location.href);
+    const uuid = url.searchParams.get('uuid');
+    console.info('tableBuffers', uuid, tableBuffers);
 
     // Register the file buffers
-    await this.bulkRegisterFileBuffer(tableBuffersCopy);
+    await this.bulkRegisterFileBuffer(tableBuffers);
 
     tablesToBeRegistered.forEach((table) => this.mountedTables.add(table.name));
   }

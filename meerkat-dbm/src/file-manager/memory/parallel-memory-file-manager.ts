@@ -4,13 +4,31 @@ import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON } from '../../utils';
 import {
+  BaseFileStore,
   FileBufferStore,
   FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
 
-export class ParallelMemoryFileManager implements FileManagerType {
+export interface ParallelMemoryFileManagerType {
+  /**
+   *
+   * @description
+   * Retrieves the buffer data for the tables.
+   * @param tables - An array of tables.
+   * @returns An array of FileBufferStore objects.
+   */
+  getTableBufferData?: (tables: TableConfig[]) => Promise<
+    (BaseFileStore & {
+      buffer: Uint8Array;
+    })[]
+  >;
+}
+
+export class ParallelMemoryFileManager
+  implements ParallelMemoryFileManagerType, FileManagerType
+{
   private instanceManager: InstanceManagerType;
 
   private logger?: DBMLogger;

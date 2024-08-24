@@ -125,19 +125,6 @@ export interface FileManagerType {
    * Handler to be executed on database shutdown.
    */
   onDBShutdownHandler: () => Promise<void>;
-
-  /**
-   *
-   * @description
-   * Retrieves the buffer data for the tables.
-   * @param tables - An array of tables.
-   * @returns An array of FileBufferStore objects.
-   */
-  getTableBufferData?: (tables: TableConfig[]) => Promise<
-    (BaseFileStore & {
-      buffer: Uint8Array;
-    })[]
-  >;
 }
 
 export type BaseFileStore = {

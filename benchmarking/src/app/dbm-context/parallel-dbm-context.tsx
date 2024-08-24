@@ -15,17 +15,10 @@ export const ParallelDBMProvider = ({
 }: {
   children: JSX.Element;
 }) => {
-  const fileManagerRef = useRef<ParallelMemoryFileManager | null>(null);
   const [dbm, setdbm] = useState<DBMParallel | null>(null);
   const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
-
-  const dbState = useAsyncDuckDB();
-
-  useClassicEffect(() => {
-    if (!dbState) {
-      return;
-    }
-    fileManagerRef.current = new ParallelMemoryFileManager({
+  const fileManagerRef = useRef<ParallelMemoryFileManager>(
+    new ParallelMemoryFileManager({
       instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async (table) => {
         return [];
@@ -34,12 +27,19 @@ export const ParallelDBMProvider = ({
       onEvent: (event) => {
         console.info(event);
       },
-    });
+    })
+  );
+
+  const dbState = useAsyncDuckDB();
+
+  useClassicEffect(() => {
+    if (!dbState) {
+      return;
+    }
     const iframeManager = new IFrameRunnerManager({
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      //@ts-ignore
+      totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
-        return fileManagerRef.current?.getTableBufferData(table);
+        return fileManagerRef.current.getTableBufferData(table);
       },
     });
 

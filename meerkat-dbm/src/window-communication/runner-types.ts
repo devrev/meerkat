@@ -25,6 +25,12 @@ export interface BrowserRunnerExecQueryMessage {
   };
 }
 
+export interface BrowserRunnerExecQueryMessageResponse {
+  data: any;
+  isError: boolean;
+  error: any;
+}
+
 export interface BrowserRunnerDestroyMessage {
   type: typeof BROWSER_RUNNER_TYPE.DESTROY;
 }

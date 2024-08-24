@@ -2,7 +2,7 @@ import { FileManagerType } from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
 import {
   BROWSER_RUNNER_TYPE,
-  BrowserRunnerExecQueryMessage,
+  BrowserRunnerExecQueryMessageResponse,
 } from '../../window-communication/runner-types';
 import { DBMConstructorOptions, QueryOptions, TableConfig } from '../types';
 import { IFrameRunnerManager } from './runner-manager';
@@ -74,11 +74,7 @@ export class DBMParallel {
     if (this.terminateDBTimeout) {
       clearTimeout(this.terminateDBTimeout);
     }
-    console.info(
-      'this.options.shutdownInactiveTime',
-      this.options.shutdownInactiveTime,
-      this.activeNumberOfQueries
-    );
+
     this.terminateDBTimeout = setTimeout(async () => {
       /**
        * Check if there is any query in the queue
@@ -117,20 +113,24 @@ export class DBMParallel {
       }
 
       const response =
-        await runner.communication.sendRequest<BrowserRunnerExecQueryMessage>({
-          type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
-          payload: {
-            query,
-            tables,
-            options,
-          },
-        });
-      return response;
+        await runner.communication.sendRequest<BrowserRunnerExecQueryMessageResponse>(
+          {
+            type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
+            payload: {
+              query,
+              tables,
+              options,
+            },
+          }
+        );
+      if (response.message.isError) {
+        throw response.message.error;
+      }
+      return response.message.data;
     } catch (error) {
       this.logger.error('Error while executing query', error);
       throw error;
     } finally {
-      console.info('Finally');
       this.activeNumberOfQueries--;
       if (this.activeNumberOfQueries === 0) {
         this._startShutdownInactiveTimer();
