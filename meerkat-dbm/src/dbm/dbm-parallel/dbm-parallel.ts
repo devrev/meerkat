@@ -31,8 +31,10 @@ export class DBMParallel {
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
   private onDuckDBShutdown?: () => void;
-  iFrameRunnerManager: IFrameRunnerManager;
-  counter = 0;
+  private iFrameRunnerManager: IFrameRunnerManager;
+  private counter = 0;
+  private terminateDBTimeout: NodeJS.Timeout | null = null;
+  private activeNumberOfQueries = 0;
 
   constructor({
     fileManager,
@@ -53,6 +55,42 @@ export class DBMParallel {
     this.iFrameRunnerManager = iFrameRunnerManager;
   }
 
+  private async _shutdown() {
+    this.logger.debug('Shutting down the DB');
+    if (this.onDuckDBShutdown) {
+      this.onDuckDBShutdown();
+    }
+    this.iFrameRunnerManager.stopRunners();
+    await this.fileManager.onDBShutdownHandler();
+  }
+
+  private _startShutdownInactiveTimer() {
+    if (!this.options?.shutdownInactiveTime) {
+      return;
+    }
+    /**
+     * Clear the previous timer if any, it can happen if we try to shutdown the DB before the timer is complete after the queue is empty
+     */
+    if (this.terminateDBTimeout) {
+      clearTimeout(this.terminateDBTimeout);
+    }
+    console.info(
+      'this.options.shutdownInactiveTime',
+      this.options.shutdownInactiveTime,
+      this.activeNumberOfQueries
+    );
+    this.terminateDBTimeout = setTimeout(async () => {
+      /**
+       * Check if there is any query in the queue
+       */
+      if (this.activeNumberOfQueries > 0) {
+        this.logger.debug('Query queue is not empty, not shutting down the DB');
+        return;
+      }
+      await this._shutdown();
+    }, this.options.shutdownInactiveTime);
+  }
+
   public async queryWithTables({
     query,
     tables,
@@ -62,34 +100,42 @@ export class DBMParallel {
     tables: TableConfig[];
     options?: QueryOptions;
   }) {
-    this.iFrameRunnerManager.startRunners();
-    const runners = this.iFrameRunnerManager.getRunnerIds();
-    this.counter = roundRobin(this.counter, runners.length - 1).counter;
-    debugger;
-    console.info(
-      'Sending query to runner',
-      this.counter,
-      runners[this.counter],
-      query
-    );
-    const runner = this.iFrameRunnerManager.iFrameManagers.get(
-      runners[this.counter]
-    );
+    try {
+      this.activeNumberOfQueries++;
+      this.iFrameRunnerManager.startRunners();
+      const runners = this.iFrameRunnerManager.getRunnerIds();
+      this.counter = roundRobin(this.counter, runners.length - 1).counter;
 
-    await this.iFrameRunnerManager.isFrameRunnerReady();
+      const runner = this.iFrameRunnerManager.iFrameManagers.get(
+        runners[this.counter]
+      );
 
-    if (!runner) {
-      throw new Error('No runner found');
+      await this.iFrameRunnerManager.isFrameRunnerReady();
+
+      if (!runner) {
+        throw new Error('No runner found');
+      }
+
+      const response =
+        await runner.communication.sendRequest<BrowserRunnerExecQueryMessage>({
+          type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
+          payload: {
+            query,
+            tables,
+            options,
+          },
+        });
+      return response;
+    } catch (error) {
+      this.logger.error('Error while executing query', error);
+      throw error;
+    } finally {
+      console.info('Finally');
+      this.activeNumberOfQueries--;
+      if (this.activeNumberOfQueries === 0) {
+        this._startShutdownInactiveTimer();
+      }
     }
-
-    return runner.communication.sendRequest<BrowserRunnerExecQueryMessage>({
-      type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
-      payload: {
-        query,
-        tables,
-        options,
-      },
-    });
   }
 
   public async query(query: string) {

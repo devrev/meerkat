@@ -78,8 +78,6 @@ export class ParallelMemoryFileManager implements FileManagerType {
   }
 
   async getTableBufferData(tables: TableConfig[]) {
-    console.info('tableFileBuffersMap', this.tableFileBuffersMap);
-
     // Return all the buffers
     return tables.flatMap((table) => {
       const tableFileBuffers = this.tableFileBuffersMap.get(table.name) ?? [];
@@ -132,7 +130,18 @@ export class ParallelMemoryFileManager implements FileManagerType {
     // not needed for memory file manager
   }
 
+  private clearAllFileBuffers(): void {
+    for (const [tableName, fileBufferStores] of this.tableFileBuffersMap) {
+      const clearedStores = fileBufferStores.map((store) => ({
+        ...store,
+        buffer: new Uint8Array(0), // Replace with an empty buffer
+      }));
+      this.tableFileBuffersMap.set(tableName, clearedStores);
+    }
+  }
+
   async onDBShutdownHandler() {
-    // not needed for memory file manager
+    this.clearAllFileBuffers();
+    this.tableFileBuffersMap.clear();
   }
 }

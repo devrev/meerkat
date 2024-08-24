@@ -14,7 +14,7 @@ export class IFrameRunnerManager {
   ) => Promise<FileBufferStore[]>;
   private totalRunners: number;
   private iFrameReadyMap: Map<string, boolean> = new Map();
-  private resolvePromise: ((value: unknown) => void) | null = null;
+  private resolvePromises: ((value: unknown) => void)[] = [];
 
   constructor({
     fetchTableFileBuffers,
@@ -72,7 +72,7 @@ export class IFrameRunnerManager {
       return true;
     }
     const promiseObj = new Promise((resolve) => {
-      this.resolvePromise = resolve;
+      this.resolvePromises.push(resolve);
     });
 
     return promiseObj;
@@ -109,9 +109,10 @@ export class IFrameRunnerManager {
         console.info('IFrameReadyMap', this.iFrameReadyMap);
         //Check if all iframes are ready
         if (Array.from(this.iFrameReadyMap.values()).every((value) => value)) {
-          if (this.resolvePromise) {
+          if (this.resolvePromises.length > 0) {
             console.info('All iframes are ready');
-            this.resolvePromise(true);
+            this.resolvePromises.forEach((resolve) => resolve(true));
+            this.resolvePromises = [];
           }
         }
         break;
