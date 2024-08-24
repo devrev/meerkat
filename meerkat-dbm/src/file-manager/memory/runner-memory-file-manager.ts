@@ -1,7 +1,7 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
-import { File, Table, TableWiseFiles } from '../../types';
+import { Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON } from '../../utils';
 import {
   BROWSER_RUNNER_TYPE,
@@ -16,20 +16,14 @@ import {
   FileManagerType,
 } from '../file-manager-type';
 export class RunnerMemoryDBFileManager implements FileManagerType {
-  private fetchTableFileBuffers: (
-    tableName: string
-  ) => Promise<FileBufferStore[]>;
   private instanceManager: InstanceManagerType;
   private communication: CommunicationInterface<BrowserRunnerMessage>;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
-  private mountedFiles: Set<string> = new Set();
-
-  private tableFileBuffersMap: Map<string, File[]> = new Map();
+  private mountedTables: Set<string> = new Set();
 
   constructor({
-    fetchTableFileBuffers,
     instanceManager,
     logger,
     onEvent,
@@ -37,7 +31,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }: FileManagerConstructorOptions & {
     communication: CommunicationInterface<BrowserRunnerMessage>;
   }) {
-    this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.instanceManager = instanceManager;
     this.logger = logger;
     this.onEvent = onEvent;
@@ -45,11 +38,10 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
-    console.info('bulkRegisterFileBuffer', props);
     const promiseArr = props.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
     );
-    console.info('Promise.all(promiseArr)');
+
     await Promise.all(promiseArr);
   }
 
@@ -61,7 +53,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     const url = new URL(window.location.href);
     const uuid = url.searchParams.get('uuid');
 
-    console.info('registerFileBuffer', uuid, props);
     instanceManager.registerFileBuffer(props.fileName, props.buffer);
   }
 
@@ -103,43 +94,27 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    const starttime = performance.now();
-    console.log('mountFileBufferByTables tables 123', tables);
-    if (tables.every((table) => this.mountedFiles.has(table.name))) {
-      return;
-    }
+    const tablesToBeRegistered = tables.filter(
+      (table) => !this.mountedTables.has(table.name)
+    );
 
-    const tableFileBuffers = await this.communication.sendRequest<{
-      tableBuffers: (BaseFileStore & {
+    // Return there are no tables to register
+    if (tablesToBeRegistered.length === 0) return;
+
+    // Fetch file buffers for the tables to be registered
+    const fileBuffersResponse = await this.communication.sendRequest<
+      (BaseFileStore & {
         buffer: SharedArrayBuffer;
-      })[];
-    }>({
+      })[]
+    >({
       type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
       payload: {
         tables: tables,
       },
     });
-    /**
-     * Task -
-     * If tableFileBuffers is not taking a lot of time
-     *  - Maintain an array of the files that are already mounted
-     *  - Check tableFileBuffers for the files that are already mounted
-     *  - If true, skip rgiestering the file
-     *
-     * If tableFileBuffers is taking a lot of time
-     *  - Implement another window communication to get the just the file names
-     *  - Maintain an array of the files that are already mounted
-     *  - Check the file names for the files that are already mounted
-     *  - If true, skip rgiestering the file
-     *  - Do another window communication to get the file buffers for the files that are not mounted
-     */
 
-    console.info('mountFileBufferByTables tableFileBuffers', tableFileBuffers);
-    console.log(
-      'Time taken to get table buffers',
-      performance.now() - starttime
-    );
-    const { tableBuffers } = tableFileBuffers.message;
+    const tableBuffers = fileBuffersResponse.message;
+
     //Create a deep copy of the buffers
     const tableBuffersCopy = tableBuffers.map((buffer) => {
       const newBuffer = new Uint8Array(buffer.buffer);
@@ -148,9 +123,11 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
         buffer: newBuffer, // Create a new Uint8Array with a copy of the buffer
       };
     });
-    console.info('mountFileBufferByTables');
+
+    // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffersCopy);
-    tables.forEach((table) => this.mountedFiles.add(table.name));
+
+    tablesToBeRegistered.forEach((table) => this.mountedTables.add(table.name));
   }
 
   async getFilesNameForTables(

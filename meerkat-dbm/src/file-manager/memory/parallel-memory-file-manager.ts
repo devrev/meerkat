@@ -1,7 +1,7 @@
-import { Table, TableWiseFiles } from 'meerkat-dbm/src/types';
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
+import { Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON } from '../../utils';
 import {
   FileBufferStore,
@@ -19,7 +19,6 @@ export class ParallelMemoryFileManager implements FileManagerType {
   private tableFileBuffersMap: Map<string, FileBufferStore[]> = new Map();
 
   constructor({
-    fetchTableFileBuffers,
     instanceManager,
     logger,
     onEvent,
@@ -29,19 +28,20 @@ export class ParallelMemoryFileManager implements FileManagerType {
     this.onEvent = onEvent;
   }
 
-  async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
-    const promiseArr = props.map((fileBuffer) =>
+  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
+    const promiseArr = fileBuffers.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
     );
     await Promise.all(promiseArr);
   }
 
-  async registerFileBuffer(props: FileBufferStore): Promise<void> {
-    const existingFiles = this.tableFileBuffersMap.get(props.tableName) || [];
+  async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
+    const existingFiles =
+      this.tableFileBuffersMap.get(fileBuffer.tableName) || [];
 
-    existingFiles.push(props);
+    existingFiles.push(fileBuffer);
 
-    this.tableFileBuffersMap.set(props.fileName, existingFiles);
+    this.tableFileBuffersMap.set(fileBuffer.tableName, existingFiles);
   }
 
   async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
@@ -81,26 +81,25 @@ export class ParallelMemoryFileManager implements FileManagerType {
     console.info('tableFileBuffersMap', this.tableFileBuffersMap);
 
     // Return all the buffers
-    const tableBuffers = Array.from(this.tableFileBuffersMap.values()).flat();
+    return tables.flatMap((table) => {
+      const tableFileBuffers = this.tableFileBuffersMap.get(table.name) ?? [];
 
-    // Create a copy of the buffers, using SharedArrayBuffer internally but exposing Uint8Array
-    const tableBuffersCopy = tableBuffers.map((buffer) => {
-      // Create a SharedArrayBuffer with the same length as the original buffer
-      // const sharedBuffer = new SharedArrayBuffer(10);
+      return tableFileBuffers?.map((buffer) => {
+        // Create a SharedArrayBuffer with the same length as the original buffer
+        // const sharedBuffer = new SharedArrayBuffer(10);
 
-      // Create a new Uint8Array view of the SharedArrayBuffer
-      // const sharedArray = new Int32Array(buffer.buffer);
+        // Create a new Uint8Array view of the SharedArrayBuffer
+        // const sharedArray = new Int32Array(buffer.buffer);
 
-      // Copy the contents of the original buffer to the shared array
-      // sharedArray.set(new Uint8Array(1));
+        // Copy the contents of the original buffer to the shared array
+        // sharedArray.set(new Uint8Array(1));
 
-      return {
-        ...buffer,
-        buffer: buffer.buffer, // Expose as Uint8Array
-      };
+        return {
+          ...buffer,
+          buffer: buffer.buffer, // Expose as Uint8Array
+        };
+      });
     });
-
-    return { tableBuffers: tableBuffersCopy };
   }
 
   getFileBuffer(name: string): Promise<Uint8Array> {

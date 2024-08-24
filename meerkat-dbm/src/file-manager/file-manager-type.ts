@@ -126,11 +126,18 @@ export interface FileManagerType {
    */
   onDBShutdownHandler: () => Promise<void>;
 
-  getTableBufferData?: (tables: TableConfig[]) => Promise<{
-    tableBuffers: (BaseFileStore & {
+  /**
+   *
+   * @description
+   * Retrieves the buffer data for the tables.
+   * @param tables - An array of tables.
+   * @returns An array of FileBufferStore objects.
+   */
+  getTableBufferData?: (tables: TableConfig[]) => Promise<
+    (BaseFileStore & {
       buffer: SharedArrayBuffer;
-    })[];
-  }>;
+    })[]
+  >;
 }
 
 export type BaseFileStore = {
