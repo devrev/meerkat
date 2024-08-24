@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { ChildProcess, spawn } from 'child_process';
 import * as puppeteer from 'puppeteer';
 
@@ -6,6 +5,7 @@ describe('Benchmarking DBMs', () => {
   let page: puppeteer.Page;
   let browser: puppeteer.Browser;
   let appProcess: ChildProcess;
+  let appProcessRunner: ChildProcess;
 
   let totalTimeForMemoryDB: number;
 
@@ -14,25 +14,40 @@ describe('Benchmarking DBMs', () => {
       stdio: 'inherit',
     });
 
-    // Wait for the server to start
-    let serverStarted = false;
-    while (!serverStarted) {
-      try {
-        const response = await axios.get('http://localhost:4200');
-        if (response.status === 200) {
-          serverStarted = true;
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-        }
-      } catch (error) {
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-      }
-    }
+    appProcessRunner = spawn('npx', ['nx', 'serve', 'meerkat-browser-runner'], {
+      stdio: 'inherit',
+    });
 
     browser = await puppeteer.launch({
       headless: 'new',
     });
     page = await browser.newPage();
+
+    //Wait for the server to start by visiting the page
+    let serverStarted = false;
+    while (!serverStarted) {
+      console.info('Waiting for server to start');
+      try {
+        await page.goto('http://localhost:4200');
+        serverStarted = true;
+      } catch (error) {
+        console.info('Server not started yet', error);
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+      }
+    }
+
+    let serverStartedRunner = false;
+    while (!serverStartedRunner) {
+      console.info('Waiting for server to start');
+
+      try {
+        await page.goto('http://localhost:4205');
+        serverStartedRunner = true;
+      } catch (error) {
+        console.info('Server not started yet', error);
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
+      }
+    }
   }, 30000);
 
   it('Benchmark raw duckdb with memory sequence duckdb', async () => {
@@ -93,8 +108,30 @@ describe('Benchmarking DBMs', () => {
     expect(totalTimeForIndexedDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
   }, 300000);
 
+  it('Benchmark parallel dbm duckdb', async () => {
+    await page.goto('http://localhost:4200/parallel-dbm');
+    /**
+     * wait for total time to be render
+     */
+    await page.waitForSelector('#total_time', { timeout: 300000 });
+    /**
+     * Get the total time as number
+     */
+    const totalTimeForParallelDBM = await page.$eval('#total_time', (el) =>
+      Number(el.textContent)
+    );
+
+    console.info('totalTimeForParallelDBM', totalTimeForParallelDBM);
+
+    /**
+     * The total diff between indexed dbm and memory dbm should be less than 30%
+     */
+    expect(totalTimeForParallelDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
+  }, 300000);
+
   afterAll(async () => {
-    await browser.close();
     appProcess.kill('SIGTERM');
+    appProcessRunner.kill('SIGTERM');
+    await browser.close();
   });
 });

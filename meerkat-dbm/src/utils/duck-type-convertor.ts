@@ -1,7 +1,10 @@
 import { Field, StructRowProxy, Table, Type, Vector } from 'apache-arrow';
 import _isNil from 'lodash/isNil';
 
-export const convertArrowValueToJS = (field: Field, value: unknown): unknown => {
+export const convertArrowValueToJS = (
+  field: Field,
+  value: unknown
+): unknown => {
   if (_isNil(value)) return value;
   switch (field.typeId) {
     case Type.Null:
@@ -31,7 +34,9 @@ export const convertArrowValueToJS = (field: Field, value: unknown): unknown => 
         const array: unknown[] = [];
         (value as Vector)
           .toArray()
-          .forEach((v: unknown) => array.push(convertArrowValueToJS(field.type.children[0], v)));
+          .forEach((v: unknown) =>
+            array.push(convertArrowValueToJS(field.type.children[0], v))
+          );
         return array;
       }
       return [];
@@ -40,13 +45,18 @@ export const convertArrowValueToJS = (field: Field, value: unknown): unknown => 
   }
 };
 
-export const convertArrowTableToJSON = (table: Table): Record<string, unknown>[] => {
+export const convertArrowTableToJSON = (
+  table: Table
+): Record<string, unknown>[] => {
   return table
     .toArray()
     .map((row: StructRowProxy) => row.toJSON())
     .map((datum: Record<string, unknown>) => {
       return table.schema.fields.reduce((acc, schemaField) => {
-        acc[schemaField.name] = convertArrowValueToJS(schemaField, datum[schemaField.name]);
+        acc[schemaField.name] = convertArrowValueToJS(
+          schemaField,
+          datum[schemaField.name]
+        );
         return acc;
       }, {} as Record<string, unknown>);
     });
