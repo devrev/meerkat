@@ -25,8 +25,6 @@ const roundRobin = (
   };
 };
 
-const runners = ['1', '2', '3', '4'];
-
 export class DBMParallel {
   private fileManager: FileManagerType;
   private logger: DBMLogger;
@@ -64,7 +62,10 @@ export class DBMParallel {
     tables: TableConfig[];
     options?: QueryOptions;
   }) {
-    this.counter = roundRobin(this.counter, 3).counter;
+    this.iFrameRunnerManager.startRunners();
+    const runners = this.iFrameRunnerManager.getRunnerIds();
+    this.counter = roundRobin(this.counter, runners.length - 1).counter;
+    debugger;
     console.info(
       'Sending query to runner',
       this.counter,
@@ -74,6 +75,7 @@ export class DBMParallel {
     const runner = this.iFrameRunnerManager.iFrameManagers.get(
       runners[this.counter]
     );
+
     await this.iFrameRunnerManager.isFrameRunnerReady();
 
     if (!runner) {
