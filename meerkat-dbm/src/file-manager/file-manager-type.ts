@@ -135,7 +135,7 @@ export interface FileManagerType {
    */
   getTableBufferData?: (tables: TableConfig[]) => Promise<
     (BaseFileStore & {
-      buffer: SharedArrayBuffer;
+      buffer: Uint8Array;
     })[]
   >;
 }
