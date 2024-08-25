@@ -118,10 +118,10 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     //Copy the buffer to its own memory
     const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
       // Create a new Uint8Array with the same length
-      const newBuffer = new Uint8Array(tableBuffer.buffer.byteLength);
+      const newBuffer = new Uint8Array(tableBuffer.buffer);
 
       // Copy the data from the SharedArrayBuffer to the new Uint8Array
-      newBuffer.set(new Uint8Array(tableBuffer.buffer));
+      // newBuffer.set(new Uint8Array(tableBuffer.buffer));
 
       return {
         ...tableBuffer,
