@@ -37,7 +37,7 @@ export const ParallelDBMProvider = ({
       return;
     }
     const iframeManager = new IFrameRunnerManager({
-      totalRunners: 4,
+      totalRunners: 2,
       fetchTableFileBuffers: async (table) => {
         return fileManagerRef.current.getTableBufferData(table);
       },

@@ -54,7 +54,7 @@ export function App() {
   >(
     new WindowCommunication<BrowserRunnerMessage>({
       app_name: 'RUNNER',
-      origin: 'http://localhost:4200',
+      origin: 'https://dbm.devrev-local.ai',
       targetApp: 'dbm',
       targetWindow: window.parent,
     })

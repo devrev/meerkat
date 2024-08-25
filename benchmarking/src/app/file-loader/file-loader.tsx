@@ -9,14 +9,17 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
   useClassicEffect(() => {
     (async () => {
       const file = await axios.get(
-        'http://localhost:4200/data-sets/fhvhv_tripdata_2023-01.parquet',
+        'https://dbm.devrev-local.ai/data-sets/fhvhv_tripdata_2023-01.parquet',
         { responseType: 'arraybuffer' }
       );
       const fileBuffer = file.data;
-      const fileBufferView = new Uint8Array(fileBuffer);
+      // const sharedBuffer = new SharedArrayBuffer(fileBuffer.byteLength);
+      // const fileBufferView = new Uint8Array(sharedBuffer);
+      // fileBufferView.set(new Uint8Array(fileBuffer));
+      const sharedBuffer = new Uint8Array(fileBuffer);
 
       const jsonFile = await axios.get(
-        'http://localhost:4200/data-sets/taxi.json',
+        'https://dbm.devrev-local.ai/data-sets/taxi.json',
         { responseType: 'json' }
       );
       const TAXI_JSON_DATA = jsonFile.data;
@@ -24,7 +27,7 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
       await fileManager.registerFileBuffer({
         tableName: 'taxi',
         fileName: 'taxi.parquet',
-        buffer: fileBufferView,
+        buffer: sharedBuffer as any,
       });
 
       await fileManager.registerJSON({

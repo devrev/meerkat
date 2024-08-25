@@ -16,11 +16,11 @@ export class IFrameManager {
     ) => any
   ) {
     this.iframe = document.createElement('iframe');
-    this.iframe.src = 'http://localhost:4205?uuid=' + uuid;
+    this.iframe.src = 'https://dbm.devrev-local.ai/runner?uuid=' + uuid;
     document.body.appendChild(this.iframe);
     this.communication = new WindowCommunication<BrowserRunnerMessage>({
       targetWindow: this.iframe.contentWindow as Window,
-      origin: 'http://localhost:4205',
+      origin: 'https://dbm.devrev-local.ai',
       targetApp: 'RUNNER',
       app_name: 'dbm',
     });
