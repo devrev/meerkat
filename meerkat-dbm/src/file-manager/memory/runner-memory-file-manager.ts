@@ -46,8 +46,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async registerFileBuffer(props: FileBufferStore): Promise<void> {
-    console.info('before registerFileBuffer', props);
-
     const instanceManager = await this.instanceManager.getDB();
     // get ?uuid= from url
     const url = new URL(window.location.href);
@@ -94,12 +92,12 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    const tablesToBeRegistered = tables.filter(
+    const tablesToBeMounted = tables.filter(
       (table) => !this.mountedTables.has(table.name)
     );
 
     // Return there are no tables to register
-    if (tablesToBeRegistered.length === 0) return;
+    if (tablesToBeMounted.length === 0) return;
 
     // Fetch file buffers for the tables to be registered
     const fileBuffersResponse = await this.communication.sendRequest<
@@ -109,20 +107,20 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     >({
       type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
       payload: {
-        tables: tables,
+        tables: tablesToBeMounted,
       },
     });
 
     const tableBuffers = fileBuffersResponse.message;
+
     //Get UUID from URL
     const url = new URL(window.location.href);
     const uuid = url.searchParams.get('uuid');
-    console.info('tableBuffers', uuid, tableBuffers);
 
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
 
-    tablesToBeRegistered.forEach((table) => this.mountedTables.add(table.name));
+    tablesToBeMounted.forEach((table) => this.mountedTables.add(table.name));
   }
 
   async getFilesNameForTables(

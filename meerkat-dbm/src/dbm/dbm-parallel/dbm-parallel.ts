@@ -105,7 +105,6 @@ export class DBMParallel {
       const runner = this.iFrameRunnerManager.iFrameManagers.get(
         runners[this.counter]
       );
-
       await this.iFrameRunnerManager.isFrameRunnerReady();
 
       if (!runner) {
@@ -123,8 +122,9 @@ export class DBMParallel {
             },
           }
         );
+
       if (response.message.isError) {
-        throw response.message.error;
+        throw new Error(response.message.error);
       }
       return response.message.data;
     } catch (error) {

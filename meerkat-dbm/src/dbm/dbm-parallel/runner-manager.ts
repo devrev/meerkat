@@ -98,11 +98,6 @@ export class IFrameRunnerManager {
     switch (message.message.type) {
       case BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS:
         if (this.fetchTableFileBuffers) {
-          console.info(
-            'Fetching table file buffers',
-            runnerId,
-            message.message.payload.tables
-          );
           this.fetchTableFileBuffers(message.message.payload.tables).then(
             (result) => {
               const manager = this.iFrameManagers.get(runnerId);
@@ -117,9 +112,8 @@ export class IFrameRunnerManager {
         break;
 
       case BROWSER_RUNNER_TYPE.RUNNER_ON_READY: {
-        console.info('Runner is ready', runnerId);
         this.iFrameReadyMap.set(runnerId, true);
-        console.info('IFrameReadyMap', this.iFrameReadyMap);
+
         //Check if all iframes are ready
         if (Array.from(this.iFrameReadyMap.values()).every((value) => value)) {
           if (this.resolvePromises.length > 0) {
