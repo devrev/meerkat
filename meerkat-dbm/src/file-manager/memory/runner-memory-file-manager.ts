@@ -46,8 +46,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async registerFileBuffer(props: FileBufferStore): Promise<void> {
-    console.info('before registerFileBuffer', props);
-
     const instanceManager = await this.instanceManager.getDB();
     // get ?uuid= from url
     const url = new URL(window.location.href);
@@ -109,15 +107,15 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     >({
       type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
       payload: {
-        tables: tables,
+        tables: tablesToBeRegistered,
       },
     });
 
     const tableBuffers = fileBuffersResponse.message;
+
     //Get UUID from URL
     const url = new URL(window.location.href);
     const uuid = url.searchParams.get('uuid');
-    console.info('tableBuffers', uuid, tableBuffers);
 
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);

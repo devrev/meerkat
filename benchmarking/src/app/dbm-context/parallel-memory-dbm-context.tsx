@@ -10,7 +10,7 @@ import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
-export const ParallelDBMProvider = ({
+export const ParallelMemoryDBMProvider = ({
   children,
 }: {
   children: JSX.Element;
@@ -37,7 +37,7 @@ export const ParallelDBMProvider = ({
       return;
     }
     const iframeManager = new IFrameRunnerManager({
-      totalRunners: 4,
+      totalRunners: 2,
       fetchTableFileBuffers: async (table) => {
         return fileManagerRef.current.getTableBufferData(table);
       },

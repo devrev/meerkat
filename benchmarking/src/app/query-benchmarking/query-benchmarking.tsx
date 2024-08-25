@@ -37,7 +37,10 @@ export const QueryBenchmarking = () => {
       const eachQueryStart = performance.now();
 
       const promiseObj = dbm
-        .queryWithTables({ query: testQueries[i], tables: [{ name: 'taxi' }] })
+        .queryWithTables({
+          query: testQueries[i],
+          tables: [{ name: 'taxi' }, { name: 'taxijson' }],
+        })
         .then((results) => {
           const end = performance.now();
           const time = end - eachQueryStart;

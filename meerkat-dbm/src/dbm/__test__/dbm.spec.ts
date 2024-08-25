@@ -1,14 +1,13 @@
-import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import log from 'loglevel';
 import {
   FileBufferStore,
   FileJsonStore,
   FileManagerType,
-} from '../file-manager/file-manager-type';
-import { FileData, Table, TableWiseFiles } from '../types';
-import { DBM } from './dbm';
-import { InstanceManagerType } from './instance-manager';
-import { DBMConstructorOptions, TableConfig } from './types';
+} from '../../file-manager/file-manager-type';
+import { FileData, Table, TableWiseFiles } from '../../types';
+import { DBM } from '../dbm';
+import { DBMConstructorOptions, TableConfig } from '../types';
+import { InstanceManager } from './utils';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
@@ -122,42 +121,7 @@ export class MockFileManager implements FileManagerType {
   });
 }
 
-const mockDB = {
-  connect: async () => {
-    return {
-      query: async (query: string) => {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve([query]);
-          }, 200);
-        });
-      },
-      cancelSent: async () => {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve(true);
-          }, 100);
-        });
-      },
-      close: async () => {
-        // do nothing
-      },
-    };
-  },
-};
-
-export class InstanceManager implements InstanceManagerType {
-  async getDB() {
-    return mockDB as AsyncDuckDB;
-  }
-
-  async terminateDB() {
-    // do nothing
-  }
-}
-
 describe('DBM', () => {
-  let db: AsyncDuckDB;
   let fileManager: FileManagerType;
   let dbm: DBM;
   let instanceManager: InstanceManager;
@@ -165,9 +129,6 @@ describe('DBM', () => {
   const tables = [{ name: 'table1' }];
 
   beforeAll(async () => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    //@ts-ignore
-    db = mockDB;
     fileManager = new MockFileManager();
     instanceManager = new InstanceManager();
   });

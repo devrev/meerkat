@@ -123,8 +123,9 @@ export class DBMParallel {
             },
           }
         );
+
       if (response.message.isError) {
-        throw response.message.error;
+        throw new Error(response.message.error);
       }
       return response.message.data;
     } catch (error) {
