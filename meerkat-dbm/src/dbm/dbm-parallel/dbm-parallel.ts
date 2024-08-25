@@ -105,7 +105,6 @@ export class DBMParallel {
       const runner = this.iFrameRunnerManager.iFrameManagers.get(
         runners[this.counter]
       );
-
       await this.iFrameRunnerManager.isFrameRunnerReady();
 
       if (!runner) {

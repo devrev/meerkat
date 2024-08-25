@@ -3,7 +3,7 @@ import { DBMLogger } from '../../logger/logger-types';
 import { BROWSER_RUNNER_TYPE } from '../../window-communication/runner-types';
 import { DBMParallel } from '../dbm-parallel/dbm-parallel';
 import { IFrameRunnerManager } from '../dbm-parallel/runner-manager';
-import { InstanceManager } from './mock';
+import { InstanceManager, MockFileManager } from './mock.spec';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 //@ts-ignore
@@ -20,12 +20,6 @@ const loggerMock = {
   error: jest.fn(),
 } as unknown as DBMLogger;
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-//@ts-ignore
-const fileManagerMock: FileManagerType = {
-  onDBShutdownHandler: jest.fn(),
-};
-
 const runnerMock = {
   communication: {
     sendRequest: jest.fn(),
@@ -37,12 +31,11 @@ iFrameRunnerManager.iFrameManagers.set('2', runnerMock as any);
 
 describe('DBMParallel', () => {
   let dbmParallel: DBMParallel;
-
   let fileManager: FileManagerType;
   let instanceManager: InstanceManager;
 
   beforeAll(async () => {
-    fileManager = fileManagerMock;
+    fileManager = new MockFileManager();
     instanceManager = new InstanceManager();
   });
 
@@ -87,7 +80,6 @@ describe('DBMParallel', () => {
         message: { isError: true, error: 'Query failed', data: [] },
       };
 
-      // Mock the `sendRequest` to return the simulated error response
       runnerMock.communication.sendRequest.mockResolvedValue(response);
 
       await expect(
@@ -105,6 +97,7 @@ describe('DBMParallel', () => {
         message: { isError: false, data: [{ data: 1 }] },
       });
 
+      // Execute a query
       await dbmParallel.queryWithTables({
         query: 'SELECT * FROM table1',
         tables: [],
@@ -114,14 +107,46 @@ describe('DBMParallel', () => {
       jest.advanceTimersByTime(500);
 
       // Check if the shutdown is not triggered
-      expect(fileManagerMock.onDBShutdownHandler).not.toHaveBeenCalled();
+      expect(fileManager.onDBShutdownHandler).not.toHaveBeenCalled();
       expect(iFrameRunnerManager.stopRunners).not.toHaveBeenCalled();
 
       // Advance timer to time more than the shutdown time
       jest.advanceTimersByTime(600);
 
-      expect(fileManagerMock.onDBShutdownHandler).toHaveBeenCalled();
+      expect(fileManager.onDBShutdownHandler).toHaveBeenCalled();
       expect(iFrameRunnerManager.stopRunners).toHaveBeenCalled();
+
+      jest.useRealTimers();
+    });
+
+    it('should clear previous shutdown timer if a new query arrives before shutdown', async () => {
+      jest.useFakeTimers();
+
+      // Simulate a query execution
+      runnerMock.communication.sendRequest.mockResolvedValue({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+
+      await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table1',
+        tables: [],
+      });
+
+      // Advance timer to time 100 less than the shutdown time
+      jest.advanceTimersByTime(900);
+
+      // Execute another query
+      await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table2',
+        tables: [],
+      });
+
+      // Shutdown timer should be reset due to the new query
+      jest.advanceTimersByTime(900);
+
+      // Shutdown should not have been triggered
+      expect(fileManager.onDBShutdownHandler).not.toHaveBeenCalled();
+      expect(iFrameRunnerManager.stopRunners).not.toHaveBeenCalled();
 
       jest.useRealTimers();
     });

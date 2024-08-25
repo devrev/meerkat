@@ -92,12 +92,12 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    const tablesToBeRegistered = tables.filter(
+    const tablesToBeMounted = tables.filter(
       (table) => !this.mountedTables.has(table.name)
     );
 
     // Return there are no tables to register
-    if (tablesToBeRegistered.length === 0) return;
+    if (tablesToBeMounted.length === 0) return;
 
     // Fetch file buffers for the tables to be registered
     const fileBuffersResponse = await this.communication.sendRequest<
@@ -107,7 +107,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     >({
       type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
       payload: {
-        tables: tablesToBeRegistered,
+        tables: tablesToBeMounted,
       },
     });
 
@@ -120,7 +120,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
 
-    tablesToBeRegistered.forEach((table) => this.mountedTables.add(table.name));
+    tablesToBeMounted.forEach((table) => this.mountedTables.add(table.name));
   }
 
   async getFilesNameForTables(
