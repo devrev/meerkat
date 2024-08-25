@@ -46,6 +46,12 @@ export class ParallelMemoryFileManager
     this.onEvent = onEvent;
   }
 
+  private _emitEvent(event: DBMEvent) {
+    if (this.onEvent) {
+      this.onEvent(event);
+    }
+  }
+
   async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
     const promiseArr = fileBuffers.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
@@ -96,7 +102,6 @@ export class ParallelMemoryFileManager
   }
 
   async getTableBufferData(tables: TableConfig[]) {
-    console.info('getTableBufferData');
     const start = performance.now();
     const response = tables.flatMap((table) => {
       const tableFileBuffers = this.tableFileBuffersMap.get(table.name) ?? [];
@@ -112,7 +117,10 @@ export class ParallelMemoryFileManager
       });
     });
     const end = performance.now();
-    console.info('getTableBufferData time:', end - start);
+    this._emitEvent({
+      event_name: 'clone_buffer_duration',
+      duration: end - start,
+    });
     return response;
   }
 

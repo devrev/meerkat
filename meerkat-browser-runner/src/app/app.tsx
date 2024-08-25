@@ -49,8 +49,6 @@ export function App() {
   const uuid = urlParams.get('uuid');
   const origin = urlParams.get('origin');
 
-  console.info('origin', origin);
-
   const communicationRef = React.useRef<
     WindowCommunication<BrowserRunnerMessage>
   >(
