@@ -147,7 +147,6 @@ export class WindowCommunication<MessageType>
       this.logger.warn('IframeCommunication: iframe has no contentWindow');
       return Promise.reject();
     }
-    console.info('this._origin', this._origin);
     const uuid = uuidv4();
     const timestamp = Date.now();
     this._targetWindow.postMessage(
