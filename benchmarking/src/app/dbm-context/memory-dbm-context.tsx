@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
-import { useAsyncDuckDB } from './use-async-duckdb';
 
 export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
   const fileManagerRef = React.useRef<FileManagerType | null>(null);
@@ -13,10 +12,8 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
     new InstanceManager()
   );
 
-  const dbState = useAsyncDuckDB();
-
   useClassicEffect(() => {
-    if (!dbState) {
+    if (!instanceManagerRef.current) {
       return;
     }
     fileManagerRef.current = new MemoryDBFileManager({
@@ -39,7 +36,7 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
       },
     });
     setdbm(dbm);
-  }, [dbState]);
+  }, []);
 
   if (!dbm || !fileManagerRef.current) {
     return <div>Loading...</div>;
