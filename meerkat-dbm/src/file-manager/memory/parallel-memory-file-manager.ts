@@ -4,13 +4,31 @@ import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import { getBufferFromJSON } from '../../utils';
 import {
+  BaseFileStore,
   FileBufferStore,
   FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
 
-export class ParallelMemoryFileManager implements FileManagerType {
+export interface ParallelMemoryFileManagerType {
+  /**
+   *
+   * @description
+   * Retrieves the buffer data for the tables.
+   * @param tables - An array of tables.
+   * @returns An array of FileBufferStore objects.
+   */
+  getTableBufferData?: (tables: TableConfig[]) => Promise<
+    (BaseFileStore & {
+      buffer: Uint8Array;
+    })[]
+  >;
+}
+
+export class ParallelMemoryFileManager
+  implements ParallelMemoryFileManagerType, FileManagerType
+{
   private instanceManager: InstanceManagerType;
 
   private logger?: DBMLogger;
@@ -78,25 +96,13 @@ export class ParallelMemoryFileManager implements FileManagerType {
   }
 
   async getTableBufferData(tables: TableConfig[]) {
-    console.info('tableFileBuffersMap', this.tableFileBuffersMap);
-
-    // Return all the buffers
     return tables.flatMap((table) => {
       const tableFileBuffers = this.tableFileBuffersMap.get(table.name) ?? [];
 
-      return tableFileBuffers?.map((buffer) => {
-        // Create a SharedArrayBuffer with the same length as the original buffer
-        // const sharedBuffer = new SharedArrayBuffer(10);
-
-        // Create a new Uint8Array view of the SharedArrayBuffer
-        // const sharedArray = new Int32Array(buffer.buffer);
-
-        // Copy the contents of the original buffer to the shared array
-        // sharedArray.set(new Uint8Array(1));
-
+      return tableFileBuffers?.map((fileObj) => {
         return {
-          ...buffer,
-          buffer: buffer.buffer, // Expose as Uint8Array
+          ...fileObj,
+          buffer: fileObj.buffer,
         };
       });
     });
@@ -132,7 +138,18 @@ export class ParallelMemoryFileManager implements FileManagerType {
     // not needed for memory file manager
   }
 
+  private clearAllFileBuffers(): void {
+    for (const [tableName, fileBufferStores] of this.tableFileBuffersMap) {
+      const clearedStores = fileBufferStores.map((store) => ({
+        ...store,
+        buffer: new Uint8Array(0), // Replace with an empty buffer
+      }));
+      this.tableFileBuffersMap.set(tableName, clearedStores);
+    }
+  }
+
   async onDBShutdownHandler() {
-    // not needed for memory file manager
+    this.clearAllFileBuffers();
+    this.tableFileBuffersMap.clear();
   }
 }

@@ -9,12 +9,27 @@ import { IFrameManager } from './iframe-manager';
 
 export class IFrameRunnerManager {
   iFrameManagers: Map<string, IFrameManager> = new Map();
-  fetchTableFileBuffers: (tables: TableConfig[]) => Promise<FileBufferStore[]>;
+  private fetchTableFileBuffers: (
+    tables: TableConfig[]
+  ) => Promise<FileBufferStore[]>;
+  private totalRunners: number;
+  private iFrameReadyMap: Map<string, boolean> = new Map();
+  private resolvePromises: ((value: unknown) => void)[] = [];
 
-  iFrameReadyMap: Map<string, boolean> = new Map();
-  resolvePromise: ((value: unknown) => void) | null = null;
+  constructor({
+    fetchTableFileBuffers,
+    totalRunners = 2,
+  }: {
+    fetchTableFileBuffers: (
+      tables: TableConfig[]
+    ) => Promise<FileBufferStore[]>;
+    totalRunners: number;
+  }) {
+    this.totalRunners = totalRunners;
+    this.fetchTableFileBuffers = fetchTableFileBuffers;
+  }
 
-  addIFrameManager(uuid: string) {
+  private addIFrameManager(uuid: string) {
     this.iFrameReadyMap.set(uuid, false);
     this.iFrameManagers.set(
       uuid,
@@ -22,18 +37,32 @@ export class IFrameRunnerManager {
     );
   }
 
-  constructor({
-    fetchTableFileBuffers,
-  }: {
-    fetchTableFileBuffers: (
-      tables: TableConfig[]
-    ) => Promise<FileBufferStore[]>;
-  }) {
-    this.fetchTableFileBuffers = fetchTableFileBuffers;
-    this.addIFrameManager('1');
-    this.addIFrameManager('2');
-    this.addIFrameManager('3');
-    this.addIFrameManager('4');
+  private areRunnersRunning() {
+    /**
+     * Check if totalRunners are already created
+     */
+    return this.iFrameManagers.size === this.totalRunners;
+  }
+
+  public stopRunners() {
+    for (const [key, value] of this.iFrameManagers) {
+      value.destroy();
+      this.iFrameManagers.delete(key);
+    }
+    this.iFrameReadyMap.clear();
+  }
+
+  public startRunners() {
+    if (this.areRunnersRunning()) {
+      return;
+    }
+    for (let i = 0; i < this.totalRunners; i++) {
+      this.addIFrameManager(i.toString());
+    }
+  }
+
+  public getRunnerIds() {
+    return Array.from(this.iFrameManagers.keys());
   }
 
   public async isFrameRunnerReady() {
@@ -43,7 +72,7 @@ export class IFrameRunnerManager {
       return true;
     }
     const promiseObj = new Promise((resolve) => {
-      this.resolvePromise = resolve;
+      this.resolvePromises.push(resolve);
     });
 
     return promiseObj;
@@ -80,9 +109,10 @@ export class IFrameRunnerManager {
         console.info('IFrameReadyMap', this.iFrameReadyMap);
         //Check if all iframes are ready
         if (Array.from(this.iFrameReadyMap.values()).every((value) => value)) {
-          if (this.resolvePromise) {
+          if (this.resolvePromises.length > 0) {
             console.info('All iframes are ready');
-            this.resolvePromise(true);
+            this.resolvePromises.forEach((resolve) => resolve(true));
+            this.resolvePromises = [];
           }
         }
         break;

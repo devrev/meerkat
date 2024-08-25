@@ -1,17 +1,54 @@
 import {
   BROWSER_RUNNER_TYPE,
   BrowserRunnerMessage,
+  convertArrowTableToJSON,
   DBM,
   FileManagerType,
   RunnerMemoryDBFileManager,
   WindowCommunication,
 } from '@devrev/meerkat-dbm';
+
 import log from 'loglevel';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { InstanceManager } from './instance-manager';
+
+type EffectCallback = () => void | (() => void | undefined);
+
+function useEffectOnce(effect: EffectCallback): void {
+  const destroyFunc = useRef<void | (() => void | undefined)>();
+  const effectCalled = useRef(false);
+  const renderAfterCalled = useRef(false);
+  const [, setVal] = useState<number>(0);
+
+  if (effectCalled.current) {
+    renderAfterCalled.current = true;
+  }
+
+  useEffect(() => {
+    if (!effectCalled.current) {
+      destroyFunc.current = effect();
+      effectCalled.current = true;
+    }
+
+    setVal((val) => val + 1);
+
+    return () => {
+      if (!renderAfterCalled.current) {
+        return;
+      }
+      if (destroyFunc.current) {
+        destroyFunc.current();
+      }
+    };
+  }, []);
+}
 
 export function App() {
   const messageRefSet = React.useRef<boolean>(false);
+  const urlParams = new URLSearchParams(window.location.search);
+  const uuid = urlParams.get('uuid');
+  const origin = urlParams.get('origin');
+
   const communicationRef = React.useRef<
     WindowCommunication<BrowserRunnerMessage>
   >(
@@ -19,8 +56,7 @@ export function App() {
       app_name: 'RUNNER',
       origin: 'http://localhost:4200',
       targetApp: 'dbm',
-      // eslint-disable-next-line no-restricted-globals
-      targetWindow: parent,
+      targetWindow: window.parent,
     })
   );
   const instanceManagerRef = React.useRef<InstanceManager>(
@@ -51,23 +87,27 @@ export function App() {
     })
   );
 
-  useEffect(() => {
+  useEffectOnce(() => {
     if (!messageRefSet.current) {
       communicationRef.current.onMessage((message) => {
         switch (message.message.type) {
           case BROWSER_RUNNER_TYPE.EXEC_QUERY:
-            {
-              //Read ?uuid= from the URL
-              const urlParams = new URLSearchParams(window.location.search);
-              const uuid = urlParams.get('uuid');
-              console.info('EXEC_QUERY', uuid, message.message.payload.query);
-              dbmRef.current
-                .queryWithTables(message.message.payload)
-                .then((result) => {
-                  console.log('result', result);
-                  communicationRef.current.sendResponse(message.uuid, result);
+            dbmRef.current
+              .queryWithTables(message.message.payload)
+              .then((result: any) => {
+                communicationRef.current.sendResponse(message.uuid, {
+                  data: convertArrowTableToJSON(result),
+                  isError: false,
+                  error: null,
                 });
-            }
+              })
+              .catch((error) => {
+                communicationRef.current.sendResponse(message.uuid, {
+                  data: null,
+                  isError: true,
+                  error: error,
+                });
+              });
 
             break;
           default:
@@ -76,15 +116,17 @@ export function App() {
       });
       messageRefSet.current = true;
     }
-  }, []);
+  });
 
-  log.setLevel('DEBUG');
-
-  useEffect(() => {
-    communicationRef.current.sendRequestWithoutResponse({
-      type: BROWSER_RUNNER_TYPE.RUNNER_ON_READY,
-    });
-  }, []);
+  useEffectOnce(() => {
+    (async () => {
+      //Execute dummy query to check if the DB is ready
+      await dbmRef.current.query('SELECT 1');
+      communicationRef.current.sendRequestWithoutResponse({
+        type: BROWSER_RUNNER_TYPE.RUNNER_ON_READY,
+      });
+    })();
+  });
 
   return <div>Runners </div>;
 }
