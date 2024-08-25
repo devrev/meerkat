@@ -15,16 +15,24 @@ export class IFrameRunnerManager {
   private totalRunners: number;
   private iFrameReadyMap: Map<string, boolean> = new Map();
   private resolvePromises: ((value: unknown) => void)[] = [];
+  private origin: string;
+  private runnerURL: string;
 
   constructor({
+    runnerURL,
+    origin,
     fetchTableFileBuffers,
     totalRunners = 2,
   }: {
+    runnerURL: string;
+    origin: string;
     fetchTableFileBuffers: (
       tables: TableConfig[]
     ) => Promise<FileBufferStore[]>;
     totalRunners: number;
   }) {
+    this.runnerURL = runnerURL;
+    this.origin = origin;
     this.totalRunners = totalRunners;
     this.fetchTableFileBuffers = fetchTableFileBuffers;
   }
@@ -33,7 +41,12 @@ export class IFrameRunnerManager {
     this.iFrameReadyMap.set(uuid, false);
     this.iFrameManagers.set(
       uuid,
-      new IFrameManager(uuid, this.messageListener.bind(this))
+      new IFrameManager({
+        runnerURL: this.runnerURL,
+        origin: this.origin,
+        uuid,
+        onMessage: this.messageListener.bind(this),
+      })
     );
   }
 
