@@ -96,16 +96,24 @@ export class ParallelMemoryFileManager
   }
 
   async getTableBufferData(tables: TableConfig[]) {
-    return tables.flatMap((table) => {
+    console.info('getTableBufferData');
+    const start = performance.now();
+    const response = tables.flatMap((table) => {
       const tableFileBuffers = this.tableFileBuffersMap.get(table.name) ?? [];
 
       return tableFileBuffers?.map((fileObj) => {
+        const { buffer } = fileObj;
+        const bufferCopy = new Uint8Array(buffer.byteLength);
+        bufferCopy.set(buffer);
         return {
           ...fileObj,
-          buffer: fileObj.buffer,
+          buffer: bufferCopy,
         };
       });
     });
+    const end = performance.now();
+    console.info('getTableBufferData time:', end - start);
+    return response;
   }
 
   getFileBuffer(name: string): Promise<Uint8Array> {

@@ -49,12 +49,14 @@ export function App() {
   const uuid = urlParams.get('uuid');
   const origin = urlParams.get('origin');
 
+  console.info('origin', origin);
+
   const communicationRef = React.useRef<
     WindowCommunication<BrowserRunnerMessage>
   >(
     new WindowCommunication<BrowserRunnerMessage>({
       app_name: 'RUNNER',
-      origin: 'http://localhost:4200',
+      origin: origin as string,
       targetApp: 'dbm',
       targetWindow: window.parent,
     })

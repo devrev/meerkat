@@ -4,23 +4,33 @@ import {
   WindowMessage,
 } from '../../window-communication/window-communication';
 
+interface IFrameManagerConstructor {
+  runnerURL: string;
+  origin: string;
+  uuid: string;
+  onMessage: (
+    runnerId: string,
+    message: WindowMessage<BrowserRunnerMessage>
+  ) => any;
+}
+
 export class IFrameManager {
   iframe: HTMLIFrameElement;
   communication: WindowCommunication<BrowserRunnerMessage>;
 
-  constructor(
-    uuid: string,
-    onMessage: (
-      runnerId: string,
-      message: WindowMessage<BrowserRunnerMessage>
-    ) => any
-  ) {
+  constructor({
+    origin,
+    uuid,
+    onMessage,
+    runnerURL,
+  }: IFrameManagerConstructor) {
     this.iframe = document.createElement('iframe');
-    this.iframe.src = 'http://localhost:4205?uuid=' + uuid;
+    this.iframe.src = `${runnerURL}?uuid=` + uuid + '&origin=' + origin;
+    const runnerDomain = new URL(runnerURL).origin;
     document.body.appendChild(this.iframe);
     this.communication = new WindowCommunication<BrowserRunnerMessage>({
       targetWindow: this.iframe.contentWindow as Window,
-      origin: 'http://localhost:4205',
+      origin: runnerDomain,
       targetApp: 'RUNNER',
       app_name: 'dbm',
     });
