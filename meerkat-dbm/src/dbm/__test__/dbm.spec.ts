@@ -7,7 +7,7 @@ import {
 import { FileData, Table, TableWiseFiles } from '../../types';
 import { DBM } from '../dbm';
 import { DBMConstructorOptions, TableConfig } from '../types';
-import { InstanceManager } from './utils';
+import { InstanceManager } from './mock';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};

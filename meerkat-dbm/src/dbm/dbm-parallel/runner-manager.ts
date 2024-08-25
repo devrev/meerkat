@@ -66,7 +66,6 @@ export class IFrameRunnerManager {
   }
 
   public async isFrameRunnerReady() {
-    console.log('this.iFrameReadyMap', this.iFrameReadyMap);
     if (Array.from(this.iFrameReadyMap.values()).every((value) => value)) {
       console.info('All iframes are ready');
 
@@ -83,8 +82,6 @@ export class IFrameRunnerManager {
     runnerId: string,
     message: WindowMessage<BrowserRunnerMessage>
   ) {
-    console.log('message.message.type', message.message.type);
-
     switch (message.message.type) {
       case BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS:
         if (this.fetchTableFileBuffers) {

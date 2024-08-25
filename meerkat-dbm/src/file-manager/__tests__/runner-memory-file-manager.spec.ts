@@ -1,5 +1,5 @@
 import log from 'loglevel';
-import { InstanceManager } from '../../dbm/__test__/utils';
+import { InstanceManager } from '../../dbm/__test__/mock';
 import { BROWSER_RUNNER_TYPE } from '../../window-communication/runner-types';
 import { CommunicationInterface } from '../../window-communication/window-communication';
 import { RunnerMemoryDBFileManager } from '../memory/runner-memory-file-manager';
