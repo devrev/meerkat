@@ -13,7 +13,9 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         { responseType: 'arraybuffer' }
       );
       const fileBuffer = file.data;
-      const fileBufferView = new Uint8Array(fileBuffer);
+      const sharedBuffer = new SharedArrayBuffer(fileBuffer.byteLength);
+      const fileBufferView = new Uint8Array(sharedBuffer);
+      fileBufferView.set(new Uint8Array(fileBuffer));
 
       const jsonFile = await axios.get(
         'http://localhost:4200/data-sets/taxi.json',
@@ -24,14 +26,14 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
       await fileManager.registerFileBuffer({
         tableName: 'taxi',
         fileName: 'taxi.parquet',
-        buffer: fileBufferView,
+        buffer: sharedBuffer as any,
       });
 
-      await fileManager.registerJSON({
-        json: TAXI_JSON_DATA,
-        tableName: 'taxijson',
-        fileName: 'taxijson.parquet',
-      });
+      // await fileManager.registerJSON({
+      //   json: TAXI_JSON_DATA,
+      //   tableName: 'taxijson',
+      //   fileName: 'taxijson.parquet',
+      // });
 
       setIsFileLoader(true);
     })();

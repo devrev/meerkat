@@ -108,11 +108,11 @@ export class ParallelMemoryFileManager
 
       return tableFileBuffers?.map((fileObj) => {
         const { buffer } = fileObj;
-        const bufferCopy = new Uint8Array(buffer.byteLength);
-        bufferCopy.set(buffer);
+        // const bufferCopy = new Uint8Array(buffer.byteLength);
+        // bufferCopy.set(buffer);
         return {
           ...fileObj,
-          buffer: bufferCopy,
+          buffer: buffer,
         };
       });
     });

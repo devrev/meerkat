@@ -51,6 +51,8 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     const url = new URL(window.location.href);
     const uuid = url.searchParams.get('uuid');
 
+    console.info('registerFileBuffer', props.fileName, props.buffer);
+
     instanceManager.registerFileBuffer(props.fileName, props.buffer);
   }
 
@@ -99,10 +101,11 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     // Return there are no tables to register
     if (tablesToBeMounted.length === 0) return;
 
+    const start = performance.now();
     // Fetch file buffers for the tables to be registered
     const fileBuffersResponse = await this.communication.sendRequest<
       (BaseFileStore & {
-        buffer: Uint8Array;
+        buffer: SharedArrayBuffer;
       })[]
     >({
       type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
@@ -111,11 +114,23 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
       },
     });
 
-    const tableBuffers = fileBuffersResponse.message;
+    const tableSharedBuffers = fileBuffersResponse.message;
+    //Copy the buffer to its own memory
+    const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
+      // Create a new Uint8Array with the same length
+      const newBuffer = new Uint8Array(tableBuffer.buffer.byteLength);
 
-    //Get UUID from URL
-    const url = new URL(window.location.href);
-    const uuid = url.searchParams.get('uuid');
+      // Copy the data from the SharedArrayBuffer to the new Uint8Array
+      newBuffer.set(new Uint8Array(tableBuffer.buffer));
+
+      return {
+        ...tableBuffer,
+        buffer: newBuffer,
+      };
+    });
+
+    const end = performance.now();
+    console.info('Time taken to clone buffer', end - start);
 
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
