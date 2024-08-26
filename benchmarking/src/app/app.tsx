@@ -16,7 +16,7 @@ export function App() {
             <div>
               <h1>Raw DuckDB</h1>
               <RawDBMProvider>
-                <FileLoader>
+                <FileLoader bufferType="uint8Array">
                   <QueryBenchmarking />
                 </FileLoader>
               </RawDBMProvider>
@@ -30,7 +30,7 @@ export function App() {
               <h1>In Memory Sequence DuckDB</h1>
 
               <MemoryDBMProvider>
-                <FileLoader>
+                <FileLoader bufferType="uint8Array">
                   <QueryBenchmarking />
                 </FileLoader>
               </MemoryDBMProvider>
@@ -43,7 +43,7 @@ export function App() {
             <div>
               <h1>IndexedDB DuckDB</h1>
               <IndexedDBMProvider>
-                <FileLoader>
+                <FileLoader bufferType="uint8Array">
                   <QueryBenchmarking />
                 </FileLoader>
               </IndexedDBMProvider>
@@ -56,7 +56,7 @@ export function App() {
             <div>
               <h1>Parallel Memory DuckDB</h1>
               <ParallelMemoryDBMProvider>
-                <FileLoader>
+                <FileLoader bufferType="sharedArrayBuffer">
                   <QueryBenchmarking />
                 </FileLoader>
               </ParallelMemoryDBMProvider>
