@@ -11,7 +11,9 @@ import { IFrameManager } from './iframe-manager';
 export interface IFrameRunnerManagerConstructor {
   runnerURL: string;
   origin: string;
-  fetchTableFileBuffers: (tables: TableConfig[]) => Promise<FileBufferStore[]>;
+  fetchTableFileBuffers: (
+    tables: TableConfig[]
+  ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
   totalRunners: number;
   logger: DBMLogger;
   onEvent?: (event: DBMEvent) => void;
@@ -32,7 +34,7 @@ export class IFrameRunnerManager {
   iFrameManagers: Map<string, IFrameManager> = new Map();
   private fetchTableFileBuffers: (
     tables: TableConfig[]
-  ) => Promise<FileBufferStore[]>;
+  ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
   private totalRunners: number;
   private iFrameReadyMap: Map<string, boolean> = new Map();
   private resolvePromises: ((value: unknown) => void)[] = [];

@@ -103,6 +103,7 @@ export class DBMParallel {
     options?: QueryOptions;
   }) {
     try {
+      const start = performance.now();
       /**
        * Tracking the number of active queries to shutdown the DB after inactivity
        */
@@ -144,6 +145,9 @@ export class DBMParallel {
           }
         );
 
+      const end = performance.now();
+      this.logger.info(`Time to execute by DBM Parallel`, end - start);
+
       /**
        * The implementation is based on postMessage API, so we don't have the ability to throw an error from the runner
        * We have to check the response and throw an error if isError is true
@@ -151,6 +155,7 @@ export class DBMParallel {
       if (response.message.isError) {
         throw new Error(response.message.error);
       }
+
       return response.message.data;
     } catch (error) {
       this.logger.error('Error while executing query', error);

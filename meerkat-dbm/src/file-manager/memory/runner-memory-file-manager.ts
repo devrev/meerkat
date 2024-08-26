@@ -89,6 +89,10 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
+    /**
+     * Filter out the tables that are not already mounted
+     * TODO: We should check the file buffer is already mounted or not, for now we are just checking the table name
+     */
     const tablesToBeMounted = tables.filter(
       (table) => !this.mountedTables.has(table.name)
     );
@@ -97,7 +101,9 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     if (tablesToBeMounted.length === 0) return;
 
     const start = performance.now();
-    // Fetch file buffers for the tables to be registered
+    /**
+     * Get the file buffers for the tables from the main app
+     */
     const fileBuffersResponse = await this.communication.sendRequest<
       (BaseFileStore & {
         buffer: SharedArrayBuffer;
@@ -110,12 +116,13 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
 
     const tableSharedBuffers = fileBuffersResponse.message;
-    //Copy the buffer to its own memory
-    const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
-      // Create a new Uint8Array with the same length
-      const newBuffer = new Uint8Array(tableBuffer.buffer.byteLength);
 
-      // Copy the data from the SharedArrayBuffer to the new Uint8Array
+    const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
+      /**
+       * Clone the buffer as the duckdb can't work with shared buffers
+       * This is running in the iframe
+       */
+      const newBuffer = new Uint8Array(tableBuffer.buffer.byteLength);
       newBuffer.set(new Uint8Array(tableBuffer.buffer));
 
       return {

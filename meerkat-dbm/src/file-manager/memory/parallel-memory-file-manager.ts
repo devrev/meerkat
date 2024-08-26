@@ -21,20 +21,23 @@ export interface ParallelMemoryFileManagerType {
    */
   getTableBufferData?: (tables: TableConfig[]) => Promise<
     (BaseFileStore & {
-      buffer: Uint8Array;
+      buffer: SharedArrayBuffer;
     })[]
   >;
 }
 
 export class ParallelMemoryFileManager
-  implements ParallelMemoryFileManagerType, FileManagerType
+  implements ParallelMemoryFileManagerType, FileManagerType<SharedArrayBuffer>
 {
   private instanceManager: InstanceManagerType;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
 
-  private tableFileBuffersMap: Map<string, FileBufferStore[]> = new Map();
+  private tableFileBuffersMap: Map<
+    string,
+    FileBufferStore<SharedArrayBuffer>[]
+  > = new Map();
 
   constructor({
     instanceManager,
@@ -52,14 +55,18 @@ export class ParallelMemoryFileManager
     }
   }
 
-  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
+  async bulkRegisterFileBuffer(
+    fileBuffers: FileBufferStore<SharedArrayBuffer>[]
+  ): Promise<void> {
     const promiseArr = fileBuffers.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
     );
     await Promise.all(promiseArr);
   }
 
-  async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
+  async registerFileBuffer(
+    fileBuffer: FileBufferStore<SharedArrayBuffer>
+  ): Promise<void> {
     const existingFiles =
       this.tableFileBuffersMap.get(fileBuffer.tableName) || [];
 
@@ -95,36 +102,25 @@ export class ParallelMemoryFileManager
      * Register buffer in DB
      */
     await this.registerFileBuffer({
-      buffer: bufferData,
+      /**
+       * TODO: Add types here
+       */
+      buffer: bufferData as any,
       tableName,
       ...fileData,
     });
   }
 
   async getTableBufferData(tables: TableConfig[]) {
-    const start = performance.now();
     const response = tables.flatMap((table) => {
       const tableFileBuffers = this.tableFileBuffersMap.get(table.name) ?? [];
 
-      return tableFileBuffers?.map((fileObj) => {
-        const { buffer } = fileObj;
-        // const bufferCopy = new Uint8Array(buffer.byteLength);
-        // bufferCopy.set(buffer);
-        return {
-          ...fileObj,
-          buffer: buffer,
-        };
-      });
-    });
-    const end = performance.now();
-    this._emitEvent({
-      event_name: 'clone_buffer_duration',
-      duration: end - start,
+      return tableFileBuffers;
     });
     return response;
   }
 
-  getFileBuffer(name: string): Promise<Uint8Array> {
+  getFileBuffer(name: string): Promise<SharedArrayBuffer> {
     throw new Error('Method not implemented.');
   }
 
@@ -158,7 +154,7 @@ export class ParallelMemoryFileManager
     for (const [tableName, fileBufferStores] of this.tableFileBuffersMap) {
       const clearedStores = fileBufferStores.map((store) => ({
         ...store,
-        buffer: new Uint8Array(0), // Replace with an empty buffer
+        buffer: new SharedArrayBuffer(0), // Replace with an empty buffer
       }));
       this.tableFileBuffersMap.set(tableName, clearedStores);
     }

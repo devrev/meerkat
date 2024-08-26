@@ -4,6 +4,8 @@ import {
   convertArrowTableToJSON,
   DBM,
   FileManagerType,
+  getMainAppName,
+  getRunnerAppName,
   RunnerMemoryDBFileManager,
   WindowCommunication,
 } from '@devrev/meerkat-dbm';
@@ -57,9 +59,9 @@ export function App() {
     WindowCommunication<BrowserRunnerMessage>
   >(
     new WindowCommunication<BrowserRunnerMessage>({
-      app_name: getAppName('RUNNER', uuid),
+      app_name: getRunnerAppName(uuid),
       origin: origin as string,
-      targetApp: getAppName('DBM', uuid),
+      targetApp: getMainAppName(uuid),
       targetWindow: window.parent,
     })
   );

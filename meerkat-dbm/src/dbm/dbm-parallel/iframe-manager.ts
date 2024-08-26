@@ -1,3 +1,7 @@
+import {
+  getMainAppName,
+  getRunnerAppName,
+} from '../../utils/parallel-dbm-utils/get-app-name';
 import { BrowserRunnerMessage } from '../../window-communication/runner-types';
 import {
   WindowCommunication,
@@ -37,8 +41,8 @@ export class IFrameManager {
     this.communication = new WindowCommunication<BrowserRunnerMessage>({
       targetWindow: this.iframe.contentWindow as Window,
       origin: runnerDomain,
-      targetApp: getAppName('RUNNER', uuid),
-      app_name: getAppName('DBM', uuid),
+      targetApp: getRunnerAppName(uuid),
+      app_name: getMainAppName(uuid),
     });
     this.iframe.style.visibility = 'hidden';
     this.communication.onMessage((message) => onMessage(uuid, message));
