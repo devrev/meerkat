@@ -2,7 +2,10 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import { getBufferFromJSON } from '../../utils';
+import {
+  convertUint8ArrayToSharedArrayBuffer,
+  getBufferFromJSON,
+} from '../../utils';
 import {
   BaseFileStore,
   FileBufferStore,
@@ -91,11 +94,12 @@ export class ParallelMemoryFileManager
       metadata: jsonData.metadata,
     });
 
+    const sharedArrayBuffer = convertUint8ArrayToSharedArrayBuffer(bufferData);
     /**
      * Register buffer in DB
      */
     await this.registerFileBuffer({
-      buffer: bufferData,
+      buffer: sharedArrayBuffer as any,
       tableName,
       ...fileData,
     });
@@ -116,6 +120,7 @@ export class ParallelMemoryFileManager
         };
       });
     });
+
     const end = performance.now();
     this._emitEvent({
       event_name: 'clone_buffer_duration',

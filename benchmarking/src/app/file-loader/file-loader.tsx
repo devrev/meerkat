@@ -29,11 +29,11 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         buffer: sharedBuffer as any,
       });
 
-      // await fileManager.registerJSON({
-      //   json: TAXI_JSON_DATA,
-      //   tableName: 'taxijson',
-      //   fileName: 'taxijson.parquet',
-      // });
+      await fileManager.registerJSON({
+        json: TAXI_JSON_DATA,
+        tableName: 'taxijson',
+        fileName: 'taxijson.parquet',
+      });
 
       setIsFileLoader(true);
     })();

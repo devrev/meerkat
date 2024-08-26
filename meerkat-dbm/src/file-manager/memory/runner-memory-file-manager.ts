@@ -2,7 +2,7 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import { getBufferFromJSON } from '../../utils';
+import { getBufferFromJSON, sharedArrayBufferToUint8Array } from '../../utils';
 import {
   BROWSER_RUNNER_TYPE,
   BrowserRunnerMessage,
@@ -50,8 +50,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     // get ?uuid= from url
     const url = new URL(window.location.href);
     const uuid = url.searchParams.get('uuid');
-
-    console.info('registerFileBuffer', props.fileName, props.buffer);
 
     await instanceManager.registerFileBuffer(props.fileName, props.buffer);
   }
@@ -118,10 +116,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     //Copy the buffer to its own memory
     const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
       // Create a new Uint8Array with the same length
-      const newBuffer = new Uint8Array(tableBuffer.buffer.byteLength);
-
-      // Copy the data from the SharedArrayBuffer to the new Uint8Array
-      newBuffer.set(new Uint8Array(tableBuffer.buffer));
+      const newBuffer = sharedArrayBufferToUint8Array(tableBuffer.buffer);
 
       return {
         ...tableBuffer,
