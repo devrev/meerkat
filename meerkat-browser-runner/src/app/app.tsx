@@ -74,7 +74,10 @@ export function App() {
       },
       logger: log,
       onEvent: (event) => {
-        console.info(event);
+        communicationRef.current.sendRequestWithoutResponse({
+          type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
+          payload: event,
+        });
       },
       communication: communicationRef.current,
     })
@@ -86,7 +89,10 @@ export function App() {
       fileManager: fileManagerRef.current,
       logger: log,
       onEvent: (event) => {
-        console.info(event);
+        communicationRef.current.sendRequestWithoutResponse({
+          type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
+          payload: event,
+        });
       },
     })
   );

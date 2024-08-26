@@ -1,4 +1,5 @@
 import { FileBufferStore } from '../../file-manager/file-manager-type';
+import { DBMEvent, DBMLogger } from '../../logger';
 import {
   BROWSER_RUNNER_TYPE,
   BrowserRunnerMessage,
@@ -6,6 +7,26 @@ import {
 import { WindowMessage } from '../../window-communication/window-communication';
 import { TableConfig } from '../types';
 import { IFrameManager } from './iframe-manager';
+
+export interface IFrameRunnerManagerConstructor {
+  runnerURL: string;
+  origin: string;
+  fetchTableFileBuffers: (tables: TableConfig[]) => Promise<FileBufferStore[]>;
+  totalRunners: number;
+  logger: DBMLogger;
+  onEvent?: (event: DBMEvent) => void;
+}
+
+/**
+ * This class is responsible for managing the iframe runners.
+ * Some of the responsibilities include:
+ * - Creating iframe runners
+ * - Sending messages to iframe runners
+ * - Listening to messages from iframe runners
+ * - Destroying iframe runners
+ * - Managing the state of iframe runners
+ * - Managing the communication between the main thread and iframe runners
+ */
 
 export class IFrameRunnerManager {
   iFrameManagers: Map<string, IFrameManager> = new Map();
@@ -17,20 +38,19 @@ export class IFrameRunnerManager {
   private resolvePromises: ((value: unknown) => void)[] = [];
   private origin: string;
   private runnerURL: string;
+  private logger: DBMLogger;
+  private onEvent?: (event: DBMEvent) => void;
 
   constructor({
     runnerURL,
     origin,
     fetchTableFileBuffers,
     totalRunners = 2,
-  }: {
-    runnerURL: string;
-    origin: string;
-    fetchTableFileBuffers: (
-      tables: TableConfig[]
-    ) => Promise<FileBufferStore[]>;
-    totalRunners: number;
-  }) {
+    logger,
+    onEvent,
+  }: IFrameRunnerManagerConstructor) {
+    this.logger = logger;
+    this.onEvent = onEvent;
     this.runnerURL = runnerURL;
     this.origin = origin;
     this.totalRunners = totalRunners;
@@ -78,9 +98,12 @@ export class IFrameRunnerManager {
     return Array.from(this.iFrameManagers.keys());
   }
 
+  /**
+   * A promise that resolves when all the iframes are ready
+   */
   public async isFrameRunnerReady() {
     if (Array.from(this.iFrameReadyMap.values()).every((value) => value)) {
-      console.info('All iframes are ready');
+      this.logger.info('All iframes are ready');
 
       return true;
     }
@@ -104,7 +127,6 @@ export class IFrameRunnerManager {
               if (!manager) {
                 return;
               }
-              console.info('Sending response', runnerId, result);
               manager.communication.sendResponse(message.uuid, result);
             }
           );
@@ -114,16 +136,23 @@ export class IFrameRunnerManager {
       case BROWSER_RUNNER_TYPE.RUNNER_ON_READY: {
         this.iFrameReadyMap.set(runnerId, true);
 
-        //Check if all iframes are ready
+        /**
+         * If all the iframes are ready, resolve all the promises
+         */
         if (Array.from(this.iFrameReadyMap.values()).every((value) => value)) {
           if (this.resolvePromises.length > 0) {
-            console.info('All iframes are ready');
             this.resolvePromises.forEach((resolve) => resolve(true));
             this.resolvePromises = [];
           }
         }
         break;
       }
+
+      case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT:
+        if (this.onEvent) {
+          this.onEvent(message.message.payload);
+        }
+        break;
 
       default:
         break;

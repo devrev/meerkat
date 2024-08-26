@@ -43,6 +43,10 @@ export const ParallelMemoryDBMProvider = ({
       fetchTableFileBuffers: async (table) => {
         return fileManagerRef.current.getTableBufferData(table);
       },
+      onEvent: (event) => {
+        console.info(event);
+      },
+      logger: log,
     });
 
     const dbm = new DBMParallel({

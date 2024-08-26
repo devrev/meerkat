@@ -100,14 +100,14 @@ export class WindowCommunication<MessageType>
 
   private registerMessageListener() {
     window.addEventListener('message', (event) => {
-      // if (event.origin !== this._origin) {
-      //   this.logger.warn(
-      //     'IframeCommunication: origin mismatch',
-      //     event.origin,
-      //     this._origin
-      //   );
-      //   return;
-      // }
+      if (event.origin !== this._origin) {
+        this.logger.warn(
+          'IframeCommunication: origin mismatch',
+          event.origin,
+          this._origin
+        );
+        return;
+      }
       if (event.data.target_app !== this.app_name) {
         this.logger.warn(
           'IframeCommunication: target_app mismatch',
@@ -205,14 +205,14 @@ export class WindowCommunication<MessageType>
 
   public onMessage(callback: (message: WindowMessage<MessageType>) => void) {
     window.addEventListener('message', (event) => {
-      // if (event.origin !== this._origin) {
-      //   this.logger.warn(
-      //     'IframeCommunication: origin mismatch',
-      //     event.origin,
-      //     this._origin
-      //   );
-      //   return;
-      // }
+      if (event.origin !== this._origin) {
+        this.logger.warn(
+          'IframeCommunication: origin mismatch',
+          event.origin,
+          this._origin
+        );
+        return;
+      }
       if (event.data.target_app !== this.app_name) {
         this.logger.warn(
           'IframeCommunication: target_app mismatch',

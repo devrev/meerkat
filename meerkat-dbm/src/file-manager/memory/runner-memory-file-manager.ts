@@ -47,11 +47,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   async registerFileBuffer(props: FileBufferStore): Promise<void> {
     const instanceManager = await this.instanceManager.getDB();
-    // get ?uuid= from url
-    const url = new URL(window.location.href);
-    const uuid = url.searchParams.get('uuid');
-
-    console.info('registerFileBuffer', props.fileName, props.buffer);
 
     await instanceManager.registerFileBuffer(props.fileName, props.buffer);
   }
@@ -130,7 +125,10 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
 
     const end = performance.now();
-    console.info('Time taken to clone buffer', end - start);
+    this.onEvent?.({
+      event_name: 'clone_buffer_duration',
+      duration: end - start,
+    });
 
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
