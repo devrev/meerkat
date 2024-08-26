@@ -14,6 +14,10 @@ import { InstanceManager } from './instance-manager';
 
 type EffectCallback = () => void | (() => void | undefined);
 
+function getAppName(appId: string, uuid: string) {
+  return appId + '__' + uuid;
+}
+
 function useEffectOnce(effect: EffectCallback): void {
   const destroyFunc = useRef<void | (() => void | undefined)>();
   const effectCalled = useRef(false);
@@ -46,16 +50,16 @@ function useEffectOnce(effect: EffectCallback): void {
 export function App() {
   const messageRefSet = React.useRef<boolean>(false);
   const urlParams = new URLSearchParams(window.location.search);
-  const uuid = urlParams.get('uuid');
+  const uuid = urlParams.get('uuid') ?? '';
   const origin = urlParams.get('origin');
 
   const communicationRef = React.useRef<
     WindowCommunication<BrowserRunnerMessage>
   >(
     new WindowCommunication<BrowserRunnerMessage>({
-      app_name: 'RUNNER',
+      app_name: getAppName('RUNNER', uuid),
       origin: origin as string,
-      targetApp: 'dbm',
+      targetApp: getAppName('DBM', uuid),
       targetWindow: window.parent,
     })
   );

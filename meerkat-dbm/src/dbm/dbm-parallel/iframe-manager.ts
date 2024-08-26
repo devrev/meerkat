@@ -14,6 +14,10 @@ interface IFrameManagerConstructor {
   ) => any;
 }
 
+function getAppName(appId: string, uuid: string) {
+  return appId + '__' + uuid;
+}
+
 export class IFrameManager {
   iframe: HTMLIFrameElement;
   communication: WindowCommunication<BrowserRunnerMessage>;
@@ -33,8 +37,8 @@ export class IFrameManager {
     this.communication = new WindowCommunication<BrowserRunnerMessage>({
       targetWindow: this.iframe.contentWindow as Window,
       origin: runnerDomain,
-      targetApp: 'RUNNER',
-      app_name: 'dbm',
+      targetApp: getAppName('RUNNER', uuid),
+      app_name: getAppName('DBM', uuid),
     });
     this.iframe.style.visibility = 'hidden';
     this.communication.onMessage((message) => onMessage(uuid, message));
