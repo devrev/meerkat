@@ -53,7 +53,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
     console.info('registerFileBuffer', props.fileName, props.buffer);
 
-    instanceManager.registerFileBuffer(props.fileName, props.buffer);
+    await instanceManager.registerFileBuffer(props.fileName, props.buffer);
   }
 
   async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
