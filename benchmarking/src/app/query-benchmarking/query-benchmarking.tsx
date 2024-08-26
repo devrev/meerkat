@@ -19,26 +19,12 @@ export const QueryBenchmarking = () => {
     setOutput([]);
     const promiseArr = [];
     const start = performance.now();
-    //Read the query params from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const shardStr = urlParams.get('shard');
-    const shard = shardStr ? parseInt(shardStr) : 1;
-    //Split the TEST_QUERIES into 2 parts
-    const splitIndex = Math.floor(TEST_QUERIES.length / 2);
-    const testQueriesP1 = TEST_QUERIES.slice(0, splitIndex);
-    const testQueriesP2 = TEST_QUERIES.slice(splitIndex);
-    const testQueries = !shardStr
-      ? TEST_QUERIES
-      : shard === 1
-      ? testQueriesP1
-      : testQueriesP2;
-
-    for (let i = 0; i < testQueries.length; i++) {
+    for (let i = 0; i < TEST_QUERIES.length; i++) {
       const eachQueryStart = performance.now();
 
       const promiseObj = dbm
         .queryWithTables({
-          query: testQueries[i],
+          query: TEST_QUERIES[i],
           tables: [{ name: 'taxi' }, { name: 'taxijson' }],
         })
         .then((results) => {

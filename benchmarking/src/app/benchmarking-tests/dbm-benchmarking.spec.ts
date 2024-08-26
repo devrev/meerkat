@@ -108,8 +108,8 @@ describe('Benchmarking DBMs', () => {
     expect(totalTimeForIndexedDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
   }, 300000);
 
-  it('Benchmark parallel dbm duckdb', async () => {
-    await page.goto('http://localhost:4200/parallel-dbm');
+  it('Benchmark parallel memory dbm duckdb', async () => {
+    await page.goto('http://localhost:4200/parallel-memory-dbm');
     /**
      * wait for total time to be render
      */
@@ -117,16 +117,17 @@ describe('Benchmarking DBMs', () => {
     /**
      * Get the total time as number
      */
-    const totalTimeForParallelDBM = await page.$eval('#total_time', (el) =>
-      Number(el.textContent)
+    const totalTimeForParallelMemoryDBM = await page.$eval(
+      '#total_time',
+      (el) => Number(el.textContent)
     );
 
-    console.info('totalTimeForParallelDBM', totalTimeForParallelDBM);
+    console.info('totalTimeForParallelDBM', totalTimeForParallelMemoryDBM);
 
     /**
-     * The total diff between indexed dbm and memory dbm should be less than 30%
+     * The total diff between parallel memory dbm and memory dbm should be less than
      */
-    expect(totalTimeForParallelDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
+    expect(totalTimeForParallelMemoryDBM).toBeLessThan(totalTimeForMemoryDB);
   }, 300000);
 
   afterAll(async () => {
