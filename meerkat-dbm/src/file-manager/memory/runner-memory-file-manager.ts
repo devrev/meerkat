@@ -50,9 +50,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   async registerFileBuffer(props: FileBufferStore): Promise<void> {
     const instanceManager = await this.instanceManager.getDB();
-    // get ?uuid= from url
-    const url = new URL(window.location.href);
-    const uuid = url.searchParams.get('uuid');
 
     await instanceManager.registerFileBuffer(props.fileName, props.buffer);
   }
@@ -95,6 +92,10 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
+    /**
+     * Filter out the tables that are not already mounted
+     * TODO: We should check the file buffer is already mounted or not, for now we are just checking the table name
+     */
     const tablesToBeMounted = tables.filter(
       (table) => !this.mountedTables.has(table.name)
     );
@@ -103,7 +104,9 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     if (tablesToBeMounted.length === 0) return;
 
     const start = performance.now();
-    // Fetch file buffers for the tables to be registered
+    /**
+     * Get the file buffers for the tables from the main app
+     */
     const fileBuffersResponse = await this.communication.sendRequest<
       (BaseFileStore & {
         buffer: SharedArrayBuffer;
@@ -130,7 +133,10 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
 
     const end = performance.now();
-    console.info('Time taken to clone buffer', end - start);
+    this.onEvent?.({
+      event_name: 'clone_buffer_duration',
+      duration: end - start,
+    });
 
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
