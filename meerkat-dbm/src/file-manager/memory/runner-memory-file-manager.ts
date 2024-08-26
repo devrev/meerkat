@@ -18,6 +18,7 @@ import {
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
+
 export class RunnerMemoryDBFileManager implements FileManagerType {
   private instanceManager: InstanceManagerType;
   private communication: CommunicationInterface<BrowserRunnerMessage>;
@@ -92,10 +93,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    /**
-     * Filter out the tables that are not already mounted
-     * TODO: We should check the file buffer is already mounted or not, for now we are just checking the table name
-     */
     const tablesToBeMounted = tables.filter(
       (table) => !this.mountedTables.has(table.name)
     );
@@ -104,6 +101,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     if (tablesToBeMounted.length === 0) return;
 
     const start = performance.now();
+
     /**
      * Get the file buffers for the tables from the main app
      */
@@ -119,6 +117,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
 
     const tableSharedBuffers = fileBuffersResponse.message;
+
     //Copy the buffer to its own memory
     const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
       // Create a new Uint8Array with the same length
@@ -141,6 +140,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
 
+    // Add the tables to the mounted tables
     tablesToBeMounted.forEach((table) => this.mountedTables.add(table.name));
   }
 
@@ -158,6 +158,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   async setTableMetadata(table: string, metadata: object): Promise<void> {
     // not needed for memory file manager
+    return;
   }
 
   async dropFilesByTableName(
@@ -165,9 +166,11 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     fileNames: string[]
   ): Promise<void> {
     // not needed for memory file manager
+    return;
   }
 
   async onDBShutdownHandler() {
     // not needed for memory file manager
+    return;
   }
 }

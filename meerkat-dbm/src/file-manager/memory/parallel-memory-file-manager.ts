@@ -52,12 +52,6 @@ export class ParallelMemoryFileManager
     this.onEvent = onEvent;
   }
 
-  private _emitEvent(event: DBMEvent) {
-    if (this.onEvent) {
-      this.onEvent(event);
-    }
-  }
-
   async bulkRegisterFileBuffer(
     fileBuffers: FileBufferStore<SharedArrayBuffer>[]
   ): Promise<void> {
