@@ -2,7 +2,7 @@ import log from 'loglevel';
 import { FileManagerType } from '../../file-manager/file-manager-type';
 import { DBM } from '../dbm';
 import { DBMConstructorOptions } from '../types';
-import { InstanceManager, MockFileManager } from './mock.spec';
+import { InstanceManager, MockFileManager } from './mock';
 
 describe('DBM', () => {
   let fileManager: FileManagerType;

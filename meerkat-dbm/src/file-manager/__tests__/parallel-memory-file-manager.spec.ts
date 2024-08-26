@@ -1,5 +1,5 @@
 import log from 'loglevel';
-import { InstanceManager } from '../../dbm/__test__/mock.spec';
+import { InstanceManager } from '../../dbm/__test__/mock';
 import { FileBufferStore } from '../file-manager-type';
 import { ParallelMemoryFileManager } from '../memory/parallel-memory-file-manager';
 

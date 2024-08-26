@@ -3,7 +3,7 @@ import { DBMLogger } from '../../logger/logger-types';
 import { BROWSER_RUNNER_TYPE } from '../../window-communication/runner-types';
 import { DBMParallel } from '../dbm-parallel/dbm-parallel';
 import { IFrameRunnerManager } from '../dbm-parallel/runner-manager';
-import { InstanceManager, MockFileManager } from './mock.spec';
+import { InstanceManager, MockFileManager } from './mock';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 //@ts-ignore
