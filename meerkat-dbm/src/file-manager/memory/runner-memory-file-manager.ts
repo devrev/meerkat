@@ -158,7 +158,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   async setTableMetadata(table: string, metadata: object): Promise<void> {
     // not needed for memory file manager
-    return;
   }
 
   async dropFilesByTableName(
@@ -166,11 +165,9 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     fileNames: string[]
   ): Promise<void> {
     // not needed for memory file manager
-    return;
   }
 
   async onDBShutdownHandler() {
     // not needed for memory file manager
-    return;
   }
 }
