@@ -49,11 +49,11 @@ export class InstanceManager implements InstanceManagerType {
   }
 }
 
-export class MockFileManager implements FileManagerType {
-  private fileBufferStore: Record<string, FileBufferStore> = {};
+export class MockFileManager<T> implements FileManagerType<T> {
+  private fileBufferStore: Record<string, FileBufferStore<T>> = {};
   private tables: Record<string, Table> = {};
 
-  async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
+  async bulkRegisterFileBuffer(props: FileBufferStore<T>[]): Promise<void> {
     for (const prop of props) {
       this.fileBufferStore[prop.fileName] = prop;
       this.tables[prop.tableName] = this.tables[prop.tableName] || {
@@ -63,7 +63,7 @@ export class MockFileManager implements FileManagerType {
     }
   }
 
-  async registerFileBuffer(prop: FileBufferStore): Promise<void> {
+  async registerFileBuffer(prop: FileBufferStore<T>): Promise<void> {
     this.fileBufferStore[prop.fileName] = prop;
     this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
     this.tables[prop.tableName].files.push(prop);
@@ -80,11 +80,11 @@ export class MockFileManager implements FileManagerType {
 
     this.registerFileBuffer({
       ...fileData,
-      buffer: new Uint8Array(),
+      buffer: [] as T,
     });
   }
 
-  async getFileBuffer(name: string): Promise<Uint8Array> {
+  async getFileBuffer(name: string): Promise<T> {
     const fileBuffer = this.fileBufferStore[name];
     if (!fileBuffer) {
       throw new Error(`File buffer for ${name} not found`);

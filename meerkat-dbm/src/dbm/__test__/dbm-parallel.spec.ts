@@ -31,7 +31,7 @@ iFrameRunnerManager.iFrameManagers.set('2', runnerMock as any);
 
 describe('DBMParallel', () => {
   let dbmParallel: DBMParallel;
-  let fileManager: FileManagerType;
+  let fileManager: FileManagerType<SharedArrayBuffer>;
   let instanceManager: InstanceManager;
 
   beforeAll(async () => {
