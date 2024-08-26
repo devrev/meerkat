@@ -73,7 +73,7 @@ export const ParallelMemoryDBMProvider = ({
     <DBMContext.Provider
       value={{
         dbm,
-        fileManager: fileManagerRef.current,
+        fileManager: fileManagerRef.current as any,
       }}
     >
       {children}

@@ -26,7 +26,7 @@ const roundRobin = (
 };
 
 export class DBMParallel {
-  private fileManager: FileManagerType;
+  private fileManager: FileManagerType<SharedArrayBuffer>;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
@@ -44,7 +44,7 @@ export class DBMParallel {
     instanceManager,
     onDuckDBShutdown,
     iFrameRunnerManager,
-  }: DBMConstructorOptions & {
+  }: DBMConstructorOptions<SharedArrayBuffer> & {
     iFrameRunnerManager: IFrameRunnerManager;
   }) {
     this.fileManager = fileManager;
