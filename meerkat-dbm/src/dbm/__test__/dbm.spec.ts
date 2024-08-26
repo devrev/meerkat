@@ -1,8 +1,125 @@
 import log from 'loglevel';
-import { FileManagerType } from '../../file-manager/file-manager-type';
+import {
+  FileBufferStore,
+  FileJsonStore,
+  FileManagerType,
+} from '../../file-manager/file-manager-type';
+import { FileData, Table, TableWiseFiles } from '../../types';
 import { DBM } from '../dbm';
-import { DBMConstructorOptions } from '../types';
-import { InstanceManager, MockFileManager } from './mock';
+import { DBMConstructorOptions, TableConfig } from '../types';
+import { InstanceManager } from './mock';
+
+export class MockFileManager<T> implements FileManagerType<T> {
+  private fileBufferStore: Record<string, FileBufferStore<T>> = {};
+  private tables: Record<string, Table> = {};
+
+  async bulkRegisterFileBuffer(props: FileBufferStore<T>[]): Promise<void> {
+    for (const prop of props) {
+      this.fileBufferStore[prop.fileName] = prop;
+      this.tables[prop.tableName] = this.tables[prop.tableName] || {
+        files: [],
+      };
+      this.tables[prop.tableName].files.push(...props);
+    }
+  }
+
+  async registerFileBuffer(prop: FileBufferStore<T>): Promise<void> {
+    this.fileBufferStore[prop.fileName] = prop;
+    this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
+    this.tables[prop.tableName].files.push(prop);
+  }
+
+  async bulkRegisterJSON(props: FileJsonStore[]): Promise<void> {
+    for (const prop of props) {
+      await this.registerJSON(prop);
+    }
+  }
+
+  async registerJSON(prop: FileJsonStore): Promise<void> {
+    const { json, ...fileData } = prop;
+
+    this.registerFileBuffer({
+      ...fileData,
+      buffer: [] as T,
+    });
+  }
+
+  async getFileBuffer(name: string): Promise<T> {
+    const fileBuffer = this.fileBufferStore[name];
+    if (!fileBuffer) {
+      throw new Error(`File buffer for ${name} not found`);
+    }
+    return fileBuffer.buffer;
+  }
+
+  async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
+    const tableNames = tables.map((table) => table.name);
+    for (const tableName of tableNames) {
+      for (const key in this.fileBufferStore) {
+        if (this.fileBufferStore[key].tableName === tableName) {
+          // mount operation here
+          console.log(`Mounted file buffer for ${key}`);
+        }
+      }
+    }
+  }
+
+  async getFilesByTableName(tableName: string): Promise<FileData[]> {
+    const files: FileData[] = [];
+
+    for (const key in this.fileBufferStore) {
+      if (this.fileBufferStore[key].tableName === tableName) {
+        files.push({ fileName: key });
+      }
+    }
+
+    return files;
+  }
+
+  async dropFilesByTableName(
+    tableName: string,
+    fileNames: string[]
+  ): Promise<void> {
+    for (const fileName of fileNames) {
+      delete this.fileBufferStore[fileName];
+    }
+  }
+
+  async getFilesNameForTables(
+    tableNames: TableConfig[]
+  ): Promise<TableWiseFiles[]> {
+    const data: TableWiseFiles[] = [];
+
+    for (const { name: tableName } of tableNames) {
+      const files: FileData[] = [];
+
+      for (const key in this.fileBufferStore) {
+        if (this.fileBufferStore[key].tableName === tableName) {
+          files.push({ fileName: key });
+        }
+      }
+
+      data.push({
+        tableName,
+        files,
+      });
+    }
+
+    return data;
+  }
+
+  async getTableData(table: TableConfig): Promise<Table | undefined> {
+    return this.tables[table.name];
+  }
+
+  async setTableMetadata(table: string, metadata: object): Promise<void> {
+    this.tables[table].metadata = metadata;
+  }
+
+  onDBShutdownHandler = jest.fn(async () => {
+    // do nothing
+  });
+}
 
 describe('DBM', () => {
   let fileManager: FileManagerType;
