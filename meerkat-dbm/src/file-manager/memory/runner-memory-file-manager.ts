@@ -2,7 +2,10 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import { getBufferFromJSON } from '../../utils';
+import {
+  convertSharedArrayBufferToUint8Array,
+  getBufferFromJSON,
+} from '../../utils';
 import {
   BROWSER_RUNNER_TYPE,
   BrowserRunnerMessage,
@@ -116,14 +119,12 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
 
     const tableSharedBuffers = fileBuffersResponse.message;
-
+    //Copy the buffer to its own memory
     const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
-      /**
-       * Clone the buffer as the duckdb can't work with shared buffers
-       * This is running in the iframe
-       */
-      const newBuffer = new Uint8Array(tableBuffer.buffer.byteLength);
-      newBuffer.set(new Uint8Array(tableBuffer.buffer));
+      // Create a new Uint8Array with the same length
+      const newBuffer = convertSharedArrayBufferToUint8Array(
+        tableBuffer.buffer
+      );
 
       return {
         ...tableBuffer,

@@ -2,7 +2,10 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import { getBufferFromJSON } from '../../utils';
+import {
+  convertUint8ArrayToSharedArrayBuffer,
+  getBufferFromJSON,
+} from '../../utils';
 import {
   BaseFileStore,
   FileBufferStore,
@@ -98,6 +101,7 @@ export class ParallelMemoryFileManager
       metadata: jsonData.metadata,
     });
 
+    const sharedArrayBuffer = convertUint8ArrayToSharedArrayBuffer(bufferData);
     /**
      * Register buffer in DB
      */
@@ -105,7 +109,7 @@ export class ParallelMemoryFileManager
       /**
        * TODO: Add types here
        */
-      buffer: bufferData as any,
+      buffer: sharedArrayBuffer as any,
       tableName,
       ...fileData,
     });
