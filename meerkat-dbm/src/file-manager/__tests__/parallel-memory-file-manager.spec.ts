@@ -7,10 +7,10 @@ describe('ParallelMemoryFileManager', () => {
   let instanceManager: InstanceManager;
   let fileManager: ParallelMemoryFileManager;
 
-  const fileBuffer: FileBufferStore = {
+  const fileBuffer: FileBufferStore<SharedArrayBuffer> = {
     tableName: 'table1',
     fileName: 'file1.parquet',
-    buffer: new Uint8Array([1, 2, 3]),
+    buffer: new SharedArrayBuffer(5),
   };
 
   beforeEach(() => {
@@ -44,16 +44,16 @@ describe('ParallelMemoryFileManager', () => {
   });
 
   it('should register multiple file buffers', async () => {
-    const fileBuffers: FileBufferStore[] = [
+    const fileBuffers: FileBufferStore<SharedArrayBuffer>[] = [
       {
         tableName: 'table1',
         fileName: 'file1.parquet',
-        buffer: new Uint8Array([1, 2, 3]),
+        buffer: new SharedArrayBuffer(3),
       },
       {
         tableName: 'table2',
         fileName: 'file2.parquet',
-        buffer: new Uint8Array([4, 5, 6]),
+        buffer: new SharedArrayBuffer(3),
       },
     ];
 

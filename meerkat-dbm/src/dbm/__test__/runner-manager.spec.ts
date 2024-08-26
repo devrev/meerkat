@@ -1,3 +1,4 @@
+import log from 'loglevel';
 import { BROWSER_RUNNER_TYPE } from '../../window-communication/runner-types';
 import { IFrameRunnerManager } from '../dbm-parallel/runner-manager';
 
@@ -29,6 +30,9 @@ describe('IFrameRunnerManager', () => {
     manager = new IFrameRunnerManager({
       fetchTableFileBuffers: fetchTableFileBuffersMock,
       totalRunners: 1,
+      logger: log,
+      runnerURL: 'http://localhost:3000',
+      origin: 'http://localhost:3001',
     });
   });
 
