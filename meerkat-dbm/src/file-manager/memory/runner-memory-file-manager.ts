@@ -100,7 +100,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
     // Return there are no tables to register
     if (tablesToBeMounted.length === 0) return;
-    console.log('fetchTableFileBuffers tablesToBeMounted', tablesToBeMounted);
+
     const start = performance.now();
     // Fetch file buffers for the tables to be registered
     const fileBuffersResponse = await this.communication.sendRequest<
