@@ -1,5 +1,5 @@
-import log from 'loglevel';
 import { FileManagerType } from '../../file-manager/file-manager-type';
+import { DBMLogger } from '../../logger/logger-types';
 import { BROWSER_RUNNER_TYPE } from '../../window-communication/runner-types';
 import { DBMParallel } from '../dbm-parallel/dbm-parallel';
 import { IFrameRunnerManager } from '../dbm-parallel/runner-manager';
@@ -14,6 +14,12 @@ const iFrameRunnerManager: IFrameRunnerManager = {
   isFrameRunnerReady: jest.fn().mockResolvedValue(true),
   iFrameManagers: new Map(),
 };
+
+const loggerMock = {
+  debug: jest.fn(),
+  error: jest.fn(),
+  info: jest.fn(),
+} as unknown as DBMLogger;
 
 const runnerMock = {
   communication: {
@@ -37,7 +43,7 @@ describe('DBMParallel', () => {
   beforeEach(() => {
     dbmParallel = new DBMParallel({
       fileManager,
-      logger: log,
+      logger: loggerMock,
       options: { shutdownInactiveTime: 1000 },
       iFrameRunnerManager,
       instanceManager: instanceManager,
