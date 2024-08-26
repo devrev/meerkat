@@ -111,6 +111,8 @@ export class DBMParallel {
         throw new Error('No runner found');
       }
 
+      console.warn('query', query, runner.uuid);
+
       const response =
         await runner.communication.sendRequest<BrowserRunnerExecQueryMessageResponse>(
           {

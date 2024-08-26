@@ -2,6 +2,7 @@
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
+import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig({
   cacheDir: '../node_modules/.vite/meerkat-browser-runner',
@@ -26,7 +27,7 @@ export default defineConfig({
     },
   },
 
-  plugins: [react(), nxViteTsPaths()],
+  plugins: [react(), nxViteTsPaths(), viteSingleFile()],
 
   // Uncomment this if you are using workers.
   // worker: {

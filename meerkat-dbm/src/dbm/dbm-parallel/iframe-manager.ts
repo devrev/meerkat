@@ -17,6 +17,7 @@ interface IFrameManagerConstructor {
 export class IFrameManager {
   iframe: HTMLIFrameElement;
   communication: WindowCommunication<BrowserRunnerMessage>;
+  uuid: string;
 
   constructor({
     origin,
@@ -24,6 +25,7 @@ export class IFrameManager {
     onMessage,
     runnerURL,
   }: IFrameManagerConstructor) {
+    this.uuid = uuid;
     this.iframe = document.createElement('iframe');
     this.iframe.src = `${runnerURL}?uuid=` + uuid + '&origin=' + origin;
     const runnerDomain = new URL(runnerURL).origin;

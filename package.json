@@ -25,7 +25,8 @@
     "react-dom": "18.2.0",
     "react-router-dom": "^6.19.0",
     "tslib": "^2.3.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "vite-plugin-singlefile": "^0.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.14.5",
