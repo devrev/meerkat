@@ -416,7 +416,7 @@ export class DBM {
     return promise;
   }
 
-  async query(query: string) {
+  async query(query: string): Promise<any> {
     /**
      * Get the connection or create a new one
      */
