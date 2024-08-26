@@ -16,10 +16,6 @@ import { InstanceManager } from './instance-manager';
 
 type EffectCallback = () => void | (() => void | undefined);
 
-function getAppName(appId: string, uuid: string) {
-  return appId + '__' + uuid;
-}
-
 function useEffectOnce(effect: EffectCallback): void {
   const destroyFunc = useRef<void | (() => void | undefined)>();
   const effectCalled = useRef(false);
