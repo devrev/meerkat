@@ -24,7 +24,7 @@ export const convertUint8ArrayToSharedArrayBuffer = (buffer: Uint8Array) => {
  * @param sharedBuffer - The SharedArrayBuffer to be converted.
  * @returns A Uint8Array containing the same data as the input SharedArrayBuffer.
  */
-export const sharedArrayBufferToUint8Array = (
+export const convertSharedArrayBufferToUint8Array = (
   sharedBuffer: SharedArrayBuffer
 ) => {
   // Create a new Uint8Array with the same length as the SharedArrayBuffer
