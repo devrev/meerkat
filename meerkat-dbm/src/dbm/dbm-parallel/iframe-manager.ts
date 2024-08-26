@@ -18,10 +18,6 @@ interface IFrameManagerConstructor {
   ) => any;
 }
 
-function getAppName(appId: string, uuid: string) {
-  return appId + '__' + uuid;
-}
-
 export class IFrameManager {
   iframe: HTMLIFrameElement;
   communication: WindowCommunication<BrowserRunnerMessage>;
@@ -38,13 +34,19 @@ export class IFrameManager {
     this.iframe.src = `${runnerURL}?uuid=` + uuid + '&origin=' + origin;
     const runnerDomain = new URL(runnerURL).origin;
     document.body.appendChild(this.iframe);
+
+    //Move the iframe out of the screen
+    this.iframe.style.position = 'absolute';
+    this.iframe.style.left = '-10000px';
+    this.iframe.style.top = '0';
+    this.iframe.style.visibility = 'hidden';
+
     this.communication = new WindowCommunication<BrowserRunnerMessage>({
       targetWindow: this.iframe.contentWindow as Window,
       origin: runnerDomain,
       targetApp: getRunnerAppName(uuid),
       app_name: getMainAppName(uuid),
     });
-    this.iframe.style.visibility = 'hidden';
     this.communication.onMessage((message) => onMessage(uuid, message));
   }
 
