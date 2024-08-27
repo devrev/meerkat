@@ -28,9 +28,9 @@ export interface BrowserRunnerExecQueryMessage {
 }
 
 export interface BrowserRunnerExecQueryMessageResponse {
-  data: any;
+  data: Record<string, unknown>[];
   isError: boolean;
-  error: any;
+  error: string;
 }
 
 export interface BrowserRunnerDestroyMessage {
