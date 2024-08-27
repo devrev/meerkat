@@ -8,21 +8,12 @@ import { DBMConstructorOptions, QueryOptions, TableConfig } from '../types';
 import { IFrameRunnerManager } from './runner-manager';
 
 //Round Robin for multiple runners like 10
-const roundRobin = (
-  counter: number,
-  maxValue: number
-): {
-  counter: number;
-} => {
+const roundRobin = (counter: number, maxValue: number): number => {
   if (counter === maxValue) {
-    return {
-      counter: 0,
-    };
+    return 0;
   }
 
-  return {
-    counter: counter + 1,
-  };
+  return counter + 1;
 };
 
 export class DBMParallel {
@@ -117,7 +108,7 @@ export class DBMParallel {
        * A simple round-robin to select the runner
        */
       const runners = this.iFrameRunnerManager.getRunnerIds();
-      this.counter = roundRobin(this.counter, runners.length - 1).counter;
+      this.counter = roundRobin(this.counter, runners.length - 1);
 
       const runner = this.iFrameRunnerManager.iFrameManagers.get(
         runners[this.counter]

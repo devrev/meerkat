@@ -1,13 +1,15 @@
 import { Field, Type, vectorFromArray } from 'apache-arrow';
 
-import { convertArrowValueToJS } from './duck-type-convertor';
+import { convertArrowValueToJS } from '../duck-type-convertor';
 
 const FIELD = {
   metadata: {},
   name: 'null',
   nullable: true,
   type: {
-    children: [{ metadata: {}, name: 'null', nullable: true, typeId: Type.Utf8 }],
+    children: [
+      { metadata: {}, name: 'null', nullable: true, typeId: Type.Utf8 },
+    ],
   },
 };
 
@@ -44,7 +46,9 @@ const DECIMAL_FIELD = {
 const LIST_INT_FIELD = {
   ...FIELD,
   type: {
-    children: [{ metadata: {}, name: 'null', nullable: true, typeId: Type.Int }],
+    children: [
+      { metadata: {}, name: 'null', nullable: true, typeId: Type.Int },
+    ],
   },
   typeId: Type.List,
 } as Field;
@@ -52,7 +56,9 @@ const LIST_INT_FIELD = {
 const LIST_UTF8_FIELD = {
   ...FIELD,
   type: {
-    children: [{ metadata: {}, name: 'null', nullable: true, typeId: Type.Utf8 }],
+    children: [
+      { metadata: {}, name: 'null', nullable: true, typeId: Type.Utf8 },
+    ],
   },
   typeId: Type.List,
 } as Field;
@@ -111,13 +117,17 @@ const duckDBComplexTypeConvertorArray = [
 describe('DuckDBTypeConvertor', () => {
   it('should convert to duckdb to check for simple types', () => {
     duckDbSimpleTypeConvertorArray.forEach((item) => {
-      expect(convertArrowValueToJS(item.field, item.input)).toStrictEqual(item.output);
+      expect(convertArrowValueToJS(item.field, item.input)).toStrictEqual(
+        item.output
+      );
     });
   });
 
   it('should convert to duckdb to check for complex types', () => {
     duckDBComplexTypeConvertorArray.forEach((item) => {
-      expect(convertArrowValueToJS(item.field, item.input)).toStrictEqual(item.output);
+      expect(convertArrowValueToJS(item.field, item.input)).toStrictEqual(
+        item.output
+      );
     });
   });
 });

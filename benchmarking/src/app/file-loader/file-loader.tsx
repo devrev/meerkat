@@ -1,3 +1,4 @@
+import { convertUint8ArrayToSharedArrayBuffer } from '@devrev/meerkat-dbm';
 import axios from 'axios';
 import { useState } from 'react';
 import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
@@ -25,9 +26,7 @@ export const FileLoader = ({
       const fileBuffer = file.data;
 
       if (bufferType === 'sharedArrayBuffer') {
-        const sharedBuffer = new SharedArrayBuffer(fileBuffer.byteLength);
-        const fileBufferView = new Uint8Array(sharedBuffer);
-        fileBufferView.set(new Uint8Array(fileBuffer));
+        const sharedBuffer = convertUint8ArrayToSharedArrayBuffer(fileBuffer);
 
         await fileManager.registerFileBuffer({
           tableName: 'taxi',
