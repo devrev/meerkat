@@ -11,7 +11,7 @@ import {
 } from '@devrev/meerkat-dbm';
 
 import log from 'loglevel';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { InstanceManager } from './instance-manager';
 
 type EffectCallback = () => void | (() => void | undefined);
@@ -46,77 +46,82 @@ function useEffectOnce(effect: EffectCallback): void {
 }
 
 export function App() {
-  const messageRefSet = React.useRef<boolean>(false);
+  const messageRefSet = useRef<boolean>(false);
+
+  const communicationRef = useRef<WindowCommunication<BrowserRunnerMessage>>();
+  const instanceManagerRef = useRef<InstanceManager>();
+  const fileManagerRef = useRef<FileManagerType>();
+  const dbmRef = useRef<DBM>();
+
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid') ?? '';
   const origin = urlParams.get('origin');
 
-  const communicationRef = React.useRef<
-    WindowCommunication<BrowserRunnerMessage>
-  >(
-    new WindowCommunication<BrowserRunnerMessage>({
-      app_name: getRunnerAppName(uuid),
-      origin: origin as string,
-      targetApp: getMainAppName(uuid),
-      targetWindow: window.parent,
-    })
-  );
-  const instanceManagerRef = React.useRef<InstanceManager>(
-    new InstanceManager()
-  );
-  const fileManagerRef = React.useRef<FileManagerType>(
-    new RunnerMemoryDBFileManager({
-      instanceManager: instanceManagerRef.current,
-      fetchTableFileBuffers: async (table) => {
-        return [];
-      },
-      logger: log,
-      onEvent: (event) => {
-        communicationRef.current.sendRequestWithoutResponse({
-          type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
-          payload: event,
-        });
-      },
-      communication: communicationRef.current,
-    })
-  );
+  useEffect(() => {
+    if (!communicationRef.current) {
+      communicationRef.current = new WindowCommunication<BrowserRunnerMessage>({
+        app_name: getRunnerAppName(uuid),
+        origin: origin as string,
+        targetApp: getMainAppName(uuid),
+        targetWindow: window.parent,
+      });
+    }
 
-  const dbmRef = React.useRef<DBM>(
-    new DBM({
-      instanceManager: instanceManagerRef.current,
-      fileManager: fileManagerRef.current,
-      logger: log,
-      onEvent: (event) => {
-        communicationRef.current.sendRequestWithoutResponse({
-          type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
-          payload: event,
-        });
-      },
-    })
-  );
+    if (!instanceManagerRef.current) {
+      instanceManagerRef.current = new InstanceManager();
+    }
+
+    if (!fileManagerRef.current) {
+      fileManagerRef.current = new RunnerMemoryDBFileManager({
+        instanceManager: instanceManagerRef.current,
+        fetchTableFileBuffers: async () => [],
+        logger: log,
+        onEvent: (event) => {
+          communicationRef.current?.sendRequestWithoutResponse({
+            type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
+            payload: event,
+          });
+        },
+        communication: communicationRef.current,
+      });
+    }
+
+    if (!dbmRef.current) {
+      dbmRef.current = new DBM({
+        instanceManager: instanceManagerRef.current,
+        fileManager: fileManagerRef.current,
+        logger: log,
+        onEvent: (event) => {
+          communicationRef.current?.sendRequestWithoutResponse({
+            type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
+            payload: event,
+          });
+        },
+      });
+    }
+  }, [origin, uuid]);
 
   useEffectOnce(() => {
     if (!messageRefSet.current) {
-      communicationRef.current.onMessage((message) => {
+      communicationRef.current?.onMessage((message) => {
         switch (message.message.type) {
           case BROWSER_RUNNER_TYPE.EXEC_QUERY:
             dbmRef.current
-              .queryWithTables(message.message.payload)
+              ?.queryWithTables(message.message.payload)
               .then((result: any) => {
-                communicationRef.current.sendResponse(message.uuid, {
+                communicationRef.current?.sendResponse(message.uuid, {
                   data: convertArrowTableToJSON(result),
                   isError: false,
                   error: null,
                 });
               })
               .catch((error) => {
-                communicationRef.current.sendResponse(message.uuid, {
+                communicationRef.current?.sendResponse(message.uuid, {
                   data: null,
                   isError: true,
                   error: error,
                 });
               });
-
             break;
           default:
             break;
@@ -129,8 +134,8 @@ export function App() {
   useEffectOnce(() => {
     (async () => {
       //Execute dummy query to check if the DB is ready
-      await dbmRef.current.query('SELECT 1');
-      communicationRef.current.sendRequestWithoutResponse({
+      await dbmRef.current?.query('SELECT 1');
+      communicationRef.current?.sendRequestWithoutResponse({
         type: BROWSER_RUNNER_TYPE.RUNNER_ON_READY,
       });
     })();
