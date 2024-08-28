@@ -75,8 +75,8 @@ export class WindowCommunication<MessageType>
     this._origin = origin;
     this._targetApp = targetApp;
     this.registerMessageListener();
-    //Garbage collector every 30 seconds
-    this.gcRunnerIntervalRef = setInterval(this.gc, 1000 * 60 * 5);
+    //Garbage collector every 10 mins
+    this.gcRunnerIntervalRef = setInterval(this.gc, 1000 * 60 * 10);
     this.logger = new Logger({ app_name: this.app_name });
   }
 
