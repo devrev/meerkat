@@ -4,7 +4,8 @@ export interface DurationEvents {
     | 'mount_file_buffer_duration'
     | 'unmount_file_buffer_duration'
     | 'query_queue_duration'
-    | 'json_to_buffer_conversion_duration';
+    | 'json_to_buffer_conversion_duration'
+    | 'clone_buffer_duration';
   duration: number;
 }
 

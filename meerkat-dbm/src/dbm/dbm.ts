@@ -1,6 +1,6 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
+import { Table } from 'apache-arrow/table';
 import { v4 as uuidv4 } from 'uuid';
-
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { InstanceManagerType } from './instance-manager';
@@ -416,7 +416,7 @@ export class DBM {
     return promise;
   }
 
-  async query(query: string) {
+  async query(query: string): Promise<Table<any>> {
     /**
      * Get the connection or create a new one
      */

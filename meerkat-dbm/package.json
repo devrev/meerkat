@@ -1,12 +1,14 @@
 {
   "name": "@devrev/meerkat-dbm",
-  "version": "0.0.162",
+  "version": "0.1.0",
   "dependencies": {
     "tslib": "^2.3.0",
     "@duckdb/duckdb-wasm": "^1.28.0",
     "dexie": "^3.2.4",
     "loglevel": "^1.8.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "apache-arrow": "^13.0.0",
+    "lodash": "^4.17.21"
   },
   "repository": {
     "type": "git",
