@@ -57,49 +57,47 @@ export function App() {
   const uuid = urlParams.get('uuid') ?? '';
   const origin = urlParams.get('origin');
 
-  useEffect(() => {
-    if (!communicationRef.current) {
-      communicationRef.current = new WindowCommunication<BrowserRunnerMessage>({
-        app_name: getRunnerAppName(uuid),
-        origin: origin as string,
-        targetApp: getMainAppName(uuid),
-        targetWindow: window.parent,
-      });
-    }
+  if (!communicationRef.current) {
+    communicationRef.current = new WindowCommunication<BrowserRunnerMessage>({
+      app_name: getRunnerAppName(uuid),
+      origin: origin as string,
+      targetApp: getMainAppName(uuid),
+      targetWindow: window.parent,
+    });
+  }
 
-    if (!instanceManagerRef.current) {
-      instanceManagerRef.current = new InstanceManager();
-    }
+  if (!instanceManagerRef.current) {
+    instanceManagerRef.current = new InstanceManager();
+  }
 
-    if (!fileManagerRef.current) {
-      fileManagerRef.current = new RunnerMemoryDBFileManager({
-        instanceManager: instanceManagerRef.current,
-        fetchTableFileBuffers: async () => [],
-        logger: log,
-        onEvent: (event) => {
-          communicationRef.current?.sendRequestWithoutResponse({
-            type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
-            payload: event,
-          });
-        },
-        communication: communicationRef.current,
-      });
-    }
+  if (!fileManagerRef.current) {
+    fileManagerRef.current = new RunnerMemoryDBFileManager({
+      instanceManager: instanceManagerRef.current,
+      fetchTableFileBuffers: async () => [],
+      logger: log,
+      onEvent: (event) => {
+        communicationRef.current?.sendRequestWithoutResponse({
+          type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
+          payload: event,
+        });
+      },
+      communication: communicationRef.current,
+    });
+  }
 
-    if (!dbmRef.current) {
-      dbmRef.current = new DBM({
-        instanceManager: instanceManagerRef.current,
-        fileManager: fileManagerRef.current,
-        logger: log,
-        onEvent: (event) => {
-          communicationRef.current?.sendRequestWithoutResponse({
-            type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
-            payload: event,
-          });
-        },
-      });
-    }
-  }, [origin, uuid]);
+  if (!dbmRef.current) {
+    dbmRef.current = new DBM({
+      instanceManager: instanceManagerRef.current,
+      fileManager: fileManagerRef.current,
+      logger: log,
+      onEvent: (event) => {
+        communicationRef.current?.sendRequestWithoutResponse({
+          type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
+          payload: event,
+        });
+      },
+    });
+  }
 
   useEffectOnce(() => {
     if (!messageRefSet.current) {
