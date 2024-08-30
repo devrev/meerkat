@@ -103,7 +103,6 @@ export function App() {
   useEffectOnce(() => {
     if (!messageRefSet.current) {
       communicationRef.current?.onMessage((message) => {
-        console.log('inside iframe runner', message);
         switch (message.message.type) {
           case BROWSER_RUNNER_TYPE.EXEC_QUERY:
             dbmRef.current
