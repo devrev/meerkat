@@ -11,6 +11,7 @@ import {
 } from '@devrev/meerkat-dbm';
 
 import log from 'loglevel';
+import { TableWiseFiles } from 'meerkat-dbm/src/types';
 import { useEffect, useRef, useState } from 'react';
 import { InstanceManager } from './duck-db/instance-manager';
 
@@ -105,7 +106,28 @@ export function App() {
         switch (message.message.type) {
           case BROWSER_RUNNER_TYPE.EXEC_QUERY:
             dbmRef.current
-              ?.queryWithTables(message.message.payload)
+              ?.queryWithTables({
+                ...message.message.payload,
+                options: {
+                  ...message.message.payload.options,
+                  preQuery: async (tableWiseFiles: TableWiseFiles[]) => {
+                    const preQueryMessage =
+                      await communicationRef.current?.sendRequest<string[]>({
+                        type: BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY,
+                        payload: {
+                          runnerId: uuid,
+                          tableWiseFiles: tableWiseFiles,
+                        },
+                      });
+
+                    const preQueries: string[] = preQueryMessage?.message ?? [];
+
+                    for (const preQuery of preQueries) {
+                      await dbmRef.current?.query(preQuery);
+                    }
+                  },
+                },
+              })
               .then((result: any) => {
                 communicationRef.current?.sendResponse(message.uuid, {
                   data: convertArrowTableToJSON(result),

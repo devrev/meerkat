@@ -43,6 +43,9 @@ export const ParallelMemoryDBMProvider = ({
       fetchTableFileBuffers: async (table) => {
         return fileManagerRef.current.getTableBufferData(table);
       },
+      fetchPreQuery: () => {
+        return [];
+      },
       onEvent: (event) => {
         console.info(event);
       },
