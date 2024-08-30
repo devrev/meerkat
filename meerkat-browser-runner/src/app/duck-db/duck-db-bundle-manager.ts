@@ -4,7 +4,6 @@ import duckdb_wasm from '@devrev/duckdb-wasm/dist/duckdb-mvp.wasm?url';
 
 class DuckDbBundleManager {
   private inputBundles: DuckDBBundles;
-  private bundles: DuckDBBundle | undefined;
   private static instance: DuckDbBundleManager;
   private bundleResolverPromise: Promise<DuckDBBundle> | undefined;
 
@@ -20,7 +19,6 @@ class DuckDbBundleManager {
     return new Promise((resolve, reject) => {
       selectBundle(this.inputBundles)
         .then((bundle) => {
-          this.bundles = bundle;
           resolve(bundle);
         })
         .catch((error) => reject(error));
