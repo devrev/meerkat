@@ -162,7 +162,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     const tableNames = tables.map((table) => table.name);
 
     return tableNames.map((tableName) => {
-      const files = this.tableFilesMap.get(tableName) ?? [];
+      const files = this.mountedTablesMap.get(tableName) ?? [];
 
       return {
         tableName,
