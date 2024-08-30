@@ -3,16 +3,15 @@ import { DBMEvent } from '../logger';
 import { TableWiseFiles } from '../types';
 
 export const BROWSER_RUNNER_TYPE = {
-  RUNNER_ON_READY: 'RUNNER_ON_READY',
-  EXEC_QUERY: 'EXEC_QUERY',
   DESTROY: 'DESTROY',
+  EXEC_QUERY: 'EXEC_QUERY',
   RUNNER_GET_FILE_BUFFERS: 'RUNNER_GET_FILE_BUFFERS',
-  RUNNER_PRE_QUERY: 'RUNNER_PRE_QUERY',
   RUNNER_ON_EVENT: 'RUNNER_ON_EVENT',
+  RUNNER_ON_READY: 'RUNNER_ON_READY',
+  RUNNER_PRE_QUERY: 'RUNNER_PRE_QUERY',
 } as const;
 
-export type BrowserRunnerMessageType =
-  (typeof BROWSER_RUNNER_TYPE)[keyof typeof BROWSER_RUNNER_TYPE];
+export type BrowserRunnerMessageType = (typeof BROWSER_RUNNER_TYPE)[keyof typeof BROWSER_RUNNER_TYPE];
 
 export interface BrowserRunnerOnReadyMessage {
   type: typeof BROWSER_RUNNER_TYPE.RUNNER_ON_READY;
@@ -45,7 +44,7 @@ export interface BrowserRunnerGetFileBuffersMessage {
 }
 
 export interface BrowserRunnerPreQueryMessage {
-  type: typeof BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY;
+  type: typeof BROWSER_RUNNER_TYPE.tablesFileData;
   payload: {
     tablesFileData: TableWiseFiles[];
   };

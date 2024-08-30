@@ -25,7 +25,8 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
-  private mountedTables: Set<string> = new Set();
+
+  private tableFilesMap: Map<string, BaseFileStore[]> = new Map();
 
   constructor({
     instanceManager,
@@ -94,11 +95,13 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tablesToBeMounted = tables.filter(
-      (table) => !this.mountedTables.has(table.name)
+      (table) => !this.tableFilesMap.has(table.name)
     );
 
     // Return there are no tables to register
     if (tablesToBeMounted.length === 0) return;
+
+    const tablesFilesMap: Map<string, string[]> = new Map();
 
     const start = performance.now();
 
@@ -125,6 +128,11 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
         tableBuffer.buffer
       );
 
+      // Add the file to the table files map
+      const files = tablesFilesMap.get(tableBuffer.tableName) ?? [];
+      files.push(tableBuffer.fileName);
+      tablesFilesMap.set(tableBuffer.tableName, files);
+
       return {
         ...tableBuffer,
         buffer: newBuffer,
@@ -140,15 +148,28 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
 
-    // Add the tables to the mounted tables
-    tablesToBeMounted.forEach((table) => this.mountedTables.add(table.name));
+    // Add the files to the table files map
+    tablesFilesMap.forEach((files, tableName) => {
+      this.tableFilesMap.set(
+        tableName,
+        files.map((fileName) => ({ fileName, tableName }))
+      );
+    });
   }
 
   async getFilesNameForTables(
     tables: TableConfig[]
   ): Promise<TableWiseFiles[]> {
-    // not needed for memory file manager
-    return [];
+    const tableNames = tables.map((table) => table.name);
+
+    return tableNames.map((tableName) => {
+      const files = this.tableFilesMap.get(tableName) ?? [];
+
+      return {
+        tableName,
+        files,
+      };
+    });
   }
 
   async getTableData(table: TableConfig): Promise<Table | undefined> {
