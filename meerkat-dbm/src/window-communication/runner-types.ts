@@ -47,7 +47,7 @@ export interface BrowserRunnerGetFileBuffersMessage {
 export interface BrowserRunnerPreQueryMessage {
   type: typeof BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY;
   payload: {
-    tablesFileData: TableWiseFiles[];
+    tableWiseFiles: TableWiseFiles[];
   };
 }
 

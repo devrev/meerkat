@@ -33,6 +33,7 @@ describe('IFrameRunnerManager', () => {
       logger: log,
       runnerURL: 'http://localhost:3000',
       origin: 'http://localhost:3001',
+      fetchPreQuery: jest.fn(),
     });
   });
 

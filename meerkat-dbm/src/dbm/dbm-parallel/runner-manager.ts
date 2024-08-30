@@ -1,5 +1,6 @@
 import { FileBufferStore } from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
+import { TableWiseFiles } from '../../types';
 import {
   BROWSER_RUNNER_TYPE,
   BrowserRunnerMessage,
@@ -14,6 +15,10 @@ export interface IFrameRunnerManagerConstructor {
   fetchTableFileBuffers: (
     tables: TableConfig[]
   ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
+  fetchPreQuery: (
+    runnerId: string,
+    tableWiseFiles: TableWiseFiles[]
+  ) => string[];
   totalRunners: number;
   logger: DBMLogger;
   onEvent?: (event: DBMEvent) => void;
@@ -32,9 +37,6 @@ export interface IFrameRunnerManagerConstructor {
 
 export class IFrameRunnerManager {
   iFrameManagers: Map<string, IFrameManager> = new Map();
-  private fetchTableFileBuffers: (
-    tables: TableConfig[]
-  ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
   private totalRunners: number;
   private iFrameReadyMap: Map<string, boolean> = new Map();
   private resolvePromises: ((value: unknown) => void)[] = [];
@@ -43,10 +45,19 @@ export class IFrameRunnerManager {
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
 
+  private fetchTableFileBuffers: (
+    tables: TableConfig[]
+  ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
+  private fetchPreQuery: (
+    runnerId: string,
+    tableWiseFiles: TableWiseFiles[]
+  ) => string[];
+
   constructor({
     runnerURL,
     origin,
     fetchTableFileBuffers,
+    fetchPreQuery,
     totalRunners = 2,
     logger,
     onEvent,
@@ -57,6 +68,7 @@ export class IFrameRunnerManager {
     this.origin = origin;
     this.totalRunners = totalRunners;
     this.fetchTableFileBuffers = fetchTableFileBuffers;
+    this.fetchPreQuery = fetchPreQuery;
   }
 
   private addIFrameManager(uuid: string) {
@@ -155,6 +167,23 @@ export class IFrameRunnerManager {
           this.onEvent(message.message.payload);
         }
         break;
+
+      case BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY: {
+        if (this.fetchPreQuery) {
+          const manager = this.iFrameManagers.get(runnerId);
+          if (!manager) {
+            return;
+          }
+
+          const { tableWiseFiles } = message.message.payload;
+
+          const preQueries = this.fetchPreQuery(runnerId, tableWiseFiles);
+
+          manager.communication.sendResponse(message.uuid, preQueries);
+        }
+
+        break;
+      }
 
       default:
         break;
