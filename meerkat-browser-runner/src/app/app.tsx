@@ -12,7 +12,7 @@ import {
 
 import log from 'loglevel';
 import { useEffect, useRef, useState } from 'react';
-import { InstanceManager } from './instance-manager';
+import { InstanceManager } from './duck-db/instance-manager';
 
 type EffectCallback = () => void | (() => void | undefined);
 
