@@ -26,7 +26,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
 
-  private tableFilesMap: Map<string, BaseFileStore[]> = new Map();
+  private mountedTablesMap: Map<string, BaseFileStore[]> = new Map();
 
   constructor({
     instanceManager,
@@ -95,7 +95,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tablesToBeMounted = tables.filter(
-      (table) => !this.tableFilesMap.has(table.name)
+      (table) => !this.mountedTablesMap.has(table.name)
     );
 
     // Return there are no tables to register
@@ -128,7 +128,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
         tableBuffer.buffer
       );
 
-      // Add the file to the table files map
+      // Add the files to the table files map
       const files = tablesFilesMap.get(tableBuffer.tableName) ?? [];
       files.push(tableBuffer.fileName);
       tablesFilesMap.set(tableBuffer.tableName, files);
@@ -138,7 +138,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
         buffer: newBuffer,
       };
     });
-
     const end = performance.now();
     this.onEvent?.({
       event_name: 'clone_buffer_duration',
@@ -148,9 +147,9 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     // Register the file buffers
     await this.bulkRegisterFileBuffer(tableBuffers);
 
-    // Add the files to the table files map
+    // Update the mounted tables map
     tablesFilesMap.forEach((files, tableName) => {
-      this.tableFilesMap.set(
+      this.mountedTablesMap.set(
         tableName,
         files.map((fileName) => ({ fileName, tableName }))
       );
