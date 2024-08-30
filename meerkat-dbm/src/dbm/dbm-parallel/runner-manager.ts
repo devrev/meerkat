@@ -57,10 +57,10 @@ export class IFrameRunnerManager {
     runnerURL,
     origin,
     fetchTableFileBuffers,
+    fetchPreQuery,
     totalRunners = 2,
     logger,
     onEvent,
-    fetchPreQuery,
   }: IFrameRunnerManagerConstructor) {
     this.logger = logger;
     this.onEvent = onEvent;
@@ -76,10 +76,10 @@ export class IFrameRunnerManager {
     this.iFrameManagers.set(
       uuid,
       new IFrameManager({
-        onMessage: this.messageListener.bind(this),
-        origin: this.origin,
         runnerURL: this.runnerURL,
+        origin: this.origin,
         uuid,
+        onMessage: this.messageListener.bind(this),
       })
     );
   }
@@ -128,7 +128,7 @@ export class IFrameRunnerManager {
     return promiseObj;
   }
 
-  private async messageListener(
+  private messageListener(
     runnerId: string,
     message: WindowMessage<BrowserRunnerMessage>
   ) {
@@ -177,8 +177,8 @@ export class IFrameRunnerManager {
 
           const { tableWiseFiles } = message.message.payload;
 
-          const preQueries = await this.fetchPreQuery(runnerId, tableWiseFiles);
-          console.log('preQueries', preQueries);
+          const preQueries = this.fetchPreQuery(runnerId, tableWiseFiles);
+
           manager.communication.sendResponse(message.uuid, preQueries);
         }
 
