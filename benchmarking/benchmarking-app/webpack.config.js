@@ -5,5 +5,21 @@ const { withReact } = require('@nx/react');
 module.exports = composePlugins(withNx(), withReact(), (config) => {
   // Update the webpack config as needed here.
   // e.g. `config.plugins.push(new MyPlugin())`
-  return config;
+  return {
+    ...config,
+    experiments: {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    },
+    module: {
+      ...config.module,
+      rules: [
+        ...config.module.rules,
+        {
+          test: /\.wasm$/,
+          type: 'asset/resource',
+        },
+      ],
+    },
+  };
 });

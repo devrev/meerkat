@@ -6,6 +6,25 @@ import { FileLoader } from './file-loader/file-loader';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 
 export function App() {
+  const worker = new Worker('http://localhost:4200/assets/duckdb-worker.js');
+
+  worker.onmessage = function (e) {
+    console.log('Received message from worker:', e.data);
+    if (e.data.type === 'ready') {
+      console.log('DuckDB is ready');
+      // You can start querying here
+      worker.postMessage({ type: 'query', sql: 'SELECT 1' });
+    } else if (e.data.type === 'result') {
+      console.log('Query result:', e.data.data);
+    } else if (e.data.type === 'error') {
+      console.error('Error from worker:', e.data.message);
+    }
+  };
+
+  worker.onerror = function (error) {
+    console.error('Worker error:', error);
+  };
+
   return (
     <Router>
       <Routes>
