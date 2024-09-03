@@ -1,4 +1,4 @@
-import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
+import { AsyncDuckDB } from '@devrev/duckdb-wasm';
 import 'fake-indexeddb/auto';
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../../types';
@@ -15,9 +15,9 @@ const mockDB = {
     return {
       query: jest.fn(),
       insertJSONFromPath: jest.fn(),
-      close: jest.fn()
+      close: jest.fn(),
     };
-  }
+  },
 };
 
 describe('IndexedDBFileManager', () => {
@@ -194,9 +194,9 @@ describe('IndexedDBFileManager', () => {
       files: [
         {
           fileName: 'taxi2.parquet',
-          fileType: 'parquet'
-        }
-      ]
+          fileType: 'parquet',
+        },
+      ],
     });
 
     expect(
@@ -212,7 +212,7 @@ describe('IndexedDBFileManager', () => {
     // Verify that the file is dropped
     expect(tableData2[0]).toEqual({
       tableName: 'taxi1',
-      files: []
+      files: [],
     });
 
     expect(
@@ -233,8 +233,8 @@ describe('IndexedDBFileManager', () => {
       tableName: 'taxi-json',
       fileName: 'taxi-json.parquet',
       json: {
-        test: 'test'
-      }
+        test: 'test',
+      },
     };
 
     await fileManager.registerJSON(jsonFile);
@@ -257,16 +257,16 @@ describe('IndexedDBFileManager', () => {
         tableName: 'taxi-json-bulk',
         fileName: 'taxi-json1.parquet',
         json: {
-          test: 'test'
-        }
+          test: 'test',
+        },
       },
       {
         tableName: 'taxi-json-bulk',
         fileName: 'taxi-json2.parquet',
         json: {
-          test: 'test'
-        }
-      }
+          test: 'test',
+        },
+      },
     ];
 
     await fileManager.bulkRegisterJSON(jsonFiles);
