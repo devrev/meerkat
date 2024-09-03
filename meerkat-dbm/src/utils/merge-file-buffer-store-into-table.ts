@@ -21,7 +21,7 @@ import { Table } from '../types';
  */
 
 export const mergeFileBufferStoreIntoTable = (
-  fileBufferStore: FileBufferStore[],
+  fileBufferStore: FileBufferStore<T>[],
   currentTableState: Table[]
 ): Map<string, Table> => {
   const tableMap = new Map<string, Table>(
