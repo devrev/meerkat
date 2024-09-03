@@ -1,36 +1,30 @@
-import { AsyncDuckDB, Logger } from '@devrev/duckdb-wasm';
+import * as duckdb from '@devrev/duckdb-wasm';
+import { AsyncDuckDB, LogEntryVariant } from '@devrev/duckdb-wasm';
 import { InstanceManagerType } from '@devrev/meerkat-dbm';
-import { DuckDbBundleManagerInstance } from './duck-db-bundle-manager';
+const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 
 export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
+  private async initDB() {
+    console.log('duckdb', duckdb);
 
-  private async initDB(): Promise<AsyncDuckDB> {
-    const bundle = await DuckDbBundleManagerInstance.resolveBundle();
+    const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+    console.log('bundle', JSDELIVR_BUNDLES);
+    const worker_url = URL.createObjectURL(
+      new Blob([`importScripts("${bundle.mainWorker!}");`], {
+        type: 'text/javascript',
+      })
+    );
 
-    if (!bundle.mainWorker) {
-      throw new Error('No main worker found');
-    }
-
-    const worker = new Worker(bundle.mainWorker);
-
+    // Instantiate the asynchronus version of DuckDB-wasm
+    const worker = new Worker(worker_url);
     const logger = {
-      log: (message: string) => {
-        //no-op
-      },
-    } as unknown as Logger;
-
-    const duckDBInstance = new AsyncDuckDB(logger, worker);
-    await duckDBInstance.instantiate(bundle.mainModule, bundle.pthreadWorker);
-
-    /**
-     * Creating the system schema to avoid conflicting views with the system datasets
-     */
-    const connection = await duckDBInstance.connect();
-    await connection.query('create schema system;');
-    await connection.close();
-
-    return duckDBInstance;
+      log: (msg: LogEntryVariant) => console.log(msg),
+    };
+    const db = new duckdb.AsyncDuckDB(logger, worker);
+    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    URL.revokeObjectURL(worker_url);
+    return db;
   }
 
   async getDB() {
@@ -42,7 +36,7 @@ export class InstanceManager implements InstanceManagerType {
   }
 
   async terminateDB() {
-    console.info('Terminating DB');
+    console.info('terminateDB');
     await this.db?.terminate();
     this.db = null;
   }
