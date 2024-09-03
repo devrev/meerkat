@@ -271,25 +271,41 @@ export class ParallelIndexedDBFileManager
 
     const tableData = await this.getFilesNameForTables(tables);
 
-    const fileBuffers = tableData.map(async (table) => {
+    const promises = tableData.flatMap(async (table) => {
       // Retrieve file names for the specified table
       if (this.tableFileBuffersMap.has(table.tableName)) {
         return this.tableFileBuffersMap.get(table.tableName) ?? [];
       }
 
+      const _filesList = (table?.files || []).map(
+        (fileData) => fileData.fileName
+      );
+
       const filesData = await this.indexedDB?.files.bulkGet(_filesList);
 
       // Register file buffers from IndexedDB for each table
 
-      return filesData.filter(isDefined).map(async (file) => {
-        await this.fileRegisterer.registerFileBuffer(
-          file.fileName,
+      const tableBuffers = filesData.filter(isDefined).map((file) => {
+        const sharedArrayBuffer = convertUint8ArrayToSharedArrayBuffer(
           file.buffer
         );
+
+        return {
+          tableName: table.tableName,
+          fileName: file.fileName,
+          buffer: sharedArrayBuffer,
+        };
       });
+
+      this.tableFileBuffersMap.set(table.tableName, tableBuffers);
+
+      console.log(tableBuffers, 'tableBuffers');
+      return tableBuffers;
     });
 
-    return [];
+    const fileBuffers = await Promise.all(promises);
+    console.log(fileBuffers, 'fileBuffers');
+    return fileBuffers;
   }
 
   async setTableMetadata(tableName: string, metadata: object): Promise<void> {
