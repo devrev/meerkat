@@ -7,7 +7,7 @@ export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
   private async initDB() {
     const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
-    console.log('bundle', JSDELIVR_BUNDLES);
+
     const worker_url = URL.createObjectURL(
       new Blob([`importScripts("${bundle.mainWorker!}");`], {
         type: 'text/javascript',
