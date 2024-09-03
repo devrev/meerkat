@@ -118,7 +118,7 @@ export class ParallelMemoryFileManager
     return response;
   }
 
-  getFileBuffer(name: string): Promise<SharedArrayBuffer> {
+  getFileBuffer(name: string): Promise<Uint8Array> {
     throw new Error('Method not implemented.');
   }
 

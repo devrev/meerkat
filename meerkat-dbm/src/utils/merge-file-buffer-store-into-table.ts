@@ -20,7 +20,9 @@ import { Table } from '../types';
  *
  */
 
-export const mergeFileBufferStoreIntoTable = (
+export const mergeFileBufferStoreIntoTable = <
+  T extends Uint8Array | SharedArrayBuffer
+>(
   fileBufferStore: FileBufferStore<T>[],
   currentTableState: Table[]
 ): Map<string, Table> => {

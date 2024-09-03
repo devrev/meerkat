@@ -70,7 +70,7 @@ export function App() {
             <div>
               <h1>Parallel Indexed DuckDB</h1>
               <ParallelParallelDBMProvider>
-                <FileLoader bufferType="sharedArrayBuffer">
+                <FileLoader bufferType="uint8Array">
                   <QueryBenchmarking />
                 </FileLoader>
               </ParallelParallelDBMProvider>

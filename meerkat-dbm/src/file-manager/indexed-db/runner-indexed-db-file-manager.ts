@@ -108,6 +108,8 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     /**
      * Get the file buffers for the tables from the main app
      */
+    console.log(tablesToBeMounted, 'tableSharedBuffers');
+
     const fileBuffersResponse = await this.communication.sendRequest<
       (BaseFileStore & {
         buffer: SharedArrayBuffer;
@@ -118,6 +120,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
         tables: tablesToBeMounted,
       },
     });
+    console.log(fileBuffersResponse, 'fileBuffersResponse');
 
     const tableSharedBuffers = fileBuffersResponse.message;
 

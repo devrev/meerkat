@@ -243,8 +243,6 @@ export class ParallelIndexedDBFileManager
     }));
   }
 
-  // async getTableBufferData(tables: TableConfig[]) {}
-
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     // no-op
   }
@@ -299,13 +297,12 @@ export class ParallelIndexedDBFileManager
 
       this.tableFileBuffersMap.set(table.tableName, tableBuffers);
 
-      console.log(tableBuffers, 'tableBuffers');
       return tableBuffers;
     });
 
     const fileBuffers = await Promise.all(promises);
-    console.log(fileBuffers, 'fileBuffers');
-    return fileBuffers;
+
+    return fileBuffers.flat();
   }
 
   async setTableMetadata(tableName: string, metadata: object): Promise<void> {

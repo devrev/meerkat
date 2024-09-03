@@ -141,6 +141,7 @@ export class IFrameRunnerManager {
               if (!manager) {
                 return;
               }
+
               manager.communication.sendResponse(message.uuid, result);
             }
           );
