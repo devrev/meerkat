@@ -1,10 +1,8 @@
 /// <reference types="vitest" />
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react-swc';
-import path from 'path';
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
-import wasm from 'vite-plugin-wasm';
 
 export default defineConfig({
   cacheDir: '../node_modules/.vite/meerkat-browser-runner',
@@ -16,12 +14,6 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Resource-Policy': 'cross-origin',
-    },
-    fs: {
-      allow: [
-        // Add the root of your project to the allow list
-        path.resolve(__dirname, '..'),
-      ],
     },
   },
 
@@ -35,7 +27,7 @@ export default defineConfig({
     },
   },
 
-  plugins: [react(), nxViteTsPaths(), viteSingleFile(), wasm()],
+  plugins: [react(), nxViteTsPaths(), viteSingleFile()],
 
   // Uncomment this if you are using workers.
   // worker: {
