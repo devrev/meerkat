@@ -6,8 +6,6 @@ const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
   private async initDB() {
-    console.log('duckdb', duckdb);
-
     const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
     console.log('bundle', JSDELIVR_BUNDLES);
     const worker_url = URL.createObjectURL(
