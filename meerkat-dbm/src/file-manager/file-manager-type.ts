@@ -78,7 +78,7 @@ export interface FileManagerType<BufferType = Uint8Array> {
    * @param fileName - The name of the file buffer.
    * @returns Uint8Array if found.
    */
-  getFileBuffer: (fileName: string) => Promise<Uint8Array | undefined>;
+  getFileBuffer: (fileName: string) => Promise<BufferType | undefined>;
 
   /**
    * @description

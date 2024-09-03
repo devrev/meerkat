@@ -3,8 +3,6 @@ import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import {
-  convertSharedArrayBufferToUint8Array,
-  convertUint8ArrayToSharedArrayBuffer,
   getBufferFromJSON,
   isDefined,
   mergeFileBufferStoreIntoTable,
@@ -19,23 +17,8 @@ import { FileRegisterer } from '../file-registerer';
 import { getFilesByPartition } from '../partition';
 import { MeerkatDatabase } from './meerkat-database';
 
-export interface ParallelIndexedDBFileManagerType {
-  /**
-   *
-   * @description
-   * Retrieves the buffer data for the tables.
-   * @param tables - An array of tables.
-   * @returns An array of FileBufferStore objects.
-   */
-  getTableBufferData?: (
-    tables: TableConfig[]
-  ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
-}
-
 export class ParallelIndexedDBFileManager
-  implements
-    ParallelIndexedDBFileManagerType,
-    FileManagerType<SharedArrayBuffer>
+  implements FileManagerType<Uint8Array>
 {
   private indexedDB: MeerkatDatabase; // IndexedDB instance
   private instanceManager: InstanceManagerType;
@@ -46,11 +29,6 @@ export class ParallelIndexedDBFileManager
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
-
-  private tableFileBuffersMap: Map<
-    string,
-    FileBufferStore<SharedArrayBuffer>[]
-  > = new Map();
 
   constructor({
     fetchTableFileBuffers,
@@ -81,7 +59,7 @@ export class ParallelIndexedDBFileManager
   }
 
   async bulkRegisterFileBuffer(
-    fileBuffers: FileBufferStore<SharedArrayBuffer>[]
+    fileBuffers: FileBufferStore<Uint8Array>[]
   ): Promise<void> {
     const tableNames = Array.from(
       new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
@@ -103,11 +81,7 @@ export class ParallelIndexedDBFileManager
     });
 
     const newFilesData = fileBuffers.map((fileBuffer) => {
-      const uint8BufferArray = convertSharedArrayBufferToUint8Array(
-        fileBuffer.buffer
-      );
-
-      return { buffer: uint8BufferArray, fileName: fileBuffer.fileName };
+      return { buffer: fileBuffer.buffer, fileName: fileBuffer.fileName };
     });
 
     // Update the tables and files table in IndexedDB
@@ -128,7 +102,7 @@ export class ParallelIndexedDBFileManager
   }
 
   async registerFileBuffer(
-    fileBuffer: FileBufferStore<SharedArrayBuffer>
+    fileBuffer: FileBufferStore<Uint8Array>
   ): Promise<void> {
     const { buffer, fileName, tableName } = fileBuffer;
 
@@ -151,11 +125,9 @@ export class ParallelIndexedDBFileManager
             files: updatedTableMap.get(tableName)?.files ?? [],
           });
 
-          const uint8BufferArray = convertSharedArrayBufferToUint8Array(buffer);
-
           await this.indexedDB.files.put({
             fileName,
-            buffer: uint8BufferArray,
+            buffer: buffer,
           });
         }
       )
@@ -178,10 +150,7 @@ export class ParallelIndexedDBFileManager
           metadata: jsonFile.metadata,
         });
 
-        const sharedArrayBuffer =
-          convertUint8ArrayToSharedArrayBuffer(bufferData);
-
-        return { buffer: sharedArrayBuffer, tableName, ...fileData };
+        return { buffer: bufferData, tableName, ...fileData };
       })
     );
 
@@ -203,13 +172,11 @@ export class ParallelIndexedDBFileManager
       metadata: jsonData.metadata,
     });
 
-    const sharedArrayBuffer = convertUint8ArrayToSharedArrayBuffer(bufferData);
-
     /**
      * Register the buffer in the file manager
      */
     await this.registerFileBuffer({
-      buffer: sharedArrayBuffer,
+      buffer: bufferData,
       tableName,
       ...fileData,
     });
@@ -256,53 +223,6 @@ export class ParallelIndexedDBFileManager
       ...tableData,
       files: getFilesByPartition(tableData?.files ?? [], table.partitions),
     };
-  }
-
-  async getTableBufferData(
-    tables: TableConfig[]
-  ): Promise<FileBufferStore<SharedArrayBuffer>[]> {
-    const tableNames = tables.map((table) => table.name);
-
-    const tablesNotInCache = tableNames.filter(
-      (tableName) => !this.tableFileBuffersMap.has(tableName)
-    );
-
-    const tableData = await this.getFilesNameForTables(tables);
-
-    const promises = tableData.flatMap(async (table) => {
-      // Retrieve file names for the specified table
-      if (this.tableFileBuffersMap.has(table.tableName)) {
-        return this.tableFileBuffersMap.get(table.tableName) ?? [];
-      }
-
-      const _filesList = (table?.files || []).map(
-        (fileData) => fileData.fileName
-      );
-
-      const filesData = await this.indexedDB?.files.bulkGet(_filesList);
-
-      // Register file buffers from IndexedDB for each table
-
-      const tableBuffers = filesData.filter(isDefined).map((file) => {
-        const sharedArrayBuffer = convertUint8ArrayToSharedArrayBuffer(
-          file.buffer
-        );
-
-        return {
-          tableName: table.tableName,
-          fileName: file.fileName,
-          buffer: sharedArrayBuffer,
-        };
-      });
-
-      this.tableFileBuffersMap.set(table.tableName, tableBuffers);
-
-      return tableBuffers;
-    });
-
-    const fileBuffers = await Promise.all(promises);
-
-    return fileBuffers.flat();
   }
 
   async setTableMetadata(tableName: string, metadata: object): Promise<void> {

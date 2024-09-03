@@ -2,14 +2,8 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import {
-  convertSharedArrayBufferToUint8Array,
-  getBufferFromJSON,
-} from '../../utils';
-import {
-  BROWSER_RUNNER_TYPE,
-  BrowserRunnerMessage,
-} from '../../window-communication/runner-types';
+import { isDefined } from '../../utils';
+import { BrowserRunnerMessage } from '../../window-communication/runner-types';
 import { CommunicationInterface } from '../../window-communication/window-communication';
 import {
   BaseFileStore,
@@ -18,9 +12,19 @@ import {
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
+import { FileRegisterer } from '../file-registerer';
+import { getFilesByPartition } from '../partition';
+import { MeerkatDatabase } from './meerkat-database';
 
-export class RunnerMemoryDBFileManager implements FileManagerType {
+// Default max file size is 500mb
+const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
+
+export class RunnerIndexedDBFileManager implements FileManagerType<Uint8Array> {
+  private indexedDB: MeerkatDatabase; // IndexedDB instance
+  private fileRegisterer: FileRegisterer;
+
   private instanceManager: InstanceManagerType;
+  private configurationOptions: FileManagerConstructorOptions['options'];
   private communication: CommunicationInterface<BrowserRunnerMessage>;
 
   private logger?: DBMLogger;
@@ -36,127 +40,49 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   }: FileManagerConstructorOptions & {
     communication: CommunicationInterface<BrowserRunnerMessage>;
   }) {
+    this.indexedDB = new MeerkatDatabase();
+    this.fileRegisterer = new FileRegisterer({ instanceManager });
+
     this.instanceManager = instanceManager;
     this.logger = logger;
     this.onEvent = onEvent;
     this.communication = communication;
+    // this.configurationOptions = configurationOptions;
   }
 
-  async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
-    const promiseArr = props.map((fileBuffer) =>
-      this.registerFileBuffer(fileBuffer)
-    );
-
-    await Promise.all(promiseArr);
+  /**
+   * Clear all data from the IndexedDB
+   */
+  private async _flushDB(): Promise<void> {
+    await this.indexedDB.tablesKey.clear();
+    await this.indexedDB.files.clear();
   }
 
-  async registerFileBuffer(props: FileBufferStore): Promise<void> {
-    const instanceManager = await this.instanceManager.getDB();
+  async initializeDB(): Promise<void> {
+    return;
+  }
 
-    await instanceManager.registerFileBuffer(props.fileName, props.buffer);
+  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
+    // no-op
+  }
+
+  async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
+    // no-op
   }
 
   async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
-    const promiseArr = jsonData.map((fileBuffer) =>
-      this.registerJSON(fileBuffer)
-    );
-
-    await Promise.all(promiseArr);
+    // no-op
   }
 
   async registerJSON(jsonData: FileJsonStore): Promise<void> {
-    const { json, tableName, ...fileData } = jsonData;
-
-    /**
-     * Convert JSON to buffer
-     */
-    const bufferData = await getBufferFromJSON({
-      instanceManager: this.instanceManager,
-      json,
-      tableName,
-      logger: this.logger,
-      onEvent: this.onEvent,
-      metadata: jsonData.metadata,
-    });
-
-    /**
-     * Register buffer in DB
-     */
-    await this.registerFileBuffer({
-      buffer: bufferData,
-      tableName,
-      ...fileData,
-    });
+    // no-op
   }
 
-  getFileBuffer(name: string): Promise<Uint8Array> {
-    throw new Error('Method not implemented.');
-  }
+  async getFileBuffer(fileName: string): Promise<Uint8Array | undefined> {
+    // Retrieve file data from IndexedDB
+    const fileData = await this.indexedDB.files.get(fileName);
 
-  async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    const tablesToBeMounted = tables.filter(
-      (table) => !this.mountedTablesMap.has(table.name)
-    );
-
-    // Return there are no tables to register
-    if (tablesToBeMounted.length === 0) return;
-
-    const tablesFilesMap: Map<string, string[]> = new Map();
-
-    const start = performance.now();
-
-    /**
-     * Get the file buffers for the tables from the main app
-     */
-    console.log(tablesToBeMounted, 'tableSharedBuffers');
-
-    const fileBuffersResponse = await this.communication.sendRequest<
-      (BaseFileStore & {
-        buffer: SharedArrayBuffer;
-      })[]
-    >({
-      type: BROWSER_RUNNER_TYPE.RUNNER_GET_FILE_BUFFERS,
-      payload: {
-        tables: tablesToBeMounted,
-      },
-    });
-    console.log(fileBuffersResponse, 'fileBuffersResponse');
-
-    const tableSharedBuffers = fileBuffersResponse.message;
-
-    //Copy the buffer to its own memory
-    const tableBuffers = tableSharedBuffers.map((tableBuffer) => {
-      // Create a new Uint8Array with the same length
-      const newBuffer = convertSharedArrayBufferToUint8Array(
-        tableBuffer.buffer
-      );
-
-      // Add the files to the table files map
-      const files = tablesFilesMap.get(tableBuffer.tableName) ?? [];
-      files.push(tableBuffer.fileName);
-      tablesFilesMap.set(tableBuffer.tableName, files);
-
-      return {
-        ...tableBuffer,
-        buffer: newBuffer,
-      };
-    });
-    const end = performance.now();
-    this.onEvent?.({
-      event_name: 'clone_buffer_duration',
-      duration: end - start,
-    });
-
-    // Register the file buffers
-    await this.bulkRegisterFileBuffer(tableBuffers);
-
-    // Update the mounted tables map
-    tablesFilesMap.forEach((files, tableName) => {
-      this.mountedTablesMap.set(
-        tableName,
-        files.map((fileName) => ({ fileName, tableName }))
-      );
-    });
+    return fileData?.buffer;
   }
 
   async getFilesNameForTables(
@@ -164,33 +90,105 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
   ): Promise<TableWiseFiles[]> {
     const tableNames = tables.map((table) => table.name);
 
-    return tableNames.map((tableName) => {
-      const files = this.mountedTablesMap.get(tableName) ?? [];
+    const tableData = (await this.indexedDB.tablesKey.bulkGet(tableNames))
+      .filter(isDefined)
+      .reduce((tableObj, table) => {
+        tableObj[table.tableName] = table;
+        return tableObj;
+      }, {} as { [key: string]: Table });
 
-      return {
-        tableName,
-        files,
-      };
+    return tables.map((table) => ({
+      tableName: table.name,
+      files: getFilesByPartition(
+        tableData[table.name]?.files ?? [],
+        table.partitions
+      ),
+    }));
+  }
+
+  async fileCleanUpIfRequired(tableData: Table[]) {
+    const maxFileSize =
+      this.configurationOptions?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
+    const totalByteLengthInDb = this.fileRegisterer.totalByteLength();
+
+    if (totalByteLengthInDb > maxFileSize) {
+      const allFilesInDb = this.fileRegisterer.getAllFilesInDB();
+
+      const fileNameToRemove = [];
+      for (const table of tableData) {
+        for (const file of table?.files ?? []) {
+          if (!allFilesInDb.includes(file.fileName)) {
+            fileNameToRemove.push(file.fileName);
+          }
+        }
+      }
+      for (const fileName of fileNameToRemove) {
+        await this.fileRegisterer.registerEmptyFileBuffer(fileName);
+      }
+    }
+  }
+
+  async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
+    const tableData = await this.getFilesNameForTables(tables);
+
+    /**
+     * Check if the file registered size is not more than the limit
+     * If it is more than the limit, then remove the files which are not needed while mounting this the tables
+     */
+    this.fileCleanUpIfRequired(tableData);
+
+    const promises = tableData.map(async (table) => {
+      // Retrieve file names for the specified table
+      const _filesList = (table?.files || []).map(
+        (fileData) => fileData.fileName
+      );
+
+      // Filter out the files that are already registered in DuckDB
+      const filesList = _filesList.filter(
+        (fileName) => !this.fileRegisterer.isFileRegisteredInDB(fileName)
+      );
+
+      const uniqueFileNames = Array.from(new Set(filesList));
+
+      const filesData = await this.indexedDB?.files.bulkGet(uniqueFileNames);
+
+      // Register file buffers from IndexedDB for each table
+      await Promise.all(
+        filesData.filter(isDefined).map(async (file) => {
+          await this.fileRegisterer.registerFileBuffer(
+            file.fileName,
+            file.buffer
+          );
+        })
+      );
     });
+
+    await Promise.all(promises);
   }
 
   async getTableData(table: TableConfig): Promise<Table | undefined> {
-    // not needed for memory file manager
-    return;
+    const tableData = await this.indexedDB.tablesKey.get(table.name);
+
+    if (!tableData) return undefined;
+
+    return {
+      ...tableData,
+      files: getFilesByPartition(tableData?.files ?? [], table.partitions),
+    };
   }
 
-  async setTableMetadata(table: string, metadata: object): Promise<void> {
-    // not needed for memory file manager
+  async setTableMetadata(tableName: string, metadata: object): Promise<void> {
+    // no-op
   }
 
   async dropFilesByTableName(
     tableName: string,
     fileNames: string[]
   ): Promise<void> {
-    // not needed for memory file manager
+    // no-op
   }
 
   async onDBShutdownHandler() {
-    // not needed for memory file manager
+    this.fileRegisterer.flushFileCache();
   }
 }

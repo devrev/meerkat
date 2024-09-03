@@ -10,7 +10,7 @@ import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
-export const ParallelParallelDBMProvider = ({
+export const ParallelIndexedDBMProvider = ({
   children,
 }: {
   children: JSX.Element;
