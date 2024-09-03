@@ -3,8 +3,6 @@ import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
 import { isDefined } from '../../utils';
-import { BrowserRunnerMessage } from '../../window-communication/runner-types';
-import { CommunicationInterface } from '../../window-communication/window-communication';
 import {
   BaseFileStore,
   FileBufferStore,
@@ -25,7 +23,6 @@ export class RunnerIndexedDBFileManager implements FileManagerType<Uint8Array> {
 
   private instanceManager: InstanceManagerType;
   private configurationOptions: FileManagerConstructorOptions['options'];
-  private communication: CommunicationInterface<BrowserRunnerMessage>;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
@@ -36,17 +33,13 @@ export class RunnerIndexedDBFileManager implements FileManagerType<Uint8Array> {
     instanceManager,
     logger,
     onEvent,
-    communication,
-  }: FileManagerConstructorOptions & {
-    communication: CommunicationInterface<BrowserRunnerMessage>;
-  }) {
+  }: FileManagerConstructorOptions) {
     this.indexedDB = new MeerkatDatabase();
     this.fileRegisterer = new FileRegisterer({ instanceManager });
 
     this.instanceManager = instanceManager;
     this.logger = logger;
     this.onEvent = onEvent;
-    this.communication = communication;
     // this.configurationOptions = configurationOptions;
   }
 
@@ -130,7 +123,7 @@ export class RunnerIndexedDBFileManager implements FileManagerType<Uint8Array> {
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tableData = await this.getFilesNameForTables(tables);
-
+    console.log('tableData', tableData);
     /**
      * Check if the file registered size is not more than the limit
      * If it is more than the limit, then remove the files which are not needed while mounting this the tables

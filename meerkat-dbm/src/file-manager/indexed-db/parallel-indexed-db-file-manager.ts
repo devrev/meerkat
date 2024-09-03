@@ -46,18 +46,6 @@ export class ParallelIndexedDBFileManager
     this.onEvent = onEvent;
   }
 
-  /**
-   * Clear all data from the IndexedDB
-   */
-  private async _flushDB(): Promise<void> {
-    await this.indexedDB.tablesKey.clear();
-    await this.indexedDB.files.clear();
-  }
-
-  async initializeDB(): Promise<void> {
-    return;
-  }
-
   async bulkRegisterFileBuffer(
     fileBuffers: FileBufferStore<Uint8Array>[]
   ): Promise<void> {
