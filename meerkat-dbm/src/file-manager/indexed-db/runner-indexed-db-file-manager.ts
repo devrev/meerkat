@@ -14,10 +14,6 @@ export class RunnerIndexedDBFileManager
     super(options);
   }
 
-  override async initializeDB(): Promise<void> {
-    return;
-  }
-
   override async bulkRegisterFileBuffer(
     fileBuffers: FileBufferStore[]
   ): Promise<void> {

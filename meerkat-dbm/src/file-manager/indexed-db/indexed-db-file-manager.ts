@@ -228,7 +228,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tableData = await this.getFilesNameForTables(tables);
-    console.log('tableData', tableData);
+
     /**
      * Check if the file registered size is not more than the limit
      * If it is more than the limit, then remove the files which are not needed while mounting this the tables
@@ -245,7 +245,7 @@ export class IndexedDBFileManager implements FileManagerType {
       const filesList = _filesList.filter(
         (fileName) => !this.fileRegisterer.isFileRegisteredInDB(fileName)
       );
-      console.log('filesList', filesList);
+
       const uniqueFileNames = Array.from(new Set(filesList));
 
       const filesData = await this.indexedDB?.files.bulkGet(uniqueFileNames);
@@ -267,12 +267,12 @@ export class IndexedDBFileManager implements FileManagerType {
   async getTableData(table: TableConfig): Promise<Table | undefined> {
     const tableData = await this.indexedDB.tablesKey.get(table.name);
 
-    if (!tableData) return undefined;
+     if (!tableData) return undefined;
 
-    return {
-      ...tableData,
-      files: getFilesByPartition(tableData?.files ?? [], table.partitions),
-    };
+     return {
+       ...tableData,
+       files: getFilesByPartition(tableData?.files ?? [], table.partitions),
+     };
   }
 
   async setTableMetadata(tableName: string, metadata: object): Promise<void> {

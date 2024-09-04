@@ -21,8 +21,8 @@ const roundRobin = (counter: number, maxValue: number): number => {
   return counter + 1;
 };
 
-export class DBMParallel {
-  private fileManager: FileManagerType<SharedArrayBuffer | Uint8Array>;
+export class DBMParallel<BufferType = Uint8Array> {
+  private fileManager: FileManagerType<BufferType>;
   private logger: DBMLogger;
   private tableLockRegistry: Record<string, TableLock> = {};
 
@@ -42,7 +42,7 @@ export class DBMParallel {
     instanceManager,
     onDuckDBShutdown,
     iFrameRunnerManager,
-  }: DBMConstructorOptions<SharedArrayBuffer | Uint8Array> & {
+  }: DBMConstructorOptions<BufferType> & {
     iFrameRunnerManager: IFrameRunnerManager;
   }) {
     this.fileManager = fileManager;

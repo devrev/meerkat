@@ -1,13 +1,17 @@
 import { DBM, DBMParallel, FileManagerType } from '@devrev/meerkat-dbm';
 import React from 'react';
 
-export const DBMContext = React.createContext<{
-  dbm: DBM | DBMParallel;
+export type DBMContextType<T> = {
+  dbm: DBM | DBMParallel<T>;
   fileManager: FileManagerType;
-}>(null as any);
+};
 
-export const useDBM = () => {
-  const context = React.useContext(DBMContext);
+export const DBMContext = React.createContext<DBMContextType<any> | undefined>(
+  undefined
+);
+
+export const useDBM = <T,>() => {
+  const context = React.useContext(DBMContext) as DBMContextType<T> | undefined;
   if (context === undefined) {
     throw new Error('useDBM must be used within a DBMProvider');
   }

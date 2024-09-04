@@ -15,7 +15,7 @@ export const ParallelMemoryDBMProvider = ({
 }: {
   children: JSX.Element;
 }) => {
-  const [dbm, setdbm] = useState<DBMParallel | null>(null);
+  const [dbm, setdbm] = useState<DBMParallel<SharedArrayBuffer> | null>(null);
   const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
   const fileManagerRef = useRef<ParallelMemoryFileManager>(
     new ParallelMemoryFileManager({
