@@ -41,7 +41,7 @@ export const ParallelIndexedDBMProvider = ({
       origin: 'http://localhost:4200',
       totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
-        return fileManagerRef.current.getTableBufferData(table);
+        return [];
       },
       fetchPreQuery: () => {
         return [];
