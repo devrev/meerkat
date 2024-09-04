@@ -132,7 +132,7 @@ describe('Benchmarking DBMs', () => {
   }, 300000);
 
   it('Benchmark parallel indexeddb dbm duckdb', async () => {
-    await page.goto('http://localhost:4200/parallel-indexeddb-dbm');
+    await page.goto('http://localhost:4200/parallel-indexed-dbm');
     /**
      * wait for total time to be render
      */
