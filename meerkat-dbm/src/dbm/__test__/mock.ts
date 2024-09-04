@@ -1,4 +1,4 @@
-import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
+import { AsyncDuckDB } from '@devrev/duckdb-wasm';
 import { InstanceManagerType } from '../instance-manager';
 
 export const mockDB = {

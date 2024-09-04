@@ -1,11 +1,10 @@
+import * as duckdb from '@devrev/duckdb-wasm';
+import { AsyncDuckDB, LogEntryVariant } from '@devrev/duckdb-wasm';
 import { InstanceManagerType } from '@devrev/meerkat-dbm';
-import * as duckdb from '@duckdb/duckdb-wasm';
-import { AsyncDuckDB, LogEntryVariant } from '@duckdb/duckdb-wasm';
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 
 export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
-
   private async initDB() {
     const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
 
