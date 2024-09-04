@@ -123,7 +123,10 @@ describe('Benchmarking DBMs', () => {
       (el) => Number(el.textContent)
     );
 
-    console.info('totalTimeForParallelDBM', totalTimeForParallelMemoryDBM);
+    console.info(
+      'totalTimeForParallelMemoryDBM',
+      totalTimeForParallelMemoryDBM
+    );
 
     /**
      * The total diff between parallel memory dbm and memory dbm should be less than
@@ -140,17 +143,20 @@ describe('Benchmarking DBMs', () => {
     /**
      * Get the total time as number
      */
-    const totalTimeForParallelMemoryDBM = await page.$eval(
+    const totalTimeForParallelIndexedDBM = await page.$eval(
       '#total_time',
       (el) => Number(el.textContent)
     );
 
-    console.info('totalTimeForParallelDBM', totalTimeForParallelMemoryDBM);
+    console.info(
+      'totalTimeForParalleIndexedDBM',
+      totalTimeForParallelIndexedDBM
+    );
 
     /**
      * The total diff between parallel memory dbm and memory dbm should be less than
      */
-    expect(totalTimeForParallelMemoryDBM).toBeLessThan(totalTimeForIndexedDBM);
+    expect(totalTimeForParallelIndexedDBM).toBeLessThan(totalTimeForIndexedDBM);
   }, 300000);
 
   afterAll(async () => {
