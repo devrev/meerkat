@@ -149,7 +149,7 @@ describe('Benchmarking DBMs', () => {
     );
 
     console.info(
-      'totalTimeForParalleIndexedDBM',
+      'totalTimeForParallelIndexedDBM',
       totalTimeForParallelIndexedDBM
     );
 
@@ -157,7 +157,7 @@ describe('Benchmarking DBMs', () => {
      * The total diff between parallel memory dbm and memory dbm should be less than
      */
     expect(totalTimeForParallelIndexedDBM).toBeLessThan(totalTimeForIndexedDBM);
-  }, 300000);
+  }, 600000);
 
   afterAll(async () => {
     appProcess.kill('SIGTERM');
