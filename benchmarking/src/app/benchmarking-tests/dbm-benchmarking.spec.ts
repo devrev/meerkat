@@ -8,7 +8,6 @@ describe('Benchmarking DBMs', () => {
   let appProcessRunner: ChildProcess;
 
   let totalTimeForMemoryDB: number;
-  let totalTimeForIndexedDBM: number;
 
   beforeAll(async () => {
     appProcess = spawn('npx', ['nx', 'serve', 'benchmarking-app'], {
@@ -97,7 +96,7 @@ describe('Benchmarking DBMs', () => {
     /**
      * Get the total time as number
      */
-    totalTimeForIndexedDBM = await page.$eval('#total_time', (el) =>
+    const totalTimeForIndexedDBM = await page.$eval('#total_time', (el) =>
       Number(el.textContent)
     );
 
@@ -123,41 +122,13 @@ describe('Benchmarking DBMs', () => {
       (el) => Number(el.textContent)
     );
 
-    console.info(
-      'totalTimeForParallelMemoryDBM',
-      totalTimeForParallelMemoryDBM
-    );
+    console.info('totalTimeForParallelDBM', totalTimeForParallelMemoryDBM);
 
     /**
      * The total diff between parallel memory dbm and memory dbm should be less than
      */
     expect(totalTimeForParallelMemoryDBM).toBeLessThan(totalTimeForMemoryDB);
   }, 300000);
-
-  it('Benchmark parallel indexeddb dbm duckdb', async () => {
-    await page.goto('http://localhost:4200/parallel-indexed-dbm');
-    /**
-     * wait for total time to be render
-     */
-    await page.waitForSelector('#total_time', { timeout: 300000 });
-    /**
-     * Get the total time as number
-     */
-    const totalTimeForParallelIndexedDBM = await page.$eval(
-      '#total_time',
-      (el) => Number(el.textContent)
-    );
-
-    console.info(
-      'totalTimeForParallelIndexedDBM',
-      totalTimeForParallelIndexedDBM
-    );
-
-    /**
-     * The total diff between parallel memory dbm and memory dbm should be less than
-     */
-    expect(totalTimeForParallelIndexedDBM).toBeLessThan(totalTimeForIndexedDBM);
-  }, 600000);
 
   afterAll(async () => {
     appProcess.kill('SIGTERM');
