@@ -1,6 +1,7 @@
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { IndexedDBMProvider } from './dbm-context/indexed-dbm-context';
 import { MemoryDBMProvider } from './dbm-context/memory-dbm-context';
+import { ParallelIndexedDBMProvider } from './dbm-context/parallel-indexed-dbm-context';
 import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-context';
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
@@ -60,6 +61,19 @@ export function App() {
                   <QueryBenchmarking />
                 </FileLoader>
               </ParallelMemoryDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/parallel-indexed-dbm"
+          element={
+            <div>
+              <h1>Parallel Indexed DuckDB</h1>
+              <ParallelIndexedDBMProvider>
+                <FileLoader bufferType="uint8Array">
+                  <QueryBenchmarking />
+                </FileLoader>
+              </ParallelIndexedDBMProvider>
             </div>
           }
         />

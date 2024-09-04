@@ -1,7 +1,7 @@
 import {
   DBMParallel,
   IFrameRunnerManager,
-  ParallelMemoryFileManager,
+  ParallelIndexedDBFileManager,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
 import { useRef, useState } from 'react';
@@ -10,15 +10,15 @@ import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
-export const ParallelMemoryDBMProvider = ({
+export const ParallelIndexedDBMProvider = ({
   children,
 }: {
   children: JSX.Element;
 }) => {
-  const [dbm, setdbm] = useState<DBMParallel<SharedArrayBuffer> | null>(null);
+  const [dbm, setdbm] = useState<DBMParallel | null>(null);
   const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
-  const fileManagerRef = useRef<ParallelMemoryFileManager>(
-    new ParallelMemoryFileManager({
+  const fileManagerRef = useRef<ParallelIndexedDBFileManager>(
+    new ParallelIndexedDBFileManager({
       instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async (table) => {
         return [];
@@ -37,11 +37,11 @@ export const ParallelMemoryDBMProvider = ({
       return;
     }
     const iframeManager = new IFrameRunnerManager({
-      runnerURL: 'http://localhost:4200/runner/memory-runner.html',
+      runnerURL: 'http://localhost:4200/runner/indexeddb-runner.html',
       origin: 'http://localhost:4200',
       totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
-        return fileManagerRef.current.getTableBufferData(table);
+        return [];
       },
       fetchPreQuery: () => {
         return [];
