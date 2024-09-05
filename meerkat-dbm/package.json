@@ -1,6 +1,6 @@
 {
   "name": "@devrev/meerkat-dbm",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "dependencies": {
     "tslib": "^2.3.0",
     "@devrev/duckdb-wasm": "1.14.3",
@@ -15,7 +15,7 @@
     "url": "git+https://github.com/devrev/meerkat.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org"
   },
   "type": "commonjs",
   "main": "./src/index.js",

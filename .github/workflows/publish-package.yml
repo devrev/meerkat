@@ -15,33 +15,32 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18.17
-          registry-url: https://npm.pkg.github.com/
+          registry-url: https://registry.npmjs.org/
           scope: '@devrev'
       - run: npm install
       - run: npx nx run-many --target=build --all --parallel
       - run: |
           cd ./dist/meerkat-dbm
-          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
           npm publish
         continue-on-error: true
 
       - run: |
           cd ./dist/meerkat-core
-          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
           npm publish
         continue-on-error: true
 
       - run: |
           cd ./dist/meerkat-node
-          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
-          npm publish
-        continue-on-error: true
-          
-      - run: |
-          cd ./dist/meerkat-browser
-          echo "//npm.pkg.github.com/:_authToken=${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}" >> .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
           npm publish
         continue-on-error: true
 
+      - run: |
+          cd ./dist/meerkat-browser
+          echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
+          npm publish
+        continue-on-error: true
         env:
-          NODE_AUTH_TOKEN: ${{secrets.NPM_PACKAGE_PUBLISH_TOKEN}}
+          NODE_AUTH_TOKEN: ${{secrets.NPMJS_NPM_TOKEN}}
