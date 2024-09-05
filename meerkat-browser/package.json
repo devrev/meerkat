@@ -24,6 +24,6 @@
     "url": "git+https://github.com/devrev/meerkat.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org"
   }
 }
