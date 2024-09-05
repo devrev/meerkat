@@ -22,25 +22,25 @@ jobs:
       - run: |
           cd ./dist/meerkat-dbm
           echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
-          npm publish
+          npm publish --access public
         continue-on-error: true
 
       - run: |
           cd ./dist/meerkat-core
           echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
-          npm publish
+           npm publish --access public
         continue-on-error: true
 
       - run: |
           cd ./dist/meerkat-node
           echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
-          npm publish
+           npm publish --access public
         continue-on-error: true
 
       - run: |
           cd ./dist/meerkat-browser
           echo "//registry.npmjs.org/:_authToken=${{secrets.NPMJS_NPM_TOKEN}}" >> .npmrc
-          npm publish
+           npm publish --access public
         continue-on-error: true
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPMJS_NPM_TOKEN}}
