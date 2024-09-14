@@ -4,7 +4,7 @@
   "scripts": {},
   "private": true,
   "dependencies": {
-    "@duckdb/duckdb-wasm": "1.28.1-dev278.0",
+    "@duckdb/duckdb-wasm": "1.28.1-dev258.0",
     "@nx/next": "16.8.1",
     "@swc/helpers": "~0.5.0",
     "@types/lodash.isnil": "^4.0.9",
