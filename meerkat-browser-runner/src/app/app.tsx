@@ -6,7 +6,7 @@ import {
   FileManagerType,
   getMainAppName,
   getRunnerAppName,
-  RunnerIndexedDBFileManager,
+  RunnerMemoryDBFileManager,
   WindowCommunication,
 } from '@devrev/meerkat-dbm';
 
@@ -72,7 +72,7 @@ export function App() {
   }
 
   if (!fileManagerRef.current) {
-    fileManagerRef.current = new RunnerIndexedDBFileManager({
+    fileManagerRef.current = new RunnerMemoryDBFileManager({
       instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async () => [],
       logger: log,
@@ -82,6 +82,7 @@ export function App() {
           payload: event,
         });
       },
+      communication: communicationRef.current,
     });
   }
 
