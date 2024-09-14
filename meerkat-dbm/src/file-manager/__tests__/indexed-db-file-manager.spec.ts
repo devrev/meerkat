@@ -1,4 +1,4 @@
-import { AsyncDuckDB } from '@devrev/duckdb-wasm';
+import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../../types';

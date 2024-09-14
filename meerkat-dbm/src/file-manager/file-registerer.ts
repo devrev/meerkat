@@ -1,4 +1,4 @@
-import { AsyncDuckDB } from '@devrev/duckdb-wasm';
+import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import { InstanceManagerType } from '../dbm/instance-manager';
 
 interface FileRegistererConstructorOptions {
