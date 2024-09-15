@@ -1,4 +1,3 @@
-import { AsyncDuckDBConnection } from '@devrev/duckdb-wasm';
 import {
   BASE_TABLE_NAME,
   ContextParams,
@@ -15,6 +14,7 @@ import {
   getFilterParamsAST,
   getWrappedBaseQueryWithProjections,
 } from '@devrev/meerkat-core';
+import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 
 const getFilterParamsSQL = async ({
   cubeQuery,

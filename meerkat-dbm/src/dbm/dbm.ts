@@ -1,4 +1,4 @@
-import { AsyncDuckDBConnection } from '@devrev/duckdb-wasm';
+import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { Table } from 'apache-arrow/table';
 import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager/file-manager-type';

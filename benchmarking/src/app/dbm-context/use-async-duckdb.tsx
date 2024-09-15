@@ -1,6 +1,6 @@
-import * as duckdb from '@devrev/duckdb-wasm';
-import { AsyncDuckDB } from '@devrev/duckdb-wasm';
 import { DBM, FileManagerType } from '@devrev/meerkat-dbm';
+import * as duckdb from '@duckdb/duckdb-wasm';
+import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import React, { useState } from 'react';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
