@@ -24,6 +24,9 @@ export type Dimension = {
   name: string;
   sql: string;
   type: DimensionType;
+  modifier?: {
+    unNestedGroupBy?: boolean
+  }
 };
 
 export type Join = {

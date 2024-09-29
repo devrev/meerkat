@@ -229,5 +229,5 @@ export {
   QueryType,
   RequestType,
   ResultType,
-  TimeMember,
+  TimeMember
 };
