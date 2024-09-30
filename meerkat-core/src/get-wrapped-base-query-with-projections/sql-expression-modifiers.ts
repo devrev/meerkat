@@ -14,7 +14,7 @@ export const arrayFieldUnNestModifier = ({ sqlExpression }: DimensionModifier): 
 
 export const shouldUnnest = ({ dimension, query }: DimensionModifier): boolean => {
   const isArrayType =  isArrayTypeMember(dimension.type);
-  const hasUnNestedGroupBy = dimension.modifier?.unNestedGroupBy;
+  const hasUnNestedGroupBy = dimension.modifier?.shouldUnnestGroupBy;
   return !!(isArrayType && hasUnNestedGroupBy && query.measures.length > 0);
 }
 
@@ -26,7 +26,7 @@ export type Modifier = {
 }
 
 export const MODIFIERS: Modifier[] = [{
-  name: 'unNestedGroupBy',
+  name: 'shouldUnnestGroupBy',
   matcher: shouldUnnest,
   modifier: arrayFieldUnNestModifier
 }]

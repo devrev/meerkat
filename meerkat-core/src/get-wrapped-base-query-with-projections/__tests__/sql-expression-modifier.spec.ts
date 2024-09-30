@@ -27,13 +27,13 @@ describe("Dimension Modifier", () => {
   });
 
   describe("shouldUnnest", () => {
-    it("should return true when dimension is array type and has unNestedGroupBy modifier", () => {
+    it("should return true when dimension is array type and has shouldUnnestGroupBy modifier", () => {
       (isArrayTypeMember as jest.Mock).mockReturnValue(true);
       const modifier: DimensionModifier = {
         sqlExpression: "some_expression",
         dimension: { 
           type: "array",
-          modifier: { unNestedGroupBy: true }
+          modifier: { shouldUnnestGroupBy: true }
         } as Dimension,
         key: "test_key",
         query: QUERY
@@ -47,7 +47,7 @@ describe("Dimension Modifier", () => {
         sqlExpression: "some_expression",
         dimension: { 
           type: "string",
-          modifier: { unNestedGroupBy: true }
+          modifier: { shouldUnnestGroupBy: true }
         } as Dimension,
         key: "test_key",
         query: QUERY
@@ -55,7 +55,7 @@ describe("Dimension Modifier", () => {
       expect(shouldUnnest(modifier)).toBe(false);
     });
 
-    it("should return false when dimension doesn't have unNestedGroupBy modifier", () => {
+    it("should return false when dimension doesn't have shouldUnnestGroupBy modifier", () => {
       (isArrayTypeMember as jest.Mock).mockReturnValue(true);
       const modifier: DimensionModifier = {
         sqlExpression: "some_expression",
@@ -89,7 +89,7 @@ describe("Dimension Modifier", () => {
         sqlExpression: "array_field",
         dimension: {
           type: "array",
-          modifier: { unNestedGroupBy: true }
+          modifier: { shouldUnnestGroupBy: true }
         } as Dimension,
         query: QUERY,
         key: "test_key",
@@ -103,7 +103,7 @@ describe("Dimension Modifier", () => {
         sqlExpression: "array_field",
         dimension: {
           type: "array",
-          modifier: { unNestedGroupBy: true }
+          modifier: { shouldUnnestGroupBy: true }
         } as Dimension,
         query: QUERY,
         key: "test_key",

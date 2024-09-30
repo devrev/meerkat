@@ -83,7 +83,7 @@ describe('cube-to-sql', () => {
         {
           ...OWNERS_DIMENSION,
           modifier: {
-            unNestedGroupBy: true
+            shouldUnnestGroupBy: true
           }
         },
         TAGS_DIMENSION
@@ -227,7 +227,7 @@ describe('cube-to-sql', () => {
       ...TABLE_SCHEMA,
       dimensions: [
         ...TABLE_SCHEMA.dimensions,
-        {...OWNERS_DIMENSION, modifier: { unNestedGroupBy: true }},
+        {...OWNERS_DIMENSION, modifier: { shouldUnnestGroupBy: true }},
         TAGS_DIMENSION
       ],
     }
@@ -265,10 +265,10 @@ describe('cube-to-sql', () => {
       dimensions: [
         ...TABLE_SCHEMA.dimensions,
         {
-          ...OWNERS_DIMENSION, modifier: { unNestedGroupBy: true }
+          ...OWNERS_DIMENSION, modifier: { shouldUnnestGroupBy: true }
         },
         {
-          ...TAGS_DIMENSION, modifier: { unNestedGroupBy: true }
+          ...TAGS_DIMENSION, modifier: { shouldUnnestGroupBy: true }
         }
       ],
     }
@@ -401,10 +401,10 @@ describe('cube-to-sql', () => {
       dimensions: [
         ...TABLE_SCHEMA.dimensions,
         {
-          ...OWNERS_DIMENSION, modifier: { unNestedGroupBy: true }
+          ...OWNERS_DIMENSION, modifier: { shouldUnnestGroupBy: true }
         },
         {
-          ...TAGS_DIMENSION, modifier: { unNestedGroupBy: true }
+          ...TAGS_DIMENSION, modifier: { shouldUnnestGroupBy: true }
         }
       ],
     }
@@ -442,7 +442,7 @@ describe('cube-to-sql', () => {
         {
           ...OWNERS_DIMENSION,
           modifier: {
-            unNestedGroupBy: true
+            shouldUnnestGroupBy: true
           }
         },
         TAGS_DIMENSION

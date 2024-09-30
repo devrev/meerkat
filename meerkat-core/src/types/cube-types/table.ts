@@ -25,7 +25,7 @@ export type Dimension = {
   sql: string;
   type: DimensionType;
   modifier?: {
-    unNestedGroupBy?: boolean
+    shouldUnnestGroupBy?: boolean
   }
 };
 
