@@ -1,63 +1,8 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
-import { TableSchema } from '../types/cube-types';
-import {
-  findInDimensionSchema,
-  findInMeasureSchema,
-} from '../utils/find-in-table-schema';
+import { Query, TableSchema } from '../types/cube-types';
 import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
-
-export const getFilterMeasureProjection = ({
-  key,
-  tableSchema,
-  measures,
-}: {
-  key: string;
-  tableSchema: TableSchema;
-  measures: string[];
-}) => {
-  const tableName = key.split('.')[0];
-  const measureWithoutTable = key.split('.')[1];
-  const foundMember = findInMeasureSchema(measureWithoutTable, tableSchema);
-  const isMeasure = measures.includes(key);
-  if (!foundMember || isMeasure || tableName !== tableSchema.name) {
-    // If the selected member is not found in the table schema or if it is already selected, continue.
-    // If the selected member is a measure, don't create an alias. Since measure computation is done in the outermost level of the query
-    // If the selected member is not from the current table, don't create an alias.
-    return {
-      sql: undefined,
-      foundMember: undefined,
-      aliasKey: undefined,
-    };
-  }
-  const aliasKey = memberKeyToSafeKey(key);
-  return { sql: `${key} AS ${aliasKey}`, foundMember, aliasKey };
-};
-
-export const getDimensionProjection = ({
-  key,
-  tableSchema,
-}: {
-  key: string;
-  tableSchema: TableSchema;
-}) => {
-  // Find the table access key
-  const measureWithoutTable = key.split('.')[1];
-  const tableName = key.split('.')[0];
-
-  const foundMember = findInDimensionSchema(measureWithoutTable, tableSchema);
-  if (!foundMember || tableName !== tableSchema.name) {
-    // If the selected member is not found in the table schema or if it is already selected, continue.
-    // If the selected member is not from the current table, don't create an alias.
-    return {
-      sql: undefined,
-      foundMember: undefined,
-      aliasKey: undefined,
-    };
-  }
-  const aliasKey = memberKeyToSafeKey(key);
-  // Add the alias key to the set. So we have a reference to all the previously selected members.
-  return { sql: `${foundMember.sql} AS ${aliasKey}`, foundMember, aliasKey };
-};
+import { getDimensionProjection, getFilterMeasureProjection } from './get-aliased-columns-from-filters';
+import { MODIFIERS } from './sql-expression-modifiers';
 
 const aggregator = ({
   member,
@@ -81,11 +26,11 @@ const aggregator = ({
 };
 
 export const getProjectionClause = (
-  measures: string[],
-  dimensions: string[],
+  query: Query,
   tableSchema: TableSchema,
   aliasedColumnSet: Set<string>
 ) => {
+  const { measures, dimensions = [] } = query;
   const filteredDimensions = dimensions.filter((dimension) => {
     return dimension.split('.')[0] === tableSchema.name;
   });
@@ -97,6 +42,8 @@ export const getProjectionClause = (
       const { sql: memberSql } = getDimensionProjection({
         key: member,
         tableSchema,
+        modifiers: MODIFIERS,
+        query
       });
       return aggregator({
         member,
