@@ -131,17 +131,28 @@ const getNewQueries = (tableName: string) => {
         {
             name: 'filters',
             sql: `
-                SELECT 
-                DATE_TRUNC('month', ${tableName}.order_date),
+            SELECT 
+                DATE_TRUNC('month', ${tableName}.order_date) AS order_month,
                 ${tableName}.customer_id,
                 ${tableName}.product_id,
                 ${tableName}.product_name,
-                COUNT(DISTINCT ${tableName}.order_id) AS ${tableName}__total_orders,
-                SUM(${tableName}.quantity) AS ${tableName}__quantity,
-                AVG(${tableName}.product_price) AS ${tableName}__avg_product_price,
-            FROM ${tableName}
+                COUNT(DISTINCT ${tableName}.order_id) AS benchmarking__total_orders,
+                SUM(${tableName}.quantity) AS benchmarking__quantity,
+                AVG(${tableName}.product_price) AS benchmarking__avg_product_price
+            FROM
+                (
+                    SELECT
+                        ${tableName}.order_date,
+                        ${tableName}.customer_id,
+                        ${tableName}.product_id,
+                        ${tableName}.product_name,
+                        ${tableName}.order_id,
+                        ${tableName}.quantity,
+                        ${tableName}.product_price
+                    from ${tableName}
+                ) AS ${tableName}
             WHERE 
-                DATE_TRUNC('month', ${tableName}.order_date) BETWEEN '2023-01-01 00:00:00' AND '2023-06-30 23:59:59'
+                DATE_TRUNC('month', ${tableName}.order_date) BETWEEN '2023-01-01' AND '2023-06-30'
                 AND ${tableName}.product_id BETWEEN 100 AND 200
                 AND ${tableName}.product_name LIKE '%Premium%'
             GROUP BY 
@@ -150,10 +161,9 @@ const getNewQueries = (tableName: string) => {
                 ${tableName}.product_id,
                 ${tableName}.product_name
             HAVING 
-                ${tableName}__total_orders > 10
+                COUNT(DISTINCT ${tableName}.order_id) > 10
             ORDER BY 
-                ${tableName}__total_orders DESC
-            `
+                COUNT(DISTINCT ${tableName}.order_id) DESC`
         }
     ];
 }
