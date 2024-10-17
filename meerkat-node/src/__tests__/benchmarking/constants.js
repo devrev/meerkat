@@ -132,7 +132,7 @@ const getNewQueries = (tableName: string) => {
             name: 'filters',
             sql: `
             SELECT 
-                DATE_TRUNC('month', ${tableName}.order_date) AS order_month,
+                ${tableName}__order_month,
                 ${tableName}.customer_id,
                 ${tableName}.product_id,
                 ${tableName}.product_name,
@@ -142,6 +142,7 @@ const getNewQueries = (tableName: string) => {
             FROM
                 (
                     SELECT
+                        DATE_TRUNC('month', ${tableName}.order_date) AS ${tableName}__order_month,
                         ${tableName}.order_date,
                         ${tableName}.customer_id,
                         ${tableName}.product_id,
@@ -152,11 +153,11 @@ const getNewQueries = (tableName: string) => {
                     from ${tableName}
                 ) AS ${tableName}
             WHERE 
-                DATE_TRUNC('month', ${tableName}.order_date) BETWEEN '2023-01-01' AND '2023-06-30'
+               ${tableName}__order_month BETWEEN '2023-01-01' AND '2023-06-30'
                 AND ${tableName}.product_id BETWEEN 100 AND 200
                 AND ${tableName}.product_name LIKE '%Premium%'
             GROUP BY 
-                DATE_TRUNC('month', ${tableName}.order_date),
+                ${tableName}__order_month,
                 ${tableName}.customer_id,
                 ${tableName}.product_id,
                 ${tableName}.product_name
