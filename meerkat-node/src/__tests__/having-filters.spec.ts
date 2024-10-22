@@ -141,4 +141,23 @@ describe('cube-to-sql', () => {
       },
     ]);
   });
+  it('Should not create duplicate alias for the same column', async () => {
+    const query: Query = {
+      measures: [],
+      filters: [],
+      dimensions: [],
+      order: {
+        'orders.customer_id': 'asc',
+      },
+      limit: 2,
+    };
+    const sql = await cubeQueryToSQL(query, [TABLE_SCHEMA]);
+    console.info(`SQL for Simple Cube Query: `, sql);
+    // const output = await duckdbExec(sql);
+    // const parsedOutput = JSON.parse(JSON.stringify(output));
+    // console.info('parsedOutput', parsedOutput);
+    // expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
+    //   parsedOutput[1].orders__total_order_amount
+    // );
+  });
 });
