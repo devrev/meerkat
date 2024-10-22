@@ -151,7 +151,7 @@ type MeerkatQueryFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 
 interface Query {
   measures: Member[];
-  dimensions?: (Member)[];
+  dimensions?: Member[];
   filters?: MeerkatQueryFilter[];
   joinPaths?: JoinPath[];
   limit?: null | number;
