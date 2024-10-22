@@ -4,7 +4,7 @@ import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 import { getDimensionProjection, getFilterMeasureProjection } from './get-aliased-columns-from-filters';
 import { MODIFIERS } from './sql-expression-modifiers';
 
-const stringConcatenationAggregator = ({
+const aggregator = ({
   member,
   aliasedColumnSet,
   acc,
@@ -45,7 +45,7 @@ export const getProjectionClause = (
         modifiers: MODIFIERS,
         query
       });
-      return stringConcatenationAggregator({
+      return aggregator({
         member,
         aliasedColumnSet,
         acc,
@@ -65,7 +65,7 @@ export const getProjectionClause = (
         tableSchema,
         measures,
       });
-      return stringConcatenationAggregator({
+      return aggregator({
         member,
         aliasedColumnSet,
         acc,
