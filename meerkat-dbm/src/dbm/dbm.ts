@@ -102,7 +102,6 @@ export class DBM {
     if (!this.connection) {
       const db = await this.instanceManager.getDB();
       this.connection = await db.connect();
-      console.log('this.connection', this.connection);
       if (this.createConnectionCallback) {
         await this.createConnectionCallback(this.connection);
       }
