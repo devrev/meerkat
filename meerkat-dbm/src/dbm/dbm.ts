@@ -24,6 +24,9 @@ export class DBM {
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
   private onDuckDBShutdown?: () => void;
+  private onCreateConnection?: (
+    connection: AsyncDuckDBConnection
+  ) => void | Promise<void>;
 
   private queryQueueRunning = false;
   private shutdownLock = false;
@@ -36,6 +39,7 @@ export class DBM {
     options,
     instanceManager,
     onDuckDBShutdown,
+    onCreateConnection,
   }: DBMConstructorOptions) {
     this.fileManager = fileManager;
     this.logger = logger;
@@ -43,6 +47,7 @@ export class DBM {
     this.options = options;
     this.instanceManager = instanceManager;
     this.onDuckDBShutdown = onDuckDBShutdown;
+    this.onCreateConnection = onCreateConnection;
   }
 
   private async _shutdown() {
@@ -97,6 +102,9 @@ export class DBM {
     if (!this.connection) {
       const db = await this.instanceManager.getDB();
       this.connection = await db.connect();
+      if (this.onCreateConnection) {
+        await this.onCreateConnection(this.connection);
+      }
     }
     return this.connection;
   }

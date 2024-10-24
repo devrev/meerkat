@@ -1,3 +1,4 @@
+import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { TableWiseFiles } from '../types';
@@ -48,6 +49,14 @@ export interface DBMConstructorOptions<BufferType = Uint8Array> {
      */
     shutdownInactiveTime?: number;
   };
+
+  /**
+   * @description
+   * A callback function that will be executed after a new DuckDB connection is created.
+   */
+  onCreateConnection?: (
+    connection: AsyncDuckDBConnection
+  ) => void | Promise<void>;
 }
 
 /**
