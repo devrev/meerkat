@@ -127,7 +127,7 @@ describe('DBM', () => {
   let instanceManager: InstanceManager;
 
   const tables = [{ name: 'table1' }];
-  const createConnectionCallback = jest
+  const onCreateConnection = jest
     .fn()
     .mockImplementation(async (connection) => {
       await connection.query('SELECT 2');
@@ -150,13 +150,13 @@ describe('DBM', () => {
       options: {
         shutdownInactiveTime: 100,
       },
-      createConnectionCallback,
+      onCreateConnection,
     };
     dbm = new DBM(options);
   });
 
   afterEach(() => {
-    createConnectionCallback.mockClear();
+    onCreateConnection.mockClear();
   });
 
   describe('query', () => {
@@ -528,9 +528,9 @@ describe('DBM', () => {
   describe('create connection callback', () => {
     it('should call the create connection callback', async () => {
       await dbm.query('SELECT 1');
-      expect(createConnectionCallback).toHaveBeenCalled();
+      expect(onCreateConnection).toHaveBeenCalled();
 
-      expect(createConnectionCallback).toHaveBeenCalledWith(
+      expect(onCreateConnection).toHaveBeenCalledWith(
         // arguments of the mockdb connection return object
         expect.objectContaining({
           query: expect.any(Function),
@@ -550,8 +550,8 @@ describe('DBM', () => {
        */
 
       await dbm.query('SELECT 2');
-      expect(createConnectionCallback).toHaveBeenCalled();
-      expect(createConnectionCallback).toHaveBeenCalledWith(
+      expect(onCreateConnection).toHaveBeenCalled();
+      expect(onCreateConnection).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.any(Function),
           cancelSent: expect.any(Function),

@@ -54,7 +54,7 @@ export interface DBMConstructorOptions<BufferType = Uint8Array> {
    * @description
    * A callback function that will be executed after a new DuckDB connection is created.
    */
-  createConnectionCallback?: (
+  onCreateConnection?: (
     connection: AsyncDuckDBConnection
   ) => void | Promise<void>;
 }
