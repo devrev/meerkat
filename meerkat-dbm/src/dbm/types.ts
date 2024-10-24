@@ -50,6 +50,10 @@ export interface DBMConstructorOptions<BufferType = Uint8Array> {
     shutdownInactiveTime?: number;
   };
 
+  /**
+   * @description
+   * A callback function that will be executed after a new DuckDB connection is created.
+   */
   createConnectionCallback?: (
     connection: AsyncDuckDBConnection
   ) => void | Promise<void>;
