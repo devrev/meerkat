@@ -127,6 +127,11 @@ describe('DBM', () => {
   let instanceManager: InstanceManager;
 
   const tables = [{ name: 'table1' }];
+  const createConnectionCallback = jest
+    .fn()
+    .mockImplementation(async (connection) => {
+      await connection.query('SELECT 2');
+    });
 
   beforeAll(async () => {
     fileManager = new MockFileManager();
@@ -145,8 +150,13 @@ describe('DBM', () => {
       options: {
         shutdownInactiveTime: 100,
       },
+      createConnectionCallback,
     };
     dbm = new DBM(options);
+  });
+
+  afterEach(() => {
+    createConnectionCallback.mockClear();
   });
 
   describe('query', () => {
@@ -512,6 +522,42 @@ describe('DBM', () => {
       await dbm.unlockTables([tableName]);
 
       expect(dbm.isTableLocked(tableName)).toBe(false);
+    });
+  });
+
+  describe('create connection callback', () => {
+    it('should call the create connection callback', async () => {
+      await dbm.query('SELECT 1');
+      expect(createConnectionCallback).toHaveBeenCalled();
+
+      expect(createConnectionCallback).toHaveBeenCalledWith(
+        // arguments of the mockdb connection return object
+        expect.objectContaining({
+          query: expect.any(Function),
+          cancelSent: expect.any(Function),
+          close: expect.any(Function),
+        })
+      );
+
+      /**
+       * wait for 200ms
+       */
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      /**
+       * after shutdown on new connection creation
+       * also call the create connection callback
+       */
+
+      await dbm.query('SELECT 2');
+      expect(createConnectionCallback).toHaveBeenCalled();
+      expect(createConnectionCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.any(Function),
+          cancelSent: expect.any(Function),
+          close: expect.any(Function),
+        })
+      );
     });
   });
 });

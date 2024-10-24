@@ -1,3 +1,4 @@
+import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { TableWiseFiles } from '../types';
@@ -48,6 +49,10 @@ export interface DBMConstructorOptions<BufferType = Uint8Array> {
      */
     shutdownInactiveTime?: number;
   };
+
+  createConnectionCallback?: (
+    connection: AsyncDuckDBConnection
+  ) => void | Promise<void>;
 }
 
 /**
