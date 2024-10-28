@@ -24,6 +24,12 @@ export const getWrappedBaseQueryWithProjections = ({
   const newBaseSql = `SELECT * FROM (${baseQuery}) AS ${tableSchema.name}`;
   const aliasedColumnSet = new Set<string>();
 
+  const memberProjections = getProjectionClause(
+    query,
+    tableSchema,
+    aliasedColumnSet
+  );
+
   const aliasFromFilters = getAliasedColumnsFromFilters({
     aliasedColumnSet,
     baseSql: 'SELECT *',
@@ -33,11 +39,6 @@ export const getWrappedBaseQueryWithProjections = ({
     meerkatFilters: query.filters,
   });
 
-  const memberProjections = getProjectionClause(
-    query,
-    tableSchema,
-    aliasedColumnSet
-  );
   const formattedMemberProjection = memberProjections
     ? `, ${memberProjections}`
     : '';
