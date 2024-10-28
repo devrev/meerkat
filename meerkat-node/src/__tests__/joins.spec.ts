@@ -545,6 +545,10 @@ describe('Joins Tests', () => {
         'customers.customer_id',
         'customers.order_id',
       ],
+      order: {
+        'orders.total_order_amount': 'desc',
+        'customers.customer_id': 'asc'
+      },
     };
 
     const sql = await cubeQueryToSQL(query1, [ORDER_SCHEMA, CUSTOMER_SCHEMA]);
@@ -553,11 +557,11 @@ describe('Joins Tests', () => {
     const parsedOutput = JSON.parse(JSON.stringify(output));
     console.info('parsedOutput', parsedOutput);
     expect(parsedOutput).toHaveLength(3);
-    expect(parsedOutput[0].customers__customer_id).toBe('2');
-    expect(parsedOutput[1].customers__customer_id).toBe('1');
+    expect(parsedOutput[0].customers__customer_id).toBe('1');
+    expect(parsedOutput[1].customers__customer_id).toBe('2');
     expect(parsedOutput[2].customers__customer_id).toBe('1');
-    expect(parsedOutput[0].customers__order_id).toBe('2');
-    expect(parsedOutput[1].customers__order_id).toBe('3');
+    expect(parsedOutput[0].customers__order_id).toBe('3');
+    expect(parsedOutput[1].customers__order_id).toBe('2');
     expect(parsedOutput[2].customers__order_id).toBe('3');
 
     const query2 = {
