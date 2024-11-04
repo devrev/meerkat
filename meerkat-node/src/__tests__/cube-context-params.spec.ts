@@ -57,9 +57,9 @@ describe('context-param-tests', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL(query, [SCHEMA], {
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
       TABLE_NAME: 'orders',
-    });
+    }});
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);

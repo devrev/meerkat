@@ -17,16 +17,16 @@ import {
 import { duckdbExec } from '../duckdb-exec';
 
 const getFilterParamsSQL = async ({
-  cubeQuery,
+  query,
   tableSchema,
   filterType,
 }: {
-  cubeQuery: Query;
+  query: Query;
   tableSchema: TableSchema;
   filterType?: FilterType;
 }) => {
   const filterParamsAST = getFilterParamsAST(
-    cubeQuery,
+    query,
     tableSchema,
     filterType
   );
@@ -53,13 +53,13 @@ const getFilterParamsSQL = async ({
   return filterParamsSQL;
 };
 
-const getFinalBaseSQL = async (cubeQuery: Query, tableSchema: TableSchema) => {
+const getFinalBaseSQL = async (query: Query, tableSchema: TableSchema) => {
   /**
    * Apply transformation to the supplied base query.
    * This involves updating the filter placeholder with the actual filter values.
    */
   const baseFilterParamsSQL = await getFilterParamsSQL({
-    cubeQuery: cubeQuery,
+    query: query,
     tableSchema,
     filterType: 'BASE_FILTER',
   });
@@ -70,19 +70,23 @@ const getFinalBaseSQL = async (cubeQuery: Query, tableSchema: TableSchema) => {
   const baseSQLWithFilterProjection = getWrappedBaseQueryWithProjections({
     baseQuery: baseSQL,
     tableSchema,
-    query: cubeQuery,
+    query: query,
   });
   return baseSQLWithFilterProjection;
 };
 
-export const cubeQueryToSQL = async (
-  cubeQuery: Query,
+export const cubeQueryToSQL = async ({
+  query,
+  tableSchemas,
+  contextParams
+}: {
+  query: Query,
   tableSchemas: TableSchema[],
   contextParams?: ContextParams
-) => {
+}) => {
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
-      const baseFilterParamsSQL = await getFinalBaseSQL(cubeQuery, schema);
+      const baseFilterParamsSQL = await getFinalBaseSQL(query, schema);
       return {
         ...schema,
         sql: baseFilterParamsSQL,
@@ -92,10 +96,10 @@ export const cubeQueryToSQL = async (
 
   const updatedTableSchema = await getCombinedTableSchema(
     updatedTableSchemas,
-    cubeQuery
+    query
   );
 
-  const ast = cubeToDuckdbAST(cubeQuery, updatedTableSchema);
+  const ast = cubeToDuckdbAST(query, updatedTableSchema);
   if (!ast) {
     throw new Error('Could not generate AST');
   }
@@ -110,7 +114,7 @@ export const cubeQueryToSQL = async (
   const preBaseQuery = deserializeQuery(queryOutput);
 
   const filterParamsSQL = await getFilterParamsSQL({
-    cubeQuery,
+    query,
     tableSchema: updatedTableSchema,
   });
 
@@ -138,8 +142,8 @@ export const cubeQueryToSQL = async (
   /**
    * Add measures to the query
    */
-  const measures = cubeQuery.measures;
-  const dimensions = cubeQuery.dimensions || [];
+  const measures = query.measures;
+  const dimensions = query.dimensions || [];
   const finalQuery = applyProjectionToSQLQuery(
     dimensions,
     measures,
