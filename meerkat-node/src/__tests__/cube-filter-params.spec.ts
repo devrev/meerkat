@@ -58,7 +58,7 @@ describe('filter-param-tests', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL(query, [SCHEMA]);
+    const sql = await cubeQueryToSQL({query, tableSchemas: [SCHEMA]});
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
@@ -91,7 +91,7 @@ describe('filter-param-tests', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL(query, [SCHEMA]);
+    const sql = await cubeQueryToSQL({ query, table_schema: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(3);
@@ -105,7 +105,7 @@ describe('filter-param-tests', () => {
       dimensions: [],
     };
 
-    const sql = await cubeQueryToSQL(query, [SCHEMA]);
+    const sql = await cubeQueryToSQL({ query, table_schema: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(8);
@@ -137,7 +137,7 @@ describe('filter-param-tests', () => {
       dimensions: [],
     };
 
-    const sql = await cubeQueryToSQL(query, [SCHEMA]);
+    const sql = await cubeQueryToSQL({ query, table_schema: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(5);
@@ -162,7 +162,7 @@ describe('filter-param-tests', () => {
       dimensions: [],
     };
 
-    const sql = await cubeQueryToSQL(query, [SCHEMA]);
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);

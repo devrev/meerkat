@@ -63,7 +63,7 @@ describe('Cube Schema to SQL', () => {
         ],
       ],
     };
-    const sql = await cubeQueryToSQL(query, [productsSchema, suppliersSchema]);
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [productsSchema, suppliersSchema] });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     console.info('parsedOutput', output);
