@@ -1,7 +1,6 @@
 import {
   BASE_TABLE_NAME,
   ContextParams,
-  FilterType,
   Query,
   TableSchema,
   applyFilterParamsToBaseSQL,
@@ -11,82 +10,28 @@ import {
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
   getCombinedTableSchema,
-  getFilterParamsAST,
-  getWrappedBaseQueryWithProjections,
+  getFilterParamsSQL,
+  getFinalBaseSQL
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
-const getFilterParamsSQL = async ({
-  query,
-  tableSchema,
-  filterType,
-}: {
-  query: Query;
-  tableSchema: TableSchema;
-  filterType?: FilterType;
-}) => {
-  const filterParamsAST = getFilterParamsAST(
-    query,
-    tableSchema,
-    filterType
-  );
-  const filterParamsSQL = [];
-  for (const filterParamAST of filterParamsAST) {
-    if (!filterParamAST.ast) {
-      continue;
-    }
 
-    const queryOutput = await duckdbExec<
-      {
-        [key: string]: string;
-      }[]
-    >(astDeserializerQuery(filterParamAST.ast));
 
-    const sql = deserializeQuery(queryOutput);
-
-    filterParamsSQL.push({
-      memberKey: filterParamAST.memberKey,
-      sql: sql,
-      matchKey: filterParamAST.matchKey,
-    });
-  }
-  return filterParamsSQL;
-};
-
-const getFinalBaseSQL = async (query: Query, tableSchema: TableSchema) => {
-  /**
-   * Apply transformation to the supplied base query.
-   * This involves updating the filter placeholder with the actual filter values.
-   */
-  const baseFilterParamsSQL = await getFilterParamsSQL({
-    query: query,
-    tableSchema,
-    filterType: 'BASE_FILTER',
-  });
-  const baseSQL = applyFilterParamsToBaseSQL(
-    tableSchema.sql,
-    baseFilterParamsSQL
-  );
-  const baseSQLWithFilterProjection = getWrappedBaseQueryWithProjections({
-    baseQuery: baseSQL,
-    tableSchema,
-    query: query,
-  });
-  return baseSQLWithFilterProjection;
-};
+interface CubeQueryToSQLParams {
+  query: Query,
+  tableSchemas: TableSchema[],
+  contextParams?: ContextParams
+  isFlatQueryEnabled?: boolean
+}
 
 export const cubeQueryToSQL = async ({
   query,
   tableSchemas,
-  contextParams
-}: {
-  query: Query,
-  tableSchemas: TableSchema[],
-  contextParams?: ContextParams
-}) => {
+  contextParams,
+}: CubeQueryToSQLParams) => {
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
-      const baseFilterParamsSQL = await getFinalBaseSQL(query, schema);
+      const baseFilterParamsSQL = await getFinalBaseSQL({query, tableSchema: schema, getQueryOutput: duckdbExec });
       return {
         ...schema,
         sql: baseFilterParamsSQL,
@@ -116,6 +61,7 @@ export const cubeQueryToSQL = async ({
   const filterParamsSQL = await getFilterParamsSQL({
     query,
     tableSchema: updatedTableSchema,
+    getQueryOutput: duckdbExec,
   });
 
   const filterParamQuery = applyFilterParamsToBaseSQL(

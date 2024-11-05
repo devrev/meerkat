@@ -1,7 +1,6 @@
 import {
   BASE_TABLE_NAME,
   ContextParams,
-  FilterType,
   Query,
   TableSchema,
   applyFilterParamsToBaseSQL,
@@ -11,95 +10,39 @@ import {
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
   getCombinedTableSchema,
-  getFilterParamsAST,
-  getWrappedBaseQueryWithProjections,
+  getFilterParamsSQL,
+  getFinalBaseSQL
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 
-const getFilterParamsSQL = async ({
-  query,
-  tableSchema,
-  filterType,
-  connection,
-}: {
-  query: Query;
-  tableSchema: TableSchema;
-  filterType?: FilterType;
-  connection: AsyncDuckDBConnection;
-}) => {
-  const filterParamsAST = getFilterParamsAST(
-    query,
-    tableSchema,
-    filterType
-  );
-  const filterParamsSQL = [];
 
-  for (const filterParamAST of filterParamsAST) {
-    if (!filterParamAST.ast) {
-      continue;
-    }
+const getQueryOutput = async (query: string, connection: AsyncDuckDBConnection) => {
+  const queryOutput = await connection.query(query);
+  const parsedOutputQuery = queryOutput.toArray().map((row) => row.toJSON());
+  return parsedOutputQuery;
+}
 
-    const queryOutput = await connection.query(
-      astDeserializerQuery(filterParamAST.ast)
-    );
-    const parsedOutputQuery = queryOutput.toArray().map((row) => row.toJSON());
 
-    const sql = deserializeQuery(parsedOutputQuery);
-
-    filterParamsSQL.push({
-      memberKey: filterParamAST.memberKey,
-      sql: sql,
-      matchKey: filterParamAST.matchKey,
-    });
-  }
-  return filterParamsSQL;
-};
-
-const getFinalBaseSQL = async (
+interface CubeQueryToSQLParams {
+  connection: AsyncDuckDBConnection,
   query: Query,
-  tableSchema: TableSchema,
-  connection: AsyncDuckDBConnection
-) => {
-  /**
-   * Apply transformation to the supplied base query.
-   * This involves updating the filter placeholder with the actual filter values.
-   */
-  const baseFilterParamsSQL = await getFilterParamsSQL({
-    query: query,
-    tableSchema,
-    filterType: 'BASE_FILTER',
-    connection,
-  });
-  const baseSQL = applyFilterParamsToBaseSQL(
-    tableSchema.sql,
-    baseFilterParamsSQL
-  );
-  const baseSQLWithFilterProjection = getWrappedBaseQueryWithProjections({
-    baseQuery: baseSQL,
-    tableSchema,
-    query: query,
-  });
-  return baseSQLWithFilterProjection;
-};
+  tableSchemas: TableSchema[],
+  contextParams?: ContextParams,
+}
 
 export const cubeQueryToSQL = async ({
   connection,
   query,
   tableSchemas,
   contextParams
-}: {
-  connection: AsyncDuckDBConnection,
-  query: Query,
-  tableSchemas: TableSchema[],
-  contextParams?: ContextParams
-}) => {
+}: CubeQueryToSQLParams) => {
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
-      const baseFilterParamsSQL = await getFinalBaseSQL(
+      const baseFilterParamsSQL = await getFinalBaseSQL({
         query,
-        schema,
-        connection
-      );
+        tableSchema: schema,
+        getQueryOutput: (query) => getQueryOutput(query, connection)
+      });
       return {
         ...schema,
         sql: baseFilterParamsSQL,
@@ -124,7 +67,7 @@ export const cubeQueryToSQL = async ({
 
   const preBaseQuery = deserializeQuery(parsedOutputQuery);
   const filterParamsSQL = await getFilterParamsSQL({
-    connection,
+    getQueryOutput: (query) => getQueryOutput(query, connection),
     query,
     tableSchema: updatedTableSchema,
     filterType: 'BASE_FILTER',

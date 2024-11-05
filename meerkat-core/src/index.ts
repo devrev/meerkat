@@ -6,8 +6,10 @@ export * from './cube-to-duckdb/cube-filter-to-duckdb';
 export {
   applyFilterParamsToBaseSQL,
   detectAllFilterParamsFromSQL,
-  getFilterParamsAST,
+  getFilterParamsAST
 } from './filter-params/filter-params-ast';
+export { getFilterParamsSQL } from './get-filter-params-sql/get-filter-params-sql';
+export { getFinalBaseSQL } from './get-final-base-sql/get-final-base-sql';
 export { getWrappedBaseQueryWithProjections } from './get-wrapped-base-query-with-projections/get-wrapped-base-query-with-projections';
 export * from './joins/joins';
 export { FilterType } from './types/cube-types';
@@ -18,3 +20,4 @@ export * from './utils/cube-to-table-schema';
 export * from './utils/get-possible-nodes';
 export { meerkatPlaceholderReplacer } from './utils/meerkat-placeholder-replacer';
 export { memberKeyToSafeKey } from './utils/member-key-to-safe-key';
+
