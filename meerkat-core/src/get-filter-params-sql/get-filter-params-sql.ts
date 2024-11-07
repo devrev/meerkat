@@ -33,8 +33,5 @@ export const getFilterParamsSQL = async ({
       matchKey: filterParamAST.matchKey,
     });
   }
-  console.dir({ query, filterParamsSQL, tableSchema, filterType }, {
-    depth: Infinity
-  });
   return filterParamsSQL;
 };

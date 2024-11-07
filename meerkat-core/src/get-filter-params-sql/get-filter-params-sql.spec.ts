@@ -26,7 +26,7 @@ const TABLE_SCHEMA: TableSchema = {
   ]
 }
 describe('getFilterParamsSQL', () => {
-  it('should find filter params when there are filters', async () => {
+  it('should find filter params when there are filters of base filter type', async () => {
     const result = await getFilterParamsSQL({
       filterType: 'BASE_FILTER',
       query:  {
@@ -52,7 +52,7 @@ describe('getFilterParamsSQL', () => {
         },
       ]);
   });
-  it('should not find filter params when there are no filters', async () => {
+  it('should not find filter params when there are no filters of base filter type', async () => {
     const result = await getFilterParamsSQL({
       filterType: 'BASE_FILTER',
       query:  {
@@ -64,5 +64,69 @@ describe('getFilterParamsSQL', () => {
       getQueryOutput,
     });
     expect(result).toEqual([]);
+  });
+  it('should find filter params when there are filters of projection filter type', async () => {
+    const result = await getFilterParamsSQL({
+      filterType: 'PROJECTION_FILTER',
+      query:  {
+        measures: [ '*' ],
+        filters: [
+          {
+            and: [
+              { member: 'orders.amount', operator: 'notSet' },
+              { member: 'orders.status', operator: 'set' }
+            ]
+          }
+        ],
+        dimensions: []
+      },
+      tableSchema: TABLE_SCHEMA,
+      getQueryOutput,
+    });
+    expect(result).toEqual([
+        {
+          "matchKey": "${FILTER_PARAMS.orders.status.filter('status')}",
+          "memberKey": "orders.status",
+          "sql": "SELECT * FROM REPLACE_BASE_TABLE WHERE ((orders__status IS NOT NULL))",
+        },
+      ]);
+  });
+  it('should not find filter params when there are no filters', async () => {
+    const result = await getFilterParamsSQL({
+      filterType: 'PROJECTION_FILTER',
+      query:  {
+        measures: [ '*' ],
+        filters: [],
+        dimensions: []
+      },
+      tableSchema: TABLE_SCHEMA,
+      getQueryOutput,
+    });
+    expect(result).toEqual([]);
+  });
+  it('should find filter params when there are filters of no defined type', async () => {
+    const result = await getFilterParamsSQL({
+      query:  {
+        measures: [ '*' ],
+        filters: [
+          {
+            and: [
+              { member: 'orders.amount', operator: 'notSet' },
+              { member: 'orders.status', operator: 'set' }
+            ]
+          }
+        ],
+        dimensions: []
+      },
+      tableSchema: TABLE_SCHEMA,
+      getQueryOutput,
+    });
+    expect(result).toEqual([
+        {
+          "matchKey": "${FILTER_PARAMS.orders.status.filter('status')}",
+          "memberKey": "orders.status",
+          "sql": "SELECT * FROM REPLACE_BASE_TABLE WHERE ((orders__status IS NOT NULL))",
+        },
+      ]);
   });
 });
