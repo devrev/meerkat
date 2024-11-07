@@ -8,7 +8,7 @@ export const getFinalBaseSQL = async ({
   query,
   getQueryOutput,
   tableSchema,
-}: {query: Query, tableSchema: TableSchema, getQueryOutput: (query: string) => Promise<any>}) => {
+}: { query: Query, tableSchema: TableSchema, getQueryOutput: (query: string) => Promise<any> }) => {
   /**
    * Apply transformation to the supplied base query.
    * This involves updating the filter placeholder with the actual filter values.

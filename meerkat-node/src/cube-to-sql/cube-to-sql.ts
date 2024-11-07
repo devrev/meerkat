@@ -21,7 +21,6 @@ interface CubeQueryToSQLParams {
   query: Query,
   tableSchemas: TableSchema[],
   contextParams?: ContextParams
-  isFlatQueryEnabled?: boolean
 }
 
 export const cubeQueryToSQL = async ({
