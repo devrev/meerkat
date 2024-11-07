@@ -25,7 +25,6 @@ export const getFilterParamsSQL = async ({
     }
 
     const queryOutput = await getQueryOutput(astDeserializerQuery(filterParamAST.ast))
-
     const sql = deserializeQuery(queryOutput);
 
     filterParamsSQL.push({
@@ -34,5 +33,8 @@ export const getFilterParamsSQL = async ({
       matchKey: filterParamAST.matchKey,
     });
   }
+  console.dir({ query, filterParamsSQL, tableSchema, filterType }, {
+    depth: Infinity
+  });
   return filterParamsSQL;
 };
