@@ -1,0 +1,127 @@
+{
+  "error": false,
+  "statements": [
+    {
+      "node": {
+        "type": "SELECT_NODE",
+        "modifiers": [],
+        "cte_map": { "map": [] },
+        "select_list": [
+          {
+            "class": "FUNCTION",
+            "type": "FUNCTION",
+            "alias": "total_count",
+            "query_location": 7,
+            "function_name": "count",
+            "schema": "",
+            "children": [
+              {
+                "class": "CASE",
+                "type": "CASE_EXPR",
+                "alias": "",
+                "query_location": 13,
+                "case_checks": [
+                  {
+                    "when_expr": {
+                      "class": "CONJUNCTION",
+                      "type": "CONJUNCTION_OR",
+                      "alias ": "",
+                      "query_location": 44,
+                      "children": [
+                        {
+                          "class": "COMPARISON",
+                          "type": "COMPARE_EQUAL",
+                          "alias": "",
+                          "query_location": 30,
+                          "left": {
+                            "class": "COLUMN_REF",
+                            "type": "COLUMN_REF",
+                            "alias": "",
+                            "query_location": 23,
+                            "column_names": ["status"]
+                          },
+                          "right": {
+                            "class": "CONSTANT",
+                            "type": " VALUE_CONSTANT",
+                            "alias": "",
+                            "query_location": 32,
+                            "value": {
+                              "type": { "id": "VARCHAR", "type_info": null },
+                              "is_null": false,
+                              "value": "completed"
+                            }
+                          }
+                        },
+                        {
+                          "class": "COMPARISON",
+                          "type": "COMPARE_EQUAL",
+                          "alias": "",
+                          "query_location": 54,
+                          "left": {
+                            "class": "COLUMN_REF",
+                            "type": "COLUMN_REF",
+                            "alias": "",
+                            "query_location": 47,
+                            "column_names": ["status"]
+                          },
+                          "right": {
+                            "class": "CONSTANT",
+                            "type": "VALUE_CONSTANT",
+                            "alias": "",
+                            "query_location": 56,
+                            "value": {
+                              "type": { "id": "VARCHAR", "type_info": null },
+                              "is_null": false,
+                              "value": "wont-fix"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "then_expr": {
+                      "class": "COLUMN_REF",
+                      "type": "COLUMN_REF",
+                      "alias": "",
+                      "query_location": 72,
+                      "column_names": ["total"]
+                    }
+                  }
+                ],
+                "else_expr": {
+                  "class": "CONSTANT",
+                  "type": "VALUE_CONSTANT",
+                  "alias": "",
+                  "query_location": 83,
+                  "value": {
+                    "type": { "id": "INTEGER", "type_info": null },
+                    "is_null": false,
+                    "value": 0
+                  }
+                }
+              }
+            ],
+            "filter": null,
+            "order_bys": { "type": "ORDER_MODIFIER", "orders": [] },
+            "distinct": false,
+            "is_operator": false,
+            "export_state": false,
+            "catalog": ""
+          }
+        ],
+        "from_table": {
+          "type": "EMPTY",
+          "alias": "",
+          "sample": null,
+          "query_location": 18446744073709551615
+        },
+        "where_clause": null,
+        "group_expressions": [],
+        "group_sets": [],
+        "aggregate_handling": "STANDARD_HANDLING",
+        "having": null,
+        "sample": null,
+        "qualify": null
+      }
+    }
+  ]
+}

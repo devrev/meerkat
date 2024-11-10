@@ -7,7 +7,7 @@ export default defineConfig({
   cacheDir: '../node_modules/.vite/benchmarking-app',
 
   server: {
-    port: 4200,
+    port: 4201,
     host: 'localhost',
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',

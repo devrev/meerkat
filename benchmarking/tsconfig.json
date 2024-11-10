@@ -6,7 +6,8 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "types": ["vite/client", "vitest"],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "target": "ES2021"
   },
   "files": [],
   "include": [],
