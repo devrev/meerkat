@@ -28,7 +28,6 @@ type MemberType = 'measures' | 'dimensions' | 'segments';
  */
 type Member = string;
 
-
 /**
  * Filter operator string.
  */
@@ -50,7 +49,8 @@ type FilterOperator =
   | 'onTheDate'
   | 'beforeDate'
   | 'afterDate'
-  | 'measureFilter';
+  | 'measureFilter'
+  | 'like';
 
 /**
  * Query order data type.
@@ -83,7 +83,6 @@ type LogicalAndFilter = {
 type LogicalOrFilter = {
   or: (QueryFilter | LogicalAndFilter)[];
 };
-
 
 /**
  * Join Edge data type.
@@ -159,7 +158,6 @@ interface Query {
   order?: Record<string, QueryOrderType>;
 }
 
-
 export {
   ApiScopes,
   ApiType,
@@ -175,5 +173,5 @@ export {
   QueryOrderType,
   QueryType,
   RequestType,
-  ResultType
+  ResultType,
 };
