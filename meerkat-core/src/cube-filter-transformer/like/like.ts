@@ -9,7 +9,7 @@ import { orDuckdbCondition } from '../or/or';
 
 const likeDuckDbCondition = (
   columnName: string,
-  values: string[],
+  values: string,
   memberInfo: Measure | Dimension
 ) => {
   return {
@@ -29,7 +29,7 @@ const likeDuckDbCondition = (
         class: 'CONSTANT',
         type: 'VALUE_CONSTANT',
         alias: '',
-        value: valueBuilder(values[0], memberInfo),
+        value: valueBuilder(values, memberInfo),
       },
     ],
     filter: null,
@@ -53,12 +53,12 @@ export const likeTransform: CubeToParseExpressionTransform = (query) => {
     throw new Error('Like filter must have at least one value');
   }
   if (values.length === 1) {
-    return likeDuckDbCondition(member, values, memberInfo);
+    return likeDuckDbCondition(member, values[0], memberInfo);
   }
 
   const orCondition = orDuckdbCondition();
   for (const value of values) {
-    orCondition.children.push(likeDuckDbCondition(member, [value], memberInfo));
+    orCondition.children.push(likeDuckDbCondition(member, value, memberInfo));
   }
   return orCondition;
 };
