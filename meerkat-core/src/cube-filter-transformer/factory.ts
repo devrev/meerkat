@@ -21,6 +21,7 @@ import { gtTransform } from './gt/gt';
 import { gteTransform } from './gte/gte';
 import { inDataRangeTransform } from './in-date-range/in-date-range';
 import { inTransform } from './in/in';
+import { likeTransform } from './like/like';
 import { ltTransform } from './lt/lt';
 import { lteTransform } from './lte/lte';
 import { notInDataRangeTransform } from './not-In-date-range/not-In-date-range';
@@ -62,12 +63,12 @@ const cubeFilterOperatorsToDuckdb = (cubeFilter: QueryOperatorsWithInfo) => {
       return inDataRangeTransform(cubeFilter);
     case 'notInDateRange':
       return notInDataRangeTransform(cubeFilter);
-    case 'notSet': {
+    case 'notSet':
       return notSetTransform(cubeFilter);
-    }
-    case 'set': {
+    case 'set':
       return setTransform(cubeFilter);
-    }
+    case 'like':
+      return likeTransform(cubeFilter);
     default:
       throw new Error('Could not transform the filter');
   }
