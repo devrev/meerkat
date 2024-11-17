@@ -643,15 +643,17 @@ export const QueryBenchmarking = () => {
       const eachQueryStart = performance.now();
       const promiseObj = dbm
         .queryWithTables({
-          query: `SELECT json_serialize_sql('select ${queries[i].sql_expression}')`,
+          query: `SELECT json_serialize_sql('${queries[i].sql_expression}')`,
           tables: [{ name: 'taxi' }, { name: 'taxijson' }],
         })
         .then((results) => {
           const responseData = convertArrowTableToJSON(results);
+
+          console.log(responseData, 'responseData');
           try {
             const data = JSON.parse(
               responseData[0][
-                `json_serialize_sql('select ${queries[i].sql_expression}')`
+                `json_serialize_sql('${queries[i].sql_expression}')`
               ]
             );
             console.log(

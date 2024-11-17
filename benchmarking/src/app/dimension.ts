@@ -1,6 +1,6 @@
 export const queries = [
   {
-    sql_expression: 'count(avg_avg_time_spent_on_dashboard_val)',
+    sql_expression: 'select id from system.dim_issue;',
   },
 ];
 // [
