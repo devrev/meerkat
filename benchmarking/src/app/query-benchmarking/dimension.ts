@@ -1,6 +1,6 @@
 export const queries = [
   {
-    sql_expression: 'COALESCE(total_next_resp_time, 0)',
+    sql_expression: 'ROUND(median_resolution_time_days,1)',
   },
 ];
 // [

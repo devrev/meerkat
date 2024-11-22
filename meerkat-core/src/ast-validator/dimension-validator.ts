@@ -305,80 +305,6 @@ const validFunctions = [
   'flatten',
   'filter',
   'power',
-  'repeat',
-  'era',
-  'lcm',
-  'datediff',
-  'hour',
-  'finalize',
-  'epoch_ms',
-  'right_grapheme',
-  'enum_range_boundary',
-  'degrees',
-  '||',
-  'dayofweek',
-  'str_split',
-  'datesub',
-  'formatReadableDecimalSize',
-  'date_diff',
-  '<->',
-  'array_has',
-  'current_setting',
-  'current_schemas',
-  'map_keys',
-  'json_quote',
-  'array_slice',
-  'current_query',
-  'md5_number_lower',
-  'map_from_entries',
-  'list_cosine_similarity',
-  'dayofmonth',
-  'date_sub',
-  'array_filter',
-  'enum_code',
-  'cot',
-  'list_aggregate',
-  'pi',
-  'cbrt',
-  'array_unique',
-  'struct_pack',
-  '**',
-  'cardinality',
-  'to_hex',
-  'acos',
-  'week',
-  'to_timestamp',
-  'trunc',
-  'floor',
-  'left',
-  'bit_count',
-  'current_schema',
-  'bin',
-  'ord',
-  'bar',
-  'epoch_us',
-  'log',
-  'array_aggregate',
-  'enum_first',
-  'array_extract',
-  '__internal_compress_integral_ubigint',
-  'lcase',
-  'atan2',
-  'bitstring',
-  'gamma',
-  'jaro_similarity',
-  'asin',
-  'split',
-  'row',
-  'array_transform',
-  'array_sort',
-  'list_slice',
-  'decode',
-  'cos',
-  'datetrunc',
-  'version',
-  'unnest',
-  'nullif',
 ];
 
 export interface DimensionResponse
@@ -423,13 +349,7 @@ export const validator = (
   validFunctions: string[]
 ): boolean => {
   console.log(node, 'node');
-  //   } else if (node.type === 'CASE_EXPR') {
-  //     return (
-  //       node.case_checks.every((caseCheck) =>
-  //         isValidFunction(caseCheck.then_expr)
-  //       ) && isValidFunction(node.else_expr)
-  //     );
-  //   }
+
   if (isColumnRefExpression(node) || isValueConstantExpression(node)) {
     return true;
   }

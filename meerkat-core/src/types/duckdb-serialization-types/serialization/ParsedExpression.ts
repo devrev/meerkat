@@ -30,8 +30,6 @@ export type ParsedExpression =
   | SubqueryExpression
   | WindowExpression;
 
-export type DefaultExpression = BaseParsedExpression;
-
 export interface BetweenExpression extends BaseParsedExpression {
   type: ExpressionType.COMPARE_BETWEEN;
   input: ParsedExpression;
@@ -78,6 +76,8 @@ export interface ConstantExpression extends BaseParsedExpression {
   type: ExpressionType.VALUE_CONSTANT;
   value: Value;
 }
+
+export type DefaultExpression = BaseParsedExpression;
 
 export interface FunctionExpression extends BaseParsedExpression {
   type: ExpressionType.FUNCTION;
