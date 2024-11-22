@@ -8,6 +8,7 @@ export interface BaseParsedExpression {
   class: ExpressionClass;
   type: ExpressionType;
   alias: string;
+  query_location: number;
 }
 
 export type ParsedExpression =
@@ -29,48 +30,57 @@ export type ParsedExpression =
   | SubqueryExpression
   | WindowExpression;
 
+export type DefaultExpression = BaseParsedExpression;
+
 export interface BetweenExpression extends BaseParsedExpression {
+  type: ExpressionType.COMPARE_BETWEEN;
   input: ParsedExpression;
   lower: ParsedExpression;
   upper: ParsedExpression;
 }
 
 export interface CaseExpression extends BaseParsedExpression {
+  type: ExpressionType.CASE_EXPR;
   case_checks: CacheCheck[];
   else_expr: BaseParsedExpression;
 }
 
 export interface CastExpression extends BaseParsedExpression {
+  type: ExpressionType.OPERATOR_CAST;
   child: ParsedExpression;
   cast_type: LogicalType;
   try_cast: boolean;
 }
 
 export interface CollateExpression extends BaseParsedExpression {
+  type: ExpressionType.COLLATE;
   child: ParsedExpression;
   collation: string;
 }
 
 export interface ColumnRefExpression extends BaseParsedExpression {
+  type: ExpressionType.COLUMN_REF;
   column_names: string[];
 }
 
 export interface ComparisonExpression extends BaseParsedExpression {
+  type: ExpressionType.COMPARE_EQUAL;
   left: ParsedExpression;
   right: ParsedExpression;
 }
 
 export interface ConjunctionExpression extends BaseParsedExpression {
+  type: ExpressionType.CONJUNCTION_AND;
   children: ParsedExpression[];
 }
 
 export interface ConstantExpression extends BaseParsedExpression {
+  type: ExpressionType.VALUE_CONSTANT;
   value: Value;
 }
 
-export type DefaultExpression = BaseParsedExpression;
-
 export interface FunctionExpression extends BaseParsedExpression {
+  type: ExpressionType.FUNCTION;
   function_name: string;
   schema: string;
   children: ParsedExpression[];
@@ -83,23 +93,28 @@ export interface FunctionExpression extends BaseParsedExpression {
 }
 
 export interface LambdaExpression extends BaseParsedExpression {
+  type: ExpressionType.LAMBDA;
   lhs: ParsedExpression;
   expr: ParsedExpression | null;
 }
 
 export interface OperatorExpression extends BaseParsedExpression {
+  type: ExpressionType.OPERATOR_COALESCE;
   children: ParsedExpression[];
 }
 
 export interface ParameterExpression extends BaseParsedExpression {
+  type: ExpressionType.VALUE_PARAMETER;
   identifier: string;
 }
 
 export interface PositionalReferenceExpression extends BaseParsedExpression {
+  type: ExpressionType.POSITIONAL_REFERENCE;
   index: number;
 }
 
 export interface StarExpression extends BaseParsedExpression {
+  type: ExpressionType.STAR;
   relation_name: string;
   exclude_list: Set<string> | Array<string>;
   replace_list: Set<ParsedExpression> | Array<ParsedExpression>;
@@ -116,6 +131,7 @@ export enum SubqueryType {
 }
 
 export interface SubqueryExpression extends BaseParsedExpression {
+  type: ExpressionType.SUBQUERY;
   subquery_type: SubqueryType;
   subquery: SelectStatement;
   child?: ParsedExpression;
@@ -135,6 +151,7 @@ export enum WindowBoundary {
 }
 
 export interface WindowExpression extends BaseParsedExpression {
+  type: ExpressionType.WINDOW_AGGREGATE;
   function_name: string;
   schema: string;
   catalog: string;
