@@ -25,14 +25,18 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
         return [];
       },
       logger: log,
-      onEvent: (event) => {},
+      onEvent: (event) => {
+        console.info(event);
+      },
     });
     log.setLevel('DEBUG');
     const dbm = new DBM({
       instanceManager: instanceManagerRef.current,
       fileManager: fileManagerRef.current,
       logger: log,
-      onEvent: (event) => {},
+      onEvent: (event) => {
+        console.info(event);
+      },
     });
     setdbm(dbm);
   }, [dbState]);

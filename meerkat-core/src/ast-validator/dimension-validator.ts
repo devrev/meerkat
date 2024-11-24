@@ -7,375 +7,82 @@ import {
   isOperatorCast,
   isValueConstantExpression,
 } from '../types/utils';
-import { isError } from './common';
 import { ParsedSerialization } from './types';
-const validFunctions = [
-  '^@',
-  'to_base',
-  'contains',
-  'length_grapheme',
-  'nextval',
-  '__internal_decompress_string',
-  'strpos',
-  'second',
-  '!~~*',
-  '~~*',
-  'add',
-  'octet_length',
-  '__internal_decompress_integral_bigint',
-  'array_length',
-  '~~',
-  'md5_number_upper',
-  'upper',
-  'map',
-  'array_resize',
-  'ascii',
-  'list_contains',
-  'day',
-  '~~~',
-  'get_bit',
-  'substring',
-  'subtract',
-  'array_cat',
-  '+',
-  'error',
-  'in_search_path',
-  'list_concat',
-  'lower',
-  'base64',
-  'strip_accents',
-  'editdist3',
-  'regexp_matches',
-  'json_transform',
-  '__internal_decompress_integral_ubigint',
-  'date_part',
-  'unbin',
-  'regexp_extract_all',
-  'from_json',
-  '-',
-  '__internal_compress_string_hugeint',
-  'from_hex',
-  'last_day',
-  'not_ilike_escape',
-  '__internal_compress_integral_utinyint',
-  'regexp_split_to_array',
-  'substr',
-  '__internal_compress_string_ubigint',
-  'unhex',
-  'len',
-  'sqrt',
-  'list_value',
-  'list_position',
-  'monthname',
-  '__internal_compress_string_utinyint',
-  'enum_last',
-  'not_like_escape',
-  'even',
-  'setseed',
-  '__internal_decompress_integral_hugeint',
-  'timezone',
-  'regexp_replace',
-  'to_binary',
-  'gcd',
-  'constant_or_null',
-  'apply',
-  'list_filter',
-  'chr',
-  'reverse',
-  '__internal_compress_integral_uinteger',
-  'prefix',
-  'random',
-  'nfc_normalize',
-  'json_array_length',
-  'log2',
-  '>>',
-  '*',
-  'alias',
-  'divide',
-  'suffix',
-  '__internal_compress_string_uinteger',
-  'list_aggr',
-  'vector_type',
-  'multiply',
-  'array_concat',
-  'regexp_extract',
-  'like_escape',
-  'current_database',
-  'stem',
-  '//',
-  '__internal_decompress_integral_smallint',
-  'hex',
-  'isoyear',
-  'json_deserialize_sql',
-  'json_type',
-  'json_keys',
-  'json_contains',
-  'json_transform_strict',
-  'json_structure',
-  'json_merge_patch',
-  'row_to_json',
-  'to_json',
-  'json_object',
-  'json_extract_path_text',
-  'json_extract_string',
-  'json_extract_path',
-  'json_extract',
-  '~',
-  'translate',
-  '|',
-  'concat',
-  'yearweek',
-  'year',
-  'xor',
-  'weekofyear',
-  'list_indexof',
-  'bit_length',
-  'struct_extract',
-  'array_contains',
-  'ceiling',
-  'list_distance',
-  'dayname',
-  'unicode',
-  'typeof',
-  'try_strptime',
-  'encode',
-  'to_months',
-  'to_minutes',
-  'to_days',
-  'to_base64',
-  '->>',
-  'timezone_minute',
-  'time_bucket',
-  'regexp_full_match',
-  'greatest',
-  'struct_insert',
-  'json_serialize_sql',
-  'strptime',
-  'json_array',
-  'atan',
-  'string_split',
-  'strftime',
-  'str_split_regex',
-  'json_valid',
-  'ilike_escape',
-  '__internal_compress_string_usmallint',
-  'least_common_multiple',
-  'array_indexof',
-  'list_element',
-  'stats',
-  '!__postfix',
-  'dayofyear',
-  'starts_with',
-  'element_at',
-  'union_value',
-  'sin',
-  '<<',
-  'sign',
-  'list_extract',
-  'sha256',
-  'enum_range',
-  'array_distinct',
-  'right',
-  'list_reverse_sort',
-  'damerau_levenshtein',
-  'to_microseconds',
-  'substring_grapheme',
-  'replace',
-  '&',
-  'to_milliseconds',
-  '%',
-  'strlen',
-  '<#>',
-  'current_date',
-  'combine',
-  'isinf',
-  'from_json_strict',
-  '<=>',
-  'rtrim',
-  'ceil',
-  'factorial',
-  'length',
-  'transaction_timestamp',
-  'range',
-  'radians',
-  'century',
-  'list_has',
-  'pow',
-  'isnan',
-  'epoch_ns',
-  'position',
-  'tan',
-  'array_reverse_sort',
-  'now',
-  'nextafter',
-  'array_position',
-  'union_extract',
-  '/',
-  'format',
-  'epoch',
-  'mismatches',
-  'mod',
-  'millisecond',
-  'string_to_array',
-  'millennium',
-  'microsecond',
-  'round',
-  '@',
-  '__internal_decompress_integral_uinteger',
-  'md5_number',
-  'abs',
-  'md5',
-  'list_resize',
-  'map_values',
-  'map_extract',
-  'exp',
-  'map_entries',
-  'map_concat',
-  'make_timestamp',
-  'weekday',
-  'make_time',
-  'make_date',
-  'array_aggr',
-  'lpad',
-  'set_bit',
-  'log10',
-  '__internal_decompress_integral_integer',
-  'list_cat',
-  'ln',
-  'list_unique',
-  'currval',
-  'list_transform',
-  'age',
-  'list_sort',
-  'list_pack',
-  'list_dot_product',
-  'list_apply',
-  'aggregate',
-  'lgamma',
-  'month',
-  '!~~',
-  'left_grapheme',
-  'least',
-  'julian',
-  'jaro_winkler_similarity',
-  'isodow',
-  'union_tag',
-  'list_distinct',
-  'isfinite',
-  'today',
-  'instr',
-  'date_trunc',
-  'concat_ws',
-  'trim',
-  'quarter',
-  'jaccard',
-  'to_years',
-  'list_inner_product',
-  'array_apply',
-  'hash',
-  'minute',
-  'decade',
-  'hamming',
-  'greatest_common_divisor',
-  'ends_with',
-  'get_current_timestamp',
-  'txid_current',
-  'to_hours',
-  'get_current_time',
-  'timezone_hour',
-  'bit_position',
-  'generate_series',
-  'signbit',
-  'datepart',
-  'levenshtein',
-  '__internal_compress_integral_usmallint',
-  'uuid',
-  'gen_random_uuid',
-  'string_split_regex',
-  'to_seconds',
-  'from_binary',
-  'ltrim',
-  '__internal_decompress_integral_usmallint',
-  'array_to_json',
-  'ucase',
-  'from_base64',
-  'rpad',
-  '^',
-  'format_bytes',
-  'flatten',
-  'filter',
-  'power',
-];
 
-export interface DimensionResponse
-  extends Pick<
-    ParsedSerialization,
-    'error_message' | 'error_type' | 'position'
-  > {
-  isValid: boolean;
-  error?: string;
-}
-
-export const isValidDimension = (
-  parsedSerialization: ParsedSerialization
-): DimensionResponse => {
-  if (isError(parsedSerialization)) {
-    return {
-      isValid: false,
-      error: parsedSerialization.error,
-      error_message: parsedSerialization.error_message,
-      error_type: parsedSerialization.error_message,
-      position: parsedSerialization.position,
-    };
-  }
-
-  if (
-    parsedSerialization.statements[0] &&
-    parsedSerialization.statements[0].node.type === 'SELECT_NODE' &&
-    parsedSerialization.statements[0].node.select_list.length === 1
-  ) {
-    return {
-      isValid: parsedSerialization.statements[0].node.select_list.every(
-        (node) => validator(node, validFunctions)
-      ),
-    };
-  }
-
-  return { isValid: false };
-};
-
-export const validator = (
+/**
+ * Validates an individual expression node
+ */
+export const validateExpressionNode = (
   node: ParsedExpression,
-  validFunctions: string[]
+  validFunctions: Set<string>
 ): boolean => {
-  console.log(node, 'node');
-
+  // Column references and value constants
   if (isColumnRefExpression(node) || isValueConstantExpression(node)) {
     return true;
   }
 
+  // Operator cast
   if (isOperatorCast(node)) {
-    return validator(node.child, validFunctions);
+    return validateExpressionNode(node.child, validFunctions);
   }
 
+  // Coalesce expression
   if (isCoalesceExpression(node)) {
-    return node.children.every((child) => validator(child, validFunctions));
-  }
-
-  if (isFunctionExpression(node)) {
-    return (
-      validFunctions.includes(node.function_name) &&
-      node.children.every((child) => validator(child, validFunctions))
+    return node.children.every((child) =>
+      validateExpressionNode(child, validFunctions)
     );
   }
 
+  // Function expression
+  if (isFunctionExpression(node)) {
+    if (!validFunctions.has(node.function_name)) {
+      throw new Error(`Invalid function: ${node.function_name}`);
+    }
+    return node.children.every((child) =>
+      validateExpressionNode(child, validFunctions)
+    );
+  }
+
+  // Case expression
   if (isCaseExpression(node)) {
     return (
-      node.case_checks.every((caseCheck) =>
-        validator(caseCheck.then_expr, validFunctions)
-      ) && validator(node.else_expr, validFunctions)
+      node.case_checks.every((check) =>
+        validateExpressionNode(check.then_expr, validFunctions)
+      ) && validateExpressionNode(node.else_expr, validFunctions)
     );
   }
 
-  return false;
+  throw new Error(`Invalid expression type: ${node.type}`);
+};
+
+/**
+ * Validates if the parsed serialization represents a valid dimension
+ */
+export const validateDimension = (
+  parsedSerialization: ParsedSerialization,
+  validFunctions: string[]
+): boolean => {
+  const statement = parsedSerialization.statements?.[0];
+  if (!statement) {
+    throw new Error('No statement found');
+  }
+
+  if (statement.node.type !== 'SELECT_NODE') {
+    throw new Error('Statement must be a SELECT node');
+  }
+
+  const selectList = statement.node.select_list;
+  if (!selectList?.length || selectList.length !== 1) {
+    throw new Error('SELECT must contain exactly one expression');
+  }
+
+  const validFunctionSet = new Set(validFunctions);
+
+  // Validate the expression
+  const expression = selectList[0];
+  if (!validateExpressionNode(expression, validFunctionSet)) {
+    throw new Error('Expression contains invalid functions or operators');
+  }
+
+  return true;
 };

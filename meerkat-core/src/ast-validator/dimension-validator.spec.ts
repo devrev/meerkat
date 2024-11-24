@@ -4,9 +4,12 @@ import {
   ResultModifierType,
 } from '../types/duckdb-serialization-types';
 import { ExpressionClass } from '../types/duckdb-serialization-types/serialization/Expression';
-import { validator } from './dimension-validator';
+import { validateExpressionNode } from './dimension-validator';
 
-describe('dimension validator', () => {
+const EMPTY_VALID_FUNCTIONS = new Set<string>();
+const VALID_FUNCTIONS = new Set(['contains', 'round', 'power']);
+
+describe('dimension validateExpressionNode', () => {
   it('should return true for node type COLUMN_REF', () => {
     const COLUMN_REF_NODE: ParsedExpression = {
       class: ExpressionClass.COLUMN_REF,
@@ -16,7 +19,23 @@ describe('dimension validator', () => {
       column_names: ['column_name'],
     };
 
-    expect(validator(COLUMN_REF_NODE, [])).toBe(true);
+    expect(validateExpressionNode(COLUMN_REF_NODE, EMPTY_VALID_FUNCTIONS)).toBe(
+      true
+    );
+  });
+
+  it('should return true for node type COLUMN_REF with alias', () => {
+    const COLUMN_REF_NODE: ParsedExpression = {
+      class: ExpressionClass.COLUMN_REF,
+      type: ExpressionType.COLUMN_REF,
+      alias: 'alias',
+      query_location: 0,
+      column_names: ['column_name'],
+    };
+
+    expect(validateExpressionNode(COLUMN_REF_NODE, EMPTY_VALID_FUNCTIONS)).toBe(
+      true
+    );
   });
 
   it('should return true for node type VALUE_CONSTANT', () => {
@@ -28,7 +47,9 @@ describe('dimension validator', () => {
       value: '1',
     };
 
-    expect(validator(VALUE_CONSTANT_NODE, [])).toBe(true);
+    expect(
+      validateExpressionNode(VALUE_CONSTANT_NODE, EMPTY_VALID_FUNCTIONS)
+    ).toBe(true);
   });
 
   it('should return true for node type OPERATOR_CAST', () => {
@@ -50,7 +71,9 @@ describe('dimension validator', () => {
       try_cast: false,
     };
 
-    expect(validator(OPERATOR_CAST_NODE, [])).toBe(true);
+    expect(
+      validateExpressionNode(OPERATOR_CAST_NODE, EMPTY_VALID_FUNCTIONS)
+    ).toBe(true);
   });
 
   it('should return true for node type OPERATOR_COALESCE', () => {
@@ -84,10 +107,12 @@ describe('dimension validator', () => {
       ],
     };
 
-    expect(validator(OPERATOR_COALESCE_NODE, [])).toBe(true);
+    expect(
+      validateExpressionNode(OPERATOR_COALESCE_NODE, EMPTY_VALID_FUNCTIONS)
+    ).toBe(true);
   });
 
-  it('should return true for node type FUNCTION with ROUND function', () => {
+  it('should return true for node type FUNCTION with ROUND function and if it contains in validFunctions', () => {
     const CASE_EXPR_NODE: ParsedExpression = {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -129,6 +154,123 @@ describe('dimension validator', () => {
       catalog: '',
     };
 
-    expect(validator(CASE_EXPR_NODE, [])).toBe(true);
+    expect(validateExpressionNode(CASE_EXPR_NODE, VALID_FUNCTIONS)).toBe(true);
+  });
+
+  it('should throw error for node type FUNCTION with ROUND function and if it not contains in validFunctions', () => {
+    const CASE_EXPR_NODE: ParsedExpression = {
+      class: ExpressionClass.FUNCTION,
+      type: ExpressionType.FUNCTION,
+      alias: '',
+      query_location: 7,
+      function_name: 'round',
+      schema: '',
+      children: [
+        {
+          class: ExpressionClass.COLUMN_REF,
+          type: ExpressionType.COLUMN_REF,
+          alias: '',
+          query_location: 13,
+          column_names: ['column_name'],
+        },
+        {
+          class: ExpressionClass.CONSTANT,
+          type: ExpressionType.VALUE_CONSTANT,
+          alias: '',
+          query_location: 41,
+          value: {
+            type: {
+              id: 'INTEGER',
+              type_info: null,
+            },
+            is_null: false,
+            value: 1,
+          },
+        },
+      ],
+      filter: null,
+      order_bys: {
+        type: ResultModifierType.ORDER_MODIFIER,
+        orders: [],
+      },
+      distinct: false,
+      is_operator: false,
+      export_state: false,
+      catalog: '',
+    };
+
+    expect(() =>
+      validateExpressionNode(CASE_EXPR_NODE, new Set(['contains']))
+    ).toThrowError('Invalid function: round');
+  });
+
+  it('should return true for node type CASE', () => {
+    const CASE_EXPR_NODE: ParsedExpression = {
+      class: ExpressionClass.CASE,
+      type: ExpressionType.CASE_EXPR,
+      alias: '',
+      query_location: 7,
+      case_checks: [
+        {
+          when_expr: {
+            class: ExpressionClass.COMPARISON,
+            type: ExpressionType.COMPARE_GREATERTHAN,
+            alias: '',
+            query_location: 35,
+            left: {
+              class: ExpressionClass.COLUMN_REF,
+              type: ExpressionType.COLUMN_REF,
+              alias: '',
+              query_location: 17,
+              column_names: ['actual_close_date'],
+            },
+            right: {
+              class: ExpressionClass.COLUMN_REF,
+              type: ExpressionType.COLUMN_REF,
+              alias: '',
+              query_location: 37,
+              column_names: ['created_date'],
+            },
+          },
+          then_expr: {
+            class: ExpressionClass.COLUMN_REF,
+            type: ExpressionType.COLUMN_REF,
+            alias: '',
+            query_location: 55,
+            column_names: ['actual_close_date'],
+          },
+        },
+      ],
+      else_expr: {
+        class: ExpressionClass.CONSTANT,
+        type: ExpressionType.VALUE_CONSTANT,
+        alias: '',
+        query_location: 18446744073709552000,
+        value: {
+          type: {
+            id: 'NULL',
+            type_info: null,
+          },
+          is_null: true,
+        },
+      },
+    };
+
+    expect(validateExpressionNode(CASE_EXPR_NODE, EMPTY_VALID_FUNCTIONS)).toBe(
+      true
+    );
+  });
+
+  it('should throw error for node type INVALID', () => {
+    const INVALID_NODE: ParsedExpression = {
+      class: ExpressionClass.INVALID,
+      type: ExpressionType.INVALID,
+      alias: '',
+      query_location: 0,
+    };
+
+    expect(() =>
+      validateExpressionNode(INVALID_NODE, EMPTY_VALID_FUNCTIONS)
+    ).toThrowError('Invalid expression type');
   });
 });

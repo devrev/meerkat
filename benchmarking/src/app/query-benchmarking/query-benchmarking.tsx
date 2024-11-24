@@ -1,4 +1,4 @@
-import { validateDimensionQuery } from '@devrev/meerkat-browser';
+import { isValidDimensionQuery } from '@devrev/meerkat-browser';
 import { useRef, useState } from 'react';
 import { InstanceManager } from '../dbm-context/instance-manager';
 import { useDBM } from '../hooks/dbm-context';
@@ -91,7 +91,7 @@ export const QueryBenchmarking = () => {
     for (let i = 0; i < queries.length; i++) {
       const eachQueryStart = performance.now();
 
-      const promiseObj = validateDimensionQuery({
+      const promiseObj = isValidDimensionQuery({
         connection: con,
         query: `select ${queries[i].sql_expression}`,
       }).then((res) => {
