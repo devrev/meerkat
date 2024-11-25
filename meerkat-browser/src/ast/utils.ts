@@ -8,7 +8,7 @@ export const isParseError = (data: ParsedSerialization): boolean => {
 // Helper function to get available functions from DuckDB based on function type
 export const getAvailableFunctions = async (
   connection: AsyncDuckDBConnection,
-  function_type: string
+  function_type: 'scalar' | 'aggregate'
 ): Promise<string[]> => {
   const result = await connection.query(
     `SELECT distinct function_name FROM duckdb_functions() WHERE function_type = '${function_type}'`

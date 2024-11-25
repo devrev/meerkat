@@ -4,11 +4,10 @@ import { parseQueryToAST } from './query-to-ast';
 import { getAvailableFunctions, isParseError } from './utils';
 
 /**
- * Validates a dimension query by executing it against DuckDB and checking the result format
+ * Validates the query can be used as a dimension by parsing it to an AST and checking its structure
  * @param connection - DuckDB connection instance
  * @param query - The query string to validate
  * @returns Promise<boolean> - Whether the dimension is valid
- * @throws Error if query execution or parsing fails
  */
 export const validateDimensionQuery = async ({
   connection,

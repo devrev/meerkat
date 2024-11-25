@@ -31,7 +31,9 @@ export function App() {
               <h1>In Memory Sequence DuckDB</h1>
 
               <MemoryDBMProvider>
-                <QueryBenchmarking />
+                <FileLoader bufferType="uint8Array">
+                  <QueryBenchmarking />
+                </FileLoader>
               </MemoryDBMProvider>
             </div>
           }
