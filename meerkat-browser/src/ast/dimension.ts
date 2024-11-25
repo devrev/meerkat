@@ -1,7 +1,7 @@
 import { validateDimension } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { parseQueryToAST } from './query-to-ast';
-import { isParseError } from './utils';
+import { getAvailableFunctions, isParseError } from './utils';
 
 /**
  * Validates a dimension query by executing it against DuckDB and checking the result format
@@ -10,12 +10,14 @@ import { isParseError } from './utils';
  * @returns Promise<boolean> - Whether the dimension is valid
  * @throws Error if query execution or parsing fails
  */
-export const isValidDimensionQuery = async ({
+export const validateDimensionQuery = async ({
   connection,
   query,
+  validFunctions,
 }: {
   connection: AsyncDuckDBConnection;
   query: string;
+  validFunctions?: string[];
 }): Promise<boolean> => {
   const parsedSerialization = await parseQueryToAST(query, connection);
 
@@ -23,5 +25,9 @@ export const isValidDimensionQuery = async ({
     throw new Error(parsedSerialization.error_message ?? 'Unknown error');
   }
 
-  return validateDimension(parsedSerialization, []);
+  // Only fetch valid functions if not provided
+  const availableFunctions =
+    validFunctions ?? (await getAvailableFunctions(connection, 'scalar'));
+
+  return validateDimension(parsedSerialization, availableFunctions);
 };
