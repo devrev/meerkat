@@ -1,5 +1,7 @@
 export * from './ast-builder/ast-builder';
 export * from './ast-deserializer/ast-deserializer';
+export * from './ast-serializer/ast-serializer';
+export * from './ast-validator';
 export { detectApplyContextParamsToBaseSQL } from './context-params/context-params-ast';
 export * from './cube-measure-transformer/cube-measure-transformer';
 export * from './cube-to-duckdb/cube-filter-to-duckdb';
@@ -20,6 +22,3 @@ export * from './utils/cube-to-table-schema';
 export * from './utils/get-possible-nodes';
 export { meerkatPlaceholderReplacer } from './utils/meerkat-placeholder-replacer';
 export { memberKeyToSafeKey } from './utils/member-key-to-safe-key';
-
-export * from './ast-serializer/ast-serializer';
-export * from './ast-validator';

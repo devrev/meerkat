@@ -4,12 +4,28 @@ import {
   ResultModifierType,
 } from '../types/duckdb-serialization-types';
 import { ExpressionClass } from '../types/duckdb-serialization-types/serialization/Expression';
-import { validateExpressionNode } from './dimension-validator';
+import {
+  validateDimension,
+  validateExpressionNode,
+} from './dimension-validator';
+import { ParsedSerialization } from './types';
 
 const EMPTY_VALID_FUNCTIONS = new Set<string>();
 const VALID_FUNCTIONS = new Set(['contains', 'round', 'power']);
 
-describe('dimension validateExpressionNode', () => {
+describe('validateDimension', () => {
+  const parsedSerialization: ParsedSerialization = {
+    statements: [{ node: { type: 'SELECT_NODE' } }],
+  };
+
+  it('should throw error if no statement is found', () => {
+    expect(() => validateDimension(parsedSerialization, [])).toThrowError(
+      'No statement found'
+    );
+  });
+});
+
+describe('validateExpressionNode for dimension expressions', () => {
   it('should return true for node type COLUMN_REF', () => {
     const COLUMN_REF_NODE: ParsedExpression = {
       class: ExpressionClass.COLUMN_REF,
