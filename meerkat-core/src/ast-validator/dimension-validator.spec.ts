@@ -1,9 +1,12 @@
 import {
   ExpressionType,
   ParsedExpression,
+  QueryNodeType,
   ResultModifierType,
+  TableReferenceType,
 } from '../types/duckdb-serialization-types';
 import { ExpressionClass } from '../types/duckdb-serialization-types/serialization/Expression';
+import { AggregateHandling } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import {
   validateDimension,
   validateExpressionNode,
@@ -13,15 +16,128 @@ import { ParsedSerialization } from './types';
 const EMPTY_VALID_FUNCTIONS = new Set<string>();
 const VALID_FUNCTIONS = new Set(['contains', 'round', 'power']);
 
+const COLUMN_REF_NODE: ParsedExpression = {
+  class: ExpressionClass.COLUMN_REF,
+  type: ExpressionType.COLUMN_REF,
+  alias: 'alias',
+  query_location: 0,
+  column_names: ['column_name'],
+};
+
+const INVALID_NODE: ParsedExpression = {
+  class: ExpressionClass.INVALID,
+  type: ExpressionType.INVALID,
+  alias: '',
+  query_location: 0,
+};
+
+const PARSED_SERIALIZATION: ParsedSerialization = {
+  error: false,
+  statements: [
+    {
+      node: {
+        type: QueryNodeType.SELECT_NODE,
+        modifiers: [],
+        cte_map: {
+          map: [],
+        },
+        select_list: [COLUMN_REF_NODE],
+        from_table: {
+          type: TableReferenceType.BASE_TABLE,
+          alias: '',
+          sample: null,
+        },
+        group_expressions: [],
+        group_sets: [],
+        aggregate_handling: AggregateHandling.STANDARD_HANDLING,
+        having: null,
+        sample: null,
+        qualify: null,
+      },
+    },
+  ],
+};
+
 describe('validateDimension', () => {
-  const parsedSerialization: ParsedSerialization = {
-    statements: [{ node: { type: 'SELECT_NODE' } }],
-  };
+  it('should throw error if the statement if there is no statement', () => {
+    expect(() =>
+      validateDimension(
+        {
+          error: false,
+          statements: [],
+        },
+        []
+      )
+    ).toThrow('No statement found');
+  });
 
   it('should throw error if no statement is found', () => {
-    expect(() => validateDimension(parsedSerialization, [])).toThrowError(
-      'No statement found'
-    );
+    expect(() =>
+      validateDimension(
+        {
+          error: false,
+          statements: [
+            {
+              node: {
+                type: QueryNodeType.CTE_NODE,
+                modifiers: [],
+                cte_map: {
+                  map: [],
+                },
+              },
+            },
+          ],
+        },
+        []
+      )
+    ).toThrow('Statement must be a SELECT node');
+  });
+
+  it('should throw error if select list is not exactly one expression', () => {
+    expect(() =>
+      validateDimension(
+        {
+          error: false,
+          statements: [
+            {
+              node: {
+                type: QueryNodeType.SELECT_NODE,
+                modifiers: [],
+                cte_map: {
+                  map: [],
+                },
+                select_list: [],
+              },
+            },
+          ],
+        },
+        []
+      )
+    ).toThrow('SELECT must contain exactly one expression');
+  });
+
+  it('should return true if the statement is valid', () => {
+    expect(validateDimension(PARSED_SERIALIZATION, [])).toBe(true);
+  });
+
+  it('should throw error if the expression is invalid', () => {
+    expect(() =>
+      validateDimension(
+        {
+          ...PARSED_SERIALIZATION,
+          statements: [
+            {
+              ...PARSED_SERIALIZATION.statements[0],
+              node: {
+                ...PARSED_SERIALIZATION.statements[0].node,
+                select_list: [INVALID_NODE],
+              },
+            },
+          ],
+        },
+        ['contains']
+      )
+    ).toThrow('Invalid expression type: INVALID');
   });
 });
 
@@ -41,14 +157,6 @@ describe('validateExpressionNode for dimension expressions', () => {
   });
 
   it('should return true for node type COLUMN_REF with alias', () => {
-    const COLUMN_REF_NODE: ParsedExpression = {
-      class: ExpressionClass.COLUMN_REF,
-      type: ExpressionType.COLUMN_REF,
-      alias: 'alias',
-      query_location: 0,
-      column_names: ['column_name'],
-    };
-
     expect(validateExpressionNode(COLUMN_REF_NODE, EMPTY_VALID_FUNCTIONS)).toBe(
       true
     );
@@ -278,13 +386,6 @@ describe('validateExpressionNode for dimension expressions', () => {
   });
 
   it('should throw error for node type INVALID', () => {
-    const INVALID_NODE: ParsedExpression = {
-      class: ExpressionClass.INVALID,
-      type: ExpressionType.INVALID,
-      alias: '',
-      query_location: 0,
-    };
-
     expect(() =>
       validateExpressionNode(INVALID_NODE, EMPTY_VALID_FUNCTIONS)
     ).toThrowError('Invalid expression type');
