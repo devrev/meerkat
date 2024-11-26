@@ -8,7 +8,6 @@ export interface BaseParsedExpression {
   class: ExpressionClass;
   type: ExpressionType;
   alias: string;
-  query_location: number;
 }
 
 export type ParsedExpression =
@@ -31,7 +30,7 @@ export type ParsedExpression =
   | WindowExpression;
 
 export interface BetweenExpression extends BaseParsedExpression {
-  type: ExpressionType.COMPARE_BETWEEN;
+  type: ExpressionType.COMPARE_BETWEEN | ExpressionType.COMPARE_NOT_BETWEEN;
   input: ParsedExpression;
   lower: ParsedExpression;
   upper: ParsedExpression;
@@ -62,13 +61,22 @@ export interface ColumnRefExpression extends BaseParsedExpression {
 }
 
 export interface ComparisonExpression extends BaseParsedExpression {
-  type: ExpressionType.COMPARE_EQUAL;
+  type:
+    | ExpressionType.COMPARE_EQUAL
+    | ExpressionType.COMPARE_NOTEQUAL
+    | ExpressionType.COMPARE_LESSTHAN
+    | ExpressionType.COMPARE_GREATERTHAN
+    | ExpressionType.COMPARE_LESSTHANOREQUALTO
+    | ExpressionType.COMPARE_GREATERTHANOREQUALTO;
   left: ParsedExpression;
   right: ParsedExpression;
 }
 
 export interface ConjunctionExpression extends BaseParsedExpression {
-  type: ExpressionType.CONJUNCTION_AND;
+  type:
+    | ExpressionType.CONJUNCTION_AND
+    | ExpressionType.CONJUNCTION_OR
+    | ExpressionType.OPERATOR_NOT;
   children: ParsedExpression[];
 }
 
@@ -99,7 +107,11 @@ export interface LambdaExpression extends BaseParsedExpression {
 }
 
 export interface OperatorExpression extends BaseParsedExpression {
-  type: ExpressionType.OPERATOR_COALESCE;
+  type:
+    | ExpressionType.OPERATOR_NOT
+    | ExpressionType.OPERATOR_NULLIF
+    | ExpressionType.OPERATOR_IS_NULL
+    | ExpressionType.OPERATOR_IS_NOT_NULL;
   children: ParsedExpression[];
 }
 
@@ -151,7 +163,19 @@ export enum WindowBoundary {
 }
 
 export interface WindowExpression extends BaseParsedExpression {
-  type: ExpressionType.WINDOW_AGGREGATE;
+  type:
+    | ExpressionType.WINDOW_AGGREGATE
+    | ExpressionType.WINDOW_RANK
+    | ExpressionType.WINDOW_RANK_DENSE
+    | ExpressionType.WINDOW_NTILE
+    | ExpressionType.WINDOW_PERCENT_RANK
+    | ExpressionType.WINDOW_CUME_DIST
+    | ExpressionType.WINDOW_ROW_NUMBER
+    | ExpressionType.WINDOW_FIRST_VALUE
+    | ExpressionType.WINDOW_LAST_VALUE
+    | ExpressionType.WINDOW_LEAD
+    | ExpressionType.WINDOW_LAG
+    | ExpressionType.WINDOW_NTH_VALUE;
   function_name: string;
   schema: string;
   catalog: string;
