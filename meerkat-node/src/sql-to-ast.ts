@@ -2,6 +2,7 @@ import {
   BaseTypeTableRef,
   CaseExpression,
   ColumnRefExpression,
+  CommonTableExpressionMap,
   ComparisonExpression,
   ExpressionType,
   FunctionExpression,
@@ -29,240 +30,625 @@ function getReferencedColumns(
   const aliasedColumns = new Map<string, Map<string, string>>();
   const availableSchema = new Set<string>();
 
-  function isExpressionWithChildren(
-    expr: ParsedExpression
-  ): expr is ParsedExpression & { children: ParsedExpression[] } {
-    return 'children' in expr;
-  }
-
-  function isExpressionWithChild(
-    expr: ParsedExpression
-  ): expr is ParsedExpression & { child: ParsedExpression } {
-    return 'child' in expr;
-  }
-
-  function resolveAliasedColumn(
-    tableAlias: string,
-    columnName: string,
-    aliasedColumns: Map<string, Map<string, string>>,
-    referencedColumns: Map<string, Set<string>>
-  ): void {
-    if (!referencedColumns.has(tableAlias)) {
-      referencedColumns.set(tableAlias, new Set<string>());
-    }
-
-    if (aliasedColumns.has(tableAlias)) {
-      const tableAliases = aliasedColumns.get(tableAlias);
-      if (tableAliases?.has(columnName)) {
-        const aliasedColumn = tableAliases.get(columnName) as string;
-        resolveAliasedColumn(
-          tableAlias,
-          aliasedColumn,
-          aliasedColumns,
-          referencedColumns
-        );
-      } else {
-        referencedColumns.get(tableAlias)?.add(columnName);
-      }
-    } else {
-      referencedColumns.get(tableAlias)?.add(columnName);
-    }
-  }
-
-  function processExpression(
-    expr: ParsedExpression,
-    currentTableAlias: string
-  ) {
-    if (!expr) return;
-    if (expr.type === ExpressionType.COLUMN_REF) {
-      const columnRef = expr as ColumnRefExpression;
-      const columnName =
-        columnRef.column_names[columnRef.column_names.length - 1];
-
-      if (columnName === 'is_verified') {
-        console.log('is_verified', columnRef);
-      }
-
-      if (columnRef.alias && columnRef.alias !== columnName) {
-        const tableAliasMap =
-          aliasedColumns.get(currentTableAlias) || new Map<string, string>();
-        tableAliasMap.set(columnRef.alias, columnName);
-        aliasedColumns.set(currentTableAlias, tableAliasMap);
-      }
-
-      let tableAlias = currentTableAlias;
-      if (columnRef.column_names.length > 1) {
-        let found = false;
-        const refTableAlias = columnRef.column_names[0];
-        if (!referencedColumns.has(refTableAlias)) {
-          for (const schema of availableSchema) {
-            const fullTableName = schema + '.' + refTableAlias;
-            if (referencedColumns.has(fullTableName)) {
-              tableAlias = fullTableName;
-              found = true;
-              break;
-            }
-          }
-        }
-        if (!found) {
-          return;
-        }
-      }
-
-      if (!referencedColumns.has(tableAlias)) {
-        referencedColumns.set(tableAlias, new Set<string>());
-      }
-
-      resolveAliasedColumn(
-        tableAlias,
-        columnName,
-        aliasedColumns,
-        referencedColumns
-      );
-    } else if (expr.type === ExpressionType.STAR) {
-      const starExpr = expr as StarExpression;
-      starExpr.exclude_list.forEach((excludedColumn) => {
-        if (!referencedColumns.has(currentTableAlias)) {
-          referencedColumns.set(currentTableAlias, new Set<string>());
-        }
-        referencedColumns.get(currentTableAlias)?.add(excludedColumn);
-      });
-    } else if (expr.type === ExpressionType.SUBQUERY) {
-      const subqueryExpr = expr as SubqueryExpression;
-      processQueryNode(subqueryExpr.subquery.node, currentTableAlias);
-    } else if (
-      expr.type === ExpressionType.COMPARE_EQUAL ||
-      expr.type === ExpressionType.COMPARE_NOTEQUAL ||
-      expr.type === ExpressionType.COMPARE_LESSTHAN ||
-      expr.type === ExpressionType.COMPARE_GREATERTHAN ||
-      expr.type === ExpressionType.COMPARE_LESSTHANOREQUALTO ||
-      expr.type === ExpressionType.COMPARE_GREATERTHANOREQUALTO
-    ) {
-      const comparison = expr as ComparisonExpression;
-      processExpression(comparison.left, currentTableAlias);
-      processExpression(comparison.right, currentTableAlias);
-    } else if (expr.type === ExpressionType.CASE_EXPR) {
-      const caseExpr = expr as CaseExpression;
-      caseExpr.case_checks.forEach((check) => {
-        processExpression(check.when_expr, currentTableAlias);
-        processExpression(check.then_expr, currentTableAlias);
-      });
-      processExpression(caseExpr.else_expr, currentTableAlias);
-    } else if (expr.type === ExpressionType.FUNCTION) {
-      const functionExpr = expr as FunctionExpression;
-      functionExpr.children.forEach((child) =>
-        processExpression(child, currentTableAlias)
-      );
-    } else if (isExpressionWithChildren(expr)) {
-      expr.children.forEach((child) =>
-        processExpression(child, currentTableAlias)
-      );
-    } else if (isExpressionWithChild(expr)) {
-      processExpression(expr.child, currentTableAlias);
-    }
-  }
-
-  function processTableRef(tableRef: TableRef, parentTableAlias: string) {
-    if (tableRef.type === TableReferenceType.BASE_TABLE) {
-      const baseTableRef = tableRef as BaseTypeTableRef;
-      const tableName =
-        (baseTableRef.schema_name ? baseTableRef.schema_name + '.' : '') +
-        baseTableRef.table_name;
-      if (baseTableRef.schema_name) {
-        availableSchema.add(baseTableRef.schema_name);
-      }
-      if (!referencedColumns.has(tableName)) {
-        referencedColumns.set(tableName, new Set<string>());
-      }
-      return tableName;
-    } else if (tableRef.type === TableReferenceType.JOIN) {
-      const joinRef = tableRef as JoinRef;
-      const leftTableAlias = processTableRef(joinRef.left, parentTableAlias);
-      const rightTableAlias = processTableRef(joinRef.right, parentTableAlias);
-      if (joinRef.condition) {
-        processExpression(joinRef.condition, leftTableAlias);
-        processExpression(joinRef.condition, rightTableAlias);
-      }
-      return parentTableAlias;
-    } else if (tableRef.type === TableReferenceType.SUBQUERY) {
-      const subqueryRef = tableRef as SubqueryRef;
-      const subqueryTableAlias = processQueryNode(
-        subqueryRef.subquery.node,
-        subqueryRef.alias || ''
-      );
-      return subqueryTableAlias;
-    }
-    return parentTableAlias;
-  }
-
-  function processQueryNode(node: QueryNode, parentTableAlias: string) {
-    if (node.type === QueryNodeType.SELECT_NODE) {
-      const selectNode = node as SelectNode;
-      let tableAlias = parentTableAlias;
-
-      if (selectNode.cte_map) {
-        const cteMap = selectNode.cte_map.map;
-        if (Array.isArray(cteMap)) {
-          cteMap.forEach((cte) => {
-            const cteAlias = cte.key;
-            const cteQuery = cte.value.query;
-            processQueryNode(cteQuery.node, cteAlias);
-          });
-        }
-      }
-
-      if (selectNode.from_table) {
-        tableAlias = processTableRef(selectNode.from_table, tableAlias);
-      }
-
-      selectNode.select_list.forEach((expr) => {
-        return processExpression(expr, tableAlias);
-      });
-
-      if (selectNode.where_clause) {
-        processExpression(selectNode.where_clause, tableAlias);
-      }
-
-      selectNode.group_expressions.forEach((expr) =>
-        processExpression(expr, tableAlias)
-      );
-
-      if (selectNode.having) {
-        processExpression(selectNode.having, tableAlias);
-      }
-
-      if (selectNode.qualify) {
-        processExpression(selectNode.qualify, tableAlias);
-      }
-
-      return tableAlias;
-    } else if (node.type === QueryNodeType.SET_OPERATION_NODE) {
-      const setOpNode = node as SetOperationNode;
-      processQueryNode(setOpNode.left, parentTableAlias);
-      processQueryNode(setOpNode.right, parentTableAlias);
-      return parentTableAlias;
-    }
-
-    if ('modifiers' in node) {
-      node.modifiers.forEach((modifier) => {
-        if (modifier.type === ResultModifierType.ORDER_MODIFIER) {
-          const orderModifier = modifier as OrderModifier;
-          orderModifier.orders.forEach((order) =>
-            processExpression(order.expression, parentTableAlias)
-          );
-        }
-      });
-    }
-
-    return parentTableAlias;
-  }
-
-  processQueryNode(selectStatement.node, '');
+  processQueryNode(
+    selectStatement.node,
+    '',
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
 
   return referencedColumns;
 }
 
-export const sqlQueryToAST = async (
+function isExpressionWithChildren(
+  expr: ParsedExpression
+): expr is ParsedExpression & { children: ParsedExpression[] } {
+  return 'children' in expr;
+}
+
+function isExpressionWithChild(
+  expr: ParsedExpression
+): expr is ParsedExpression & { child: ParsedExpression } {
+  return 'child' in expr;
+}
+
+function resolveAliasedColumn(
+  tableAlias: string,
+  columnName: string,
+  aliasedColumns: Map<string, Map<string, string>>,
+  referencedColumns: Map<string, Set<string>>
+): void {
+  if (!referencedColumns.has(tableAlias)) {
+    referencedColumns.set(tableAlias, new Set<string>());
+  }
+
+  const tableAliases = aliasedColumns.get(tableAlias);
+  if (tableAliases?.has(columnName)) {
+    const aliasedColumn = tableAliases.get(columnName) as string;
+    resolveAliasedColumn(
+      tableAlias,
+      aliasedColumn,
+      aliasedColumns,
+      referencedColumns
+    );
+  } else {
+    referencedColumns.get(tableAlias)?.add(columnName);
+  }
+}
+
+function processExpression(
+  expr: ParsedExpression,
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  if (!expr) return;
+
+  switch (expr.type) {
+    case ExpressionType.COLUMN_REF:
+      processColumnRef(
+        expr as ColumnRefExpression,
+        currentTableAlias,
+        referencedColumns,
+        aliasedColumns,
+        availableSchema
+      );
+      break;
+    case ExpressionType.STAR:
+      processStarExpression(
+        expr as StarExpression,
+        currentTableAlias,
+        referencedColumns
+      );
+      break;
+    case ExpressionType.SUBQUERY:
+      processSubquery(
+        expr as SubqueryExpression,
+        currentTableAlias,
+        referencedColumns,
+        aliasedColumns,
+        availableSchema
+      );
+      break;
+    case ExpressionType.COMPARE_EQUAL:
+    case ExpressionType.COMPARE_NOTEQUAL:
+    case ExpressionType.COMPARE_LESSTHAN:
+    case ExpressionType.COMPARE_GREATERTHAN:
+    case ExpressionType.COMPARE_LESSTHANOREQUALTO:
+    case ExpressionType.COMPARE_GREATERTHANOREQUALTO:
+      processComparison(
+        expr as ComparisonExpression,
+        currentTableAlias,
+        referencedColumns,
+        aliasedColumns,
+        availableSchema
+      );
+      break;
+    case ExpressionType.CASE_EXPR:
+      processCaseExpression(
+        expr as CaseExpression,
+        currentTableAlias,
+        referencedColumns,
+        aliasedColumns,
+        availableSchema
+      );
+      break;
+    case ExpressionType.FUNCTION:
+      processFunctionExpression(
+        expr as FunctionExpression,
+        currentTableAlias,
+        referencedColumns,
+        aliasedColumns,
+        availableSchema
+      );
+      break;
+    default:
+      if (isExpressionWithChildren(expr)) {
+        processExpressionWithChildren(
+          expr,
+          currentTableAlias,
+          referencedColumns,
+          aliasedColumns,
+          availableSchema
+        );
+      } else if (isExpressionWithChild(expr)) {
+        processExpressionWithChild(
+          expr,
+          currentTableAlias,
+          referencedColumns,
+          aliasedColumns,
+          availableSchema
+        );
+      }
+  }
+}
+
+function processColumnRef(
+  columnRef: ColumnRefExpression,
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  const columnName = columnRef.column_names[columnRef.column_names.length - 1];
+
+  if (columnRef.alias && columnRef.alias !== columnName) {
+    const tableAliasMap =
+      aliasedColumns.get(currentTableAlias) || new Map<string, string>();
+    tableAliasMap.set(columnRef.alias, columnName);
+    aliasedColumns.set(currentTableAlias, tableAliasMap);
+  }
+
+  let tableAlias = currentTableAlias;
+  if (columnRef.column_names.length > 1) {
+    let found = false;
+    const refTableAlias = columnRef.column_names[0];
+    if (!referencedColumns.has(refTableAlias)) {
+      for (const schema of availableSchema) {
+        const fullTableName = schema + '.' + refTableAlias;
+        if (referencedColumns.has(fullTableName)) {
+          tableAlias = fullTableName;
+          found = true;
+          break;
+        }
+      }
+    }
+    if (!found) {
+      return;
+    }
+  }
+
+  if (!referencedColumns.has(tableAlias)) {
+    referencedColumns.set(tableAlias, new Set<string>());
+  }
+
+  resolveAliasedColumn(
+    tableAlias,
+    columnName,
+    aliasedColumns,
+    referencedColumns
+  );
+}
+
+function processStarExpression(
+  starExpr: StarExpression,
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>
+) {
+  starExpr.exclude_list.forEach((excludedColumn) => {
+    if (!referencedColumns.has(currentTableAlias)) {
+      referencedColumns.set(currentTableAlias, new Set<string>());
+    }
+    referencedColumns.get(currentTableAlias)?.add(excludedColumn);
+  });
+}
+
+function processSubquery(
+  subqueryExpr: SubqueryExpression,
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  processQueryNode(
+    subqueryExpr.subquery.node,
+    currentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+}
+
+function processComparison(
+  comparison: ComparisonExpression,
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  processExpression(
+    comparison.left,
+    currentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+  processExpression(
+    comparison.right,
+    currentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+}
+
+function processCaseExpression(
+  caseExpr: CaseExpression,
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  caseExpr.case_checks.forEach((check) => {
+    processExpression(
+      check.when_expr,
+      currentTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+    processExpression(
+      check.then_expr,
+      currentTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  });
+  processExpression(
+    caseExpr.else_expr,
+    currentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+}
+
+function processFunctionExpression(
+  functionExpr: FunctionExpression,
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  functionExpr.children.forEach((child) =>
+    processExpression(
+      child,
+      currentTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    )
+  );
+}
+
+function processExpressionWithChildren(
+  expr: ParsedExpression & { children: ParsedExpression[] },
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  expr.children.forEach((child) =>
+    processExpression(
+      child,
+      currentTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    )
+  );
+}
+
+function processExpressionWithChild(
+  expr: ParsedExpression & { child: ParsedExpression },
+  currentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  processExpression(
+    expr.child,
+    currentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+}
+
+function processTableRef(
+  tableRef: TableRef,
+  parentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+): string {
+  switch (tableRef.type) {
+    case TableReferenceType.BASE_TABLE:
+      return processBaseTableRef(
+        tableRef as BaseTypeTableRef,
+        referencedColumns,
+        availableSchema
+      );
+    case TableReferenceType.JOIN:
+      return processJoinRef(
+        tableRef as JoinRef,
+        parentTableAlias,
+        referencedColumns,
+        aliasedColumns,
+        availableSchema
+      );
+    case TableReferenceType.SUBQUERY:
+      return processSubqueryRef(
+        tableRef as SubqueryRef,
+        referencedColumns,
+        aliasedColumns,
+        availableSchema
+      );
+    default:
+      return parentTableAlias;
+  }
+}
+
+function processBaseTableRef(
+  baseTableRef: BaseTypeTableRef,
+  referencedColumns: Map<string, Set<string>>,
+  availableSchema: Set<string>
+): string {
+  const tableName =
+    (baseTableRef.schema_name ? baseTableRef.schema_name + '.' : '') +
+    baseTableRef.table_name;
+
+  if (baseTableRef.schema_name) {
+    availableSchema.add(baseTableRef.schema_name);
+  }
+
+  if (!referencedColumns.has(tableName)) {
+    referencedColumns.set(tableName, new Set<string>());
+  }
+
+  return tableName;
+}
+
+function processJoinRef(
+  joinRef: JoinRef,
+  parentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+): string {
+  const leftTableAlias = processTableRef(
+    joinRef.left,
+    parentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+  const rightTableAlias = processTableRef(
+    joinRef.right,
+    parentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+
+  if (joinRef.condition) {
+    processExpression(
+      joinRef.condition,
+      leftTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+    processExpression(
+      joinRef.condition,
+      rightTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  }
+
+  return parentTableAlias;
+}
+
+function processSubqueryRef(
+  subqueryRef: SubqueryRef,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+): string {
+  const subqueryTableAlias = processQueryNode(
+    subqueryRef.subquery.node,
+    subqueryRef.alias || '',
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+  return subqueryTableAlias;
+}
+
+function processQueryNode(
+  node: QueryNode,
+  parentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+): string {
+  if (node.type === QueryNodeType.SELECT_NODE) {
+    return processSelectNode(
+      node as SelectNode,
+      parentTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  } else if (node.type === QueryNodeType.SET_OPERATION_NODE) {
+    return processSetOperationNode(
+      node as SetOperationNode,
+      parentTableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  }
+
+  processResultModifiers(
+    node,
+    parentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+
+  return parentTableAlias;
+}
+
+function processSelectNode(
+  selectNode: SelectNode,
+  parentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+): string {
+  let tableAlias = parentTableAlias;
+
+  processCteMap(
+    selectNode.cte_map,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+
+  if (selectNode.from_table) {
+    tableAlias = processTableRef(
+      selectNode.from_table,
+      tableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  }
+
+  selectNode.select_list.forEach((expr) =>
+    processExpression(
+      expr,
+      tableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    )
+  );
+
+  if (selectNode.where_clause) {
+    processExpression(
+      selectNode.where_clause,
+      tableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  }
+
+  selectNode.group_expressions.forEach((expr) =>
+    processExpression(
+      expr,
+      tableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    )
+  );
+
+  if (selectNode.having) {
+    processExpression(
+      selectNode.having,
+      tableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  }
+
+  if (selectNode.qualify) {
+    processExpression(
+      selectNode.qualify,
+      tableAlias,
+      referencedColumns,
+      aliasedColumns,
+      availableSchema
+    );
+  }
+
+  return tableAlias;
+}
+
+function processSetOperationNode(
+  setOpNode: SetOperationNode,
+  parentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+): string {
+  processQueryNode(
+    setOpNode.left,
+    parentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+  processQueryNode(
+    setOpNode.right,
+    parentTableAlias,
+    referencedColumns,
+    aliasedColumns,
+    availableSchema
+  );
+  return parentTableAlias;
+}
+
+function processCteMap(
+  cteMap: CommonTableExpressionMap | undefined,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  if (cteMap) {
+    const map = cteMap.map;
+    if (Array.isArray(map)) {
+      map.forEach((cte) => {
+        const cteAlias = cte.key;
+        const cteQuery = cte.value.query;
+        processQueryNode(
+          cteQuery.node,
+          cteAlias,
+          referencedColumns,
+          aliasedColumns,
+          availableSchema
+        );
+      });
+    }
+  }
+}
+
+function processResultModifiers(
+  node: QueryNode,
+  parentTableAlias: string,
+  referencedColumns: Map<string, Set<string>>,
+  aliasedColumns: Map<string, Map<string, string>>,
+  availableSchema: Set<string>
+) {
+  if ('modifiers' in node) {
+    node.modifiers.forEach((modifier) => {
+      if (modifier.type === ResultModifierType.ORDER_MODIFIER) {
+        const orderModifier = modifier as OrderModifier;
+        orderModifier.orders.forEach((order) =>
+          processExpression(
+            order.expression,
+            parentTableAlias,
+            referencedColumns,
+            aliasedColumns,
+            availableSchema
+          )
+        );
+      }
+    });
+  }
+}
+
+export const getDatasetColumnsFromSQL = async (
   sql: string
 ): Promise<Record<string, string[]>> => {
   const escapedSQL = sql.replace(/'/g, "''");
@@ -270,7 +656,6 @@ export const sqlQueryToAST = async (
     `SELECT json_serialize_sql('${escapedSQL}') as ast;`
   )) as any;
   const astString = result[0]['ast'];
-  console.log(astString);
   const astParsed = JSON.parse(astString);
 
   const statements = astParsed?.statements as SelectStatement[];

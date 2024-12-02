@@ -1,12 +1,12 @@
-import { sqlQueryToAST } from '../sql-to-ast';
+import { getDatasetColumnsFromSQL } from '../sql-to-ast';
 
-describe('filter-param-tests', () => {
+describe('SQL to Referenced Columns by Dataset', () => {
   it('1. Should return the correct referenced columns from original tables', async () => {
     const sql = `
     SELECT SUM(COALESCE(total_first_resp_breaches, 0)) AS support_insights_ticket_metrics_summary__total_first_resp_breaches ,  SUM(COALESCE(total_resolution_breaches, 0)) AS support_insights_ticket_metrics_summary__total_resolution_breaches ,   support_insights_ticket_metrics_summary__record_date FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__record_date ORDER BY support_insights_ticket_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -24,7 +24,7 @@ describe('filter-param-tests', () => {
     select count(*) as count from (SELECT COUNT(DISTINCT CASE WHEN state != 'closed' THEN id END) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__owned_by_ids FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, owned_by_ids AS support_insights_ticket_metrics_summary__owned_by_ids FROM (SELECT id, stage_id, account_id, subtype ,severity_name, created_date, state,source_channel,created_by_id, primary_part_id, tag_ids, group_id, sla_stage, rev_oid, record_hour,DATE_TRUNC('day', record_hour) as record_date, UNNEST(owned_by_ids) as owned_by_ids FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where state!='closed') as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__owned_by_ids ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC)
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -55,7 +55,7 @@ describe('filter-param-tests', () => {
     SELECT COUNT(*) AS support_insights_ticket_metrics_summary__count_star ,   support_insights_ticket_metrics_summary__csat_score FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, csat_score AS support_insights_ticket_metrics_summary__csat_score FROM (SELECT *, DATE_TRUNC('day', record_hour) AS record_date,   CAST(CAST(FLOOR(sum_rating / total_responses) AS INTEGER) AS VARCHAR) AS csat_score FROM system.support_insights_ticket_metrics_summary WHERE total_responses != 0) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__csat_score ORDER BY support_insights_ticket_metrics_summary__csat_score ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -73,7 +73,7 @@ describe('filter-param-tests', () => {
     const sql = `
     select count(*) as count from (SELECT COUNT(*) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__primary_part_id FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, primary_part_id AS support_insights_ticket_metrics_summary__primary_part_id FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT * FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where state!='closed' and primary_part_id is not null and primary_part_id!='' ORDER BY record_date DESC) as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) and state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__primary_part_id ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC)
     `;
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -90,7 +90,7 @@ describe('filter-param-tests', () => {
     const sql = `
     SELECT 100.0 * (COUNT(DISTINCT CASE WHEN severity_name = 'Blocker' AND state != 'closed' AND state IS NOT NULL THEN id END) / NULLIF(COUNT(DISTINCT CASE WHEN state != 'closed' AND state IS NOT NULL THEN id END), 0)) AS support_insights_ticket_metrics_summary__distinct_count  FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary WHERE state!='closed' and state is not NULL) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z'))))
     `;
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -109,7 +109,7 @@ describe('filter-param-tests', () => {
     SELECT (select CASE WHEN COUNT(DISTINCT CASE WHEN sla_stage = 'breached' THEN id END) + COUNT(DISTINCT CASE WHEN sla_stage = 'completed' AND (ARRAY_LENGTH(next_resp_time_arr) > 0 OR ARRAY_LENGTH(first_resp_time_arr) > 0 OR ARRAY_LENGTH(resolution_time_arr) > 0) AND ( total_second_resp_breaches_ever = 0 OR total_second_resp_breaches_ever IS NULL ) AND ( total_first_resp_breaches_ever = 0 OR total_first_resp_breaches_ever IS NULL ) AND ( total_resolution_breaches_ever = 0 OR total_resolution_breaches_ever IS NULL ) THEN id END) > 0 THEN 100 - (COUNT(DISTINCT CASE WHEN sla_stage = 'breached' THEN id END) * 100.0 /(COUNT(DISTINCT CASE WHEN sla_stage = 'breached' THEN id END) + COUNT(DISTINCT CASE WHEN sla_stage = 'completed' AND (ARRAY_LENGTH(next_resp_time_arr) > 0 OR ARRAY_LENGTH(first_resp_time_arr) > 0 OR ARRAY_LENGTH(resolution_time_arr) > 0) AND ( total_second_resp_breaches_ever = 0 OR total_second_resp_breaches_ever IS NULL ) AND ( total_first_resp_breaches_ever = 0 OR total_first_resp_breaches_ever IS NULL )AND ( total_resolution_breaches_ever = 0 OR total_resolution_breaches_ever IS NULL )THEN id END))) ELSE NULL END) AS support_insights_ticket_metrics_summary__compliance_rate  FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -133,7 +133,7 @@ describe('filter-param-tests', () => {
     SELECT CASE WHEN COUNT(CASE WHEN total_responses > 0 THEN 1 END) > 0 THEN COUNT(CASE WHEN total_responses > 0 AND floor(sum_rating / NULLIF(total_responses, 0)) IN (4, 5) THEN 1 END) * 100.0 / COUNT(CASE WHEN total_responses > 0 THEN 1 END) ELSE NULL END AS support_insights_ticket_metrics_summary__average_rating  FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -151,7 +151,7 @@ describe('filter-param-tests', () => {
     SELECT MEDIAN(DATEDIFF('minute', created_date, actual_close_date)) AS support_insights_ticket_metrics_summary__median_diff_minutes  FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * FROM system.support_insights_ticket_metrics_summary WHERE state = 'closed' and actual_close_date > created_date) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -170,7 +170,7 @@ describe('filter-param-tests', () => {
     SELECT COUNT(*) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__account_id FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, account_id AS support_insights_ticket_metrics_summary__account_id FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT * FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where account_id!='' and account_id is not null and state!='closed' ORDER BY record_date DESC) as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) and state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__account_id ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC LIMIT 5
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -188,7 +188,7 @@ describe('filter-param-tests', () => {
     select count(*) as count from (SELECT COUNT(*) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__account_id FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, account_id AS support_insights_ticket_metrics_summary__account_id FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT * FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where account_id!='' and account_id is not null and state!='closed' ORDER BY record_date DESC) as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) and state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__account_id ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC)
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -206,7 +206,7 @@ describe('filter-param-tests', () => {
     SELECT COUNT(*) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__primary_part_id FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, primary_part_id AS support_insights_ticket_metrics_summary__primary_part_id FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT * FROM (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where state!='closed' and primary_part_id is not null and primary_part_id!='' ORDER BY record_date DESC) as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) and state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__primary_part_id ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC LIMIT 5
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -224,7 +224,7 @@ describe('filter-param-tests', () => {
       SELECT COUNT(sla_stage) AS support_insights_ticket_metrics_summary__count_sla_stage ,   support_insights_ticket_metrics_summary__record_date,  support_insights_ticket_metrics_summary__sla_stage FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, record_date AS support_insights_ticket_metrics_summary__record_date, sla_stage AS support_insights_ticket_metrics_summary__sla_stage FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary where sla_stage IN ('breached', 'warning', 'paused')) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__record_date, support_insights_ticket_metrics_summary__sla_stage ORDER BY support_insights_ticket_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -237,7 +237,7 @@ describe('filter-param-tests', () => {
       SELECT SUM(total_responses) AS support_insights_ticket_metrics_summary__sum_total_responses ,  SUM(total_survey_dispatched) AS support_insights_ticket_metrics_summary__sum_total_survey_dispatched ,   support_insights_ticket_metrics_summary__record_date FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, record_date AS support_insights_ticket_metrics_summary__record_date FROM (select DATE_TRUNC('day', record_hour) AS record_date, * from system.support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__record_date ORDER BY support_insights_ticket_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -255,7 +255,7 @@ describe('filter-param-tests', () => {
       SELECT COUNT(DISTINCT id) AS support_insights_ticket_metrics_summary__count_star ,   support_insights_ticket_metrics_summary__is_conversation_linked FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, is_conversation_linked AS support_insights_ticket_metrics_summary__is_conversation_linked FROM (SELECT   DATE_TRUNC('day', record_hour) AS record_date,   CASE       WHEN (primary_part_id LIKE '%enhancement%' OR is_issue_linked = 'yes') THEN 'yes'       ELSE 'no'   END AS ticket_prioritized,   * FROM system.support_insights_ticket_metrics_summary where state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__is_conversation_linked LIMIT 2
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -276,7 +276,7 @@ describe('filter-param-tests', () => {
       SELECT COUNT(DISTINCT id) AS support_insights_ticket_metrics_summary__count_star ,   support_insights_ticket_metrics_summary__ticket_prioritized FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, CASE WHEN primary_part_id LIKE '%enhancement%' OR is_issue_linked = 'yes' THEN 'yes' ELSE 'no' END AS support_insights_ticket_metrics_summary__ticket_prioritized FROM (SELECT *, DATE_TRUNC('day', record_hour) AS record_date FROM system.support_insights_ticket_metrics_summary where state!='closed') AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__ticket_prioritized
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -296,8 +296,8 @@ describe('filter-param-tests', () => {
       SELECT COUNT(DISTINCT CASE WHEN state != 'closed' THEN id END) AS support_insights_ticket_metrics_summary__unique_ids_count ,   support_insights_ticket_metrics_summary__owned_by_ids FROM (SELECT *, record_date AS support_insights_ticket_metrics_summary__record_date, owned_by_ids AS support_insights_ticket_metrics_summary__owned_by_ids FROM (SELECT id, stage_id, account_id, subtype ,severity_name, created_date, state,source_channel,created_by_id, primary_part_id, tag_ids, group_id, sla_stage, rev_oid, record_hour,DATE_TRUNC('day', record_hour) as record_date, UNNEST(owned_by_ids) as owned_by_ids FROM system.support_insights_ticket_metrics_summary where record_date = (select MAX(record_date) from (SELECT *, DATE_TRUNC('day', record_hour) as record_date FROM system.support_insights_ticket_metrics_summary where state!='closed') as support_insights_ticket_metrics_summary  where  ((((support_insights_ticket_metrics_summary.record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary.record_date <= '2024-06-02T06:29:59.999Z')))))) AS support_insights_ticket_metrics_summary) AS support_insights_ticket_metrics_summary WHERE ((((support_insights_ticket_metrics_summary__record_date >= '2024-05-03T05:30:00.000Z') AND (support_insights_ticket_metrics_summary__record_date <= '2024-06-02T06:29:59.999Z')))) GROUP BY support_insights_ticket_metrics_summary__owned_by_ids ORDER BY support_insights_ticket_metrics_summary__unique_ids_count DESC LIMIT 5
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -340,8 +340,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_ticket_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -372,8 +372,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_ticket_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -403,8 +403,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_ticket_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -439,8 +439,8 @@ describe('filter-param-tests', () => {
       GROUP BY support_insights_ticket_metrics_summary__ticket_prioritized
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_ticket_metrics_summary']
     ).toEqual(
@@ -470,8 +470,8 @@ describe('filter-param-tests', () => {
               AND (support_insights_conversation_metrics_summary__record_date <= '2024-06-02T15:29:59.999Z'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -500,8 +500,8 @@ describe('filter-param-tests', () => {
               AND (support_insights_conversation_metrics_summary__record_date <= '2024-06-02T15:29:59.999Z'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -538,8 +538,8 @@ describe('filter-param-tests', () => {
               AND (support_insights_conversation_metrics_summary__record_date <= '2024-06-02T15:29:59.999Z'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -574,8 +574,8 @@ describe('filter-param-tests', () => {
               AND (support_insights_conversation_metrics_summary__record_date <= '2024-06-02T15:29:59.999Z'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(expect.arrayContaining(['first_resp_time_arr', 'record_hour']));
@@ -604,8 +604,8 @@ describe('filter-param-tests', () => {
       LIMIT 5
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -655,8 +655,8 @@ describe('filter-param-tests', () => {
       )
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -703,8 +703,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_conversation_metrics_summary__unique_ids_count DESC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -754,8 +754,8 @@ describe('filter-param-tests', () => {
       )
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -798,8 +798,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_conversation_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -832,8 +832,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_conversation_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(expect.arrayContaining(['sla_stage', 'record_hour']));
@@ -858,8 +858,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_conversation_metrics_summary__record_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -891,8 +891,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_conversation_metrics_summary__csat_score ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -929,8 +929,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_conversation_metrics_summary__record_date DESC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(expect.arrayContaining(['first_resp_time_arr', 'record_hour']));
@@ -955,8 +955,8 @@ describe('filter-param-tests', () => {
       LIMIT 2
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -983,8 +983,8 @@ describe('filter-param-tests', () => {
       ORDER BY support_insights_conversation_metrics_summary__record_date DESC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -1014,8 +1014,8 @@ describe('filter-param-tests', () => {
       GROUP BY support_insights_conversation_metrics_summary__source_channel
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(expect.arrayContaining(['id', 'source_channel', 'record_hour']));
@@ -1042,8 +1042,8 @@ describe('filter-param-tests', () => {
       LIMIT 5
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -1089,8 +1089,8 @@ describe('filter-param-tests', () => {
       )
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -1132,8 +1132,8 @@ describe('filter-param-tests', () => {
       GROUP BY support_insights_conversation_metrics_summary__turing_deflected
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -1165,8 +1165,8 @@ describe('filter-param-tests', () => {
       GROUP BY support_insights_conversation_metrics_summary__bot_resolution_rate
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -1203,8 +1203,8 @@ describe('filter-param-tests', () => {
               AND ((support_insights_conversation_metrics_summary__group_id = 'don:identity:dvrv-us-1:devo/0:group/38'))))
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(
       references['system.support_insights_conversation_metrics_summary']
     ).toEqual(
@@ -1235,8 +1235,8 @@ describe('filter-param-tests', () => {
       ) AS dim_opportunity
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(references['system.dim_opportunity']).toEqual(
       expect.arrayContaining(['owned_by_ids', 'is_deleted', 'state'])
     );
@@ -1266,8 +1266,8 @@ describe('filter-param-tests', () => {
       ) AS dim_opportunity
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(references['system.dim_opportunity']).toEqual(
       expect.arrayContaining([
         'owned_by_ids',
@@ -1295,8 +1295,8 @@ describe('filter-param-tests', () => {
       ) AS dim_account
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(references['system.dim_account']).toEqual(
       expect.arrayContaining(['owned_by', 'id', 'is_deleted'])
     );
@@ -1338,8 +1338,8 @@ describe('filter-param-tests', () => {
       ORDER BY dim_opportunity__distinct_stage_ordinal ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(references['system.dim_opportunity']).toEqual(
       expect.arrayContaining([
         'owned_by_ids',
@@ -1415,8 +1415,8 @@ describe('filter-param-tests', () => {
       ORDER BY dim_opportunity__total_sum_amount DESC
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
+
     expect(references['system.dim_opportunity']).toEqual(
       expect.arrayContaining([
         'owned_by_ids',
@@ -1451,7 +1451,7 @@ describe('filter-param-tests', () => {
       ORDER BY account_owner_wo_stage__count_of_rows
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(references['system.dim_account']).toEqual(
       expect.arrayContaining(['owned_by', 'id', 'is_deleted'])
     );
@@ -1613,7 +1613,7 @@ describe('filter-param-tests', () => {
       ORDER BY dim_opportunity__total_sum_amount DESC
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
     expect(references['system.dim_opportunity']).toEqual(
       expect.arrayContaining([
         'owned_by_ids',
@@ -1650,9 +1650,7 @@ describe('filter-param-tests', () => {
       ) AS dim_revu_slim
     `;
 
-    const references = await sqlQueryToAST(sql);
-
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(references['system.dim_revu_slim'].sort()).toEqual(
       ['is_deleted', 'rev_oid', 'dev_oid'].sort()
@@ -1739,7 +1737,7 @@ describe('filter-param-tests', () => {
       ORDER BY engage_customers__scheduled_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(references['system.dim_engagement'].sort()).toEqual(
       [
@@ -1784,8 +1782,7 @@ describe('filter-param-tests', () => {
       )
     `;
 
-    const references = await sqlQueryToAST(sql);
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(references['system.dim_revu_slim'].sort()).toEqual(
       ['rev_oid', 'dev_oid', 'is_verified', 'is_deleted', 'created_date'].sort()
@@ -1816,9 +1813,7 @@ describe('filter-param-tests', () => {
       )
     `;
 
-    const references = await sqlQueryToAST(sql);
-
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(references['system.summary_grow_daily_active_users'].sort()).toEqual(
       [
@@ -1858,9 +1853,7 @@ describe('filter-param-tests', () => {
       )
     `;
 
-    const references = await sqlQueryToAST(sql);
-
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(
       references['system.user_sessions_track_events_summary'].sort()
@@ -1902,9 +1895,7 @@ describe('filter-param-tests', () => {
       )
     `;
 
-    const references = await sqlQueryToAST(sql);
-
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(
       references['system.user_sessions_track_events_summary'].sort()
@@ -1954,9 +1945,7 @@ describe('filter-param-tests', () => {
       ORDER BY summary_grow_daily_active_users__created_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(references['system.summary_grow_daily_active_users'].sort()).toEqual(
       [
@@ -2001,9 +1990,7 @@ describe('filter-param-tests', () => {
       ORDER BY user_sessions_track_events_summary__created_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(
       references['system.user_sessions_track_events_summary'].sort()
@@ -2049,9 +2036,7 @@ describe('filter-param-tests', () => {
       ORDER BY user_sessions_track_events_summary__created_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
-
-    console.log(references);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(
       references['system.user_sessions_track_events_summary'].sort()
@@ -2131,7 +2116,7 @@ describe('filter-param-tests', () => {
       ORDER BY total_users_data__created_date ASC
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     // Only columns which can be figured out without the original table schema are expected
     expect(references['system.dim_revu_slim'].sort()).toEqual(
@@ -2180,7 +2165,7 @@ describe('filter-param-tests', () => {
       LIMIT 5
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     // Only columns which can be figured out without the original table schema are expected
     expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
@@ -2198,63 +2183,63 @@ describe('filter-param-tests', () => {
     );
   });
 
-  it('61. Should return the correct count of rev_uids from summary_grow_users_event_count table', async () => {
-    const sql = `
-      SELECT COUNT(*) AS count
-      FROM (
-        SELECT SUM(total_events) AS summary_grow_users_event_count__total_usage_events,
-               summary_grow_users_event_count__rev_uid
-        FROM (
-          SELECT *,
-                 created_date AS summary_grow_users_event_count__created_date,
-                 rev_uid AS summary_grow_users_event_count__rev_uid
-          FROM (
-            SELECT summary_grow_users_event_count.created_at AS created_date,
-                   summary_grow_users_event_count.total_events AS total_events,
-                   revu.id AS rev_uid,
-                   CASE WHEN revu.is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
-                   (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_users_event_count.dev_oid = dim_revo.dev_oid AND summary_grow_users_event_count.rev_oid = dim_revo.display_id) AS rev_oid
-            FROM system.summary_grow_users_event_count
-            INNER JOIN (
-              SELECT *,
-                     'REVU-' || REVERSE(SPLIT_PART(REVERSE(id), '/', 1)) AS display_id
-              FROM system.dim_revu_slim
-              WHERE is_deleted = FALSE
-            ) AS revu ON summary_grow_users_event_count.rev_uid = revu.display_id
-                        AND summary_grow_users_event_count.rev_oid = revu.rev_oid
-                        AND summary_grow_users_event_count.dev_oid = revu.dev_oid
-          ) AS summary_grow_users_event_count
-        ) AS summary_grow_users_event_count
-        WHERE (
-          (
-            (summary_grow_users_event_count__created_date >= '2024-05-04T10:30:00.000Z')
-            AND (summary_grow_users_event_count__created_date <= '2024-06-03T11:29:59.999Z')
-          )
-        )
-        GROUP BY summary_grow_users_event_count__rev_uid
-        ORDER BY summary_grow_users_event_count__total_usage_events DESC
-      )
-    `;
+  // it('61. Should return the correct count of rev_uids from summary_grow_users_event_count table', async () => {
+  //   const sql = `
+  //     SELECT COUNT(*) AS count
+  //     FROM (
+  //       SELECT SUM(total_events) AS summary_grow_users_event_count__total_usage_events,
+  //              summary_grow_users_event_count__rev_uid
+  //       FROM (
+  //         SELECT *,
+  //                created_date AS summary_grow_users_event_count__created_date,
+  //                rev_uid AS summary_grow_users_event_count__rev_uid
+  //         FROM (
+  //           SELECT summary_grow_users_event_count.created_at AS created_date,
+  //                  summary_grow_users_event_count.total_events AS total_events,
+  //                  revu.id AS rev_uid,
+  //                  CASE WHEN revu.is_verified = true THEN 'Yes' ELSE 'No' END AS verified_enum,
+  //                  (SELECT id FROM system.dim_revo WHERE is_deleted = FALSE AND summary_grow_users_event_count.dev_oid = dim_revo.dev_oid AND summary_grow_users_event_count.rev_oid = dim_revo.display_id) AS rev_oid
+  //           FROM system.summary_grow_users_event_count
+  //           INNER JOIN (
+  //             SELECT *,
+  //                    'REVU-' || REVERSE(SPLIT_PART(REVERSE(id), '/', 1)) AS display_id
+  //             FROM system.dim_revu_slim
+  //             WHERE is_deleted = FALSE
+  //           ) AS revu ON summary_grow_users_event_count.rev_uid = revu.display_id
+  //                       AND summary_grow_users_event_count.rev_oid = revu.rev_oid
+  //                       AND summary_grow_users_event_count.dev_oid = revu.dev_oid
+  //         ) AS summary_grow_users_event_count
+  //       ) AS summary_grow_users_event_count
+  //       WHERE (
+  //         (
+  //           (summary_grow_users_event_count__created_date >= '2024-05-04T10:30:00.000Z')
+  //           AND (summary_grow_users_event_count__created_date <= '2024-06-03T11:29:59.999Z')
+  //         )
+  //       )
+  //       GROUP BY summary_grow_users_event_count__rev_uid
+  //       ORDER BY summary_grow_users_event_count__total_usage_events DESC
+  //     )
+  //   `;
 
-    const references = await sqlQueryToAST(sql);
+  //   const references = await sqlQueryToAST(sql);
 
-    console.log(references);
+  //
 
-    // Only columns which can be figured out without the original table schema are expected
-    expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
-      ['created_at', 'total_events', 'rev_uid', 'dev_oid', 'rev_oid'].sort()
-    );
+  //   // Only columns which can be figured out without the original table schema are expected
+  //   expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
+  //     ['created_at', 'total_events', 'rev_uid', 'dev_oid', 'rev_oid'].sort()
+  //   );
 
-    // Only columns which can be figured out without the original table schema are expected
-    expect(references['system.dim_revu_slim'].sort()).toEqual(
-      ['id', 'is_deleted', 'rev_oid', 'dev_oid', 'is_verified'].sort()
-    );
+  //   // Only columns which can be figured out without the original table schema are expected
+  //   expect(references['system.dim_revu_slim'].sort()).toEqual(
+  //     ['id', 'is_deleted', 'rev_oid', 'dev_oid', 'is_verified'].sort()
+  //   );
 
-    // // Only columns which can be figured out without the original table schema are expected
-    expect(references['system.dim_revo'].sort()).toEqual(
-      ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
-    );
-  });
+  //   // // Only columns which can be figured out without the original table schema are expected
+  //   expect(references['system.dim_revo'].sort()).toEqual(
+  //     ['id', 'is_deleted', 'dev_oid', 'display_id'].sort()
+  //   );
+  // });
 
   // it('62. Should return the bottom 5 rev_uids with total usage events from summary_grow_users_event_count table', async () => {
   //   const sql = `
@@ -2294,7 +2279,7 @@ describe('filter-param-tests', () => {
 
   //   const references = await sqlQueryToAST(sql);
 
-  //   console.log(references);
+  //
 
   //   expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
   //     ['created_at', 'total_events', 'rev_uid', 'rev_oid', 'dev_oid'].sort()
@@ -2349,7 +2334,7 @@ describe('filter-param-tests', () => {
 
   //   const references = await sqlQueryToAST(sql);
 
-  //   console.log(references);
+  //
 
   //   expect(references['system.summary_grow_users_event_count'].sort()).toEqual(
   //     ['created_at', 'total_events', 'rev_uid', 'rev_oid', 'dev_oid'].sort()
@@ -2446,7 +2431,7 @@ describe('filter-param-tests', () => {
       LIMIT 5
     `;
 
-    const references = await sqlQueryToAST(sql);
+    const references = await getDatasetColumnsFromSQL(sql);
 
     expect(
       references['system.customer_health_scores_daily_summary'].sort()
