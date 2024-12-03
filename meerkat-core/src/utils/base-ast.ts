@@ -1,5 +1,11 @@
-import { AggregateHandling, QueryNodeType } from '../types/duckdb-serialization-types/serialization/QueryNode';
-import { ExpressionClass, ExpressionType } from '../types/duckdb-serialization-types/serialization/Expression';
+import {
+  ExpressionClass,
+  ExpressionType,
+} from '../types/duckdb-serialization-types/serialization/Expression';
+import {
+  AggregateHandling,
+  QueryNodeType,
+} from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
 import { TableReferenceType } from '../types/duckdb-serialization-types/serialization/TableRef';
 
@@ -22,7 +28,6 @@ export const getBaseAST = (): SelectStatement => {
           exclude_list: [],
           replace_list: [],
           columns: false,
-          expr: null,
         },
       ],
       from_table: {
