@@ -2,14 +2,12 @@ import {
   ExpressionType,
   ParsedExpression,
   QueryNodeType,
-  ResultModifierType,
-  TableReferenceType,
+  TableReferenceType
 } from '../types/duckdb-serialization-types';
 import { ExpressionClass } from '../types/duckdb-serialization-types/serialization/Expression';
 import { AggregateHandling } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import {
-  validateDimension,
-  validateExpressionNode,
+  validateDimension
 } from './dimension-validator';
 import { ParsedSerialization } from './types';
 
@@ -148,6 +146,12 @@ describe('validateExpressionNode for dimension expressions', () => {
       type: ExpressionType.COLUMN_REF,
       alias: '',
       query_location: 0,
+<<<<<<< HEAD
+      column_names: ['avg_avg_time_spent_on_dashboard_val'],
+    };
+
+    expect(validator(COLUMN_REF_NODE)).toBe(true);
+=======
       column_names: ['column_name'],
     };
 
@@ -160,6 +164,7 @@ describe('validateExpressionNode for dimension expressions', () => {
     expect(validateExpressionNode(COLUMN_REF_NODE, EMPTY_VALID_FUNCTIONS)).toBe(
       true
     );
+>>>>>>> main
   });
 
   it('should return true for node type VALUE_CONSTANT', () => {
@@ -171,9 +176,13 @@ describe('validateExpressionNode for dimension expressions', () => {
       value: '1',
     };
 
+<<<<<<< HEAD
+    expect(validator(VALUE_CONSTANT_NODE)).toBe(true);
+=======
     expect(
       validateExpressionNode(VALUE_CONSTANT_NODE, EMPTY_VALID_FUNCTIONS)
     ).toBe(true);
+>>>>>>> main
   });
 
   it('should return true for node type OPERATOR_CAST', () => {
@@ -187,7 +196,11 @@ describe('validateExpressionNode for dimension expressions', () => {
         type: ExpressionType.COLUMN_REF,
         alias: '',
         query_location: 12,
+<<<<<<< HEAD
+        column_names: ['partition_ts'],
+=======
         column_names: ['column_name'],
+>>>>>>> main
       },
       cast_type: {
         id: 1,
@@ -195,6 +208,9 @@ describe('validateExpressionNode for dimension expressions', () => {
       try_cast: false,
     };
 
+<<<<<<< HEAD
+    expect(validator(OPERATOR_CAST_NODE)).toBe(true);
+=======
     expect(
       validateExpressionNode(OPERATOR_CAST_NODE, EMPTY_VALID_FUNCTIONS)
     ).toBe(true);
@@ -389,5 +405,6 @@ describe('validateExpressionNode for dimension expressions', () => {
     expect(() =>
       validateExpressionNode(INVALID_NODE, EMPTY_VALID_FUNCTIONS)
     ).toThrowError('Invalid expression type');
+>>>>>>> main
   });
 });

@@ -5,6 +5,8 @@ import {
   ConstantExpression,
   FunctionExpression,
   OperatorExpression,
+  SubqueryExpression,
+  WindowExpression,
 } from './duckdb-serialization-types/serialization/ParsedExpression';
 
 import { ExpressionType } from './duckdb-serialization-types';
@@ -44,4 +46,22 @@ export const isFunctionExpression = (
   node: ParsedExpression
 ): node is FunctionExpression => {
   return node.type === ExpressionType.FUNCTION;
+};
+
+export const isWindowAggregateExpression = (
+  node: ParsedExpression
+): node is WindowExpression => {
+  return node.type === ExpressionType.WINDOW_AGGREGATE;
+};
+
+export const isWindowLagExpression = (
+  node: ParsedExpression
+): node is WindowExpression => {
+  return node.type === ExpressionType.WINDOW_LAG;
+};
+
+export const isSubqueryExpression = (
+  node: ParsedExpression
+): node is SubqueryExpression => {
+  return node.type === ExpressionType.SUBQUERY;
 };

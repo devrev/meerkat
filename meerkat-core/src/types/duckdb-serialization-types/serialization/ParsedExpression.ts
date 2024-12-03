@@ -8,7 +8,6 @@ export interface BaseParsedExpression {
   class: ExpressionClass;
   type: ExpressionType;
   alias: string;
-  query_location: number;
 }
 
 export type ParsedExpression =
@@ -29,8 +28,6 @@ export type ParsedExpression =
   | StarExpression
   | SubqueryExpression
   | WindowExpression;
-
-export type DefaultExpression = BaseParsedExpression;
 
 export interface BetweenExpression extends BaseParsedExpression {
   type: ExpressionType.COMPARE_BETWEEN | ExpressionType.COMPARE_NOT_BETWEEN;
@@ -87,6 +84,8 @@ export interface ConstantExpression extends BaseParsedExpression {
   type: ExpressionType.VALUE_CONSTANT;
   value: Value;
 }
+
+export type DefaultExpression = BaseParsedExpression;
 
 export interface FunctionExpression extends BaseParsedExpression {
   type: ExpressionType.FUNCTION;

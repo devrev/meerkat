@@ -1,64 +1,8 @@
-import { validateDimensionQuery } from '@devrev/meerkat-browser';
-import { useRef, useState } from 'react';
-import { InstanceManager } from '../dbm-context/instance-manager';
+import { convertArrowTableToJSON } from '@devrev/meerkat-dbm';
+import { useState } from 'react';
+import { queries } from '../dimension';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
-import { queries } from './dimension';
-
-const validFunctions = [
-  '^@',
-  'to_base',
-  'contains',
-  'length_grapheme',
-  'nextval',
-  '__internal_decompress_string',
-  'strpos',
-  'second',
-  '!~~*',
-  '~~*',
-  'add',
-  'octet_length',
-  '__internal_decompress_integral_bigint',
-  'array_length',
-  '~~',
-  'md5_number_upper',
-  'upper',
-  'map',
-  'array_resize',
-  'ascii',
-  'list_contains',
-  'day',
-  '~~~',
-  'get_bit',
-  'substring',
-  'subtract',
-  'array_cat',
-  '+',
-  'error',
-  'in_search_path',
-  'list_concat',
-  'lower',
-  'base64',
-  'strip_accents',
-  'editdist3',
-  'regexp_matches',
-  'json_transform',
-  '__internal_decompress_integral_ubigint',
-  'date_part',
-  'unbin',
-  'regexp_extract_all',
-  'from_json',
-  'from_hex',
-  'last_day',
-  'not_ilike_escape',
-  '__internal_compress_integral_utinyint',
-  'regexp_split_to_array',
-  'substr',
-  '__internal_compress_string_ubigint',
-  'unhex',
-  'len',
-  'sqrt',
-];
 
 export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
@@ -75,40 +19,90 @@ export const QueryBenchmarking = () => {
   const [notMyAssumption, setNotMyAssumption] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
 
-  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
-
-  useClassicEffect(async () => {
+  useClassicEffect(() => {
     setTotalTime(0);
 
     setOutput([]);
     const promiseArr = [];
     const start = performance.now();
-    const instanceManager = instanceManagerRef.current;
-
-    const db = await instanceManager.getDB();
-    const con = await db.connect();
-
     for (let i = 0; i < queries.length; i++) {
       const eachQueryStart = performance.now();
+      const promiseObj = dbm
+        .queryWithTables({
+          query: `SELECT json_serialize_sql('${queries[i].sql_expression}')`,
+          tables: [{ name: 'taxi' }, { name: 'taxijson' }],
+        })
+        .then((results) => {
+          const responseData = convertArrowTableToJSON(results);
 
-      const promiseObj = validateDimensionQuery({
-        connection: con,
-        query: `select ${queries[i].sql_expression}`,
-      }).then((res) => {
-        console.log(res, 'res');
-        if (res.isValid) {
-          setmyAssumption((prev) => prev + 1);
-        } else {
-          setNotMyAssumption((prev) => prev + 1);
-          setOutput((prev) => [
-            ...prev,
-            {
-              queryName: `Query ${i} ---->`,
-              time: performance.now() - eachQueryStart,
-            },
-          ]);
-        }
-      });
+          console.log(responseData, 'responseData');
+          try {
+            const data = JSON.parse(
+              responseData[0][
+                `json_serialize_sql('${queries[i].sql_expression}')`
+              ]
+            );
+            console.log(
+              'data',
+              data,
+              isValidFunction(data.statements[0].node.select_list[0])
+            );
+            if (data.error) {
+              console.log('errorda function_name', data, queries[i]);
+              setErrorCount((prev) => prev + 1);
+              setErrorQueries((prev) => [...prev, queries[i].sql_expression]);
+            } else if (
+              !data.error &&
+              data.statements[0].node.select_list.length === 1 &&
+              isValidFunction(data.statements[0].node.select_list[0])
+            ) {
+              // console.log(
+              //   ' .function_name PASS',
+
+              //   data.statements[0].node.select_list[0].function_name,
+              //   data,
+              //   queries[i]
+              // );
+              // setOutput((prev) => [
+              //   ...prev,
+              //   {
+              //     queryName: `Query ${i} ---->`,
+              //     time: responseData[0][
+              //       `json_serialize_sql('select ${queries[i].sql_expression}')`
+              //     ],
+              //   },
+              // ]);
+              setmyAssumption((prev) => prev + 1);
+            } else {
+              setNotMyAssumption((prev) => prev + 1);
+              console.log(
+                ' .function_name FAIL',
+                data.statements[0].node.select_list[0].function_name,
+
+                data,
+                queries[i]
+              );
+              // setOutput((prev) => [
+              //   ...prev,
+              //   {
+              //     queryName: `Query ${i} ---->`,
+              //     time: responseData[0][
+              //       `json_serialize_sql('select ${queries[i].sql_expression}')`
+              //     ],
+              //   },
+              // ]);
+            }
+          } catch (e) {
+            console.log(e, 'errorda function_name');
+            setErrorCount((prev) => prev + 1);
+          }
+        })
+        .catch((e) => {
+          setErrorCount((prev) => prev + 1);
+          console.log(e, 'errorda function_name');
+
+          console.log(e, 'errorda', queries[i]);
+        });
 
       promiseArr.push(promiseObj);
     }
@@ -121,7 +115,7 @@ export const QueryBenchmarking = () => {
 
   return (
     <div>
-      {/* {output.map((o, i) => {
+      {output.map((o, i) => {
         return (
           <div
             data-query={`${i}`}
@@ -131,7 +125,7 @@ export const QueryBenchmarking = () => {
             {o.queryName} : {JSON.stringify(o.time, null, 2)}
           </div>
         );
-      })} */}
+      })}
       {totalTime === 0 && (
         <div>
           <span>Query Running...</span>
