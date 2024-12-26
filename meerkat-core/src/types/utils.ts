@@ -9,7 +9,12 @@ import {
   WindowExpression,
 } from './duckdb-serialization-types/serialization/ParsedExpression';
 
-import { ExpressionType } from './duckdb-serialization-types';
+import {
+  ExpressionType,
+  QueryNode,
+  QueryNodeType,
+  SelectNode,
+} from './duckdb-serialization-types';
 import { ParsedExpression } from './duckdb-serialization-types/serialization/ParsedExpression';
 
 export const isColumnRefExpression = (
@@ -61,4 +66,8 @@ export const isSubqueryExpression = (
   node: ParsedExpression
 ): node is SubqueryExpression => {
   return node.type === ExpressionType.SUBQUERY;
+};
+
+export const isSelectNode = (node: QueryNode): node is SelectNode => {
+  return node.type === QueryNodeType.SELECT_NODE;
 };

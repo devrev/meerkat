@@ -68,9 +68,9 @@ export const validateDimension = (
   const validFunctionSet = new Set(validFunctions);
 
   // Validate the expression
-  if (!validateExpressionNode(node, validFunctionSet)) {
-    throw new Error('Expression contains invalid functions or operators');
+  if (validateExpressionNode(node, validFunctionSet)) {
+    return true;
   }
 
-  return true;
+  throw new Error('Expression contains invalid functions or operators');
 };

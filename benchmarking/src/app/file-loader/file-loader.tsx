@@ -1,6 +1,7 @@
 import { convertUint8ArrayToSharedArrayBuffer } from '@devrev/meerkat-dbm';
 import axios from 'axios';
 import { useState } from 'react';
+import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
@@ -19,7 +20,7 @@ export const FileLoader = ({
   useClassicEffect(() => {
     (async () => {
       const file = await axios.get(
-        'http://localhost:4201/data-sets/fhvhv_tripdata_2023-01.parquet',
+        'http://localhost:4200/data-sets/fhvhv_tripdata_2023-01.parquet',
         { responseType: 'arraybuffer' }
       );
       const fileBuffer = file.data;
@@ -42,11 +43,11 @@ export const FileLoader = ({
         });
       }
 
-      // await fileManager.registerJSON({
-      //   json: TAXI_JSON_DATA,
-      //   tableName: 'taxijson',
-      //   fileName: 'taxijson.parquet',
-      // });
+      await fileManager.registerJSON({
+        json: TAXI_JSON_DATA,
+        tableName: 'taxijson',
+        fileName: 'taxijson.parquet',
+      });
 
       setIsFileLoader(true);
     })();

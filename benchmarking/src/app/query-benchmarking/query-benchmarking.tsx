@@ -1,66 +1,39 @@
-import { validateMeasureQuery } from '@devrev/meerkat-browser';
-import { useRef, useState } from 'react';
-import { InstanceManager } from '../dbm-context/instance-manager';
+import { useState } from 'react';
+import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
-import { queries } from './dimension';
 
 export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
     {
       queryName: string;
-      time: any;
+      time: number;
     }[]
   >([]);
   const [totalTime, setTotalTime] = useState<number>(0);
   const { dbm } = useDBM();
 
-  const [errorQueries, setErrorQueries] = useState<string[]>([]);
-  const [myAssumption, setmyAssumption] = useState(0);
-  const [notMyAssumption, setNotMyAssumption] = useState(0);
-  const [errorCount, setErrorCount] = useState(0);
-
-  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
-
-  useClassicEffect(async () => {
+  useClassicEffect(() => {
     setTotalTime(0);
 
     setOutput([]);
     const promiseArr = [];
     const start = performance.now();
-
-    const instanceManager = instanceManagerRef.current;
-
-    const db = await instanceManager.getDB();
-    const con = await db.connect();
-
-    for (let i = 0; i < queries.length; i++) {
+    for (let i = 0; i < TEST_QUERIES.length; i++) {
       const eachQueryStart = performance.now();
-      const promiseObj = validateMeasureQuery({
-        connection: con,
-        query: `select ${queries[i].sql_expression
-          .replace(/'/g, "''")
-          .replace('{', '(')
-          .replace('}', ')')}`,
-      })
-        .then((res) => {
-          if (res) {
-            setmyAssumption((prev) => prev + 1);
-          } else {
-            setNotMyAssumption((prev) => prev + 1);
-            setOutput((prev) => [
-              ...prev,
-              {
-                queryName: `Query ${i} ---->`,
-                time: performance.now() - eachQueryStart,
-              },
-            ]);
-          }
+
+      const promiseObj = dbm
+        .queryWithTables({
+          query: TEST_QUERIES[i],
+          tables: [{ name: 'taxi' }, { name: 'taxijson' }],
         })
-        .catch((err) => {
-          console.log(err);
-          setErrorCount((prev) => prev + 1);
-          setErrorQueries((prev) => [...prev, queries[i].sql_expression]);
+        .then((results) => {
+          const end = performance.now();
+          const time = end - eachQueryStart;
+          setOutput((prev) => [
+            ...prev,
+            { queryName: `Query ${i} ---->`, time },
+          ]);
         });
 
       promiseArr.push(promiseObj);
@@ -76,12 +49,8 @@ export const QueryBenchmarking = () => {
     <div>
       {output.map((o, i) => {
         return (
-          <div
-            data-query={`${i}`}
-            key={o.queryName}
-            style={{ marginTop: '50px' }}
-          >
-            {o.queryName} : {JSON.stringify(o.time, null, 2)}
+          <div data-query={`${i}`} key={o.queryName}>
+            {o.queryName} : {o.time}
           </div>
         );
       })}
@@ -95,13 +64,6 @@ export const QueryBenchmarking = () => {
           Total Time: <span id="total_time">{totalTime}</span>
         </div>
       )}
-      Total queies : {queries.length} <br />
-      My Assumption : {myAssumption} <br />
-      Not My Assumption : {notMyAssumption} <br />
-      Error Count : {errorCount}
-      {/* {errorQueries.map((query) => {
-        return <div>{query}</div>;
-      })} */}
     </div>
   );
 };

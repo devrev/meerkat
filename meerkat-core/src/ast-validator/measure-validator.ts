@@ -5,6 +5,7 @@ import {
   isColumnRefExpression,
   isFunctionExpression,
   isOperatorCast,
+  isSelectNode,
   isSubqueryExpression,
   isValueConstantExpression,
   isWindowExpression,
@@ -30,13 +31,11 @@ export const validateExpressionNode = ({
     // Allow column references inside aggregation functions
     return !!parentNode;
   }
-  console.log(node.function_name, validFunctions);
 
   // Check for valid aggregation functions
   if (isFunctionExpression(node) || isWindowExpression(node)) {
-    if (node.function_name === 'count_star') {
-      return true;
-    }
+    // count_star don't have children
+    if (node.function_name === 'count_star') return true;
 
     // This is a valid aggregation function - verify its children don't contain nested aggregations
     if (validFunctions.has(node.function_name)) {
@@ -59,22 +58,23 @@ export const validateExpressionNode = ({
             parentNode: node,
             validScalarFunctions,
           }) &&
-          (containsAggregation(child, validFunctions, validScalarFunctions) ||
-            hasAggregation)
+          (containsAggregation(child, validFunctions) || hasAggregation)
         );
       });
     }
+
+    throw new Error(`Invalid function type: ${node.function_name}`);
   }
 
-  // Handle CASE expressions
+  // Case expression
   if (isCaseExpression(node)) {
     const checksValid = node.case_checks.every((caseCheck) => {
       // WHEN conditions cannot contain aggregations
       const whenValid = !containsAggregation(
         caseCheck.when_expr,
-        validFunctions,
-        validScalarFunctions
+        validFunctions
       );
+
       // THEN expressions must be valid aggregations or contain no aggregations
       const thenValid =
         validateExpressionNode({
@@ -82,12 +82,7 @@ export const validateExpressionNode = ({
           validFunctions,
           parentNode: node,
           validScalarFunctions,
-        }) ||
-        !containsAggregation(
-          caseCheck.then_expr,
-          validFunctions,
-          validScalarFunctions
-        );
+        }) || !containsAggregation(caseCheck.then_expr, validFunctions);
       return whenValid && thenValid;
     });
 
@@ -97,17 +92,13 @@ export const validateExpressionNode = ({
         validFunctions,
         parentNode: node,
         validScalarFunctions,
-      }) ||
-      !containsAggregation(
-        node.else_expr,
-        validFunctions,
-        validScalarFunctions
-      );
+      }) || !containsAggregation(node.else_expr, validFunctions);
 
     return checksValid && elseValid;
   }
 
-  if (isSubqueryExpression(node)) {
+  // Subquery expression
+  if (isSubqueryExpression(node) && isSelectNode(node.subquery.node)) {
     return node.subquery.node.select_list.every((node) => {
       return validateExpressionNode({
         node,
@@ -118,6 +109,7 @@ export const validateExpressionNode = ({
     });
   }
 
+  // Window expression
   if (isWindowExpression(node)) {
     return node.children.every((node) => {
       return validateExpressionNode({
@@ -129,6 +121,7 @@ export const validateExpressionNode = ({
     });
   }
 
+  // Operator cast expression
   if (isOperatorCast(node)) {
     return validateExpressionNode({
       node: node.child,
@@ -138,7 +131,7 @@ export const validateExpressionNode = ({
     });
   }
 
-  // Handle COALESCE
+  // Coalesce expression
   if (isCoalesceExpression(node)) {
     return node.children.every(
       (child) =>
@@ -147,74 +140,61 @@ export const validateExpressionNode = ({
           validFunctions,
           parentNode,
           validScalarFunctions,
-        }) || !containsAggregation(child, validFunctions, validScalarFunctions)
+        }) || !containsAggregation(child, validFunctions)
     );
   }
 
   throw new Error(`Invalid expression type: ${node.type}`);
 };
 
-const containsAggregation = (
+export const containsAggregation = (
   node: ParsedExpression,
-  validFunctions: Set<string>,
-  validScalarFunctions: Set<string>
+  validFunctions: Set<string>
 ): boolean => {
   if (!node) return false;
 
+  // Function expression
   if (isFunctionExpression(node) || isWindowExpression(node)) {
     return (
       validFunctions.has(node.function_name) ||
-      node.children.some((child) =>
-        containsAggregation(child, validFunctions, validScalarFunctions)
-      )
+      node.children.some((child) => containsAggregation(child, validFunctions))
     );
   }
 
+  // Case expression
   if (isCaseExpression(node)) {
     return (
       node.case_checks.some(
         (check) =>
-          containsAggregation(
-            check.when_expr,
-            validFunctions,
-            validScalarFunctions
-          ) ||
-          containsAggregation(
-            check.then_expr,
-            validFunctions,
-            validScalarFunctions
-          )
-      ) ||
-      containsAggregation(node.else_expr, validFunctions, validScalarFunctions)
+          containsAggregation(check.when_expr, validFunctions) ||
+          containsAggregation(check.then_expr, validFunctions)
+      ) || containsAggregation(node.else_expr, validFunctions)
     );
   }
 
-  if (
-    isCoalesceExpression(node) ||
-    (isFunctionExpression(node) && validScalarFunctions.has(node.function_name))
-  ) {
+  // Coalesce expression
+  if (isCoalesceExpression(node)) {
     return node.children.some((child) =>
-      containsAggregation(child, validFunctions, validScalarFunctions)
+      containsAggregation(child, validFunctions)
     );
   }
 
+  // Operator cast expression
   if (isOperatorCast(node)) {
-    return containsAggregation(
-      node.child,
-      validFunctions,
-      validScalarFunctions
-    );
+    return containsAggregation(node.child, validFunctions);
   }
 
+  // Window expression
   if (isWindowExpression(node)) {
     return node.children.some((child) =>
-      containsAggregation(child, validFunctions, validScalarFunctions)
+      containsAggregation(child, validFunctions)
     );
   }
 
-  if (isSubqueryExpression(node)) {
+  // Subquery expression
+  if (isSubqueryExpression(node) && isSelectNode(node.subquery.node)) {
     return node.subquery.node.select_list.every((node) => {
-      return containsAggregation(node, validFunctions, validScalarFunctions);
+      return containsAggregation(node, validFunctions);
     });
   }
 
@@ -230,18 +210,18 @@ export const validateMeasure = (
 
   const validFunctionSet = new Set(validFunctions);
   const validScalarFunctionSet = new Set(validScalarFunctions);
-
+  console.log(node);
   // Validate the expression
   if (
-    !validateExpressionNode({
+    validateExpressionNode({
       node: node,
       validFunctions: validFunctionSet,
       parentNode: null,
       validScalarFunctions: validScalarFunctionSet,
     })
   ) {
-    throw new Error('Expression contains invalid functions or operators');
+    return true;
   }
 
-  return true;
+  throw new Error('Expression contains invalid functions or operators');
 };

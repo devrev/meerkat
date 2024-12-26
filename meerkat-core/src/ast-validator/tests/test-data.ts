@@ -8,8 +8,6 @@ import { ExpressionClass } from '../../types/duckdb-serialization-types/serializ
 export const EMPTY_VALID_FUNCTIONS = new Set<string>();
 export const VALID_FUNCTIONS = new Set(['contains', 'round', 'power']);
 
-const VALID_SCALAR_FUNCTIONS = new Set(['+', '-', '*', '/', '||']);
-
 export const COLUMN_REF_NODE: ParsedExpression = {
   class: ExpressionClass.COLUMN_REF,
   type: ExpressionType.COLUMN_REF,
@@ -221,13 +219,16 @@ export const DIMENSION_TEST_CASES: {
 
 export const MEASURE_TEST_CASES: {
   description: string;
+  query: string;
   node: ParsedExpression;
   validFunctions: Set<string>;
-  expected: boolean;
   validScalarFunctions: Set<string>;
+  expected: boolean | 'error';
+  error?: string;
 }[] = [
   {
     description: 'node type FUNCTION with count_star',
+    query: 'count_star()',
     node: {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -237,11 +238,13 @@ export const MEASURE_TEST_CASES: {
       schema: '',
       children: [],
     },
-    validFunctions: EMPTY_VALID_FUNCTIONS,
+    validFunctions: new Set(['count_star']),
+    validScalarFunctions: EMPTY_VALID_FUNCTIONS,
     expected: true,
   },
   {
     description: 'node type FUNCTION with SUM',
+    query: 'sum(column1)',
     node: {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -267,10 +270,44 @@ export const MEASURE_TEST_CASES: {
       export_state: false,
     },
     validFunctions: new Set(['sum']),
+    validScalarFunctions: EMPTY_VALID_FUNCTIONS,
     expected: true,
   },
   {
+    description: 'node type FUNCTION with SUM and invalid function type',
+    query: 'sum(column1)',
+    node: {
+      class: ExpressionClass.FUNCTION,
+      type: ExpressionType.FUNCTION,
+      alias: '',
+      query_location: 7,
+      function_name: 'sum',
+      schema: '',
+      children: [
+        {
+          class: ExpressionClass.COLUMN_REF,
+          type: ExpressionType.COLUMN_REF,
+          query_location: 11,
+          column_names: ['column1'],
+        },
+      ],
+      filter: null,
+      order_bys: {
+        type: ResultModifierType.ORDER_MODIFIER,
+        orders: [],
+      },
+      distinct: false,
+      is_operator: false,
+      export_state: false,
+    },
+    validFunctions: new Set(['min']),
+    validScalarFunctions: new Set(['/']),
+    error: 'Invalid function type: sum',
+    expected: 'error',
+  },
+  {
     description: 'node type FUNCTION with MAX and operator',
+    query: 'max(column1) / 1000',
     node: {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -292,7 +329,7 @@ export const MEASURE_TEST_CASES: {
               type: ExpressionType.COLUMN_REF,
               alias: '',
               query_location: 11,
-              column_names: ['p50_upstream_service_time'],
+              column_names: ['column1'],
             },
           ],
           filter: null,
@@ -332,6 +369,1577 @@ export const MEASURE_TEST_CASES: {
     },
     validFunctions: new Set(['max']),
     validScalarFunctions: new Set(['/']),
+    expected: true,
+  },
+  {
+    description: 'node type CASE_EXPR',
+    query: 'CASE WHEN COUNT(id) > 1 THEN AVG(mtbf_hours) ELSE null END',
+    node: {
+      class: ExpressionClass.CASE,
+      type: ExpressionType.CASE_EXPR,
+      alias: '',
+      query_location: 7,
+      case_checks: [
+        {
+          when_expr: {
+            class: ExpressionClass.COMPARISON,
+            type: ExpressionType.COMPARE_GREATERTHAN,
+            alias: '',
+            query_location: 27,
+            left: {
+              class: ExpressionClass.FUNCTION,
+              type: ExpressionType.FUNCTION,
+              alias: '',
+              query_location: 17,
+              function_name: 'count',
+              schema: '',
+              children: [
+                {
+                  class: ExpressionClass.COLUMN_REF,
+                  type: ExpressionType.COLUMN_REF,
+                  alias: '',
+                  query_location: 23,
+                  column_names: ['id'],
+                },
+              ],
+              filter: null,
+              order_bys: {
+                type: ResultModifierType.ORDER_MODIFIER,
+                orders: [],
+              },
+              distinct: false,
+              is_operator: false,
+              export_state: false,
+              catalog: '',
+            },
+            right: {
+              class: ExpressionClass.CONSTANT,
+              type: ExpressionType.VALUE_CONSTANT,
+              alias: '',
+              query_location: 29,
+              value: {
+                type: {
+                  id: 'INTEGER',
+                  type_info: null,
+                },
+                is_null: false,
+                value: 1,
+              },
+            },
+          },
+          then_expr: {
+            class: ExpressionClass.FUNCTION,
+            type: ExpressionType.FUNCTION,
+            alias: '',
+            query_location: 36,
+            function_name: 'avg',
+            schema: '',
+            children: [
+              {
+                class: ExpressionClass.COLUMN_REF,
+                type: ExpressionType.COLUMN_REF,
+                alias: '',
+                query_location: 40,
+                column_names: ['mtbf_hours'],
+              },
+            ],
+            filter: null,
+            order_bys: {
+              type: ResultModifierType.ORDER_MODIFIER,
+              orders: [],
+            },
+            distinct: false,
+            is_operator: false,
+            export_state: false,
+            catalog: '',
+          },
+        },
+      ],
+      else_expr: {
+        class: ExpressionClass.CONSTANT,
+        type: ExpressionType.VALUE_CONSTANT,
+        alias: '',
+        query_location: 57,
+        value: {
+          type: {
+            id: 'NULL',
+            type_info: null,
+          },
+          is_null: true,
+        },
+      },
+    },
+    validFunctions: new Set(['count', 'avg']),
+    validScalarFunctions: EMPTY_VALID_FUNCTIONS,
+    expected: true,
+  },
+  {
+    description:
+      'node type FUNCTION with aggregation and case statement within',
+    node: {
+      class: ExpressionClass.FUNCTION,
+      type: ExpressionType.FUNCTION,
+      alias: '',
+      query_location: 7,
+      function_name: 'max',
+      schema: '',
+      children: [
+        {
+          class: 'CASE',
+          type: 'CASE_EXPR',
+          alias: '',
+          query_location: 11,
+          case_checks: [
+            {
+              when_expr: {
+                class: ExpressionClass.COMPARISON,
+                type: 'COMPARE_EQUAL',
+                alias: '',
+                query_location: 43,
+                left: {
+                  class: ExpressionClass.FUNCTION,
+                  type: ExpressionType.FUNCTION,
+                  alias: '',
+                  query_location: 32,
+                  function_name: '->>',
+                  schema: '',
+                  children: [
+                    {
+                      class: ExpressionClass.COLUMN_REF,
+                      type: ExpressionType.COLUMN_REF,
+                      alias: '',
+                      query_location: 21,
+                      column_names: ['stage_json'],
+                    },
+                    {
+                      class: ExpressionClass.CONSTANT,
+                      type: ExpressionType.VALUE_CONSTANT,
+                      alias: '',
+                      query_location: 36,
+                      value: {
+                        type: {
+                          id: 'VARCHAR',
+                          type_info: null,
+                        },
+                        is_null: false,
+                        value: 'name',
+                      },
+                    },
+                  ],
+                  filter: null,
+                  order_bys: {
+                    type: 'ORDER_MODIFIER',
+                    orders: [],
+                  },
+                  distinct: false,
+                  is_operator: true,
+                  export_state: false,
+                  catalog: '',
+                },
+                right: {
+                  class: ExpressionClass.CONSTANT,
+                  type: ExpressionType.VALUE_CONSTANT,
+                  alias: '',
+                  query_location: 45,
+                  value: {
+                    type: {
+                      id: 'VARCHAR',
+                      type_info: null,
+                    },
+                    is_null: false,
+                    value: 'Tech Doc Inprogress',
+                  },
+                },
+              },
+              then_expr: {
+                class: ExpressionClass.COLUMN_REF,
+                type: ExpressionType.COLUMN_REF,
+                alias: '',
+                query_location: 72,
+                column_names: ['modified_date'],
+              },
+            },
+          ],
+          else_expr: {
+            class: ExpressionClass.CONSTANT,
+            type: ExpressionType.VALUE_CONSTANT,
+            alias: '',
+            query_location: 91,
+            value: {
+              type: {
+                id: 'NULL',
+                type_info: null,
+              },
+              is_null: true,
+            },
+          },
+        },
+      ],
+      filter: null,
+      order_bys: {
+        type: 'ORDER_MODIFIER',
+        orders: [],
+      },
+      distinct: false,
+      is_operator: false,
+      export_state: false,
+      catalog: '',
+    },
+    validFunctions: new Set(['max']),
+    validScalarFunctions: EMPTY_VALID_FUNCTIONS,
+    expected: true,
+    query:
+      'max(CASE WHEN stage_json->>name = "Tech" THEN modified_date ELSE NULL END)',
+  },
+  {
+    description:
+      'node type FUNCTION two children of aggregation and operator operation on them',
+    node: {
+      class: ExpressionClass.FUNCTION,
+      type: ExpressionType.FUNCTION,
+      alias: '',
+      query_location: 49,
+      function_name: '/',
+      schema: '',
+      children: [
+        {
+          class: ExpressionClass.FUNCTION,
+          type: ExpressionType.FUNCTION,
+          alias: '',
+          query_location: 7,
+          function_name: 'sum',
+          schema: '',
+          children: [
+            {
+              class: ExpressionClass.FUNCTION,
+              type: ExpressionType.FUNCTION,
+              alias: '',
+              query_location: 32,
+              function_name: '*',
+              schema: '',
+              children: [
+                {
+                  class: ExpressionClass.COLUMN_REF,
+                  type: ExpressionType.COLUMN_REF,
+                  alias: '',
+                  query_location: 11,
+                  column_names: ['mean_reciprocal_rank'],
+                },
+                {
+                  class: ExpressionClass.COLUMN_REF,
+                  type: ExpressionType.COLUMN_REF,
+                  alias: '',
+                  query_location: 34,
+                  column_names: ['total_queries'],
+                },
+              ],
+              filter: null,
+              order_bys: {
+                type: 'ORDER_MODIFIER',
+                orders: [],
+              },
+              distinct: false,
+              is_operator: true,
+              export_state: false,
+              catalog: '',
+            },
+          ],
+          filter: null,
+          order_bys: {
+            type: 'ORDER_MODIFIER',
+            orders: [],
+          },
+          distinct: false,
+          is_operator: false,
+          export_state: false,
+          catalog: '',
+        },
+        {
+          class: ExpressionClass.FUNCTION,
+          type: ExpressionType.FUNCTION,
+          alias: '',
+          query_location: 51,
+          function_name: 'sum',
+          schema: '',
+          children: [
+            {
+              class: ExpressionClass.COLUMN_REF,
+              type: ExpressionType.COLUMN_REF,
+              alias: '',
+              query_location: 55,
+              column_names: ['total_queries'],
+            },
+          ],
+          filter: null,
+          order_bys: {
+            type: 'ORDER_MODIFIER',
+            orders: [],
+          },
+          distinct: false,
+          is_operator: false,
+          export_state: false,
+          catalog: '',
+        },
+      ],
+      filter: null,
+      order_bys: {
+        type: 'ORDER_MODIFIER',
+        orders: [],
+      },
+      distinct: false,
+      is_operator: true,
+      export_state: false,
+      catalog: '',
+    },
+    validFunctions: new Set(['sum']),
+    validScalarFunctions: new Set(['/', '*']),
+    expected: true,
+    query: 'sum(mean_reciprocal_rank * total_queries) / sum(total_queries)',
+  },
+  {
+    description: 'node type CAST',
+    query:
+      "CAST(COUNT(DISTINCT(id)) AS FLOAT) / NULLIF(DATEDIFF('day', MIN(created_date), MAX(created_date)) / 7 + 1, 0)",
+    node: {
+      class: ExpressionClass.FUNCTION,
+      type: ExpressionType.FUNCTION,
+      alias: '',
+      query_location: 42,
+      function_name: '/',
+      schema: '',
+      children: [
+        {
+          class: 'CAST',
+          type: 'OPERATOR_CAST',
+          alias: '',
+          query_location: 7,
+          child: {
+            class: ExpressionClass.FUNCTION,
+            type: ExpressionType.FUNCTION,
+            alias: '',
+            query_location: 12,
+            function_name: 'count',
+            schema: '',
+            children: [
+              {
+                class: ExpressionClass.COLUMN_REF,
+                type: ExpressionType.COLUMN_REF,
+                alias: '',
+                query_location: 27,
+                column_names: ['id'],
+              },
+            ],
+            filter: null,
+            order_bys: {
+              type: 'ORDER_MODIFIER',
+              orders: [],
+            },
+            distinct: true,
+            is_operator: false,
+            export_state: false,
+            catalog: '',
+          },
+          cast_type: {
+            id: 'FLOAT',
+            type_info: null,
+          },
+          try_cast: false,
+        },
+        {
+          class: ExpressionClass.FUNCTION,
+          type: ExpressionType.FUNCTION,
+          alias: '',
+          query_location: 44,
+          function_name: 'nullif',
+          schema: '',
+          children: [
+            {
+              class: ExpressionClass.FUNCTION,
+              type: ExpressionType.FUNCTION,
+              alias: '',
+              query_location: 109,
+              function_name: '+',
+              schema: '',
+              children: [
+                {
+                  class: ExpressionClass.FUNCTION,
+                  type: ExpressionType.FUNCTION,
+                  alias: '',
+                  query_location: 105,
+                  function_name: '/',
+                  schema: '',
+                  children: [
+                    {
+                      class: ExpressionClass.FUNCTION,
+                      type: ExpressionType.FUNCTION,
+                      alias: '',
+                      query_location: 51,
+                      function_name: 'datediff',
+                      schema: '',
+                      children: [
+                        {
+                          class: ExpressionClass.CONSTANT,
+                          type: ExpressionType.VALUE_CONSTANT,
+                          alias: '',
+                          query_location: 60,
+                          value: {
+                            type: {
+                              id: 'VARCHAR',
+                              type_info: null,
+                            },
+                            is_null: false,
+                            value: 'day',
+                          },
+                        },
+                        {
+                          class: ExpressionClass.FUNCTION,
+                          type: ExpressionType.FUNCTION,
+                          alias: '',
+                          query_location: 67,
+                          function_name: 'min',
+                          schema: '',
+                          children: [
+                            {
+                              class: ExpressionClass.COLUMN_REF,
+                              type: ExpressionType.COLUMN_REF,
+                              alias: '',
+                              query_location: 71,
+                              column_names: ['created_date'],
+                            },
+                          ],
+                          filter: null,
+                          order_bys: {
+                            type: 'ORDER_MODIFIER',
+                            orders: [],
+                          },
+                          distinct: false,
+                          is_operator: false,
+                          export_state: false,
+                          catalog: '',
+                        },
+                        {
+                          class: ExpressionClass.FUNCTION,
+                          type: ExpressionType.FUNCTION,
+                          alias: '',
+                          query_location: 86,
+                          function_name: 'max',
+                          schema: '',
+                          children: [
+                            {
+                              class: ExpressionClass.COLUMN_REF,
+                              type: ExpressionType.COLUMN_REF,
+                              alias: '',
+                              query_location: 90,
+                              column_names: ['created_date'],
+                            },
+                          ],
+                          filter: null,
+                          order_bys: {
+                            type: 'ORDER_MODIFIER',
+                            orders: [],
+                          },
+                          distinct: false,
+                          is_operator: false,
+                          export_state: false,
+                          catalog: '',
+                        },
+                      ],
+                      filter: null,
+                      order_bys: {
+                        type: 'ORDER_MODIFIER',
+                        orders: [],
+                      },
+                      distinct: false,
+                      is_operator: false,
+                      export_state: false,
+                      catalog: '',
+                    },
+                    {
+                      class: ExpressionClass.CONSTANT,
+                      type: ExpressionType.VALUE_CONSTANT,
+                      alias: '',
+                      query_location: 107,
+                      value: {
+                        type: {
+                          id: 'INTEGER',
+                          type_info: null,
+                        },
+                        is_null: false,
+                        value: 7,
+                      },
+                    },
+                  ],
+                  filter: null,
+                  order_bys: {
+                    type: 'ORDER_MODIFIER',
+                    orders: [],
+                  },
+                  distinct: false,
+                  is_operator: true,
+                  export_state: false,
+                  catalog: '',
+                },
+                {
+                  class: ExpressionClass.CONSTANT,
+                  type: ExpressionType.VALUE_CONSTANT,
+                  alias: '',
+                  query_location: 111,
+                  value: {
+                    type: {
+                      id: 'INTEGER',
+                      type_info: null,
+                    },
+                    is_null: false,
+                    value: 1,
+                  },
+                },
+              ],
+              filter: null,
+              order_bys: {
+                type: 'ORDER_MODIFIER',
+                orders: [],
+              },
+              distinct: false,
+              is_operator: true,
+              export_state: false,
+              catalog: '',
+            },
+            {
+              class: ExpressionClass.CONSTANT,
+              type: ExpressionType.VALUE_CONSTANT,
+              alias: '',
+              query_location: 114,
+              value: {
+                type: {
+                  id: 'INTEGER',
+                  type_info: null,
+                },
+                is_null: false,
+                value: 0,
+              },
+            },
+          ],
+          filter: null,
+          order_bys: {
+            type: 'ORDER_MODIFIER',
+            orders: [],
+          },
+          distinct: false,
+          is_operator: false,
+          export_state: false,
+          catalog: '',
+        },
+      ],
+      filter: null,
+      order_bys: {
+        type: 'ORDER_MODIFIER',
+        orders: [],
+      },
+      distinct: false,
+      is_operator: true,
+      export_state: false,
+      catalog: '',
+    },
+    validFunctions: new Set(['count', 'datediff', 'min', 'max']),
+    validScalarFunctions: new Set(['/', '*']),
+    expected: true,
+  },
+  {
+    description: 'node type COALESCE',
+    query: 'COALESCE(SUM(amount) FILTER(direction = "Income"), 0)',
+    node: {
+      class: ExpressionClass.OPERATOR,
+      type: ExpressionType.OPERATOR_COALESCE,
+      alias: '',
+      query_location: 18446744073709552000,
+      children: [
+        {
+          class: ExpressionClass.FUNCTION,
+          type: ExpressionType.FUNCTION,
+          alias: '',
+          query_location: 16,
+          function_name: 'sum',
+          schema: '',
+          children: [
+            {
+              class: ExpressionClass.COLUMN_REF,
+              type: ExpressionType.COLUMN_REF,
+              alias: '',
+              query_location: 20,
+              column_names: ['amount'],
+            },
+          ],
+          filter: {
+            class: ExpressionClass.COMPARISON,
+            type: ExpressionType.COMPARE_EQUAL,
+            alias: '',
+            query_location: 45,
+            left: {
+              class: ExpressionClass.COLUMN_REF,
+              type: ExpressionType.COLUMN_REF,
+              alias: '',
+              query_location: 35,
+              column_names: ['direction'],
+            },
+            right: {
+              class: ExpressionClass.COLUMN_REF,
+              type: ExpressionType.COLUMN_REF,
+              alias: '',
+              query_location: 47,
+              column_names: ['Income'],
+            },
+          },
+          order_bys: {
+            type: 'ORDER_MODIFIER',
+            orders: [],
+          },
+          distinct: false,
+          is_operator: false,
+          export_state: false,
+          catalog: '',
+        },
+        {
+          class: ExpressionClass.CONSTANT,
+          type: ExpressionType.VALUE_CONSTANT,
+          alias: '',
+          query_location: 58,
+          value: {
+            type: {
+              id: 'INTEGER',
+              type_info: null,
+            },
+            is_null: false,
+            value: 0,
+          },
+        },
+      ],
+    },
+    validFunctions: new Set(['sum']),
+    validScalarFunctions: new Set(['/']),
+    expected: true,
+  },
+  {
+    description: 'node type WINDOW_AGGREGATE',
+    query:
+      'AVG(COUNT(column1)) OVER (ORDER BY (MEERKAT).record_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)',
+    node: {
+      class: ExpressionClass.WINDOW,
+      type: ExpressionType.WINDOW_AGGREGATE,
+      alias: '',
+      query_location: 7,
+      function_name: 'avg',
+      schema: '',
+      catalog: '',
+      children: [
+        {
+          class: ExpressionClass.FUNCTION,
+          type: ExpressionType.FUNCTION,
+          alias: '',
+          query_location: 11,
+          function_name: 'count',
+          schema: '',
+          children: [
+            {
+              class: ExpressionClass.COLUMN_REF,
+              type: ExpressionType.COLUMN_REF,
+              alias: '',
+              query_location: 17,
+              column_names: ['number_deployments'],
+            },
+          ],
+          filter: null,
+          order_bys: {
+            type: 'ORDER_MODIFIER',
+            orders: [],
+          },
+          distinct: false,
+          is_operator: false,
+          export_state: false,
+          catalog: '',
+        },
+      ],
+      partitions: [],
+      orders: [
+        {
+          type: 'ORDER_DEFAULT',
+          null_order: 'ORDER_DEFAULT',
+          expression: {
+            class: 'OPERATOR',
+            type: 'STRUCT_EXTRACT',
+            alias: '',
+            query_location: 18446744073709552000,
+            children: [
+              {
+                class: ExpressionClass.COLUMN_REF,
+                type: ExpressionType.COLUMN_REF,
+                alias: '',
+                query_location: 54,
+                column_names: ['MEERKAT'],
+              },
+              {
+                class: ExpressionClass.CONSTANT,
+                type: ExpressionType.VALUE_CONSTANT,
+                alias: '',
+                query_location: 18446744073709552000,
+                value: {
+                  type: {
+                    id: 'VARCHAR',
+                    type_info: null,
+                  },
+                  is_null: false,
+                  value: 'record_date',
+                },
+              },
+            ],
+          },
+        },
+      ],
+      start: 'EXPR_PRECEDING_ROWS',
+      end: 'CURRENT_ROW_ROWS',
+      start_expr: {
+        class: ExpressionClass.CONSTANT,
+        type: ExpressionType.VALUE_CONSTANT,
+        alias: '',
+        query_location: 88,
+        value: {
+          type: {
+            id: 'INTEGER',
+            type_info: null,
+          },
+          is_null: false,
+          value: 6,
+        },
+      },
+      end_expr: null,
+      offset_expr: null,
+      default_expr: null,
+      ignore_nulls: false,
+      filter_expr: null,
+      exclude_clause: 'NO_OTHER',
+      distinct: false,
+    },
+    validFunctions: new Set(['avg', 'count']),
+    validScalarFunctions: new Set(['/']),
+    expected: true,
+  },
+  {
+    description: 'node type SUBQUERY',
+    query:
+      "(SELECT CASE WHEN COUNT(DISTINCT CASE WHEN sla_stage = ''breached'' THEN id END) + COUNT(DISTINCT CASE WHEN sla_stage = ''completed'' AND ARRAY_LENGTH(first_resp_time_arr) > 0 AND (total_first_resp_breaches_ever = 0 OR total_first_resp_breaches_ever IS NULL) THEN id END) > 0 THEN 100 - (COUNT(DISTINCT CASE WHEN sla_stage = ''breached'' THEN id END) * 100.0 / (COUNT(DISTINCT CASE WHEN sla_stage = ''breached'' THEN id END) + COUNT(DISTINCT CASE WHEN sla_stage = ''completed'' AND ARRAY_LENGTH(first_resp_time_arr) > 0 AND (total_first_resp_breaches_ever = 0 OR total_first_resp_breaches_ever IS NULL) THEN id END))) ELSE NULL END AS result)",
+    node: {
+      class: ExpressionClass.SUBQUERY,
+      type: ExpressionType.SUBQUERY,
+      alias: '',
+      query_location: 7,
+      subquery_type: 'SCALAR',
+      subquery: {
+        node: {
+          type: 'SELECT_NODE',
+          modifiers: [],
+          cte_map: {
+            map: [],
+          },
+          select_list: [
+            {
+              class: ExpressionClass.CASE,
+              type: ExpressionType.CASE_EXPR,
+              alias: 'result',
+              query_location: 15,
+              case_checks: [
+                {
+                  when_expr: {
+                    class: ExpressionClass.COMPARISON,
+                    type: ExpressionType.COMPARE_GREATERTHAN,
+                    alias: '',
+                    query_location: 275,
+                    left: {
+                      class: ExpressionClass.FUNCTION,
+                      type: ExpressionType.FUNCTION,
+                      alias: '',
+                      query_location: 86,
+                      function_name: '+',
+                      schema: '',
+                      children: [
+                        {
+                          class: ExpressionClass.FUNCTION,
+                          type: ExpressionType.FUNCTION,
+                          alias: '',
+                          query_location: 25,
+                          function_name: 'count',
+                          schema: '',
+                          children: [
+                            {
+                              class: ExpressionClass.CASE,
+                              type: ExpressionType.CASE_EXPR,
+                              alias: '',
+                              query_location: 40,
+                              case_checks: [
+                                {
+                                  when_expr: {
+                                    class: ExpressionClass.COMPARISON,
+                                    type: ExpressionType.COMPARE_EQUAL,
+                                    alias: '',
+                                    query_location: 60,
+                                    left: {
+                                      class: ExpressionClass.COLUMN_REF,
+                                      type: ExpressionType.COLUMN_REF,
+                                      alias: '',
+                                      query_location: 50,
+                                      column_names: ['sla_stage'],
+                                    },
+                                    right: {
+                                      class: ExpressionClass.CONSTANT,
+                                      type: ExpressionType.VALUE_CONSTANT,
+                                      alias: '',
+                                      query_location: 62,
+                                      value: {
+                                        type: {
+                                          id: 'VARCHAR',
+                                          type_info: null,
+                                        },
+                                        is_null: false,
+                                        value: 'breached',
+                                      },
+                                    },
+                                  },
+                                  then_expr: {
+                                    class: ExpressionClass.COLUMN_REF,
+                                    type: ExpressionType.COLUMN_REF,
+                                    alias: '',
+                                    query_location: 78,
+                                    column_names: ['id'],
+                                  },
+                                },
+                              ],
+                              else_expr: {
+                                class: ExpressionClass.CONSTANT,
+                                type: ExpressionType.VALUE_CONSTANT,
+                                alias: '',
+                                query_location: 18446744073709552000,
+                                value: {
+                                  type: {
+                                    id: 'NULL',
+                                    type_info: null,
+                                  },
+                                  is_null: true,
+                                },
+                              },
+                            },
+                          ],
+                          filter: null,
+                          order_bys: {
+                            type: 'ORDER_MODIFIER',
+                            orders: [],
+                          },
+                          distinct: true,
+                          is_operator: false,
+                          export_state: false,
+                          catalog: '',
+                        },
+                        {
+                          class: ExpressionClass.FUNCTION,
+                          type: ExpressionType.FUNCTION,
+                          alias: '',
+                          query_location: 88,
+                          function_name: 'count',
+                          schema: '',
+                          children: [
+                            {
+                              class: ExpressionClass.CASE,
+                              type: ExpressionType.CASE_EXPR,
+                              alias: '',
+                              query_location: 103,
+                              case_checks: [
+                                {
+                                  when_expr: {
+                                    class: ExpressionClass.CONJUNCTION,
+                                    type: ExpressionType.CONJUNCTION_AND,
+                                    alias: '',
+                                    query_location: 137,
+                                    children: [
+                                      {
+                                        class: ExpressionClass.COMPARISON,
+                                        type: ExpressionType.COMPARE_EQUAL,
+                                        alias: '',
+                                        query_location: 123,
+                                        left: {
+                                          class: ExpressionClass.COLUMN_REF,
+                                          type: ExpressionType.COLUMN_REF,
+                                          alias: '',
+                                          query_location: 113,
+                                          column_names: ['sla_stage'],
+                                        },
+                                        right: {
+                                          class: ExpressionClass.CONSTANT,
+                                          type: ExpressionType.VALUE_CONSTANT,
+                                          alias: '',
+                                          query_location: 125,
+                                          value: {
+                                            type: {
+                                              id: 'VARCHAR',
+                                              type_info: null,
+                                            },
+                                            is_null: false,
+                                            value: 'completed',
+                                          },
+                                        },
+                                      },
+                                      {
+                                        class: ExpressionClass.COMPARISON,
+                                        type: 'COMPARE_GREATERTHAN',
+                                        alias: '',
+                                        query_location: 175,
+                                        left: {
+                                          class: 'FUNCTION',
+                                          type: 'FUNCTION',
+                                          alias: '',
+                                          query_location: 141,
+                                          function_name: 'array_length',
+                                          schema: '',
+                                          children: [
+                                            {
+                                              class: ExpressionClass.COLUMN_REF,
+                                              type: ExpressionType.COLUMN_REF,
+                                              alias: '',
+                                              query_location: 154,
+                                              column_names: [
+                                                'first_resp_time_arr',
+                                              ],
+                                            },
+                                          ],
+                                          filter: null,
+                                          order_bys: {
+                                            type: 'ORDER_MODIFIER',
+                                            orders: [],
+                                          },
+                                          distinct: false,
+                                          is_operator: false,
+                                          export_state: false,
+                                          catalog: '',
+                                        },
+                                        right: {
+                                          class: ExpressionClass.CONSTANT,
+                                          type: ExpressionType.VALUE_CONSTANT,
+                                          alias: '',
+                                          query_location: 177,
+                                          value: {
+                                            type: {
+                                              id: 'INTEGER',
+                                              type_info: null,
+                                            },
+                                            is_null: false,
+                                            value: 0,
+                                          },
+                                        },
+                                      },
+                                      {
+                                        class: 'CONJUNCTION',
+                                        type: 'CONJUNCTION_OR',
+                                        alias: '',
+                                        query_location: 219,
+                                        children: [
+                                          {
+                                            class: ExpressionClass.COMPARISON,
+                                            type: 'COMPARE_EQUAL',
+                                            alias: '',
+                                            query_location: 215,
+                                            left: {
+                                              class: ExpressionClass.COLUMN_REF,
+                                              type: ExpressionType.COLUMN_REF,
+                                              alias: '',
+                                              query_location: 184,
+                                              column_names: [
+                                                'total_first_resp_breaches_ever',
+                                              ],
+                                            },
+                                            right: {
+                                              class: ExpressionClass.CONSTANT,
+                                              type: ExpressionType.VALUE_CONSTANT,
+                                              alias: '',
+                                              query_location: 217,
+                                              value: {
+                                                type: {
+                                                  id: 'INTEGER',
+                                                  type_info: null,
+                                                },
+                                                is_null: false,
+                                                value: 0,
+                                              },
+                                            },
+                                          },
+                                          {
+                                            class: 'OPERATOR',
+                                            type: 'OPERATOR_IS_NULL',
+                                            alias: '',
+                                            query_location: 253,
+                                            children: [
+                                              {
+                                                class:
+                                                  ExpressionClass.COLUMN_REF,
+                                                type: ExpressionType.COLUMN_REF,
+                                                alias: '',
+                                                query_location: 222,
+                                                column_names: [
+                                                  'total_first_resp_breaches_ever',
+                                                ],
+                                              },
+                                            ],
+                                          },
+                                        ],
+                                      },
+                                    ],
+                                  },
+                                  then_expr: {
+                                    class: ExpressionClass.COLUMN_REF,
+                                    type: ExpressionType.COLUMN_REF,
+                                    alias: '',
+                                    query_location: 267,
+                                    column_names: ['id'],
+                                  },
+                                },
+                              ],
+                              else_expr: {
+                                class: ExpressionClass.CONSTANT,
+                                type: ExpressionType.VALUE_CONSTANT,
+                                alias: '',
+                                query_location: 18446744073709552000,
+                                value: {
+                                  type: {
+                                    id: 'NULL',
+                                    type_info: null,
+                                  },
+                                  is_null: true,
+                                },
+                              },
+                            },
+                          ],
+                          filter: null,
+                          order_bys: {
+                            type: 'ORDER_MODIFIER',
+                            orders: [],
+                          },
+                          distinct: true,
+                          is_operator: false,
+                          export_state: false,
+                          catalog: '',
+                        },
+                      ],
+                      filter: null,
+                      order_bys: {
+                        type: 'ORDER_MODIFIER',
+                        orders: [],
+                      },
+                      distinct: false,
+                      is_operator: true,
+                      export_state: false,
+                      catalog: '',
+                    },
+                    right: {
+                      class: ExpressionClass.CONSTANT,
+                      type: ExpressionType.VALUE_CONSTANT,
+                      alias: '',
+                      query_location: 277,
+                      value: {
+                        type: {
+                          id: 'INTEGER',
+                          type_info: null,
+                        },
+                        is_null: false,
+                        value: 0,
+                      },
+                    },
+                  },
+                  then_expr: {
+                    class: ExpressionClass.FUNCTION,
+                    type: ExpressionType.FUNCTION,
+                    alias: '',
+                    query_location: 288,
+                    function_name: '-',
+                    schema: '',
+                    children: [
+                      {
+                        class: ExpressionClass.CONSTANT,
+                        type: ExpressionType.VALUE_CONSTANT,
+                        alias: '',
+                        query_location: 284,
+                        value: {
+                          type: {
+                            id: 'INTEGER',
+                            type_info: null,
+                          },
+                          is_null: false,
+                          value: 100,
+                        },
+                      },
+                      {
+                        class: ExpressionClass.FUNCTION,
+                        type: ExpressionType.FUNCTION,
+                        alias: '',
+                        query_location: 360,
+                        function_name: '/',
+                        schema: '',
+                        children: [
+                          {
+                            class: ExpressionClass.FUNCTION,
+                            type: ExpressionType.FUNCTION,
+                            alias: '',
+                            query_location: 352,
+                            function_name: '*',
+                            schema: '',
+                            children: [
+                              {
+                                class: ExpressionClass.FUNCTION,
+                                type: ExpressionType.FUNCTION,
+                                alias: '',
+                                query_location: 291,
+                                function_name: 'count',
+                                schema: '',
+                                children: [
+                                  {
+                                    class: ExpressionClass.CASE,
+                                    type: ExpressionType.CASE_EXPR,
+                                    alias: '',
+                                    query_location: 306,
+                                    case_checks: [
+                                      {
+                                        when_expr: {
+                                          class: ExpressionClass.COMPARISON,
+                                          type: ExpressionType.COMPARE_EQUAL,
+                                          alias: '',
+                                          query_location: 326,
+                                          left: {
+                                            class: ExpressionClass.COLUMN_REF,
+                                            type: ExpressionType.COLUMN_REF,
+                                            alias: '',
+                                            query_location: 316,
+                                            column_names: ['sla_stage'],
+                                          },
+                                          right: {
+                                            class: ExpressionClass.CONSTANT,
+                                            type: ExpressionType.VALUE_CONSTANT,
+                                            alias: '',
+                                            query_location: 328,
+                                            value: {
+                                              type: {
+                                                id: 'VARCHAR',
+                                                type_info: null,
+                                              },
+                                              is_null: false,
+                                              value: 'breached',
+                                            },
+                                          },
+                                        },
+                                        then_expr: {
+                                          class: ExpressionClass.COLUMN_REF,
+                                          type: ExpressionType.COLUMN_REF,
+                                          alias: '',
+                                          query_location: 344,
+                                          column_names: ['id'],
+                                        },
+                                      },
+                                    ],
+                                    else_expr: {
+                                      class: ExpressionClass.CONSTANT,
+                                      type: ExpressionType.VALUE_CONSTANT,
+                                      alias: '',
+                                      query_location: 18446744073709552000,
+                                      value: {
+                                        type: {
+                                          id: 'NULL',
+                                          type_info: null,
+                                        },
+                                        is_null: true,
+                                      },
+                                    },
+                                  },
+                                ],
+                                filter: null,
+                                order_bys: {
+                                  type: 'ORDER_MODIFIER',
+                                  orders: [],
+                                },
+                                distinct: true,
+                                is_operator: false,
+                                export_state: false,
+                                catalog: '',
+                              },
+                              {
+                                class: ExpressionClass.CONSTANT,
+                                type: ExpressionType.VALUE_CONSTANT,
+                                alias: '',
+                                query_location: 354,
+                                value: {
+                                  type: {
+                                    id: 'DECIMAL',
+                                    type_info: {
+                                      type: 'DECIMAL_TYPE_INFO',
+                                      alias: '',
+                                      modifiers: [],
+                                      width: 4,
+                                      scale: 1,
+                                    },
+                                  },
+                                  is_null: false,
+                                  value: 1000,
+                                },
+                              },
+                            ],
+                            filter: null,
+                            order_bys: {
+                              type: 'ORDER_MODIFIER',
+                              orders: [],
+                            },
+                            distinct: false,
+                            is_operator: true,
+                            export_state: false,
+                            catalog: '',
+                          },
+                          {
+                            class: 'FUNCTION',
+                            type: 'FUNCTION',
+                            alias: '',
+                            query_location: 424,
+                            function_name: '+',
+                            schema: '',
+                            children: [
+                              {
+                                class: 'FUNCTION',
+                                type: 'FUNCTION',
+                                alias: '',
+                                query_location: 363,
+                                function_name: 'count',
+                                schema: '',
+                                children: [
+                                  {
+                                    class: 'CASE',
+                                    type: 'CASE_EXPR',
+                                    alias: '',
+                                    query_location: 378,
+                                    case_checks: [
+                                      {
+                                        when_expr: {
+                                          class: ExpressionClass.COMPARISON,
+                                          type: 'COMPARE_EQUAL',
+                                          alias: '',
+                                          query_location: 398,
+                                          left: {
+                                            class: ExpressionClass.COLUMN_REF,
+                                            type: ExpressionType.COLUMN_REF,
+                                            alias: '',
+                                            query_location: 388,
+                                            column_names: ['sla_stage'],
+                                          },
+                                          right: {
+                                            class: ExpressionClass.CONSTANT,
+                                            type: ExpressionType.VALUE_CONSTANT,
+                                            alias: '',
+                                            query_location: 400,
+                                            value: {
+                                              type: {
+                                                id: 'VARCHAR',
+                                                type_info: null,
+                                              },
+                                              is_null: false,
+                                              value: 'breached',
+                                            },
+                                          },
+                                        },
+                                        then_expr: {
+                                          class: ExpressionClass.COLUMN_REF,
+                                          type: ExpressionType.COLUMN_REF,
+                                          alias: '',
+                                          query_location: 416,
+                                          column_names: ['id'],
+                                        },
+                                      },
+                                    ],
+                                    else_expr: {
+                                      class: ExpressionClass.CONSTANT,
+                                      type: ExpressionType.VALUE_CONSTANT,
+                                      alias: '',
+                                      query_location: 18446744073709552000,
+                                      value: {
+                                        type: {
+                                          id: 'NULL',
+                                          type_info: null,
+                                        },
+                                        is_null: true,
+                                      },
+                                    },
+                                  },
+                                ],
+                                filter: null,
+                                order_bys: {
+                                  type: 'ORDER_MODIFIER',
+                                  orders: [],
+                                },
+                                distinct: true,
+                                is_operator: false,
+                                export_state: false,
+                                catalog: '',
+                              },
+                              {
+                                class: 'FUNCTION',
+                                type: 'FUNCTION',
+                                alias: '',
+                                query_location: 426,
+                                function_name: 'count',
+                                schema: '',
+                                children: [
+                                  {
+                                    class: 'CASE',
+                                    type: 'CASE_EXPR',
+                                    alias: '',
+                                    query_location: 441,
+                                    case_checks: [
+                                      {
+                                        when_expr: {
+                                          class: 'CONJUNCTION',
+                                          type: 'CONJUNCTION_AND',
+                                          alias: '',
+                                          query_location: 475,
+                                          children: [
+                                            {
+                                              class: ExpressionClass.COMPARISON,
+                                              type: 'COMPARE_EQUAL',
+                                              alias: '',
+                                              query_location: 461,
+                                              left: {
+                                                class:
+                                                  ExpressionClass.COLUMN_REF,
+                                                type: ExpressionType.COLUMN_REF,
+                                                alias: '',
+                                                query_location: 451,
+                                                column_names: ['sla_stage'],
+                                              },
+                                              right: {
+                                                class: ExpressionClass.CONSTANT,
+                                                type: ExpressionType.VALUE_CONSTANT,
+                                                alias: '',
+                                                query_location: 463,
+                                                value: {
+                                                  type: {
+                                                    id: 'VARCHAR',
+                                                    type_info: null,
+                                                  },
+                                                  is_null: false,
+                                                  value: 'completed',
+                                                },
+                                              },
+                                            },
+                                            {
+                                              class: ExpressionClass.COMPARISON,
+                                              type: 'COMPARE_GREATERTHAN',
+                                              alias: '',
+                                              query_location: 513,
+                                              left: {
+                                                class: 'FUNCTION',
+                                                type: 'FUNCTION',
+                                                alias: '',
+                                                query_location: 479,
+                                                function_name: 'array_length',
+                                                schema: '',
+                                                children: [
+                                                  {
+                                                    class:
+                                                      ExpressionClass.COLUMN_REF,
+                                                    type: ExpressionType.COLUMN_REF,
+                                                    alias: '',
+                                                    query_location: 492,
+                                                    column_names: [
+                                                      'first_resp_time_arr',
+                                                    ],
+                                                  },
+                                                ],
+                                                filter: null,
+                                                order_bys: {
+                                                  type: 'ORDER_MODIFIER',
+                                                  orders: [],
+                                                },
+                                                distinct: false,
+                                                is_operator: false,
+                                                export_state: false,
+                                                catalog: '',
+                                              },
+                                              right: {
+                                                class: ExpressionClass.CONSTANT,
+                                                type: ExpressionType.VALUE_CONSTANT,
+                                                alias: '',
+                                                query_location: 515,
+                                                value: {
+                                                  type: {
+                                                    id: 'INTEGER',
+                                                    type_info: null,
+                                                  },
+                                                  is_null: false,
+                                                  value: 0,
+                                                },
+                                              },
+                                            },
+                                            {
+                                              class: 'CONJUNCTION',
+                                              type: 'CONJUNCTION_OR',
+                                              alias: '',
+                                              query_location: 557,
+                                              children: [
+                                                {
+                                                  class:
+                                                    ExpressionClass.COMPARISON,
+                                                  type: 'COMPARE_EQUAL',
+                                                  alias: '',
+                                                  query_location: 553,
+                                                  left: {
+                                                    class:
+                                                      ExpressionClass.COLUMN_REF,
+                                                    type: ExpressionType.COLUMN_REF,
+                                                    alias: '',
+                                                    query_location: 522,
+                                                    column_names: [
+                                                      'total_first_resp_breaches_ever',
+                                                    ],
+                                                  },
+                                                  right: {
+                                                    class:
+                                                      ExpressionClass.CONSTANT,
+                                                    type: ExpressionType.VALUE_CONSTANT,
+                                                    alias: '',
+                                                    query_location: 555,
+                                                    value: {
+                                                      type: {
+                                                        id: 'INTEGER',
+                                                        type_info: null,
+                                                      },
+                                                      is_null: false,
+                                                      value: 0,
+                                                    },
+                                                  },
+                                                },
+                                                {
+                                                  class: 'OPERATOR',
+                                                  type: 'OPERATOR_IS_NULL',
+                                                  alias: '',
+                                                  query_location: 591,
+                                                  children: [
+                                                    {
+                                                      class:
+                                                        ExpressionClass.COLUMN_REF,
+                                                      type: ExpressionType.COLUMN_REF,
+                                                      alias: '',
+                                                      query_location: 560,
+                                                      column_names: [
+                                                        'total_first_resp_breaches_ever',
+                                                      ],
+                                                    },
+                                                  ],
+                                                },
+                                              ],
+                                            },
+                                          ],
+                                        },
+                                        then_expr: {
+                                          class: ExpressionClass.COLUMN_REF,
+                                          type: ExpressionType.COLUMN_REF,
+                                          alias: '',
+                                          query_location: 605,
+                                          column_names: ['id'],
+                                        },
+                                      },
+                                    ],
+                                    else_expr: {
+                                      class: ExpressionClass.CONSTANT,
+                                      type: ExpressionType.VALUE_CONSTANT,
+                                      alias: '',
+                                      query_location: 18446744073709552000,
+                                      value: {
+                                        type: {
+                                          id: 'NULL',
+                                          type_info: null,
+                                        },
+                                        is_null: true,
+                                      },
+                                    },
+                                  },
+                                ],
+                                filter: null,
+                                order_bys: {
+                                  type: 'ORDER_MODIFIER',
+                                  orders: [],
+                                },
+                                distinct: true,
+                                is_operator: false,
+                                export_state: false,
+                                catalog: '',
+                              },
+                            ],
+                            filter: null,
+                            order_bys: {
+                              type: 'ORDER_MODIFIER',
+                              orders: [],
+                            },
+                            distinct: false,
+                            is_operator: true,
+                            export_state: false,
+                            catalog: '',
+                          },
+                        ],
+                        filter: null,
+                        order_bys: {
+                          type: 'ORDER_MODIFIER',
+                          orders: [],
+                        },
+                        distinct: false,
+                        is_operator: true,
+                        export_state: false,
+                        catalog: '',
+                      },
+                    ],
+                    filter: null,
+                    order_bys: {
+                      type: 'ORDER_MODIFIER',
+                      orders: [],
+                    },
+                    distinct: false,
+                    is_operator: true,
+                    export_state: false,
+                    catalog: '',
+                  },
+                },
+              ],
+              else_expr: {
+                class: ExpressionClass.CONSTANT,
+                type: ExpressionType.VALUE_CONSTANT,
+                alias: '',
+                query_location: 620,
+                value: {
+                  type: {
+                    id: 'NULL',
+                    type_info: null,
+                  },
+                  is_null: true,
+                },
+              },
+            },
+          ],
+          from_table: {
+            type: 'EMPTY',
+            alias: '',
+            sample: null,
+            query_location: 18446744073709552000,
+          },
+          where_clause: null,
+          group_expressions: [],
+          group_sets: [],
+          aggregate_handling: 'STANDARD_HANDLING',
+          having: null,
+          sample: null,
+          qualify: null,
+        },
+      },
+      child: null,
+      comparison_type: 'INVALID',
+    },
+    validFunctions: new Set(['count', 'count_star']),
+    validScalarFunctions: new Set(['-', '/', '*', '+']),
     expected: true,
   },
 ];

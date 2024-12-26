@@ -8,6 +8,7 @@ export interface BaseParsedExpression {
   class: ExpressionClass;
   type: ExpressionType;
   alias: string;
+  query_location: number;
 }
 
 export type ParsedExpression =
