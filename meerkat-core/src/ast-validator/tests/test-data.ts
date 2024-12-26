@@ -1131,7 +1131,6 @@ export const MEASURE_TEST_CASES: {
       type: ExpressionType.SUBQUERY,
       alias: '',
       query_location: 7,
-      subquery_type: 'SCALAR',
       subquery: {
         node: {
           type: 'SELECT_NODE',
