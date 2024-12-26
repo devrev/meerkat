@@ -210,7 +210,7 @@ export const validateMeasure = (
 
   const validFunctionSet = new Set(validFunctions);
   const validScalarFunctionSet = new Set(validScalarFunctions);
-  console.log(node);
+
   // Validate the expression
   if (
     validateExpressionNode({
