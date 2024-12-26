@@ -1,15 +1,69 @@
 import {
+  AggregateHandling,
   ExpressionClass,
   ExpressionType,
   ParsedExpression,
+  QueryNodeType,
   ResultModifierType,
+  TableReferenceType,
 } from '../../types/duckdb-serialization-types';
-import { validateExpressionNode } from '../dimension-validator';
+import {
+  validateDimension,
+  validateExpressionNode,
+} from '../dimension-validator';
 import {
   DIMENSION_TEST_CASES,
   EMPTY_VALID_FUNCTIONS,
   INVALID_NODE,
 } from './test-data';
+
+describe('validateDimension', () => {
+  it('should throw error if the statement if there is no statement', () => {
+    expect(() =>
+      validateDimension(
+        {
+          error: false,
+          statements: [],
+        },
+        []
+      )
+    ).toThrow('No statement found');
+  });
+
+  it('should return true if the statement is valid', () => {
+    expect(
+      validateDimension(
+        {
+          error: false,
+          statements: [
+            {
+              node: {
+                type: QueryNodeType.SELECT_NODE,
+                modifiers: [],
+                cte_map: {
+                  map: [],
+                },
+                select_list: [DIMENSION_TEST_CASES[0].node],
+                from_table: {
+                  type: TableReferenceType.BASE_TABLE,
+                  alias: '',
+                  sample: null,
+                },
+                group_expressions: [],
+                group_sets: [],
+                aggregate_handling: AggregateHandling.STANDARD_HANDLING,
+                having: null,
+                sample: null,
+                qualify: null,
+              },
+            },
+          ],
+        },
+        []
+      )
+    ).toBe(true);
+  });
+});
 
 describe('validateExpressionNode for dimension expressions', () => {
   for (const data of DIMENSION_TEST_CASES) {

@@ -23,12 +23,7 @@ export const INVALID_NODE: ParsedExpression = {
   query_location: 0,
 };
 
-export const DIMENSION_TEST_CASES: {
-  description: string;
-  node: ParsedExpression;
-  validFunctions: Set<string>;
-  expected: boolean;
-}[] = [
+export const DIMENSION_TEST_CASES = [
   {
     description: 'node type COLUMN_REF',
     node: {
@@ -217,15 +212,7 @@ export const DIMENSION_TEST_CASES: {
   },
 ];
 
-export const MEASURE_TEST_CASES: {
-  description: string;
-  query: string;
-  node: ParsedExpression;
-  validFunctions: Set<string>;
-  validScalarFunctions: Set<string>;
-  expected: boolean | 'error';
-  error?: string;
-}[] = [
+export const MEASURE_TEST_CASES = [
   {
     description: 'node type FUNCTION with count_star',
     query: 'count_star()',
@@ -1131,6 +1118,7 @@ export const MEASURE_TEST_CASES: {
       type: ExpressionType.SUBQUERY,
       alias: '',
       query_location: 7,
+
       subquery: {
         node: {
           type: 'SELECT_NODE',
