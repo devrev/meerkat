@@ -48,16 +48,13 @@ export const isFunctionExpression = (
   return node.type === ExpressionType.FUNCTION;
 };
 
-export const isWindowAggregateExpression = (
+export const isWindowExpression = (
   node: ParsedExpression
 ): node is WindowExpression => {
-  return node.type === ExpressionType.WINDOW_AGGREGATE;
-};
-
-export const isWindowLagExpression = (
-  node: ParsedExpression
-): node is WindowExpression => {
-  return node.type === ExpressionType.WINDOW_LAG;
+  return (
+    node.type === ExpressionType.WINDOW_AGGREGATE ||
+    node.type === ExpressionType.WINDOW_LAG
+  );
 };
 
 export const isSubqueryExpression = (

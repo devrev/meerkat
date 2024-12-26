@@ -7,6 +7,7 @@ import {
   isOperatorCast,
   isValueConstantExpression,
 } from '../types/utils';
+import { validateSelectNode } from './common';
 import { ParsedSerialization } from './types';
 
 /**
@@ -62,25 +63,12 @@ export const validateDimension = (
   parsedSerialization: ParsedSerialization,
   validFunctions: string[]
 ): boolean => {
-  const statement = parsedSerialization.statements?.[0];
-  if (!statement) {
-    throw new Error('No statement found');
-  }
-
-  if (statement.node.type !== 'SELECT_NODE') {
-    throw new Error('Statement must be a SELECT node');
-  }
-
-  const selectList = statement.node.select_list;
-  if (!selectList?.length || selectList.length !== 1) {
-    throw new Error('SELECT must contain exactly one expression');
-  }
+  const node = validateSelectNode(parsedSerialization);
 
   const validFunctionSet = new Set(validFunctions);
 
   // Validate the expression
-  const expression = selectList[0];
-  if (!validateExpressionNode(expression, validFunctionSet)) {
+  if (!validateExpressionNode(node, validFunctionSet)) {
     throw new Error('Expression contains invalid functions or operators');
   }
 

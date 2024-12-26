@@ -28,5 +28,14 @@ export const validateMeasureQuery = async ({
   const availableFunctions =
     validFunctions ?? (await getAvailableFunctions(connection, 'aggregate'));
 
-  return validateMeasure(parsedSerialization, availableFunctions);
+  const validScalarFunctions = await getAvailableFunctions(
+    connection,
+    'scalar'
+  );
+
+  return validateMeasure(
+    parsedSerialization,
+    availableFunctions,
+    validScalarFunctions
+  );
 };

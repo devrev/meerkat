@@ -1,8 +1,9 @@
-import { convertArrowTableToJSON } from '@devrev/meerkat-dbm';
-import { useState } from 'react';
-import { queries } from '../dimension';
+import { validateMeasureQuery } from '@devrev/meerkat-browser';
+import { useRef, useState } from 'react';
+import { InstanceManager } from '../dbm-context/instance-manager';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { queries } from './dimension';
 
 export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
@@ -19,89 +20,47 @@ export const QueryBenchmarking = () => {
   const [notMyAssumption, setNotMyAssumption] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
 
-  useClassicEffect(() => {
+  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
+
+  useClassicEffect(async () => {
     setTotalTime(0);
 
     setOutput([]);
     const promiseArr = [];
     const start = performance.now();
+
+    const instanceManager = instanceManagerRef.current;
+
+    const db = await instanceManager.getDB();
+    const con = await db.connect();
+
     for (let i = 0; i < queries.length; i++) {
       const eachQueryStart = performance.now();
-      const promiseObj = dbm
-        .queryWithTables({
-          query: `SELECT json_serialize_sql('${queries[i].sql_expression}')`,
-          tables: [{ name: 'taxi' }, { name: 'taxijson' }],
-        })
-        .then((results) => {
-          const responseData = convertArrowTableToJSON(results);
-
-          console.log(responseData, 'responseData');
-          try {
-            const data = JSON.parse(
-              responseData[0][
-                `json_serialize_sql('${queries[i].sql_expression}')`
-              ]
-            );
-            console.log(
-              'data',
-              data,
-              isValidFunction(data.statements[0].node.select_list[0])
-            );
-            if (data.error) {
-              console.log('errorda function_name', data, queries[i]);
-              setErrorCount((prev) => prev + 1);
-              setErrorQueries((prev) => [...prev, queries[i].sql_expression]);
-            } else if (
-              !data.error &&
-              data.statements[0].node.select_list.length === 1 &&
-              isValidFunction(data.statements[0].node.select_list[0])
-            ) {
-              // console.log(
-              //   ' .function_name PASS',
-
-              //   data.statements[0].node.select_list[0].function_name,
-              //   data,
-              //   queries[i]
-              // );
-              // setOutput((prev) => [
-              //   ...prev,
-              //   {
-              //     queryName: `Query ${i} ---->`,
-              //     time: responseData[0][
-              //       `json_serialize_sql('select ${queries[i].sql_expression}')`
-              //     ],
-              //   },
-              // ]);
-              setmyAssumption((prev) => prev + 1);
-            } else {
-              setNotMyAssumption((prev) => prev + 1);
-              console.log(
-                ' .function_name FAIL',
-                data.statements[0].node.select_list[0].function_name,
-
-                data,
-                queries[i]
-              );
-              // setOutput((prev) => [
-              //   ...prev,
-              //   {
-              //     queryName: `Query ${i} ---->`,
-              //     time: responseData[0][
-              //       `json_serialize_sql('select ${queries[i].sql_expression}')`
-              //     ],
-              //   },
-              // ]);
-            }
-          } catch (e) {
-            console.log(e, 'errorda function_name');
-            setErrorCount((prev) => prev + 1);
+      const promiseObj = validateMeasureQuery({
+        connection: con,
+        query: `select ${queries[i].sql_expression
+          .replace(/'/g, "''")
+          .replace('{', '(')
+          .replace('}', ')')}`,
+      })
+        .then((res) => {
+          if (res) {
+            setmyAssumption((prev) => prev + 1);
+          } else {
+            setNotMyAssumption((prev) => prev + 1);
+            setOutput((prev) => [
+              ...prev,
+              {
+                queryName: `Query ${i} ---->`,
+                time: performance.now() - eachQueryStart,
+              },
+            ]);
           }
         })
-        .catch((e) => {
+        .catch((err) => {
+          console.log(err);
           setErrorCount((prev) => prev + 1);
-          console.log(e, 'errorda function_name');
-
-          console.log(e, 'errorda', queries[i]);
+          setErrorQueries((prev) => [...prev, queries[i].sql_expression]);
         });
 
       promiseArr.push(promiseObj);
