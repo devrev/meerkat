@@ -1,7 +1,7 @@
 import { ParsedExpression } from '../types/duckdb-serialization-types';
 import { ParsedSerialization } from './types';
 
-export function validateSelectNode(
+export function getSelectNode(
   parsedSerialization: ParsedSerialization
 ): ParsedExpression {
   const statement = parsedSerialization.statements?.[0];

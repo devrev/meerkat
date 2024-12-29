@@ -7,8 +7,8 @@ import {
   isOperatorCast,
   isValueConstantExpression,
 } from '../types/utils';
-import { validateSelectNode } from './common';
 import { ParsedSerialization } from './types';
+import { getSelectNode } from './utils';
 
 /**
  * Validates an individual expression node
@@ -63,7 +63,7 @@ export const validateDimension = (
   parsedSerialization: ParsedSerialization,
   validFunctions: string[]
 ): boolean => {
-  const node = validateSelectNode(parsedSerialization);
+  const node = getSelectNode(parsedSerialization);
 
   const validFunctionSet = new Set(validFunctions);
 

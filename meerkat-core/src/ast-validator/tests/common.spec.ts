@@ -3,8 +3,8 @@ import {
   TableReferenceType,
 } from '../../types/duckdb-serialization-types';
 import { AggregateHandling } from '../../types/duckdb-serialization-types/serialization/QueryNode';
-import { validateSelectNode } from '../common';
 import { ParsedSerialization } from '../types';
+import { getSelectNode } from '../utils';
 import { COLUMN_REF_NODE } from './test-data';
 
 const PARSED_SERIALIZATION: ParsedSerialization = {
@@ -34,10 +34,10 @@ const PARSED_SERIALIZATION: ParsedSerialization = {
   ],
 };
 
-describe('validateSelectNode', () => {
+describe('getSelectNode', () => {
   it('should throw error if the statement if there is no statement', () => {
     expect(() =>
-      validateSelectNode({
+      getSelectNode({
         error: false,
         statements: [],
       })
@@ -46,7 +46,7 @@ describe('validateSelectNode', () => {
 
   it('should throw error if no statement is found', () => {
     expect(() =>
-      validateSelectNode({
+      getSelectNode({
         error: false,
         statements: [
           {
@@ -65,7 +65,7 @@ describe('validateSelectNode', () => {
 
   it('should throw error if select list is not exactly one expression', () => {
     expect(() =>
-      validateSelectNode({
+      getSelectNode({
         error: false,
         statements: [
           {
@@ -84,7 +84,7 @@ describe('validateSelectNode', () => {
   });
 
   it('should return true if the statement is valid', () => {
-    expect(validateSelectNode(PARSED_SERIALIZATION)).toBe(
+    expect(getSelectNode(PARSED_SERIALIZATION)).toBe(
       PARSED_SERIALIZATION.statements[0].node.select_list[0]
     );
   });

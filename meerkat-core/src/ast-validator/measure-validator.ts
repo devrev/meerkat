@@ -10,8 +10,8 @@ import {
   isValueConstantExpression,
   isWindowExpression,
 } from '../types/utils';
-import { validateSelectNode } from './common';
 import { ParsedSerialization } from './types';
+import { getSelectNode } from './utils';
 
 export const validateExpressionNode = ({
   node,
@@ -206,7 +206,7 @@ export const validateMeasure = (
   validFunctions: string[],
   validScalarFunctions: string[]
 ): boolean => {
-  const node = validateSelectNode(parsedSerialization);
+  const node = getSelectNode(parsedSerialization);
 
   const validFunctionSet = new Set(validFunctions);
   const validScalarFunctionSet = new Set(validScalarFunctions);
