@@ -1,13 +1,13 @@
 import { ParsedExpression } from '../types/duckdb-serialization-types';
 import {
   isCaseExpression,
-  isCoalesceExpression,
+  isCastExpression,
   isColumnRefExpression,
+  isConstantExpression,
   isFunctionExpression,
-  isOperatorCast,
+  isOperatorExpression,
   isSelectNode,
   isSubqueryExpression,
-  isValueConstantExpression,
   isWindowExpression,
 } from '../types/utils';
 import { ParsedSerialization } from './types';
@@ -27,7 +27,7 @@ export const validateExpressionNode = ({
   validScalarFunctions: Set<string>;
 }): boolean => {
   // Base cases for column references and constants
-  if (isColumnRefExpression(node) || isValueConstantExpression(node)) {
+  if (isColumnRefExpression(node) || isConstantExpression(node)) {
     // Allow column references inside aggregation functions
     return !!parentNode;
   }
@@ -64,6 +64,28 @@ export const validateExpressionNode = ({
     }
 
     throw new Error(`Invalid function type: ${node.function_name}`);
+  }
+
+  // Operator expression
+  if (isOperatorExpression(node)) {
+    return node.children.some((child) =>
+      validateExpressionNode({
+        node: child,
+        validFunctions,
+        parentNode,
+        validScalarFunctions,
+      })
+    );
+  }
+
+  // Cast expression
+  if (isCastExpression(node)) {
+    return validateExpressionNode({
+      node: node.child,
+      validFunctions,
+      parentNode,
+      validScalarFunctions,
+    });
   }
 
   // Case expression
@@ -121,29 +143,6 @@ export const validateExpressionNode = ({
     });
   }
 
-  // Operator cast expression
-  if (isOperatorCast(node)) {
-    return validateExpressionNode({
-      node: node.child,
-      validFunctions,
-      parentNode,
-      validScalarFunctions,
-    });
-  }
-
-  // Coalesce expression
-  if (isCoalesceExpression(node)) {
-    return node.children.every(
-      (child) =>
-        validateExpressionNode({
-          node: child,
-          validFunctions,
-          parentNode,
-          validScalarFunctions,
-        }) || !containsAggregation(child, validFunctions)
-    );
-  }
-
   throw new Error(`Invalid expression type: ${node.type}`);
 };
 
@@ -172,15 +171,14 @@ export const containsAggregation = (
     );
   }
 
-  // Coalesce expression
-  if (isCoalesceExpression(node)) {
+  // Operator expression
+  if (isOperatorExpression(node)) {
     return node.children.some((child) =>
       containsAggregation(child, validFunctions)
     );
   }
 
-  // Operator cast expression
-  if (isOperatorCast(node)) {
+  if (isCastExpression(node)) {
     return containsAggregation(node.child, validFunctions);
   }
 

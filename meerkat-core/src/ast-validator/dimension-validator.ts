@@ -1,11 +1,11 @@
 import { ParsedExpression } from '../types/duckdb-serialization-types';
 import {
   isCaseExpression,
-  isCoalesceExpression,
+  isCastExpression,
   isColumnRefExpression,
+  isConstantExpression,
   isFunctionExpression,
-  isOperatorCast,
-  isValueConstantExpression,
+  isOperatorExpression,
 } from '../types/utils';
 import { ParsedSerialization } from './types';
 import { getSelectNode } from './utils';
@@ -18,17 +18,17 @@ export const validateExpressionNode = (
   validFunctions: Set<string>
 ): boolean => {
   // Column references and value constants
-  if (isColumnRefExpression(node) || isValueConstantExpression(node)) {
+  if (isColumnRefExpression(node) || isConstantExpression(node)) {
     return true;
   }
 
-  // Operator cast
-  if (isOperatorCast(node)) {
+  // Cast expression
+  if (isCastExpression(node)) {
     return validateExpressionNode(node.child, validFunctions);
   }
 
-  // Coalesce expression
-  if (isCoalesceExpression(node)) {
+  // Operator expression
+  if (isOperatorExpression(node)) {
     return node.children.every((child) =>
       validateExpressionNode(child, validFunctions)
     );
