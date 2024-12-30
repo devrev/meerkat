@@ -1,13 +1,14 @@
 import { ParsedExpression } from '../types/duckdb-serialization-types';
 import {
   isCaseExpression,
-  isCoalesceExpression,
+  isCastExpression,
   isColumnRefExpression,
+  isConstantExpression,
   isFunctionExpression,
-  isOperatorCast,
-  isValueConstantExpression,
+  isOperatorExpression,
 } from '../types/utils';
 import { ParsedSerialization } from './types';
+import { getSelectNode } from './utils';
 
 /**
  * Validates an individual expression node
@@ -17,17 +18,17 @@ export const validateExpressionNode = (
   validFunctions: Set<string>
 ): boolean => {
   // Column references and value constants
-  if (isColumnRefExpression(node) || isValueConstantExpression(node)) {
+  if (isColumnRefExpression(node) || isConstantExpression(node)) {
     return true;
   }
 
-  // Operator cast
-  if (isOperatorCast(node)) {
+  // Cast expression
+  if (isCastExpression(node)) {
     return validateExpressionNode(node.child, validFunctions);
   }
 
-  // Coalesce expression
-  if (isCoalesceExpression(node)) {
+  // Operator expression
+  if (isOperatorExpression(node)) {
     return node.children.every((child) =>
       validateExpressionNode(child, validFunctions)
     );
@@ -62,27 +63,14 @@ export const validateDimension = (
   parsedSerialization: ParsedSerialization,
   validFunctions: string[]
 ): boolean => {
-  const statement = parsedSerialization.statements?.[0];
-  if (!statement) {
-    throw new Error('No statement found');
-  }
-
-  if (statement.node.type !== 'SELECT_NODE') {
-    throw new Error('Statement must be a SELECT node');
-  }
-
-  const selectList = statement.node.select_list;
-  if (!selectList?.length || selectList.length !== 1) {
-    throw new Error('SELECT must contain exactly one expression');
-  }
+  const node = getSelectNode(parsedSerialization);
 
   const validFunctionSet = new Set(validFunctions);
 
   // Validate the expression
-  const expression = selectList[0];
-  if (!validateExpressionNode(expression, validFunctionSet)) {
-    throw new Error('Expression contains invalid functions or operators');
+  if (validateExpressionNode(node, validFunctionSet)) {
+    return true;
   }
 
-  return true;
+  throw new Error('Expression contains invalid functions or operators');
 };
