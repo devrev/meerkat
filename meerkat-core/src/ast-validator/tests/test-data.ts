@@ -34,12 +34,14 @@ export const DIMENSION_TEST_CASES = [
       column_names: ['column_name'],
     },
     validFunctions: EMPTY_VALID_FUNCTIONS,
+    columnNames: ['column_name'],
     expected: true,
   },
   {
     description: 'node type COLUMN_REF with alias',
     node: COLUMN_REF_NODE,
     validFunctions: EMPTY_VALID_FUNCTIONS,
+    columnNames: ['column_name'],
     expected: true,
   },
   {
@@ -51,6 +53,7 @@ export const DIMENSION_TEST_CASES = [
       query_location: 0,
       value: '1',
     },
+    columnNames: [],
     validFunctions: EMPTY_VALID_FUNCTIONS,
     expected: true,
   },
@@ -66,7 +69,7 @@ export const DIMENSION_TEST_CASES = [
         type: ExpressionType.COLUMN_REF,
         alias: '',
         query_location: 12,
-        column_names: ['column_name'],
+        column_names: ['column_name1'],
       },
       cast_type: {
         id: 1,
@@ -74,6 +77,7 @@ export const DIMENSION_TEST_CASES = [
       try_cast: false,
     },
     validFunctions: EMPTY_VALID_FUNCTIONS,
+    columnNames: ['column_name1'],
     expected: true,
   },
   {
@@ -89,7 +93,7 @@ export const DIMENSION_TEST_CASES = [
           type: ExpressionType.COLUMN_REF,
           alias: '',
           query_location: 16,
-          column_names: ['column_name'],
+          column_names: ['column_name2'],
         },
         {
           class: ExpressionClass.CONSTANT,
@@ -108,11 +112,13 @@ export const DIMENSION_TEST_CASES = [
       ],
     },
     validFunctions: EMPTY_VALID_FUNCTIONS,
+    columnNames: ['column_name2'],
     expected: true,
   },
   {
     description:
       'node type FUNCTION with ROUND function and if it contains in validFunctions',
+    columnNames: ['schema.column_name'],
     node: {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -126,7 +132,7 @@ export const DIMENSION_TEST_CASES = [
           type: ExpressionType.COLUMN_REF,
           alias: '',
           query_location: 13,
-          column_names: ['column_name'],
+          column_names: ['schema', 'column_name'],
         },
         {
           class: ExpressionClass.CONSTANT,
@@ -157,6 +163,7 @@ export const DIMENSION_TEST_CASES = [
   },
   {
     description: 'node type CASE',
+    columnNames: ['actual_close_date1', 'actual_close_date', 'created_date'],
     node: {
       class: ExpressionClass.CASE,
       type: ExpressionType.CASE_EXPR,
@@ -189,7 +196,7 @@ export const DIMENSION_TEST_CASES = [
             type: ExpressionType.COLUMN_REF,
             alias: '',
             query_location: 55,
-            column_names: ['actual_close_date'],
+            column_names: ['actual_close_date1'],
           },
         },
       ],
@@ -227,6 +234,7 @@ export const MEASURE_TEST_CASES = [
     },
     validFunctions: new Set(['count_star']),
     validScalarFunctions: EMPTY_VALID_FUNCTIONS,
+    columnNames: [],
     expected: true,
   },
   {
@@ -258,6 +266,7 @@ export const MEASURE_TEST_CASES = [
     },
     validFunctions: new Set(['sum']),
     validScalarFunctions: EMPTY_VALID_FUNCTIONS,
+    columnNames: ['column1'],
     expected: true,
   },
   {
@@ -291,9 +300,11 @@ export const MEASURE_TEST_CASES = [
     validScalarFunctions: new Set(['/']),
     error: 'Invalid function type: sum',
     expected: 'error',
+    columnNames: ['column1'],
   },
   {
     description: 'node type FUNCTION with MAX and operator',
+    columnNames: ['column1'],
     query: 'max(column1) / 1000',
     node: {
       class: ExpressionClass.FUNCTION,
@@ -361,6 +372,7 @@ export const MEASURE_TEST_CASES = [
   {
     description: 'node type CASE_EXPR',
     query: 'CASE WHEN COUNT(id) > 1 THEN AVG(mtbf_hours) ELSE null END',
+    columnNames: ['mtbf_hours', 'id'],
     node: {
       class: ExpressionClass.CASE,
       type: ExpressionType.CASE_EXPR,
@@ -463,6 +475,7 @@ export const MEASURE_TEST_CASES = [
   {
     description:
       'node type FUNCTION with aggregation and case statement within',
+    columnNames: ['modified_date', 'stage_json'],
     node: {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -581,6 +594,7 @@ export const MEASURE_TEST_CASES = [
   {
     description:
       'node type FUNCTION two children of aggregation and operator operation on them',
+    columnNames: ['mean_reciprocal_rank', 'total_queries'],
     node: {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -687,6 +701,7 @@ export const MEASURE_TEST_CASES = [
     description: 'node type CAST',
     query:
       "CAST(COUNT(DISTINCT(id)) AS FLOAT) / NULLIF(DATEDIFF('day', MIN(created_date), MAX(created_date)) / 7 + 1, 0)",
+    columnNames: ['id', 'created_date', 'created_date1'],
     node: {
       class: ExpressionClass.FUNCTION,
       type: ExpressionType.FUNCTION,
@@ -817,7 +832,7 @@ export const MEASURE_TEST_CASES = [
                               type: ExpressionType.COLUMN_REF,
                               alias: '',
                               query_location: 90,
-                              column_names: ['created_date'],
+                              column_names: ['created_date1'],
                             },
                           ],
                           filter: null,
@@ -934,6 +949,7 @@ export const MEASURE_TEST_CASES = [
   {
     description: 'node type COALESCE',
     query: 'COALESCE(SUM(amount) FILTER(direction = "Income"), 0)',
+    columnNames: ['amount'],
     node: {
       class: ExpressionClass.OPERATOR,
       type: ExpressionType.OPERATOR_COALESCE,
@@ -1009,6 +1025,7 @@ export const MEASURE_TEST_CASES = [
     description: 'node type WINDOW_AGGREGATE',
     query:
       'AVG(COUNT(column1)) OVER (ORDER BY (MEERKAT).record_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)',
+    columnNames: ['column1'],
     node: {
       class: ExpressionClass.WINDOW,
       type: ExpressionType.WINDOW_AGGREGATE,
@@ -1031,7 +1048,7 @@ export const MEASURE_TEST_CASES = [
               type: ExpressionType.COLUMN_REF,
               alias: '',
               query_location: 17,
-              column_names: ['number_deployments'],
+              column_names: ['column1'],
             },
           ],
           filter: null,
@@ -1111,6 +1128,12 @@ export const MEASURE_TEST_CASES = [
   },
   {
     description: 'node type SUBQUERY',
+    columnNames: [
+      'id',
+      'sla_stage',
+      'first_resp_time_arr',
+      'total_first_resp_breaches_ever',
+    ],
     query:
       "(SELECT CASE WHEN COUNT(DISTINCT CASE WHEN sla_stage = ''breached'' THEN id END) + COUNT(DISTINCT CASE WHEN sla_stage = ''completed'' AND ARRAY_LENGTH(first_resp_time_arr) > 0 AND (total_first_resp_breaches_ever = 0 OR total_first_resp_breaches_ever IS NULL) THEN id END) > 0 THEN 100 - (COUNT(DISTINCT CASE WHEN sla_stage = ''breached'' THEN id END) * 100.0 / (COUNT(DISTINCT CASE WHEN sla_stage = ''breached'' THEN id END) + COUNT(DISTINCT CASE WHEN sla_stage = ''completed'' AND ARRAY_LENGTH(first_resp_time_arr) > 0 AND (total_first_resp_breaches_ever = 0 OR total_first_resp_breaches_ever IS NULL) THEN id END))) ELSE NULL END AS result)",
     node: {

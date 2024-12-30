@@ -1,7 +1,11 @@
-import { Dimension, Measure } from '../../types/cube-types/table';
 import { Member, QueryFilter } from '../../types/cube-types/query';
-import { ExpressionClass, ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
+import { Dimension, Measure } from '../../types/cube-types/table';
+import {
+  ExpressionClass,
+  ExpressionType,
+} from '../../types/duckdb-serialization-types/serialization/Expression';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
+import { COLUMN_NAME_DELIMITER } from '../constant';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 
@@ -27,7 +31,7 @@ export const notContainsDuckdbCondition = (
         class: 'COLUMN_REF',
         type: 'COLUMN_REF',
         alias: '',
-        column_names: columnName.split('.'),
+        column_names: columnName.split(COLUMN_NAME_DELIMITER),
       },
       {
         class: 'CONSTANT',
