@@ -4,6 +4,7 @@ import { DBMEvent, DBMLogger } from '../logger';
 import { Table, TableWiseFiles } from '../types';
 
 export interface FileManagerConstructorOptions {
+  windowApi: any;
   /**
    * @description
    * It manages the lifecycle of the DuckDB database instance.
