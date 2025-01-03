@@ -1,10 +1,13 @@
 {
   "name": "@meerkat/source",
   "version": "0.0.0",
-  "scripts": {},
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps && electron-builder install-app-deps"
+  },
   "private": true,
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.28.1-dev258.0",
+    "@nx/eslint": "20.3.0",
     "@nx/next": "16.8.1",
     "@swc/helpers": "~0.5.0",
     "@types/lodash.isnil": "^4.0.9",
@@ -21,6 +24,7 @@
     "loglevel": "^1.8.1",
     "next": "13.5.4",
     "npm": "^10.8.2",
+    "nx-electron": "20.0.0",
     "puppeteer": "^21.5.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -62,6 +66,7 @@
     "@vitest/coverage-c8": "~0.32.0",
     "@vitest/ui": "~0.32.0",
     "babel-jest": "^29.4.1",
+    "electron": "33.3.0",
     "eslint-config-next": "13.4.1",
     "eslint-config-prettier": "8.1.0",
     "eslint-plugin-import": "2.27.5",
