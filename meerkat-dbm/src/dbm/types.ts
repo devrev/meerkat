@@ -5,6 +5,7 @@ import { TableWiseFiles } from '../types';
 import { InstanceManagerType } from './instance-manager';
 
 export interface DBMConstructorOptions<BufferType = Uint8Array> {
+  windowApi: any;
   /**
    * @description
    * It handles all file operations such as file registration, file retrieval, file deletion

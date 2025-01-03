@@ -1,8 +1,8 @@
-import { DBM, DBMParallel, FileManagerType } from '@devrev/meerkat-dbm';
+import { DBM, DBMApp, DBMParallel, FileManagerType } from '@devrev/meerkat-dbm';
 import React from 'react';
 
 export type DBMContextType<T> = {
-  dbm: DBM | DBMParallel<T>;
+  dbm: DBM | DBMParallel<T> | DBMApp;
   fileManager: FileManagerType;
 };
 
