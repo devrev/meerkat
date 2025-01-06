@@ -1,9 +1,7 @@
 {
   "name": "@meerkat/source",
   "version": "0.0.0",
-  "scripts": {
-    "postinstall": "electron-builder install-app-deps"
-  },
+  "scripts": {},
   "private": true,
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.28.1-dev258.0",
@@ -45,7 +43,7 @@
     "@nx/react": "16.8.1",
     "@nx/vite": "16.8.1",
     "@nx/webpack": "16.8.1",
-    "@nx/workspace": "16.8.1",
+    "@nx/workspace": "20.3.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@svgr/webpack": "^8.0.1",
     "@swc/cli": "~0.1.62",
