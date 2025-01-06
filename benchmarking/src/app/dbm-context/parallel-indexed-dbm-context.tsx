@@ -37,9 +37,9 @@ export const ParallelIndexedDBMProvider = ({
       return;
     }
     const iframeManager = new IFrameRunnerManager({
-      runnerURL: 'http://localhost:4200/runner/indexeddb-runner.html',
-      origin: 'http://localhost:4200',
-      totalRunners: 2,
+      runnerURL: 'http://localhost:4204/runner/indexeddb-runner.html',
+      origin: 'http://localhost:4204',
+      totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
         return [];
       },

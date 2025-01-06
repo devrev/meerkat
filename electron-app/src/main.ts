@@ -9,11 +9,6 @@ export default class Main {
 
   static bootstrapAppEvents() {
     ElectronEvents.bootstrapElectronEvents();
-
-    // initialize auto updater service
-    if (!App.isDevelopmentMode()) {
-      // UpdateEvents.initAutoUpdateService();
-    }
   }
 }
 

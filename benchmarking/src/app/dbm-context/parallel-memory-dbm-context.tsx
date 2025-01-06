@@ -37,8 +37,8 @@ export const ParallelMemoryDBMProvider = ({
       return;
     }
     const iframeManager = new IFrameRunnerManager({
-      runnerURL: 'http://localhost:4200/runner/memory-runner.html',
-      origin: 'http://localhost:4200',
+      runnerURL: 'http://localhost:4204/runner/memory-runner.html',
+      origin: 'http://localhost:4204',
       totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
         return fileManagerRef.current.getTableBufferData(table);

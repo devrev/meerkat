@@ -8,6 +8,7 @@ import {
 } from '../../types/duckdb-serialization-types/index';
 import { CUBE_TYPE_TO_DUCKDB_TYPE } from '../../utils/cube-type-to-duckdb-type';
 import { convertFloatToInt, getTypeInfo } from '../../utils/get-type-info';
+import { COLUMN_NAME_DELIMITER } from '../constant';
 
 export const baseDuckdbCondition = (
   columnName: string,
@@ -23,7 +24,7 @@ export const baseDuckdbCondition = (
       class: ExpressionClass.COLUMN_REF,
       type: ExpressionType.COLUMN_REF,
       alias: '',
-      column_names: columnName.split('.'),
+      column_names: columnName.split(COLUMN_NAME_DELIMITER),
     },
     right: {
       class: ExpressionClass.CONSTANT,
@@ -64,7 +65,7 @@ export const baseArrayDuckdbCondition = (
                 class: ExpressionClass.COLUMN_REF,
                 type: ExpressionType.COLUMN_REF,
                 alias: '',
-                column_names: columnName.split('.'),
+                column_names: columnName.split(COLUMN_NAME_DELIMITER),
               },
             ],
             filter: null,
