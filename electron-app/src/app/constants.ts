@@ -1,2 +1,2 @@
 export const RENDER_APP_PORT = 4204;
-export const rendererAppName = 'benchmarking-app'; // options.name.split('-')[0] + '-web'
+export const RENDERER_APP_NAME = 'benchmarking-app';

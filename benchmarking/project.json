@@ -24,8 +24,7 @@
       "executor": "@nx/vite:dev-server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "benchmarking-app:build",
-        "proxyConfig": "benchmarking/proxy.conf.json"
+        "buildTarget": "benchmarking-app:build"
       },
       "configurations": {
         "development": {

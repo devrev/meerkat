@@ -2,7 +2,7 @@ import { BrowserWindow, screen } from 'electron';
 import { join } from 'path';
 import { format } from 'url';
 import { environment } from '../environments/environment';
-import { RENDER_APP_PORT, rendererAppName } from './constants';
+import { RENDER_APP_PORT, RENDERER_APP_NAME } from './constants';
 
 export default class App {
   static mainWindow: Electron.BrowserWindow;
@@ -28,7 +28,7 @@ export default class App {
   }
 
   private static onReady() {
-    if (rendererAppName) {
+    if (RENDERER_APP_NAME) {
       App.initMainWindow();
       App.loadMainWindow();
     }
@@ -75,7 +75,7 @@ export default class App {
     } else {
       App.mainWindow.loadURL(
         format({
-          pathname: join(__dirname, '..', rendererAppName, 'index.html'),
+          pathname: join(__dirname, '..', RENDERER_APP_NAME, 'index.html'),
           protocol: 'file:',
           slashes: true,
         })
