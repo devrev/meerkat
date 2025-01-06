@@ -28,7 +28,7 @@ describe('Benchmarking DBMs', () => {
     while (!serverStarted) {
       console.info('Waiting for server to start');
       try {
-        await page.goto('http://localhost:4200');
+        await page.goto('http://localhost:4204');
         serverStarted = true;
       } catch (error) {
         console.info('Server not started yet', error);
@@ -51,7 +51,7 @@ describe('Benchmarking DBMs', () => {
   }, 30000);
 
   it('Benchmark raw duckdb with memory sequence duckdb', async () => {
-    await page.goto('http://localhost:4200/raw-dbm');
+    await page.goto('http://localhost:4204/raw-dbm');
     /**
      * wait for total time to be render
      */
@@ -65,7 +65,7 @@ describe('Benchmarking DBMs', () => {
 
     console.info('totalTimeForRawDB', totalTimeForRawDB);
 
-    await page.goto('http://localhost:4200/memory-dbm');
+    await page.goto('http://localhost:4204/memory-dbm');
 
     /**
      * wait for total time to be render
@@ -88,7 +88,7 @@ describe('Benchmarking DBMs', () => {
   }, 220000);
 
   it('Benchmark indexed dbm duckdb', async () => {
-    await page.goto('http://localhost:4200/indexed-dbm');
+    await page.goto('http://localhost:4204/indexed-dbm');
     /**
      * wait for total time to be render
      */
@@ -109,7 +109,7 @@ describe('Benchmarking DBMs', () => {
   }, 300000);
 
   it('Benchmark parallel memory dbm duckdb', async () => {
-    await page.goto('http://localhost:4200/parallel-memory-dbm');
+    await page.goto('http://localhost:4204/parallel-memory-dbm');
     /**
      * wait for total time to be render
      */

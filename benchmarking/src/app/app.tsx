@@ -1,4 +1,4 @@
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { IndexedDBMProvider } from './dbm-context/indexed-dbm-context';
 import { MemoryDBMProvider } from './dbm-context/memory-dbm-context';
 import { ParallelIndexedDBMProvider } from './dbm-context/parallel-indexed-dbm-context';
@@ -10,6 +10,25 @@ import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 export function App() {
   return (
     <Router>
+      <nav>
+        <ul>
+          <li>
+            <Link to="/raw-dbm">Raw DuckDB</Link>
+          </li>
+          <li>
+            <Link to="/memory-dbm">In Memory Sequence DuckDB</Link>
+          </li>
+          <li>
+            <Link to="/indexed-dbm">IndexedDB DuckDB</Link>
+          </li>
+          <li>
+            <Link to="/parallel-memory-dbm">Parallel Memory DuckDB</Link>
+          </li>
+          <li>
+            <Link to="/parallel-indexed-dbm">Parallel Indexed DuckDB</Link>
+          </li>
+        </ul>
+      </nav>
       <Routes>
         <Route
           path="/raw-dbm"
