@@ -28,6 +28,9 @@ export function App() {
           <li>
             <Link to="/parallel-indexed-dbm">Parallel Indexed DuckDB</Link>
           </li>
+          <li>
+            <Link to="/node-dbm">Node DuckDBM Parallel Tables</Link>
+          </li>
         </ul>
       </nav>
       <Routes>
