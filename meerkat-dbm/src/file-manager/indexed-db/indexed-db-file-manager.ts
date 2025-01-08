@@ -1,14 +1,8 @@
 import { TableConfig } from '../../dbm/types';
-import { DBMEvent, DBMLogger } from '../../logger';
 import { Table } from '../../types';
-import {
-  getBufferFromJSON,
-  isDefined,
-  mergeFileBufferStoreIntoTable,
-} from '../../utils';
+import { isDefined, mergeFileBufferStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
-  FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
@@ -19,14 +13,11 @@ import { BaseIndexedDBFileManager } from './base-indexed-db-file-manager';
 const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
 
 export class IndexedDBFileManager
-  extends BaseIndexedDBFileManager<FileBufferStore>
-  implements FileManagerType<FileBufferStore>
+  extends BaseIndexedDBFileManager
+  implements FileManagerType
 {
   private fileRegisterer: FileRegisterer;
   private configurationOptions: FileManagerConstructorOptions['options'];
-
-  private logger?: DBMLogger;
-  private onEvent?: (event: DBMEvent) => void;
 
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
 
@@ -37,13 +28,11 @@ export class IndexedDBFileManager
     logger,
     onEvent,
   }: FileManagerConstructorOptions) {
-    super({ instanceManager, fetchTableFileBuffers });
+    super({ instanceManager, fetchTableFileBuffers, logger, onEvent });
 
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.fileRegisterer = new FileRegisterer({ instanceManager });
     this.configurationOptions = options;
-    this.logger = logger;
-    this.onEvent = onEvent;
   }
 
   /**
@@ -127,52 +116,6 @@ export class IndexedDBFileManager
       .catch((error) => {
         console.error(error);
       });
-  }
-
-  async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
-    const fileBuffers = await Promise.all(
-      jsonData.map(async (jsonFile) => {
-        const { json, tableName, ...fileData } = jsonFile;
-
-        const bufferData = await getBufferFromJSON({
-          instanceManager: this.instanceManager,
-          json: json,
-          tableName,
-          logger: this.logger,
-          onEvent: this.onEvent,
-          metadata: jsonFile.metadata,
-        });
-
-        return { buffer: bufferData, tableName, ...fileData };
-      })
-    );
-
-    await this.bulkRegisterFileBuffer(fileBuffers);
-  }
-
-  async registerJSON(jsonData: FileJsonStore): Promise<void> {
-    const { json, tableName, ...fileData } = jsonData;
-
-    /**
-     * Convert JSON to buffer
-     */
-    const bufferData = await getBufferFromJSON({
-      instanceManager: this.instanceManager,
-      json,
-      tableName,
-      logger: this.logger,
-      onEvent: this.onEvent,
-      metadata: jsonData.metadata,
-    });
-
-    /**
-     * Register the buffer in the file manager
-     */
-    await this.registerFileBuffer({
-      buffer: bufferData,
-      tableName,
-      ...fileData,
-    });
   }
 
   async fileCleanUpIfRequired(tableData: Table[]) {

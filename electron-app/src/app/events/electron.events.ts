@@ -3,8 +3,8 @@
  * between the frontend to the electron backend.
  */
 
-import { app, ipcMain } from 'electron';
-import duckDB from '../duckdb/duckdb';
+import { ipcMain } from 'electron';
+import { DBMEvent } from '../api/main.preload';
 
 export default class ElectronEvents {
   static bootstrapElectronEvents(): Electron.IpcMain {
@@ -12,28 +12,25 @@ export default class ElectronEvents {
   }
 }
 
-ipcMain.on('register-file-buffer', (event, fileBuffer) => {
-  duckDB.registerFileBuffer(fileBuffer);
+ipcMain.on(DBMEvent.DOWNLOAD_FILES, (event, files) => {
+  files.forEach((file) => {
+    console.log(file);
+  });
 });
 
-ipcMain.on('mount-file-buffer', (event, tables) => {
-  // duckDB.mountFileBufferByTables(tables);
+ipcMain.on(DBMEvent.REGISTER_FILE_BUFFERS, (event, fileBuffer) => {
+  // duckDB.registerFileBuffer(fileBuffer);
 });
 
-ipcMain.handle('execute-query', async (event, payload) => {
-  try {
-    // Extract query from the payload object
-    const { query, tables, options } = payload;
-    const result = await duckDB.executeQuery(payload);
+// ipcMain.handle('execute-query', async (event, payload) => {
+//   try {
+//     // Extract query from the payload object
+//     const { query, tables, options } = payload;
+//     const result = await duckDB.executeQuery(payload);
 
-    return { message: { data: result, isError: false } };
-  } catch (error) {
-    console.error('Error executing query:', error);
-    return { message: { error: error.message, isError: true } };
-  }
-});
-
-// Handle App termination
-ipcMain.on('quit', (event, code) => {
-  app.exit(code);
-});
+//     return { message: { data: result, isError: false } };
+//   } catch (error) {
+//     console.error('Error executing query:', error);
+//     return { message: { error: error.message, isError: true } };
+//   }
+// });

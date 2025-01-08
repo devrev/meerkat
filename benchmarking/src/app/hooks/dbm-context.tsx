@@ -7,8 +7,8 @@ import {
 import React from 'react';
 
 export type DBMContextType<T> = {
-  dbm: DBM | DBMParallel<T> | DBMNative;
-  fileManager: FileManagerType;
+  dbm: DBM | DBMParallel | DBMNative;
+  fileManager: FileManagerType<T>;
 };
 
 export const DBMContext = React.createContext<DBMContextType<any> | undefined>(

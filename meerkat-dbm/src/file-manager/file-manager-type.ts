@@ -36,25 +36,25 @@ export interface FileManagerConstructorOptions {
 
   /**
    * @description
-   * A function that fetches file buffers for a given table name.
+   * Returns the file buffers for a given table name.
    */
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
 }
 
-export interface FileManagerType<T> {
+export interface FileManagerType {
   /**
    * @description
    * Registers multiple file buffers in the file manager.
    * @param props - An array of FileBufferStore objects.
    */
-  bulkRegisterFileBuffer: (props: T[]) => Promise<void>;
+  bulkRegisterFileBuffer: (props: FileBufferStore[]) => Promise<void>;
 
   /**
    * @description
    * Registers a single file buffer in the file manager.
    * @param props - The FileBufferStore object to register.
    */
-  registerFileBuffer: (props: T) => Promise<void>;
+  registerFileBuffer: (props: FileBufferStore) => Promise<void>;
 
   /**
    * @description

@@ -1,34 +1,32 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
+import {
+  FileBufferMetadata,
+  FileUrlMetadata,
+} from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
 
 export enum DBMEvent {
-  REGISTER_FILE_BUFFER = 'register-file-buffer',
+  REGISTER_FILE_BUFFERS = 'register-file-buffers',
+  QUERY = 'query',
+  DROP_FILES_BY_TABLE = 'drop-files-by-table',
+  DOWNLOAD_FILES = 'download-files',
 }
 
-export type Channels = DBMEvent;
-
-const electronHandler = {
-  ipcRenderer: {
-    invoke: (channel: Channels, ...args: unknown[]) => {
-      return ipcRenderer.invoke(channel, ...args); // Added return statement here
-    },
-    on(channel: Channels, func: (...args: unknown[]) => void) {
-      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
-        func(...args);
-      ipcRenderer.on(channel, subscription);
-
-      return () => {
-        ipcRenderer.removeListener(channel, subscription);
-      };
-    },
-    once(channel: Channels, func: (...args: unknown[]) => void) {
-      ipcRenderer.once(channel, (_event, ...args) => func(...args));
-    },
-    send(channel: Channels, ...args: unknown[]) {
-      ipcRenderer.send(channel, ...args);
-    },
-    sendMessage(channel: Channels, ...args: unknown[]) {
-      ipcRenderer.send(channel, ...args);
-    },
+const API = {
+  registerFiles: (fileBuffers: FileBufferMetadata[]) => {
+    ipcRenderer.send(DBMEvent.REGISTER_FILE_BUFFERS, fileBuffers);
+  },
+  downloadFiles: (files: FileUrlMetadata[]) => {
+    ipcRenderer.send(DBMEvent.DOWNLOAD_FILES, files);
+  },
+  dropFilesByTable: (tableName: string, fileNames: string[]) => {
+    ipcRenderer.send(DBMEvent.DROP_FILES_BY_TABLE, {
+      tableName,
+      fileNames,
+    });
+  },
+  query: (query: string) => {
+    ipcRenderer.send(DBMEvent.QUERY, query);
   },
 };
-contextBridge.exposeInMainWorld('electron', electronHandler);
+
+contextBridge.exposeInMainWorld('electron', API);

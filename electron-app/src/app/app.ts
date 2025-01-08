@@ -31,6 +31,7 @@ export default class App {
     if (RENDERER_APP_NAME) {
       App.initMainWindow();
       App.loadMainWindow();
+      App.mainWindow.webContents.openDevTools();
     }
   }
 
@@ -54,6 +55,7 @@ export default class App {
         contextIsolation: true,
         backgroundThrottling: false,
         preload: join(__dirname, 'main.preload.js'),
+        devTools: true,
       },
     });
     App.mainWindow.setMenu(null);

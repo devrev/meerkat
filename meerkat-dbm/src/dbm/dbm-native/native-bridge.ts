@@ -1,9 +1,16 @@
 import { Schema } from 'apache-arrow';
 
-export interface FileMetadata {
+export interface BaseFileMetadata {
   tableName: string;
   fileName: string;
+}
+
+export interface FileUrlMetadata extends BaseFileMetadata {
   fileUrl: string;
+}
+
+export interface FileBufferMetadata extends BaseFileMetadata {
+  buffer: Uint8Array;
 }
 
 export interface QueryResult {
@@ -16,9 +23,15 @@ export interface QueryResult {
 export interface NativeBridge {
   /**
    * Download files from the given urls and register them in the file system.
-   * @param fileUrls - The file urls to download and register.
+   * @param file - The file urls to download and register.
    */
-  registerFiles({ files }: { files: FileMetadata[] }): Promise<void>;
+  downloadFiles({ files }: { files: FileUrlMetadata[] }): Promise<void>;
+
+  /**
+   * Register files in the file system.
+   * @param files - The files to register.
+   */
+  registerFiles({ files }: { files: FileBufferMetadata[] }): Promise<void>;
 
   /**
    * Query the database.
@@ -33,7 +46,7 @@ export interface NativeBridge {
    * @param fileNames - The files to drop from the file system.
    */
 
-  dropFilesByTableName({
+  dropFilesByTable({
     tableName,
     fileNames,
   }: {
