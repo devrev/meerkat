@@ -1,6 +1,11 @@
-import { DBMApp, FileManagerType, NodeFileManager } from '@devrev/meerkat-dbm';
+import {
+  DBMNative,
+  FileManagerType,
+  NativeFileManager,
+} from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import { useRef, useState } from 'react';
+import { NativeBridge } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
+import { useMemo, useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
@@ -8,6 +13,8 @@ import { useAsyncDuckDB } from './use-async-duckdb';
 
 export enum DBMEvent {
   REGISTER_FILE_BUFFER = 'register-file-buffer',
+  QUERY_FILE_BUFFER = 'query-file-buffer',
+  DROP_FILE_BUFFER = 'drop-file-buffer',
 }
 
 export type Channels = DBMEvent;
@@ -28,30 +35,57 @@ declare global {
   }
 }
 
-export const NodeDBMProvider = ({ children }: { children: JSX.Element }) => {
+export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
   const fileManagerRef = useRef<FileManagerType | null>(null);
-  const [dbm, setdbm] = useState<DBMApp | null>(null);
+  const [dbm, setdbm] = useState<DBMNative | null>(null);
   const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
 
   const dbState = useAsyncDuckDB();
+
+  const nativeManager: NativeBridge = useMemo(() => {
+    return {
+      registerFiles: async ({ files }) => {
+        window.electron?.ipcRenderer.invoke(DBMEvent.REGISTER_FILE_BUFFER, {
+          files,
+        });
+      },
+      query: async (query) => {
+        console.log('Executing query:', query);
+        const result = await window.electron?.ipcRenderer.invoke(
+          DBMEvent.QUERY_FILE_BUFFER,
+          {
+            query,
+          }
+        );
+        return result;
+      },
+      dropFilesByTableName: async ({ table, fileNames }) => {
+        window.electron?.ipcRenderer.invoke(DBMEvent.DROP_FILE_BUFFER, {
+          table,
+          fileNames,
+        });
+      },
+    };
+  }, []);
 
   useClassicEffect(() => {
     if (!dbState) {
       return;
     }
-    fileManagerRef.current = new NodeFileManager({
+
+    fileManagerRef.current = new NativeFileManager({
       fetchTableFileBuffers: async (table) => {
         return [];
       },
-      windowApi: window.electron,
+      nativeManager: nativeManager,
       logger: log,
       onEvent: (event) => {
         console.info(event);
       },
       instanceManager: instanceManagerRef.current,
     });
-    log.setLevel('DEBUG');
-    const dbm = new DBMApp({
+
+    const dbm = new DBMNative({
       instanceManager: instanceManagerRef.current,
       fileManager: fileManagerRef.current,
       logger: log,

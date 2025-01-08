@@ -7,10 +7,12 @@ export interface FileMetadata {
 }
 
 export interface QueryResult {
-  data: object[];
-  schema: Schema;
+  data?: object[];
+  schema?: Schema;
+  error?: unknown;
 }
 
+// Initial interface for the native bridge
 export interface NativeBridge {
   /**
    * Download files from the given urls and register them in the file system.
@@ -27,15 +29,15 @@ export interface NativeBridge {
 
   /**
    * Drop specific files from the file system.
-   * @param table - The table to drop the files from.
+   * @param tableName - The table to drop the files from.
    * @param fileNames - The files to drop from the file system.
    */
 
   dropFilesByTableName({
-    table,
+    tableName,
     fileNames,
   }: {
-    table: string;
+    tableName: string;
     fileNames: string[];
   }): Promise<void>;
 }

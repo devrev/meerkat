@@ -1,4 +1,7 @@
-import { FileManagerType } from '../../file-manager/file-manager-type';
+import {
+  FileBufferStore,
+  FileManagerType,
+} from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
 import {
   BROWSER_RUNNER_TYPE,
@@ -21,8 +24,8 @@ const roundRobin = (counter: number, maxValue: number): number => {
   return counter + 1;
 };
 
-export class DBMParallel<BufferType = Uint8Array> {
-  private fileManager: FileManagerType<BufferType>;
+export class DBMParallel {
+  private fileManager: FileManagerType<FileBufferStore>;
   private logger: DBMLogger;
   private tableLockRegistry: Record<string, TableLock> = {};
 
@@ -42,7 +45,7 @@ export class DBMParallel<BufferType = Uint8Array> {
     instanceManager,
     onDuckDBShutdown,
     iFrameRunnerManager,
-  }: DBMConstructorOptions<BufferType> & {
+  }: DBMConstructorOptions & {
     iFrameRunnerManager: IFrameRunnerManager;
   }) {
     this.fileManager = fileManager;

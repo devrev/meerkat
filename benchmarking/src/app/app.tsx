@@ -1,11 +1,12 @@
 import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { IndexedDBMProvider } from './dbm-context/indexed-dbm-context';
 import { MemoryDBMProvider } from './dbm-context/memory-dbm-context';
-import { NodeDBMProvider } from './dbm-context/node-dbm-context';
+import { NativeDBMProvider } from './dbm-context/native-dbm-context';
 import { ParallelIndexedDBMProvider } from './dbm-context/parallel-indexed-dbm-context';
 import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-context';
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
+import { NativeAppFileLoader } from './file-loader/native-app-file-loader';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 
 export function App() {
@@ -29,7 +30,7 @@ export function App() {
             <Link to="/parallel-indexed-dbm">Parallel Indexed DuckDB</Link>
           </li>
           <li>
-            <Link to="/node-dbm">Node DuckDBM Parallel Tables</Link>
+            <Link to="/native-dbm">Native Node DuckDB</Link>
           </li>
         </ul>
       </nav>
@@ -40,7 +41,7 @@ export function App() {
             <div>
               <h1>Raw DuckDB</h1>
               <RawDBMProvider>
-                <FileLoader bufferType="uint8Array">
+                <FileLoader>
                   <QueryBenchmarking />
                 </FileLoader>
               </RawDBMProvider>
@@ -54,7 +55,7 @@ export function App() {
               <h1>In Memory Sequence DuckDB</h1>
 
               <MemoryDBMProvider>
-                <FileLoader bufferType="uint8Array">
+                <FileLoader>
                   <QueryBenchmarking />
                 </FileLoader>
               </MemoryDBMProvider>
@@ -67,7 +68,7 @@ export function App() {
             <div>
               <h1>IndexedDB DuckDB</h1>
               <IndexedDBMProvider>
-                <FileLoader bufferType="uint8Array">
+                <FileLoader>
                   <QueryBenchmarking />
                 </FileLoader>
               </IndexedDBMProvider>
@@ -80,7 +81,7 @@ export function App() {
             <div>
               <h1>Parallel Memory DuckDB</h1>
               <ParallelMemoryDBMProvider>
-                <FileLoader bufferType="sharedArrayBuffer">
+                <FileLoader>
                   <QueryBenchmarking />
                 </FileLoader>
               </ParallelMemoryDBMProvider>
@@ -93,7 +94,7 @@ export function App() {
             <div>
               <h1>Parallel Indexed DuckDB</h1>
               <ParallelIndexedDBMProvider>
-                <FileLoader bufferType="uint8Array">
+                <FileLoader>
                   <QueryBenchmarking />
                 </FileLoader>
               </ParallelIndexedDBMProvider>
@@ -101,15 +102,13 @@ export function App() {
           }
         />
         <Route
-          path="/node-dbm"
+          path="/native-dbm"
           element={
             <div>
-              <h1>Node DuckDBM Parallel Tables</h1>
-              <NodeDBMProvider>
-                <FileLoader bufferType="uint8Array">
-                  <QueryBenchmarking />
-                </FileLoader>
-              </NodeDBMProvider>
+              <h1>Native Node DuckDB</h1>
+              <NativeDBMProvider>
+                <NativeAppFileLoader>hello</NativeAppFileLoader>
+              </NativeDBMProvider>
             </div>
           }
         />

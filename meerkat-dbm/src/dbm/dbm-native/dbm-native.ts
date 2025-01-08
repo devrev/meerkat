@@ -1,7 +1,10 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { Table } from 'apache-arrow/table';
 import { v4 as uuidv4 } from 'uuid';
-import { FileManagerType } from '../../file-manager/file-manager-type';
+import {
+  FileManagerType,
+  FileNativeStore,
+} from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { InstanceManagerType } from '../instance-manager';
 import {
@@ -11,11 +14,11 @@ import {
   TableConfig,
   TableLock,
 } from '../types';
-import { NativeBridge } from './bridge';
+import { NativeBridge } from './native-bridge';
 
 export class DBMNative {
   private nativeManager: NativeBridge;
-  private fileManager: FileManagerType;
+  private fileManager: FileManagerType<FileNativeStore>;
   private instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
   private queriesQueue: QueryQueueItem[] = [];

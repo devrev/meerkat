@@ -1,4 +1,4 @@
-import { FileBufferStore } from '../file-manager/file-manager-type';
+import { BaseFileStore } from '../file-manager/file-manager-type';
 import { Table } from '../types';
 /**
  * Merges an array of FileBufferStore objects into the current state of tables.
@@ -20,10 +20,8 @@ import { Table } from '../types';
  *
  */
 
-export const mergeFileBufferStoreIntoTable = <
-  T extends Uint8Array | SharedArrayBuffer
->(
-  fileBufferStore: FileBufferStore<T>[],
+export const mergeFileBufferStoreIntoTable = (
+  fileBufferStore: BaseFileStore[],
   currentTableState: Table[]
 ): Map<string, Table> => {
   const tableMap = new Map<string, Table>(
@@ -31,7 +29,7 @@ export const mergeFileBufferStoreIntoTable = <
   );
 
   for (const fileBuffer of fileBufferStore) {
-    const { tableName, buffer, ...fileData } = fileBuffer;
+    const { tableName, ...fileData } = fileBuffer;
     const existingTable = tableMap.get(tableName);
 
     /**
