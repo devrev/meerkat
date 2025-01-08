@@ -1,5 +1,5 @@
 export * from './dbm';
-export * from './dbm-app';
+export * from './dbm-native/dbm-app';
 export * from './dbm-parallel/dbm-parallel';
 export * from './dbm-parallel/runner-manager';
 export * from './instance-manager';

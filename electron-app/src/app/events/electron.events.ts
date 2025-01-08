@@ -4,7 +4,6 @@
  */
 
 import { app, ipcMain } from 'electron';
-import { environment } from '../../environments/environment';
 import duckDB from '../duckdb/duckdb';
 
 export default class ElectronEvents {
@@ -12,13 +11,6 @@ export default class ElectronEvents {
     return ipcMain;
   }
 }
-
-// Retrieve app version
-ipcMain.handle('register-files', (event) => {
-  console.log(`Fetching application version... [v${environment.version}]`);
-
-  return environment.version;
-});
 
 ipcMain.on('register-file-buffer', (event, fileBuffer) => {
   duckDB.registerFileBuffer(fileBuffer);

@@ -89,10 +89,6 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
   }
 
-  getFileBuffer(name: string): Promise<Uint8Array> {
-    throw new Error('Method not implemented.');
-  }
-
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tablesToBeMounted = tables.filter(
       (table) => !this.mountedTablesMap.has(table.name)

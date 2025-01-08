@@ -118,10 +118,6 @@ export class ParallelMemoryFileManager
     return response;
   }
 
-  getFileBuffer(name: string): Promise<SharedArrayBuffer> {
-    throw new Error('Method not implemented.');
-  }
-
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     // no-op
   }

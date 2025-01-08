@@ -4,7 +4,6 @@ import { DBMEvent, DBMLogger } from '../logger';
 import { Table, TableWiseFiles } from '../types';
 
 export interface FileManagerConstructorOptions {
-  windowApi: any;
   /**
    * @description
    * It manages the lifecycle of the DuckDB database instance.
@@ -72,14 +71,6 @@ export interface FileManagerType<BufferType = Uint8Array> {
    * @param props - The FileJsonStore object to register.
    */
   registerJSON: (props: FileJsonStore) => Promise<void>;
-
-  /**
-   * @description
-   * Retrieves the file buffer associated with a given file name.
-   * @param fileName - The name of the file buffer.
-   * @returns Uint8Array if found.
-   */
-  getFileBuffer: (fileName: string) => Promise<BufferType | undefined>;
 
   /**
    * @description
