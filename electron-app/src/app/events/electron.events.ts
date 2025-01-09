@@ -5,7 +5,7 @@
 
 import { ipcMain } from 'electron';
 import { FileStore } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
-import { DBMEvent } from '../api/main.preload';
+import { NativeAppEvent } from '../api/main.preload';
 import duckDB from '../duckdb/duckdb';
 import { fileManager } from '../file-manager';
 import { fetchParquetFile } from '../utils';
@@ -16,49 +16,49 @@ export default class ElectronEvents {
   }
 }
 
-ipcMain.on(
-  DBMEvent.REGISTER_FILES,
-  async (event, data: { files: FileStore[] }) => {
-    const { files } = data;
-    const filePaths = [];
+ipcMain.on('register-files', async (event, data: { files: FileStore[] }) => {
+  console.log('registerFiles in electron', data);
+  const { files } = data;
+  const filePaths = [];
 
-    for (const file of files) {
-      switch (file.type) {
-        case 'url': {
-          const buffer = await fetchParquetFile(file.fileUrl);
-          const filePath = fileManager.writeBufferToFile({
-            ...file,
-            buffer,
-          });
-          filePaths.push({ filePath, fileName: file.fileName });
-          break;
-        }
-        case 'buffer': {
-          const filePath = fileManager.writeBufferToFile({
-            ...file,
-          });
-          filePaths.push({ filePath, fileName: file.fileName });
-          break;
-        }
-        default: {
-          console.warn(`Unhandled file type: ${file.type}`);
-          break;
-        }
+  for (const file of files) {
+    switch (file.type) {
+      case 'url': {
+        const buffer = await fetchParquetFile(file.fileUrl);
+        const filePath = fileManager.writeBufferToFile({
+          ...file,
+          buffer,
+        });
+        filePaths.push({ filePath, fileName: file.fileName });
+        break;
+      }
+      case 'buffer': {
+        const filePath = fileManager.writeBufferToFile({
+          ...file,
+        });
+        filePaths.push({ filePath, fileName: file.fileName });
+        break;
+      }
+      default: {
+        throw new Error(`Unhandled file type: ${file.type}`);
       }
     }
-    console.log('filePaths', filePaths);
-    return filePaths;
   }
-);
-
-ipcMain.on(DBMEvent.QUERY, (event, query: string) => {
-  console.log('query in electron', query);
-  const result = duckDB.executeQuery({ query, tables: [] });
-  return result;
 });
 
 ipcMain.handle(
-  DBMEvent.DROP_FILES_BY_TABLE,
+  NativeAppEvent.QUERY,
+  async (event, { query }: { query: string }) => {
+    console.log('query in electron', query);
+
+    const result = await duckDB.executeQuery({ query });
+    console.log('resultda', result);
+    return { message: { data: result, isError: false } };
+  }
+);
+
+ipcMain.handle(
+  NativeAppEvent.DROP_FILES_BY_TABLE,
   (
     event,
     tableData: {
@@ -70,19 +70,10 @@ ipcMain.handle(
   }
 );
 
-// ipcMain.on(DBMEvent.REGISTER_FILE_BUFFERS, (event, fileBuffer) => {
-//   // duckDB.registerFileBuffer(fileBuffer);
-// });
-
-// ipcMain.handle('execute-query', async (event, payload) => {
-//   try {
-//     // Extract query from the payload object
-//     const { query, tables, options } = payload;
-//     const result = await duckDB.executeQuery(payload);
-
-//     return { message: { data: result, isError: false } };
-//   } catch (error) {
-//     console.error('Error executing query:', error);
-//     return { message: { error: error.message, isError: true } };
-//   }
-// });
+ipcMain.handle(
+  NativeAppEvent.GET_FILE_PATHS_FOR_TABLE,
+  (event, { tableName }: { tableName: string }) => {
+    console.log('getFilePathsForTable in electron', tableName);
+    return fileManager.getFilePathsForTable(tableName);
+  }
+);

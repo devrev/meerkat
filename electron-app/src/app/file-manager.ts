@@ -25,21 +25,13 @@ class FileManager {
     return updatedFileName;
   }
 
-  readFilesForTable(tableName: string) {
+  getFilePathsForTable(tableName: string) {
     const dirPath = `${this.baseDir}/${tableName}`;
 
-    if (!fs.existsSync(dirPath)) {
-      return [];
-    }
+    const fileNames = fs.readdirSync(dirPath);
+    const filePaths = fileNames.map((fileName) => `${dirPath}/${fileName}`);
 
-    const files = fs.readdirSync(dirPath);
-    return files.map((fileName) => {
-      const filePath = `${dirPath}/${fileName}`;
-      return {
-        name: fileName,
-        buffer: fs.readFileSync(filePath),
-      };
-    });
+    return filePaths;
   }
 
   dropFilesByTableNames(tableName: string, files: string[]) {

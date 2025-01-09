@@ -8,6 +8,7 @@ import { NativeBridge } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
 import { useMemo, useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { NativeAppEvent } from '../native-app/electron-contants';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
@@ -21,26 +22,39 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
   const nativeManager: NativeBridge = useMemo(() => {
     return {
       registerFiles: async ({ files }) => {
-        console.log('registerFiles in native manager', files);
-        const filePaths = await window.electron?.registerFiles({ files });
-        console.log('nativeManager filePaths', filePaths);
-        return filePaths;
+        await window.electron?.ipcRenderer.send(NativeAppEvent.REGISTER_FILES, {
+          files,
+        });
       },
 
       query: async (query) => {
-        console.log('query in native manager', query, window.electron);
-
         try {
-          await window.electron?.query(query);
+          const result = await window.electron?.ipcRenderer.invoke(
+            NativeAppEvent.QUERY,
+            { query }
+          );
+
+          return result;
         } catch (error) {
           console.log('Query error:', error);
         }
       },
       dropFilesByTableName: async ({ tableName, fileNames }) => {
-        window.electron?.dropFilesByTableName({
-          tableName,
-          fileNames,
-        });
+        window.electron?.ipcRenderer.invoke(
+          NativeAppEvent.DROP_FILES_BY_TABLE,
+          {
+            tableName,
+            fileNames,
+          }
+        );
+      },
+      getFilePathsForTable: async ({ tableName }) => {
+        return await window.electron?.ipcRenderer.invoke(
+          NativeAppEvent.GET_FILE_PATHS_FOR_TABLE,
+          {
+            tableName,
+          }
+        );
       },
     };
   }, []);

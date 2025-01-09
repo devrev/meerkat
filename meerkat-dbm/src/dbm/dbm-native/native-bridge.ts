@@ -34,7 +34,11 @@ export interface NativeBridge {
    * Register files in the file system.
    * @param files - The files to register.
    */
-  registerFiles({ files }: { files: FileStore[] }): Promise<void>;
+  registerFiles({
+    files,
+  }: {
+    files: FileStore[];
+  }): Promise<{ filePath: string; fileName: string }[]>;
 
   /**
    * Query the database.
@@ -42,6 +46,13 @@ export interface NativeBridge {
    * @returns The result of the query.
    */
   query(query: string): Promise<QueryResult>;
+
+  /**
+   * Get the file paths for a table.
+   * @param tableName - The table to get the file paths for.
+   * @returns The file paths for the table.
+   */
+  getFilePathsForTable(tableName: string): Promise<string[]>;
 
   /**
    * Drop specific files from the file system.

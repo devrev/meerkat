@@ -43,3 +43,6 @@ Thumbs.db
 
 # NX
 .nx
+
+# Electron data
+/electron-app/src/data

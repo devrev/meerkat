@@ -13,8 +13,8 @@ import {
 } from './types';
 
 export class DBM {
-  private fileManager: FileManagerType;
-  private instanceManager: InstanceManagerType;
+  protected fileManager: FileManagerType;
+  protected instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
   private queriesQueue: QueryQueueItem[] = [];
   private tableLockRegistry: Record<string, TableLock> = {};

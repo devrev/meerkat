@@ -1,6 +1,5 @@
 import { NativeBridge } from '../../dbm/dbm-native/native-bridge';
 import { TableConfig } from '../../dbm/types';
-import { DBMEvent, DBMLogger } from '../../logger';
 import { mergeFileBufferStoreIntoTable } from '../../utils';
 import {
   BaseFileStore,
@@ -17,9 +16,6 @@ export class NativeFileManager
   implements FileManagerType
 {
   private nativeManager: NativeBridge;
-
-  private logger?: DBMLogger;
-  private onEvent?: (event: DBMEvent) => void;
 
   constructor({
     fetchTableFileBuffers,
@@ -68,23 +64,13 @@ export class NativeFileManager
   }
 
   async bulkRegisterFileUrl(remoteFiles: FileUrlStore[]): Promise<void> {
-    // Download the files from the remote file system
+    // Register the files in the native file system
     await this.nativeManager.registerFiles({
       files: remoteFiles.map((file) => ({ ...file, type: 'url' })),
     });
 
     // Update the tables in IndexedDB with the file data
     await this.updateIndexedDBWithTableData(remoteFiles);
-  }
-
-  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
-    // Register the files in the native file system
-    await this.nativeManager.registerFiles({
-      files: fileBuffers.map((file) => ({ ...file, type: 'buffer' })),
-    });
-
-    // Update the tables in IndexedDB with the file data
-    await this.updateIndexedDBWithTableData(fileBuffers);
   }
 
   async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
@@ -96,19 +82,12 @@ export class NativeFileManager
   }
 
   async registerFileUrl(file: FileUrlStore): Promise<void> {
-    const filePaths = await this.nativeManager.registerFiles({
+    console.log('registerFileUrl in native manager', file);
+    await this.nativeManager.registerFiles({
       files: [{ ...file, type: 'url' }],
     });
 
     await this.updateIndexedDBWithTableData([file]);
-  }
-
-  async registerJSON(jsonData: FileJsonStore): Promise<void> {
-    await this.nativeManager.registerFiles({
-      files: [{ ...jsonData, type: 'json' }],
-    });
-
-    await this.updateIndexedDBWithTableData([jsonData]);
   }
 
   override async registerFileBuffer(file: FileBufferStore): Promise<void> {
@@ -117,6 +96,14 @@ export class NativeFileManager
     });
 
     await this.updateIndexedDBWithTableData([file]);
+  }
+
+  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
+    // no op
+  }
+
+  async registerJSON(jsonData: FileJsonStore): Promise<void> {
+    // no op
   }
 
   override async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
