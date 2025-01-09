@@ -1,7 +1,7 @@
 import { Table } from '../../types';
-import { mergeFileBufferStoreIntoTable } from '../merge-file-buffer-store-into-table';
+import { mergeFileStoreIntoTable } from '../merge-file-store-into-table';
 
-describe('mergeFileBufferStoreIntoTable', () => {
+describe('mergeFileStoreIntoTable', () => {
   const fileBufferStore = {
     tableName: 'taxi1',
     fileName: 'taxi1.parquet',
@@ -24,7 +24,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
   it('should add files in new tables', () => {
     const currentTableState: Table[] = [];
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       fileBufferStores,
       currentTableState
     );
@@ -50,7 +50,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
       },
     ];
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       [fileBufferStores[0]],
       currentTableState
     );
@@ -70,7 +70,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
       },
     ];
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       [fileBufferStore],
       currentTableState
     );
@@ -90,7 +90,7 @@ describe('mergeFileBufferStoreIntoTable', () => {
       },
     ];
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       [{ ...fileBufferStore, partitions: ['dev_oid=DEV-787'] }],
       currentTableState
     );

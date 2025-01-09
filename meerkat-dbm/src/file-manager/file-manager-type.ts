@@ -141,3 +141,5 @@ export type FileJsonStore = BaseFileStore & {
 export type FileUrlStore = BaseFileStore & {
   fileUrl: string;
 };
+
+export type FileStore = FileBufferStore | FileJsonStore | FileUrlStore;

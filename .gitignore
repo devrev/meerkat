@@ -44,5 +44,6 @@ Thumbs.db
 # NX
 .nx
 
-# Electron data
+
+# Parquet data
 /electron-app/src/data

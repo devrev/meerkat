@@ -20,7 +20,9 @@ describe('Benchmarking DBMs', () => {
 
     browser = await puppeteer.launch({
       headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
+
     page = await browser.newPage();
 
     //Wait for the server to start by visiting the page

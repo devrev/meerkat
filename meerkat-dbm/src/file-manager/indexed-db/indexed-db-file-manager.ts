@@ -4,7 +4,7 @@ import { Table } from '../../types';
 import {
   getBufferFromJSON,
   isDefined,
-  mergeFileBufferStoreIntoTable,
+  mergeFileStoreIntoTable,
 } from '../../utils';
 import {
   FileBufferStore,
@@ -37,7 +37,7 @@ export class IndexedDBFileManager
     logger,
     onEvent,
   }: FileManagerConstructorOptions) {
-    super({ instanceManager, fetchTableFileBuffers, logger, onEvent });
+    super({ instanceManager, fetchTableFileBuffers });
 
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.fileRegisterer = new FileRegisterer({ instanceManager });
@@ -65,7 +65,7 @@ export class IndexedDBFileManager
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       fileBuffers,
       currentTableData
     );
@@ -104,7 +104,7 @@ export class IndexedDBFileManager
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       [fileBuffer],
       currentTableData
     );
