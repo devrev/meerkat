@@ -44,14 +44,6 @@ export class MockFileManager<T> implements FileManagerType<T> {
     });
   }
 
-  async getFileBuffer(name: string): Promise<T> {
-    const fileBuffer = this.fileBufferStore[name];
-    if (!fileBuffer) {
-      throw new Error(`File buffer for ${name} not found`);
-    }
-    return fileBuffer.buffer;
-  }
-
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tableNames = tables.map((table) => table.name);
     for (const tableName of tableNames) {

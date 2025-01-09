@@ -7,7 +7,7 @@ import { IndexedDBFileManager } from './indexed-db-file-manager';
 
 export class ParallelIndexedDBFileManager
   extends IndexedDBFileManager
-  implements FileManagerType<Uint8Array>
+  implements FileManagerType
 {
   constructor(options: FileManagerConstructorOptions) {
     super(options);

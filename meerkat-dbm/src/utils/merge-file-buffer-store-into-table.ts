@@ -1,4 +1,4 @@
-import { FileBufferStore } from '../file-manager/file-manager-type';
+import { BaseFileStore } from '../file-manager/file-manager-type';
 import { Table } from '../types';
 /**
  * Merges an array of FileBufferStore objects into the current state of tables.
@@ -20,18 +20,16 @@ import { Table } from '../types';
  *
  */
 
-export const mergeFileBufferStoreIntoTable = <
-  T extends Uint8Array | SharedArrayBuffer
->(
-  fileBufferStore: FileBufferStore<T>[],
+export const mergeFileBufferStoreIntoTable = (
+  files: BaseFileStore[],
   currentTableState: Table[]
 ): Map<string, Table> => {
   const tableMap = new Map<string, Table>(
     currentTableState.map((table) => [table.tableName, { ...table }])
   );
 
-  for (const fileBuffer of fileBufferStore) {
-    const { tableName, buffer, ...fileData } = fileBuffer;
+  for (const file of files) {
+    const { tableName, ...fileData } = file;
     const existingTable = tableMap.get(tableName);
 
     /**
@@ -39,7 +37,7 @@ export const mergeFileBufferStoreIntoTable = <
      */
     if (existingTable) {
       const existingFileIndex = existingTable.files.findIndex(
-        (file) => file.fileName === fileBuffer.fileName
+        (file) => file.fileName === file.fileName
       );
 
       if (existingFileIndex !== -1) {
@@ -53,8 +51,8 @@ export const mergeFileBufferStoreIntoTable = <
         existingTable.files.push(fileData);
       }
     } else {
-      tableMap.set(fileBuffer.tableName, {
-        tableName: fileBuffer.tableName,
+      tableMap.set(file.tableName, {
+        tableName: file.tableName,
         files: [fileData],
       });
     }
