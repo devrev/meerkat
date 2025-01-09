@@ -4,7 +4,7 @@ import { Table } from '../../types';
 import {
   getBufferFromJSON,
   isDefined,
-  mergeFileBufferStoreIntoTable,
+  mergeFileStoreIntoTable,
 } from '../../utils';
 import {
   FileBufferStore,
@@ -14,6 +14,7 @@ import {
 } from '../file-manager-type';
 import { FileRegisterer } from '../file-registerer';
 import { BaseIndexedDBFileManager } from './base-indexed-db-file-manager';
+import { MeerkatDatabase } from './meerkat-database';
 
 // Default max file size is 500mb
 const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
@@ -37,9 +38,11 @@ export class IndexedDBFileManager
     logger,
     onEvent,
   }: FileManagerConstructorOptions) {
-    super({ instanceManager, fetchTableFileBuffers, logger, onEvent });
+    super({ instanceManager, fetchTableFileBuffers });
 
     this.fetchTableFileBuffers = fetchTableFileBuffers;
+    this.indexedDB = new MeerkatDatabase();
+    this.instanceManager = instanceManager;
     this.fileRegisterer = new FileRegisterer({ instanceManager });
     this.configurationOptions = options;
     this.logger = logger;
@@ -65,7 +68,7 @@ export class IndexedDBFileManager
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       fileBuffers,
       currentTableData
     );
@@ -104,7 +107,7 @@ export class IndexedDBFileManager
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       [fileBuffer],
       currentTableData
     );
@@ -173,6 +176,13 @@ export class IndexedDBFileManager
       tableName,
       ...fileData,
     });
+  }
+
+  async getFileBuffer(fileName: string): Promise<Uint8Array | undefined> {
+    // Retrieve file data from IndexedDB
+    const fileData = await this.indexedDB.files.get(fileName);
+
+    return fileData?.buffer;
   }
 
   async fileCleanUpIfRequired(tableData: Table[]) {

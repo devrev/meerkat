@@ -90,6 +90,7 @@ describe('IndexedDBFileManager', () => {
     /**
      * There should be one table with the table name 'taxi1' and one file buffer with the file name 'taxi1.parquet'
      */
+    console.log(tableData1[0].files);
     expect(tableData1.length).toBe(1);
     expect(tableData1[0]).toEqual({
       tableName: 'taxi1',

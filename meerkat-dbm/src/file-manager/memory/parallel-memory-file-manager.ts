@@ -24,7 +24,7 @@ export interface ParallelMemoryFileManagerType {
    */
   getTableBufferData?: (tables: TableConfig[]) => Promise<
     (BaseFileStore & {
-      buffer: SharedArrayBuffer;
+      buffer: Uint8Array;
     })[]
   >;
 }
@@ -141,7 +141,7 @@ export class ParallelMemoryFileManager
     for (const [tableName, fileBufferStores] of this.tableFileBuffersMap) {
       const clearedStores = fileBufferStores.map((store) => ({
         ...store,
-        buffer: new SharedArrayBuffer(0), // Replace with an empty buffer
+        buffer: new Uint8Array(), // Replace with an empty buffer
       }));
       this.tableFileBuffersMap.set(tableName, clearedStores);
     }

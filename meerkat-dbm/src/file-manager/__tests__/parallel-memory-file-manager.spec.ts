@@ -10,7 +10,7 @@ describe('ParallelMemoryFileManager', () => {
   const fileBuffer: FileBufferStore = {
     tableName: 'table1',
     fileName: 'file1.parquet',
-    buffer: new SharedArrayBuffer(5),
+    buffer: new Uint8Array(5),
   };
 
   beforeEach(() => {
@@ -48,12 +48,12 @@ describe('ParallelMemoryFileManager', () => {
       {
         tableName: 'table1',
         fileName: 'file1.parquet',
-        buffer: new SharedArrayBuffer(3),
+        buffer: new Uint8Array(3),
       },
       {
         tableName: 'table2',
         fileName: 'file2.parquet',
-        buffer: new SharedArrayBuffer(3),
+        buffer: new Uint8Array(3),
       },
     ];
 

@@ -137,3 +137,5 @@ export type FileBufferStore = BaseFileStore & {
 export type FileJsonStore = BaseFileStore & {
   json: object;
 };
+
+export type FileStore = FileBufferStore | FileJsonStore;

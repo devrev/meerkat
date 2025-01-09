@@ -4,13 +4,13 @@ import { DBMEvent, DBMLogger } from '../logger';
 import { TableWiseFiles } from '../types';
 import { InstanceManagerType } from './instance-manager';
 
-export interface DBMConstructorOptions<BufferType = Uint8Array> {
+export interface DBMConstructorOptions {
   /**
    * @description
    * It handles all file operations such as file registration, file retrieval, file deletion
    * including mounting and unmounting of files in DuckDB instance.
    */
-  fileManager: FileManagerType<BufferType>;
+  fileManager: FileManagerType;
 
   /**
    * @description
