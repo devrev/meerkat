@@ -1,11 +1,10 @@
-import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
-import { Table, TableWiseFiles } from '../../types';
+import { Table } from '../../types';
 import {
   getBufferFromJSON,
   isDefined,
-  mergeFileBufferStoreIntoTable,
+  mergeFileStoreIntoTable,
 } from '../../utils';
 import {
   FileBufferStore,
@@ -14,15 +13,16 @@ import {
   FileManagerType,
 } from '../file-manager-type';
 import { FileRegisterer } from '../file-registerer';
-import { getFilesByPartition } from '../partition';
+import { BaseIndexedDBFileManager } from './base-indexed-db-file-manager';
 import { MeerkatDatabase } from './meerkat-database';
 
 // Default max file size is 500mb
 const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
 
-export class IndexedDBFileManager implements FileManagerType {
-  private indexedDB: MeerkatDatabase; // IndexedDB instance
-  private instanceManager: InstanceManagerType;
+export class IndexedDBFileManager
+  extends BaseIndexedDBFileManager
+  implements FileManagerType
+{
   private fileRegisterer: FileRegisterer;
   private configurationOptions: FileManagerConstructorOptions['options'];
 
@@ -38,6 +38,8 @@ export class IndexedDBFileManager implements FileManagerType {
     logger,
     onEvent,
   }: FileManagerConstructorOptions) {
+    super({ instanceManager, fetchTableFileBuffers });
+
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.indexedDB = new MeerkatDatabase();
     this.instanceManager = instanceManager;
@@ -66,7 +68,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       fileBuffers,
       currentTableData
     );
@@ -105,7 +107,7 @@ export class IndexedDBFileManager implements FileManagerType {
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       [fileBuffer],
       currentTableData
     );
@@ -183,27 +185,6 @@ export class IndexedDBFileManager implements FileManagerType {
     return fileData?.buffer;
   }
 
-  async getFilesNameForTables(
-    tables: TableConfig[]
-  ): Promise<TableWiseFiles[]> {
-    const tableNames = tables.map((table) => table.name);
-
-    const tableData = (await this.indexedDB.tablesKey.bulkGet(tableNames))
-      .filter(isDefined)
-      .reduce((tableObj, table) => {
-        tableObj[table.tableName] = table;
-        return tableObj;
-      }, {} as { [key: string]: Table });
-
-    return tables.map((table) => ({
-      tableName: table.name,
-      files: getFilesByPartition(
-        tableData[table.name]?.files ?? [],
-        table.partitions
-      ),
-    }));
-  }
-
   async fileCleanUpIfRequired(tableData: Table[]) {
     const maxFileSize =
       this.configurationOptions?.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
@@ -262,23 +243,6 @@ export class IndexedDBFileManager implements FileManagerType {
     });
 
     await Promise.all(promises);
-  }
-
-  async getTableData(table: TableConfig): Promise<Table | undefined> {
-    const tableData = await this.indexedDB.tablesKey.get(table.name);
-
-     if (!tableData) return undefined;
-
-     return {
-       ...tableData,
-       files: getFilesByPartition(tableData?.files ?? [], table.partitions),
-     };
-  }
-
-  async setTableMetadata(tableName: string, metadata: object): Promise<void> {
-    await this.indexedDB.tablesKey.update(tableName, {
-      metadata,
-    });
   }
 
   async dropFilesByTableName(

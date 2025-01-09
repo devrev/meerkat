@@ -78,10 +78,6 @@ export class MemoryDBFileManager implements FileManagerType {
     });
   }
 
-  getFileBuffer(name: string): Promise<Uint8Array> {
-    throw new Error('Method not implemented.');
-  }
-
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     // not needed for memory file manager
   }

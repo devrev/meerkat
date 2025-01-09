@@ -1,17 +1,17 @@
-import { FileBufferStore } from '../file-manager/file-manager-type';
+import { FileStore } from '../file-manager';
 import { Table } from '../types';
 /**
- * Merges an array of FileBufferStore objects into the current state of tables.
+ * Merges an array of fileStore objects into the current state of tables.
  * The function handles scenarios where tables and file buffers may need to be added or updated.
  *
  * @example
  * const currentTableState = new Map<string, Table>();
- * const fileBufferStore = [
+ * const fileStore = [
  *   { tableName: 'taxi1', fileName: 'taxi1.parquet', buffer: new Uint8Array(0) },
  *   { tableName: 'taxi1', fileName: 'taxi2.parquet', buffer: new Uint8Array(0) },
  *   { tableName: 'taxi2', fileName: 'taxi2.parquet', buffer: new Uint8Array(0) },
  * ];
- * const updatedTableMap = mergeFileBufferStoreIntoTable(fileBufferStore, currentTableState);
+ * const updatedTableMap = mergeFileStoreIntoTable(fileStore, currentTableState);
  *
  * //returns  Map {
  *  'taxi1' => { tableName: 'taxi1', files: [{ fileName: 'taxi1.parquet' }, { fileName: 'taxi2.parquet' }] },
@@ -20,41 +20,42 @@ import { Table } from '../types';
  *
  */
 
-export const mergeFileBufferStoreIntoTable = <
-  T extends Uint8Array | SharedArrayBuffer
->(
-  fileBufferStore: FileBufferStore<T>[],
+type OmitBufferAndJson<FileStore> = Omit<FileStore, 'buffer' | 'json'>;
+
+const omitDataProperties = (obj: FileStore): OmitBufferAndJson<FileStore> => {
+  const { buffer, json, ...rest } = obj as any;
+  return rest;
+};
+
+export const mergeFileStoreIntoTable = (
+  files: FileStore[],
   currentTableState: Table[]
 ): Map<string, Table> => {
   const tableMap = new Map<string, Table>(
     currentTableState.map((table) => [table.tableName, { ...table }])
   );
 
-  for (const fileBuffer of fileBufferStore) {
-    const { tableName, buffer, ...fileData } = fileBuffer;
+  for (const file of files) {
+    const { tableName, ...fileData } = omitDataProperties(file);
+
     const existingTable = tableMap.get(tableName);
 
-    /**
-     * Check if the table already exists in the map if it does, then update the existing table entry
-     */
     if (existingTable) {
       const existingFileIndex = existingTable.files.findIndex(
-        (file) => file.fileName === fileBuffer.fileName
+        (file) => file.fileName === fileData.fileName
       );
 
       if (existingFileIndex !== -1) {
-        // If file exists, update the fileData
         existingTable.files[existingFileIndex] = {
           ...existingTable.files[existingFileIndex],
           ...fileData,
         };
       } else {
-        // If file does not exist, add it to the files array
         existingTable.files.push(fileData);
       }
     } else {
-      tableMap.set(fileBuffer.tableName, {
-        tableName: fileBuffer.tableName,
+      tableMap.set(file.tableName, {
+        tableName: file.tableName,
         files: [fileData],
       });
     }

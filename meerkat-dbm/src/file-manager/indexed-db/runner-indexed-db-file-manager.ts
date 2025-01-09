@@ -8,7 +8,7 @@ import { IndexedDBFileManager } from './indexed-db-file-manager';
 
 export class RunnerIndexedDBFileManager
   extends IndexedDBFileManager
-  implements FileManagerType<Uint8Array>
+  implements FileManagerType
 {
   constructor(options: FileManagerConstructorOptions) {
     super(options);

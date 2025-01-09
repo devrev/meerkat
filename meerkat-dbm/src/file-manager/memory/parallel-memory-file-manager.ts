@@ -24,23 +24,20 @@ export interface ParallelMemoryFileManagerType {
    */
   getTableBufferData?: (tables: TableConfig[]) => Promise<
     (BaseFileStore & {
-      buffer: SharedArrayBuffer;
+      buffer: Uint8Array;
     })[]
   >;
 }
 
 export class ParallelMemoryFileManager
-  implements ParallelMemoryFileManagerType, FileManagerType<SharedArrayBuffer>
+  implements ParallelMemoryFileManagerType, FileManagerType
 {
   private instanceManager: InstanceManagerType;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
 
-  private tableFileBuffersMap: Map<
-    string,
-    FileBufferStore<SharedArrayBuffer>[]
-  > = new Map();
+  private tableFileBuffersMap: Map<string, FileBufferStore[]> = new Map();
 
   constructor({
     instanceManager,
@@ -52,18 +49,14 @@ export class ParallelMemoryFileManager
     this.onEvent = onEvent;
   }
 
-  async bulkRegisterFileBuffer(
-    fileBuffers: FileBufferStore<SharedArrayBuffer>[]
-  ): Promise<void> {
+  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
     const promiseArr = fileBuffers.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
     );
     await Promise.all(promiseArr);
   }
 
-  async registerFileBuffer(
-    fileBuffer: FileBufferStore<SharedArrayBuffer>
-  ): Promise<void> {
+  async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
     const existingFiles =
       this.tableFileBuffersMap.get(fileBuffer.tableName) || [];
 
@@ -118,10 +111,6 @@ export class ParallelMemoryFileManager
     return response;
   }
 
-  getFileBuffer(name: string): Promise<SharedArrayBuffer> {
-    throw new Error('Method not implemented.');
-  }
-
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     // no-op
   }
@@ -152,7 +141,7 @@ export class ParallelMemoryFileManager
     for (const [tableName, fileBufferStores] of this.tableFileBuffersMap) {
       const clearedStores = fileBufferStores.map((store) => ({
         ...store,
-        buffer: new SharedArrayBuffer(0), // Replace with an empty buffer
+        buffer: new Uint8Array(), // Replace with an empty buffer
       }));
       this.tableFileBuffersMap.set(tableName, clearedStores);
     }
