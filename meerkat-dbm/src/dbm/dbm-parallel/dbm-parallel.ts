@@ -1,7 +1,4 @@
-import {
-  FileBufferStore,
-  FileManagerType,
-} from '../../file-manager/file-manager-type';
+import { FileManagerType } from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
 import {
   BROWSER_RUNNER_TYPE,
@@ -25,7 +22,7 @@ const roundRobin = (counter: number, maxValue: number): number => {
 };
 
 export class DBMParallel {
-  private fileManager: FileManagerType<FileBufferStore>;
+  private fileManager: FileManagerType;
   private logger: DBMLogger;
   private tableLockRegistry: Record<string, TableLock> = {};
 

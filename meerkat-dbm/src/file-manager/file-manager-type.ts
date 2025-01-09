@@ -138,6 +138,6 @@ export type FileJsonStore = BaseFileStore & {
   json: object;
 };
 
-export type RemoteFileStore = BaseFileStore & {
+export type FileUrlStore = BaseFileStore & {
   fileUrl: string;
 };

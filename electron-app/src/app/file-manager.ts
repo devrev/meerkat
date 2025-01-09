@@ -21,6 +21,8 @@ class FileManager {
     const uint8Array =
       buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     fs.writeFileSync(updatedFileName, uint8Array);
+
+    return updatedFileName;
   }
 
   readFilesForTable(tableName: string) {
@@ -40,16 +42,19 @@ class FileManager {
     });
   }
 
-  deleteFileFromTable(tableName: string, fileName: string) {
+  dropFilesByTableNames(tableName: string, files: string[]) {
     const dirPath = `${this.baseDir}/${tableName}`;
-    const filePath = `${dirPath}/${fileName}`;
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-      console.log(`Deleted file: ${filePath}`);
-    } else {
-      console.log(`File not found: ${filePath}`);
-    }
+    files.forEach((fileName) => {
+      const filePath = `${dirPath}/${fileName}`;
+
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`Deleted file: ${filePath}`);
+      } else {
+        console.log(`File not found: ${filePath}`);
+      }
+    });
   }
 }
 

@@ -4,10 +4,7 @@ import {
   NativeFileManager,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import {
-  NativeBridge,
-  QueryResult,
-} from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
+import { NativeBridge } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
 import { useMemo, useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
@@ -24,18 +21,23 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
   const nativeManager: NativeBridge = useMemo(() => {
     return {
       registerFiles: async ({ files }) => {
-        window.electron?.registerFiles({ files });
+        console.log('registerFiles in native manager', files);
+        const filePaths = await window.electron?.registerFiles({ files });
+        console.log('nativeManager filePaths', filePaths);
+        return filePaths;
       },
-      downloadFiles: async ({ files }) => {
-        window.electron?.downloadFiles({ files });
-      },
-      query: async (query) => {
-        const result = await window.electron?.query(query);
 
-        return result as QueryResult;
+      query: async (query) => {
+        console.log('query in native manager', query, window.electron);
+
+        try {
+          await window.electron?.query(query);
+        } catch (error) {
+          console.log('Query error:', error);
+        }
       },
-      dropFilesByTable: async ({ tableName, fileNames }) => {
-        window.electron?.dropFilesByTable({
+      dropFilesByTableName: async ({ tableName, fileNames }) => {
+        window.electron?.dropFilesByTableName({
           tableName,
           fileNames,
         });
@@ -54,9 +56,7 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       },
       nativeManager: nativeManager,
       logger: log,
-      onEvent: (event) => {
-        console.info(event);
-      },
+      onEvent: (event) => {},
       instanceManager: instanceManagerRef.current,
     });
 
@@ -64,9 +64,7 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       instanceManager: instanceManagerRef.current,
       fileManager: fileManagerRef.current,
       logger: log,
-      onEvent: (event) => {
-        console.info(event);
-      },
+      onEvent: (event) => {},
       nativeManager: nativeManager,
     });
     setdbm(dbm);

@@ -1,17 +1,26 @@
 import { Schema } from 'apache-arrow';
 
-export interface BaseFileMetadata {
+export interface BaseFileStore {
   tableName: string;
   fileName: string;
 }
 
-export interface FileUrlMetadata extends BaseFileMetadata {
+export interface FileUrlStore extends BaseFileStore {
+  type: 'url';
   fileUrl: string;
 }
 
-export interface FileBufferMetadata extends BaseFileMetadata {
+export interface FileJsonStore extends BaseFileStore {
+  type: 'json';
+  json: object;
+}
+
+export interface FileBufferStore extends BaseFileStore {
+  type: 'buffer';
   buffer: Uint8Array;
 }
+
+export type FileStore = FileJsonStore | FileUrlStore | FileBufferStore;
 
 export interface QueryResult {
   data?: object[];
@@ -22,16 +31,10 @@ export interface QueryResult {
 // Initial interface for the native bridge
 export interface NativeBridge {
   /**
-   * Download files from the given urls and register them in the file system.
-   * @param file - The file urls to download and register.
-   */
-  downloadFiles({ files }: { files: FileUrlMetadata[] }): Promise<void>;
-
-  /**
    * Register files in the file system.
    * @param files - The files to register.
    */
-  registerFiles({ files }: { files: FileBufferMetadata[] }): Promise<void>;
+  registerFiles({ files }: { files: FileStore[] }): Promise<void>;
 
   /**
    * Query the database.
@@ -45,8 +48,7 @@ export interface NativeBridge {
    * @param tableName - The table to drop the files from.
    * @param fileNames - The files to drop from the file system.
    */
-
-  dropFilesByTable({
+  dropFilesByTableName({
     tableName,
     fileNames,
   }: {

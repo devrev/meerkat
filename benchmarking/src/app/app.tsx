@@ -107,7 +107,9 @@ export function App() {
             <div>
               <h1>Native Node DuckDB</h1>
               <NativeDBMProvider>
-                <NativeAppFileLoader>hello</NativeAppFileLoader>
+                <NativeAppFileLoader>
+                  <QueryBenchmarking />
+                </NativeAppFileLoader>
               </NativeDBMProvider>
             </div>
           }

@@ -1,10 +1,6 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import { Table } from 'apache-arrow/table';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  FileManagerType,
-  FileNativeStore,
-} from '../../file-manager/file-manager-type';
+import { FileManagerType } from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
 import { InstanceManagerType } from '../instance-manager';
 import {
@@ -18,7 +14,7 @@ import { NativeBridge } from './native-bridge';
 
 export class DBMNative {
   private nativeManager: NativeBridge;
-  private fileManager: FileManagerType<FileNativeStore>;
+  private fileManager: FileManagerType;
   private instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
   private queriesQueue: QueryQueueItem[] = [];
@@ -92,7 +88,6 @@ export class DBMNative {
        * Check if there is any query in the queue
        */
       if (this.queriesQueue.length > 0) {
-        this.logger.debug('Query queue is not empty, not shutting down the DB');
         return;
       }
       await this._shutdown();
@@ -177,13 +172,6 @@ export class DBMNative {
     await this.fileManager.mountFileBufferByTables(tables);
     const endMountTime = Date.now();
 
-    this.logger.debug(
-      'Time spent in mounting files:',
-      endMountTime - startMountTime,
-      'ms',
-      query
-    );
-
     this._emitEvent({
       event_name: 'mount_file_buffer_duration',
       duration: endMountTime - startMountTime,
@@ -203,17 +191,10 @@ export class DBMNative {
      * Execute the query
      */
     const startQueryTime = Date.now();
-    const result = await this.query(query);
+    const result = {};
     const endQueryTime = Date.now();
 
     const queryQueueDuration = endQueryTime - startQueryTime;
-
-    this.logger.debug(
-      'Time spent in executing query by duckdb:',
-      queryQueueDuration,
-      'ms',
-      query
-    );
 
     this._emitEvent({
       event_name: 'query_execution_duration',
@@ -225,7 +206,6 @@ export class DBMNative {
   }
 
   private async _stopQueryQueue() {
-    this.logger.debug('Query queue is empty, stopping the queue execution');
     this.queryQueueRunning = false;
     /**
      * Clear the queue
@@ -243,8 +223,6 @@ export class DBMNative {
    * Recursively call itself to execute the next query
    */
   private async _startQueryExecution(metadata?: object) {
-    this.logger.debug('Query queue length:', this.queriesQueue.length);
-
     this._emitEvent({
       event_name: 'query_queue_length',
       value: this.queriesQueue.length,
@@ -273,12 +251,6 @@ export class DBMNative {
       );
 
       const startTime = Date.now();
-      this.logger.debug(
-        'Time since query was added to the queue:',
-        startTime - this.currentQueryItem.timestamp,
-        'ms',
-        this.currentQueryItem.query
-      );
 
       this._emitEvent({
         event_name: 'query_queue_duration',
@@ -296,12 +268,7 @@ export class DBMNative {
       );
       const endTime = Date.now();
 
-      this.logger.debug(
-        'Total time spent along with queue time',
-        endTime - this.currentQueryItem.timestamp,
-        'ms',
-        this.currentQueryItem.query
-      );
+      console.log(result);
       /**
        * Resolve the promise
        */
@@ -385,7 +352,7 @@ export class DBMNative {
     return promise;
   }
 
-  async query(query: string): Promise<Table<any>> {
+  async query(query: string): Promise<Record<string, unknown>> {
     /**
      * Execute the query
      */

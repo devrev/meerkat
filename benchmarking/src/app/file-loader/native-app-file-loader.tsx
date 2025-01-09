@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
@@ -16,17 +15,17 @@ export const NativeAppFileLoader = ({
       const fileUrl =
         'http://localhost:4204/data-sets/fhvhv_tripdata_2023-01.parquet';
 
-      await fileManager.registerFileBuffer({
+      await fileManager.registerFileUrl({
         tableName: 'taxi',
         fileName: 'taxi.parquet',
         fileUrl: fileUrl,
       });
 
-      await fileManager.registerJSON({
-        json: TAXI_JSON_DATA,
-        tableName: 'taxijson',
-        fileName: 'taxijson.parquet',
-      });
+      // await fileManager.registerJSON({
+      //   json: TAXI_JSON_DATA,
+      //   tableName: 'taxijson',
+      //   fileName: 'taxijson.parquet',
+      // });
 
       setIsFileLoader(true);
     })();

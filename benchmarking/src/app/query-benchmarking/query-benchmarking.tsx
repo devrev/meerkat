@@ -25,7 +25,20 @@ export const QueryBenchmarking = () => {
       const promiseObj = dbm
         .queryWithTables({
           query: TEST_QUERIES[i],
-          tables: [{ name: 'taxi' }, { name: 'taxijson' }],
+          tables: [{ name: 'taxi' }],
+          options: {
+            preQuery: async (tablesFileData) => {
+              for (const table of tablesFileData) {
+                dbm.query(
+                  `CREATE TABLE IF NOT EXISTS ${
+                    table.tableName
+                  } AS SELECT * FROM read_parquet(['${table.files.map(
+                    (file) => file.fileName
+                  )}']);`
+                );
+              }
+            },
+          },
         })
         .then((results) => {
           const end = performance.now();

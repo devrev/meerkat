@@ -30,17 +30,14 @@ export interface ParallelMemoryFileManagerType {
 }
 
 export class ParallelMemoryFileManager
-  implements ParallelMemoryFileManagerType, FileManagerType<SharedArrayBuffer>
+  implements ParallelMemoryFileManagerType, FileManagerType
 {
   private instanceManager: InstanceManagerType;
 
   private logger?: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
 
-  private tableFileBuffersMap: Map<
-    string,
-    FileBufferStore<SharedArrayBuffer>[]
-  > = new Map();
+  private tableFileBuffersMap: Map<string, FileBufferStore[]> = new Map();
 
   constructor({
     instanceManager,
@@ -52,18 +49,14 @@ export class ParallelMemoryFileManager
     this.onEvent = onEvent;
   }
 
-  async bulkRegisterFileBuffer(
-    fileBuffers: FileBufferStore<SharedArrayBuffer>[]
-  ): Promise<void> {
+  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
     const promiseArr = fileBuffers.map((fileBuffer) =>
       this.registerFileBuffer(fileBuffer)
     );
     await Promise.all(promiseArr);
   }
 
-  async registerFileBuffer(
-    fileBuffer: FileBufferStore<SharedArrayBuffer>
-  ): Promise<void> {
+  async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
     const existingFiles =
       this.tableFileBuffersMap.get(fileBuffer.tableName) || [];
 

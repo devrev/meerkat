@@ -1,8 +1,5 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import {
-  FileBufferStore,
-  FileManagerType,
-} from '../file-manager/file-manager-type';
+import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
 import { TableWiseFiles } from '../types';
 import { InstanceManagerType } from './instance-manager';
@@ -13,7 +10,7 @@ export interface DBMConstructorOptions {
    * It handles all file operations such as file registration, file retrieval, file deletion
    * including mounting and unmounting of files in DuckDB instance.
    */
-  fileManager: FileManagerType<FileBufferStore>;
+  fileManager: FileManagerType;
 
   /**
    * @description
