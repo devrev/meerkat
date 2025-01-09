@@ -21,12 +21,6 @@ export const NativeAppFileLoader = ({
         fileUrl: fileUrl,
       });
 
-      // await fileManager.registerJSON({
-      //   json: TAXI_JSON_DATA,
-      //   tableName: 'taxijson',
-      //   fileName: 'taxijson.parquet',
-      // });
-
       setIsFileLoader(true);
     })();
   }, []);

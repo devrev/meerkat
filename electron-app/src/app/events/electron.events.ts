@@ -25,7 +25,7 @@ ipcMain.on('register-files', async (event, data: { files: FileStore[] }) => {
     switch (file.type) {
       case 'url': {
         const buffer = await fetchParquetFile(file.fileUrl);
-        const filePath = fileManager.writeBufferToFile({
+        const filePath = fileManager.writeFile({
           ...file,
           buffer,
         });
@@ -33,7 +33,7 @@ ipcMain.on('register-files', async (event, data: { files: FileStore[] }) => {
         break;
       }
       case 'buffer': {
-        const filePath = fileManager.writeBufferToFile({
+        const filePath = fileManager.writeFile({
           ...file,
         });
         filePaths.push({ filePath, fileName: file.fileName });
@@ -66,7 +66,7 @@ ipcMain.handle(
       files: string[];
     }
   ) => {
-    fileManager.dropFilesByTableNames(tableData.tableName, tableData.files);
+    fileManager.deleteTableFiles(tableData.tableName, tableData.files);
   }
 );
 
@@ -74,6 +74,6 @@ ipcMain.handle(
   NativeAppEvent.GET_FILE_PATHS_FOR_TABLE,
   (event, { tableName }: { tableName: string }) => {
     console.log('getFilePathsForTable in electron', tableName);
-    return fileManager.getFilePathsForTable(tableName);
+    return fileManager.getTableFilePaths(tableName);
   }
 );

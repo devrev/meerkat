@@ -1,4 +1,6 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
+import { Table } from 'apache-arrow';
+import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager';
 import { DBMEvent, DBMLogger } from '../logger';
 import { InstanceManagerType } from './instance-manager';
@@ -297,5 +299,88 @@ export class DBM extends TableLockManager {
 
   public isQueryRunning() {
     return this.queryQueueRunning;
+  }
+
+  private _signalListener(
+    connectionId: string,
+    reject: (reason?: any) => void,
+    signal?: AbortSignal
+  ): void {
+    const signalHandler = async (reason: Event) => {
+      const indexToRemove = this.queriesQueue.findIndex(
+        (queryItem) => queryItem.connectionId === connectionId
+      );
+
+      // Remove the item at the found index
+      if (indexToRemove !== -1) {
+        this.queriesQueue.splice(indexToRemove, 1);
+      }
+
+      /**
+       * Check if the current executing query is the one that was aborted
+       * If yes, then cancel the query
+       */
+      if (this.currentQueryItem?.connectionId === connectionId) {
+        const connection = await this._getConnection();
+
+        await connection.cancelSent();
+      }
+
+      signal?.removeEventListener('abort', signalHandler);
+
+      reject(reason);
+    };
+
+    signal?.addEventListener('abort', signalHandler);
+  }
+
+  public async queryWithTables({
+    query,
+    tables,
+    options,
+  }: {
+    query: string;
+    tables: TableConfig[];
+    options?: QueryOptions;
+  }) {
+    const connectionId = uuidv4();
+
+    const promise = new Promise((resolve, reject) => {
+      this._signalListener(connectionId, reject, options?.signal);
+
+      this.queriesQueue.push({
+        query,
+        tables,
+        promise: {
+          resolve,
+          reject,
+        },
+        connectionId,
+        timestamp: Date.now(),
+        options,
+      });
+    });
+
+    this._startQueryQueue();
+    return promise;
+  }
+
+  async query(query: string): Promise<Table<any>> {
+    /**
+     * Get the connection or create a new one
+     */
+    const connection = await this._getConnection();
+
+    /**
+     * Execute the query
+     */
+    return connection.query(query);
+  }
+
+  /**
+   * Set the shutdown lock to prevent the DB from shutting down
+   */
+  public async setShutdownLock(state: boolean) {
+    this.shutdownLock = state;
   }
 }

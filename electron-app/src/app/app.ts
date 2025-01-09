@@ -55,7 +55,6 @@ export default class App {
         contextIsolation: true,
         backgroundThrottling: false,
         preload: join(__dirname, 'main.preload.js'),
-        devTools: true,
       },
     });
     App.mainWindow.setMenu(null);

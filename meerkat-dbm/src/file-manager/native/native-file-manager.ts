@@ -1,12 +1,12 @@
 import { NativeBridge } from '../../dbm/dbm-native/native-bridge';
 import { TableConfig } from '../../dbm/types';
-import { mergeFileBufferStoreIntoTable } from '../../utils';
+import { mergeFileStoreIntoTable } from '../../utils';
 import {
-  BaseFileStore,
   FileBufferStore,
   FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
+  FileStore,
   FileUrlStore,
 } from '../file-manager-type';
 import { BaseIndexedDBFileManager } from '../indexed-db/base-indexed-db-file-manager';
@@ -38,7 +38,7 @@ export class NativeFileManager
    * Update the tables in IndexedDB with the file data
    */
   private async updateIndexedDBWithTableData(
-    fileBuffers: BaseFileStore[]
+    fileBuffers: FileStore[]
   ): Promise<void> {
     const tableNames = Array.from(
       new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
@@ -46,7 +46,7 @@ export class NativeFileManager
 
     const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    const updatedTableMap = mergeFileBufferStoreIntoTable(
+    const updatedTableMap = mergeFileStoreIntoTable(
       fileBuffers,
       currentTableData
     );

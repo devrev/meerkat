@@ -1,53 +1,49 @@
-import { FileBufferStore } from '@devrev/meerkat-dbm';
-import * as fs from 'fs';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import { BASE_DIR } from './constants';
 
-class FileManager {
-  private baseDir: string;
+interface FileBufferStore {
+  buffer: Buffer | Uint8Array;
+  fileName: string;
+  tableName: string;
+}
 
-  constructor(baseDir = BASE_DIR) {
-    this.baseDir = baseDir;
+export class FileManager {
+  constructor(private readonly baseDir = './storage') {
+    fs.mkdir(baseDir, { recursive: true }).catch(console.error);
   }
 
-  writeBufferToFile(fileBuffer: FileBufferStore) {
-    const { buffer, fileName, tableName } = fileBuffer;
-    const dirPath = `${this.baseDir}/${tableName}`;
-    const updatedFileName = `${dirPath}/${fileName}`;
+  private getPath(tableName: string, fileName?: string): string {
+    return fileName
+      ? path.join(this.baseDir, tableName, fileName)
+      : path.join(this.baseDir, tableName);
+  }
 
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
+  async writeFile(file: FileBufferStore): Promise<void> {
+    const filePath = this.getPath(file.tableName, file.fileName);
+
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+
+    await fs.writeFile(filePath, file.buffer);
+  }
+
+  async getTableFilePaths(tableName: string): Promise<string[]> {
+    try {
+      const files = await fs.readdir(this.getPath(tableName));
+
+      return files.map((file) => this.getPath(tableName, file));
+    } catch {
+      return [];
     }
-
-    const uint8Array =
-      buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-    fs.writeFileSync(updatedFileName, uint8Array);
-
-    return updatedFileName;
   }
 
-  getFilePathsForTable(tableName: string) {
-    const dirPath = `${this.baseDir}/${tableName}`;
-
-    const fileNames = fs.readdirSync(dirPath);
-    const filePaths = fileNames.map((fileName) => `${dirPath}/${fileName}`);
-
-    return filePaths;
-  }
-
-  dropFilesByTableNames(tableName: string, files: string[]) {
-    const dirPath = `${this.baseDir}/${tableName}`;
-
-    files.forEach((fileName) => {
-      const filePath = `${dirPath}/${fileName}`;
-
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`Deleted file: ${filePath}`);
-      } else {
-        console.log(`File not found: ${filePath}`);
-      }
-    });
+  async deleteTableFiles(tableName: string, files: string[]): Promise<void> {
+    await Promise.all(
+      files.map((file) =>
+        fs.unlink(this.getPath(tableName, file)).catch(console.error)
+      )
+    );
   }
 }
 
-export const fileManager = new FileManager();
+export const fileManager = new FileManager(BASE_DIR);
