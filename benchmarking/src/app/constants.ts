@@ -28,9 +28,9 @@ export const TEST_QUERIES = [
   // LIMIT 1
   //   `,
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  // "SELECT * FROM taxi.parquet WHERE originating_base_num='B03404' LIMIT 100",
-  // 'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet GROUP BY hvfhs_license_num',
-  // 'SELECT * FROM taxi.parquet ORDER BY bcf LIMIT 100',
+  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
+  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
+  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
 
   // `
   //   WITH group_by_query AS (
@@ -60,10 +60,10 @@ export const TEST_QUERIES = [
   //   group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
   // LIMIT 1
   // `,
-  // 'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet',
-  // "SELECT * FROM taxi.parquet WHERE originating_base_num='B03404' LIMIT 100",
-  // 'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi.parquet GROUP BY hvfhs_license_num',
-  // 'SELECT * FROM taxi.parquet ORDER BY bcf LIMIT 100',
+  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
+  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
+  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
+  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
   // `
   // WITH group_by_query AS (
   //   SELECT

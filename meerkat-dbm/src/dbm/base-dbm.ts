@@ -1,21 +1,20 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
+import { Table } from 'apache-arrow/table';
 import { v4 as uuidv4 } from 'uuid';
-import { FileManagerType } from '../../file-manager/file-manager-type';
-import { DBMEvent, DBMLogger } from '../../logger';
-import { InstanceManagerType } from '../instance-manager';
+import { FileManagerType } from '../file-manager/file-manager-type';
+import { DBMEvent, DBMLogger } from '../logger';
+import { InstanceManagerType } from './instance-manager';
 import {
   DBMConstructorOptions,
   QueryOptions,
   QueryQueueItem,
   TableConfig,
   TableLock,
-} from '../types';
-import { NativeBridge } from './native-bridge';
+} from './types';
 
-export class DBMNative {
-  private nativeManager: NativeBridge;
-  private fileManager: FileManagerType;
-  private instanceManager: InstanceManagerType;
+export class BaseDBM {
+  protected fileManager: FileManagerType;
+  protected instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
   private queriesQueue: QueryQueueItem[] = [];
   private tableLockRegistry: Record<string, TableLock> = {};
@@ -25,6 +24,9 @@ export class DBMNative {
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
   private onDuckDBShutdown?: () => void;
+  private onCreateConnection?: (
+    connection: AsyncDuckDBConnection
+  ) => void | Promise<void>;
 
   private queryQueueRunning = false;
   private shutdownLock = false;
@@ -37,15 +39,15 @@ export class DBMNative {
     options,
     instanceManager,
     onDuckDBShutdown,
-    nativeManager,
-  }: DBMConstructorOptions & { nativeManager: NativeBridge }) {
+    onCreateConnection,
+  }: DBMConstructorOptions) {
     this.fileManager = fileManager;
     this.logger = logger;
     this.onEvent = onEvent;
     this.options = options;
     this.instanceManager = instanceManager;
     this.onDuckDBShutdown = onDuckDBShutdown;
-    this.nativeManager = nativeManager;
+    this.onCreateConnection = onCreateConnection;
   }
 
   private async _shutdown() {
@@ -83,6 +85,7 @@ export class DBMNative {
        * Check if there is any query in the queue
        */
       if (this.queriesQueue.length > 0) {
+        this.logger.debug('Query queue is not empty, not shutting down the DB');
         return;
       }
       await this._shutdown();
@@ -93,6 +96,17 @@ export class DBMNative {
     if (this.onEvent) {
       this.onEvent(event);
     }
+  }
+
+  private async _getConnection() {
+    if (!this.connection) {
+      const db = await this.instanceManager.getDB();
+      this.connection = await db.connect();
+      if (this.onCreateConnection) {
+        await this.onCreateConnection(this.connection);
+      }
+    }
+    return this.connection;
   }
 
   async lockTables(tableNames: string[]): Promise<void> {
@@ -167,6 +181,13 @@ export class DBMNative {
     await this.fileManager.mountFileBufferByTables(tables);
     const endMountTime = Date.now();
 
+    this.logger.debug(
+      'Time spent in mounting files:',
+      endMountTime - startMountTime,
+      'ms',
+      query
+    );
+
     this._emitEvent({
       event_name: 'mount_file_buffer_duration',
       duration: endMountTime - startMountTime,
@@ -191,6 +212,13 @@ export class DBMNative {
 
     const queryQueueDuration = endQueryTime - startQueryTime;
 
+    this.logger.debug(
+      'Time spent in executing query by duckdb:',
+      queryQueueDuration,
+      'ms',
+      query
+    );
+
     this._emitEvent({
       event_name: 'query_execution_duration',
       duration: queryQueueDuration,
@@ -201,6 +229,7 @@ export class DBMNative {
   }
 
   private async _stopQueryQueue() {
+    this.logger.debug('Query queue is empty, stopping the queue execution');
     this.queryQueueRunning = false;
     /**
      * Clear the queue
@@ -218,6 +247,8 @@ export class DBMNative {
    * Recursively call itself to execute the next query
    */
   private async _startQueryExecution(metadata?: object) {
+    this.logger.debug('Query queue length:', this.queriesQueue.length);
+
     this._emitEvent({
       event_name: 'query_queue_length',
       value: this.queriesQueue.length,
@@ -246,6 +277,12 @@ export class DBMNative {
       );
 
       const startTime = Date.now();
+      this.logger.debug(
+        'Time since query was added to the queue:',
+        startTime - this.currentQueryItem.timestamp,
+        'ms',
+        this.currentQueryItem.query
+      );
 
       this._emitEvent({
         event_name: 'query_queue_duration',
@@ -263,7 +300,12 @@ export class DBMNative {
       );
       const endTime = Date.now();
 
-      console.log(result);
+      this.logger.debug(
+        'Total time spent along with queue time',
+        endTime - this.currentQueryItem.timestamp,
+        'ms',
+        this.currentQueryItem.query
+      );
       /**
        * Resolve the promise
        */
@@ -318,6 +360,39 @@ export class DBMNative {
     return this.queryQueueRunning;
   }
 
+  private _signalListener(
+    connectionId: string,
+    reject: (reason?: any) => void,
+    signal?: AbortSignal
+  ): void {
+    const signalHandler = async (reason: Event) => {
+      const indexToRemove = this.queriesQueue.findIndex(
+        (queryItem) => queryItem.connectionId === connectionId
+      );
+
+      // Remove the item at the found index
+      if (indexToRemove !== -1) {
+        this.queriesQueue.splice(indexToRemove, 1);
+      }
+
+      /**
+       * Check if the current executing query is the one that was aborted
+       * If yes, then cancel the query
+       */
+      if (this.currentQueryItem?.connectionId === connectionId) {
+        const connection = await this._getConnection();
+
+        await connection.cancelSent();
+      }
+
+      signal?.removeEventListener('abort', signalHandler);
+
+      reject(reason);
+    };
+
+    signal?.addEventListener('abort', signalHandler);
+  }
+
   public async queryWithTables({
     query,
     tables,
@@ -330,6 +405,8 @@ export class DBMNative {
     const connectionId = uuidv4();
 
     const promise = new Promise((resolve, reject) => {
+      this._signalListener(connectionId, reject, options?.signal);
+
       this.queriesQueue.push({
         query,
         tables,
@@ -347,11 +424,16 @@ export class DBMNative {
     return promise;
   }
 
-  async query(query: string): Promise<Record<string, unknown>> {
+  async query(query: string): Promise<Table<any>> {
+    /**
+     * Get the connection or create a new one
+     */
+    const connection = await this._getConnection();
+
     /**
      * Execute the query
      */
-    return this.nativeManager.query(query);
+    return connection.query(query);
   }
 
   /**
