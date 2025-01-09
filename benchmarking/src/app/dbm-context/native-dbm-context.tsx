@@ -19,14 +19,13 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
 
   const dbState = useAsyncDuckDB();
 
-  const nativeManager: NativeBridge = useMemo(() => {
+  const nativeBridge: NativeBridge = useMemo(() => {
     return {
       registerFiles: async (files: FileStore[]): Promise<void> => {
         await window.api?.registerFiles(files);
       },
 
       query: async (query): Promise<Record<string, any>> => {
-        console.log('query', query);
         const result = await window.api?.query(query);
         console.log('result', result);
         return result ?? {};
@@ -38,7 +37,6 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
         });
       },
       getFilePathsForTable: async (tableName): Promise<string[]> => {
-        console.log('getFilePathsForTable', tableName);
         return (await window.api?.getFilePathsForTable(tableName)) ?? [];
       },
     };
@@ -53,7 +51,7 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       fetchTableFileBuffers: async (table) => {
         return [];
       },
-      nativeManager: nativeManager,
+      nativeBridge: nativeBridge,
       logger: log,
       onEvent: (event) => {
         console.log('event', event);
@@ -68,7 +66,7 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       onEvent: (event) => {
         console.log('event', event);
       },
-      nativeManager: nativeManager,
+      nativeBridge: nativeBridge,
     });
     setdbm(dbm);
   }, [dbState]);

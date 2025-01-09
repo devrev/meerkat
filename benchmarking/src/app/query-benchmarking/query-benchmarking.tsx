@@ -4,7 +4,7 @@ import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
-type Type =
+type FileManagerType =
   | 'raw'
   | 'memory'
   | 'indexed'
@@ -12,7 +12,7 @@ type Type =
   | 'parallel-memory'
   | 'parallel-indexed';
 
-export const QueryBenchmarking = ({ type }: { type: Type }) => {
+export const QueryBenchmarking = ({ type }: { type: FileManagerType }) => {
   const [output, setOutput] = useState<
     {
       queryName: string;

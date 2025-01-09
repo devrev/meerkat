@@ -12,7 +12,6 @@ export default class ElectronEvents {
 }
 
 ipcMain.on(NativeAppEvent.REGISTER_FILES, async (event, files: FileStore[]) => {
-  console.log('files', files);
   for (const file of files) {
     switch (file.type) {
       case 'url': {

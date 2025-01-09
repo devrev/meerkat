@@ -27,7 +27,6 @@ export interface QueryResult {
   schema?: Schema;
 }
 
-// Initial interface for the native bridge
 export interface NativeBridge {
   /**
    * Register files in the file system.

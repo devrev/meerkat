@@ -3,7 +3,7 @@ import { DBMConstructorOptions } from '../types';
 import { NativeBridge } from './native-bridge';
 
 export class DBMNative extends DBM {
-  private nativeManager: NativeBridge;
+  private nativeBridge: NativeBridge;
 
   constructor({
     fileManager,
@@ -12,8 +12,8 @@ export class DBMNative extends DBM {
     options,
     instanceManager,
     onDuckDBShutdown,
-    nativeManager,
-  }: DBMConstructorOptions & { nativeManager: NativeBridge }) {
+    nativeBridge,
+  }: DBMConstructorOptions & { nativeBridge: NativeBridge }) {
     super({
       fileManager,
       logger,
@@ -23,10 +23,10 @@ export class DBMNative extends DBM {
       onDuckDBShutdown,
     });
 
-    this.nativeManager = nativeManager;
+    this.nativeBridge = nativeBridge;
   }
 
   override async query(query: string): Promise<any> {
-    return this.nativeManager.query(query);
+    return this.nativeBridge.query(query);
   }
 }
