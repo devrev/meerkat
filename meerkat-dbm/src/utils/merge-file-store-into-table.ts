@@ -20,7 +20,7 @@ import { Table } from '../types';
  *
  */
 
-type OmitBufferAndJson<T> = Omit<T, 'buffer' | 'json'>;
+type OmitBufferAndJson<FileStore> = Omit<FileStore, 'buffer' | 'json'>;
 
 const omitDataProperties = (obj: FileStore): OmitBufferAndJson<FileStore> => {
   const { buffer, json, ...rest } = obj as any;
@@ -42,7 +42,7 @@ export const mergeFileStoreIntoTable = (
 
     if (existingTable) {
       const existingFileIndex = existingTable.files.findIndex(
-        (existingFile) => existingFile.fileName === fileData.fileName
+        (file) => file.fileName === fileData.fileName
       );
 
       if (existingFileIndex !== -1) {
