@@ -1,5 +1,5 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import { Table } from 'apache-arrow';
+import { Table } from 'apache-arrow/table';
 import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager';
 import { DBMEvent, DBMLogger } from '../logger';

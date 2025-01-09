@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { TAXI_FILE_URL } from './constants';
 
 export const NativeAppFileLoader = ({
   children,
@@ -12,13 +13,12 @@ export const NativeAppFileLoader = ({
 
   useClassicEffect(() => {
     (async () => {
-      const fileUrl =
-        'http://localhost:4204/data-sets/fhvhv_tripdata_2023-01.parquet';
+      const url = TAXI_FILE_URL;
 
-      await fileManager.registerFileUrl({
+      await fileManager?.registerFileUrl({
         tableName: 'taxi',
         fileName: 'taxi.parquet',
-        fileUrl: fileUrl,
+        url: url,
       });
 
       setIsFileLoader(true);

@@ -1,13 +1,8 @@
-/**
- * This module is responsible on handling all the inter process communications
- * between the frontend to the electron backend.
- */
-
 import { ipcMain } from 'electron';
 import { FileStore } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
-import { NativeAppEvent } from '../api/main.preload';
 import duckDB from '../duckdb/duckdb';
 import { fileManager } from '../file-manager';
+import { DropTableFilesPayload, NativeAppEvent } from '../types';
 import { fetchParquetFile } from '../utils';
 
 export default class ElectronEvents {
@@ -16,27 +11,23 @@ export default class ElectronEvents {
   }
 }
 
-ipcMain.on('register-files', async (event, data: { files: FileStore[] }) => {
-  console.log('registerFiles in electron', data);
-  const { files } = data;
-  const filePaths = [];
-
+ipcMain.on(NativeAppEvent.REGISTER_FILES, async (event, files: FileStore[]) => {
+  console.log('files', files);
   for (const file of files) {
     switch (file.type) {
       case 'url': {
-        const buffer = await fetchParquetFile(file.fileUrl);
-        const filePath = fileManager.writeFile({
+        const buffer = await fetchParquetFile(file.url);
+
+        await fileManager.writeFile({
           ...file,
           buffer,
         });
-        filePaths.push({ filePath, fileName: file.fileName });
         break;
       }
       case 'buffer': {
-        const filePath = fileManager.writeFile({
+        await fileManager.writeFile({
           ...file,
         });
-        filePaths.push({ filePath, fileName: file.fileName });
         break;
       }
       default: {
@@ -46,34 +37,22 @@ ipcMain.on('register-files', async (event, data: { files: FileStore[] }) => {
   }
 });
 
-ipcMain.handle(
-  NativeAppEvent.QUERY,
-  async (event, { query }: { query: string }) => {
-    console.log('query in electron', query);
+ipcMain.handle(NativeAppEvent.QUERY, async (event, query: string) => {
+  const result = await duckDB.executeQuery({ query });
 
-    const result = await duckDB.executeQuery({ query });
-    console.log('resultda', result);
-    return { message: { data: result, isError: false } };
-  }
-);
+  return { data: result };
+});
 
 ipcMain.handle(
-  NativeAppEvent.DROP_FILES_BY_TABLE,
-  (
-    event,
-    tableData: {
-      tableName: string;
-      files: string[];
-    }
-  ) => {
-    fileManager.deleteTableFiles(tableData.tableName, tableData.files);
+  NativeAppEvent.DROP_FILES_BY_TABLE_NAME,
+  async (event, tableData: DropTableFilesPayload) => {
+    await fileManager.deleteTableFiles(tableData.tableName, tableData.files);
   }
 );
 
 ipcMain.handle(
   NativeAppEvent.GET_FILE_PATHS_FOR_TABLE,
-  (event, { tableName }: { tableName: string }) => {
-    console.log('getFilePathsForTable in electron', tableName);
-    return fileManager.getTableFilePaths(tableName);
+  async (event, tableName: string) => {
+    return await fileManager.getTableFilePaths(tableName);
   }
 );

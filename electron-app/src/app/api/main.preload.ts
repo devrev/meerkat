@@ -1,58 +1,44 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
+import { FileStore } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
+import { DropTableFilesPayload, NativeAppEvent } from '../types';
 
-export enum NativeAppEvent {
-  REGISTER_FILES = 'register-files',
-  QUERY = 'query',
-  DROP_FILES_BY_TABLE = 'drop-files-by-table',
-  GET_FILE_PATHS_FOR_TABLE = 'get-file-paths-for-table',
-}
+export type ContextBridgeApi = {
+  registerFiles: (files: FileStore[]) => Promise<void>;
+  query: (query: string) => Promise<{ data: Record<string, unknown> }>;
+  getFilePathsForTable: (tableName: string) => Promise<string[]>;
+  dropFilesByTableName: (tableData: DropTableFilesPayload) => Promise<void>;
+};
 
-export type Channels = NativeAppEvent;
+const API: ContextBridgeApi = {
+  registerFiles: (files: FileStore[]) => {
+    return new Promise((resolve) => {
+      ipcRenderer.send(NativeAppEvent.REGISTER_FILES, files);
+      resolve();
+    });
+  },
 
-const electronHandler = {
-  ipcRenderer: {
-    invoke: (channel: Channels, ...args: unknown[]) => {
-      return ipcRenderer.invoke(channel, ...args); // Added return statement here
-    },
-    on(channel: Channels, func: (...args: unknown[]) => void) {
-      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
-        func(...args);
-      ipcRenderer.on(channel, subscription);
+  query: (query: string) => {
+    return new Promise((resolve) => {
+      ipcRenderer
+        .invoke(NativeAppEvent.QUERY, query)
+        .then((data) => resolve(data));
+    });
+  },
 
-      return () => {
-        ipcRenderer.removeListener(channel, subscription);
-      };
-    },
-    once(channel: Channels, func: (...args: unknown[]) => void) {
-      ipcRenderer.once(channel, (_event, ...args) => func(...args));
-    },
-    send(channel: Channels, ...args: unknown[]) {
-      ipcRenderer.send(channel, ...args);
-    },
-    sendMessage(channel: Channels, ...args: unknown[]) {
-      ipcRenderer.send(channel, ...args);
-    },
+  getFilePathsForTable: (tableName: string) => {
+    return new Promise((resolve) => {
+      ipcRenderer
+        ?.invoke(NativeAppEvent.GET_FILE_PATHS_FOR_TABLE, tableName)
+        .then((data) => resolve(data));
+    });
+  },
+
+  dropFilesByTableName: (tableData: DropTableFilesPayload) => {
+    return new Promise((resolve) => {
+      ipcRenderer.invoke(NativeAppEvent.DROP_FILES_BY_TABLE_NAME, tableData);
+      resolve();
+    });
   },
 };
 
-// const API = {
-//   registerFiles: async (fileBuffers: FileStore[]) => {
-//     // Send the files array wrapped in an object matching the handler's expected structure
-//     const response = await ipcRenderer.invoke(DBMEvent.REGISTER_FILES, {
-//       files: fileBuffers,
-//     });
-//     return response;
-//   },
-
-//   dropFilesByTable: (tableName: string, fileNames: string[]) => {
-//     ipcRenderer.send(DBMEvent.DROP_FILES_BY_TABLE, {
-//       tableName,
-//       fileNames,
-//     });
-//   },
-//   query: (query: string) => {
-//     ipcRenderer.send(DBMEvent.QUERY, query);
-//   },
-// };
-
-contextBridge?.exposeInMainWorld('electron', electronHandler);
+contextBridge?.exposeInMainWorld('api', API);

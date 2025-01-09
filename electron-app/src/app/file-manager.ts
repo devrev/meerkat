@@ -1,16 +1,14 @@
+import { FileBufferStore } from '@devrev/meerkat-dbm';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { BASE_DIR } from './constants';
 
-interface FileBufferStore {
-  buffer: Buffer | Uint8Array;
-  fileName: string;
-  tableName: string;
-}
-
 export class FileManager {
-  constructor(private readonly baseDir = './storage') {
-    fs.mkdir(baseDir, { recursive: true }).catch(console.error);
+  private readonly baseDir: string;
+
+  constructor(config: { baseDir?: string }) {
+    this.baseDir = config.baseDir ?? './data';
+    fs.mkdir(this.baseDir, { recursive: true }).catch(console.error);
   }
 
   private getPath(tableName: string, fileName?: string): string {
@@ -46,4 +44,4 @@ export class FileManager {
   }
 }
 
-export const fileManager = new FileManager(BASE_DIR);
+export const fileManager = new FileManager({ baseDir: BASE_DIR });

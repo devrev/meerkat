@@ -1,6 +1,7 @@
 import {
   DBMNative,
   FileManagerType,
+  FileStore,
   NativeFileManager,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
@@ -8,7 +9,6 @@ import { NativeBridge } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
 import { useMemo, useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
-import { NativeAppEvent } from '../native-app/electron-contants';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
@@ -21,40 +21,25 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
 
   const nativeManager: NativeBridge = useMemo(() => {
     return {
-      registerFiles: async ({ files }) => {
-        await window.electron?.ipcRenderer.send(NativeAppEvent.REGISTER_FILES, {
-          files,
+      registerFiles: async (files: FileStore[]): Promise<void> => {
+        await window.api?.registerFiles(files);
+      },
+
+      query: async (query): Promise<Record<string, any>> => {
+        console.log('query', query);
+        const result = await window.api?.query(query);
+        console.log('result', result);
+        return result ?? {};
+      },
+      dropFilesByTableName: async ({ tableName, fileNames }): Promise<void> => {
+        await window.api?.dropFilesByTableName({
+          tableName,
+          fileNames,
         });
       },
-
-      query: async (query) => {
-        try {
-          const result = await window.electron?.ipcRenderer.invoke(
-            NativeAppEvent.QUERY,
-            { query }
-          );
-
-          return result;
-        } catch (error) {
-          console.log('Query error:', error);
-        }
-      },
-      dropFilesByTableName: async ({ tableName, fileNames }) => {
-        window.electron?.ipcRenderer.invoke(
-          NativeAppEvent.DROP_FILES_BY_TABLE,
-          {
-            tableName,
-            fileNames,
-          }
-        );
-      },
-      getFilePathsForTable: async ({ tableName }) => {
-        return await window.electron?.ipcRenderer.invoke(
-          NativeAppEvent.GET_FILE_PATHS_FOR_TABLE,
-          {
-            tableName,
-          }
-        );
+      getFilePathsForTable: async (tableName): Promise<string[]> => {
+        console.log('getFilePathsForTable', tableName);
+        return (await window.api?.getFilePathsForTable(tableName)) ?? [];
       },
     };
   }, []);
@@ -70,7 +55,9 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       },
       nativeManager: nativeManager,
       logger: log,
-      onEvent: (event) => {},
+      onEvent: (event) => {
+        console.log('event', event);
+      },
       instanceManager: instanceManagerRef.current,
     });
 
@@ -78,7 +65,9 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       instanceManager: instanceManagerRef.current,
       fileManager: fileManagerRef.current,
       logger: log,
-      onEvent: (event) => {},
+      onEvent: (event) => {
+        console.log('event', event);
+      },
       nativeManager: nativeManager,
     });
     setdbm(dbm);

@@ -1,23 +1,17 @@
-export enum NativeAppEvent {
-  REGISTER_FILES = 'register-files',
-  QUERY = 'query',
-  DROP_FILES_BY_TABLE = 'drop-files-by-table',
-  GET_FILE_PATHS_FOR_TABLE = 'get-file-paths-for-table',
-}
-export type Channels = NativeAppEvent;
+import { FileStore } from '@devrev/meerkat-dbm';
 
-export type Electron = {
-  ipcRenderer: {
-    invoke: (channel: Channels, ...args: unknown[]) => void;
-    send(channel: Channels, ...args: unknown[]): void;
-    sendMessage(channel: Channels, ...args: unknown[]): void;
-    on(channel: Channels, func: (...args: unknown[]) => void): () => void;
-    once(channel: Channels, func: (...args: unknown[]) => void): void;
-  };
+export type ContextBridgeApi = {
+  registerFiles: (files: FileStore[]) => Promise<void>;
+  query: (query: string) => Promise<Record<string, unknown>>;
+  getFilePathsForTable: (tableName: string) => Promise<string[]>;
+  dropFilesByTableName: (tableData: {
+    tableName: string;
+    fileNames: string[];
+  }) => Promise<void>;
 };
 
 declare global {
   interface Window {
-    electron?: Electron;
+    api: ContextBridgeApi;
   }
 }

@@ -1,5 +1,4 @@
 import { NativeBridge } from '../../dbm/dbm-native/native-bridge';
-import { TableConfig } from '../../dbm/types';
 import { mergeFileStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
@@ -15,7 +14,7 @@ export class NativeFileManager
   extends BaseIndexedDBFileManager
   implements FileManagerType
 {
-  private nativeManager: NativeBridge;
+  private readonly nativeManager: NativeBridge;
 
   constructor({
     fetchTableFileBuffers,
@@ -34,105 +33,88 @@ export class NativeFileManager
     this.nativeManager = nativeManager;
   }
 
-  /**
-   * Update the tables in IndexedDB with the file data
-   */
   private async updateIndexedDBWithTableData(
-    fileBuffers: FileStore[]
+    files: FileStore[]
   ): Promise<void> {
-    const tableNames = Array.from(
-      new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
-    );
+    try {
+      const tableNames = [...new Set(files.map((file) => file.tableName))];
+      const currentTables = await this.indexedDB.tablesKey.toArray();
+      const updatedTableMap = mergeFileStoreIntoTable(files, currentTables);
 
-    const currentTableData = await this.indexedDB.tablesKey.toArray();
+      const updates = tableNames.map((tableName) => ({
+        tableName,
+        files: updatedTableMap.get(tableName)?.files ?? [],
+      }));
 
-    const updatedTableMap = mergeFileStoreIntoTable(
-      fileBuffers,
-      currentTableData
-    );
-
-    /**
-     * Extracts the tables and files data from the tablesMap and fileBuffers
-     * in format that can be stored in IndexedDB
-     */
-    const updatedTableData = tableNames.map((tableName) => {
-      return { tableName, files: updatedTableMap.get(tableName)?.files ?? [] };
-    });
-
-    // Update the tables in IndexedDB
-    await this.indexedDB.tablesKey.bulkPut(updatedTableData);
+      await this.indexedDB.tablesKey.bulkPut(updates);
+    } catch (error) {
+      this.logger.error('Failed to update IndexedDB:', error);
+      throw new Error('IndexedDB update failed');
+    }
   }
 
-  async bulkRegisterFileUrl(remoteFiles: FileUrlStore[]): Promise<void> {
-    // Register the files in the native file system
-    await this.nativeManager.registerFiles({
-      files: remoteFiles.map((file) => ({ ...file, type: 'url' })),
-    });
-
-    // Update the tables in IndexedDB with the file data
-    await this.updateIndexedDBWithTableData(remoteFiles);
+  private async registerFiles<T extends FileStore>(
+    files: T[],
+    type: 'url' | 'buffer' | 'json'
+  ): Promise<void> {
+    await this.nativeManager.registerFiles(
+      files.map((file) => ({ ...file, type }))
+    );
+    await this.updateIndexedDBWithTableData(files);
   }
 
-  async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
-    await this.nativeManager.registerFiles({
-      files: jsonData.map((file) => ({ ...file, type: 'json' })),
-    });
+  async bulkRegisterFileUrl(files: FileUrlStore[]): Promise<void> {
+    await this.registerFiles(files, 'url');
+  }
 
-    await this.updateIndexedDBWithTableData(jsonData);
+  async bulkRegisterJSON(files: FileJsonStore[]): Promise<void> {
+    await this.registerFiles(files, 'json');
   }
 
   async registerFileUrl(file: FileUrlStore): Promise<void> {
-    console.log('registerFileUrl in native manager', file);
-    await this.nativeManager.registerFiles({
-      files: [{ ...file, type: 'url' }],
-    });
-
-    await this.updateIndexedDBWithTableData([file]);
+    await this.registerFiles([file], 'url');
   }
 
   override async registerFileBuffer(file: FileBufferStore): Promise<void> {
-    await this.nativeManager.registerFiles({
-      files: [{ ...file, type: 'buffer' }],
-    });
-
-    await this.updateIndexedDBWithTableData([file]);
+    await this.registerFiles([file], 'buffer');
   }
 
-  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
-    // no op
+  async bulkRegisterFileBuffer(): Promise<void> {
+    // no-op
   }
-
-  async registerJSON(jsonData: FileJsonStore): Promise<void> {
-    // no op
+  async registerJSON(): Promise<void> {
+    // no-op
   }
-
-  override async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    //no op
+  override async mountFileBufferByTables(): Promise<void> {
+    // no-op
   }
 
   override async dropFilesByTableName(
     tableName: string,
     fileNames: string[]
   ): Promise<void> {
-    const tableData = await this.indexedDB.tablesKey.get(tableName);
+    try {
+      const tableData = await this.indexedDB.tablesKey.get(tableName);
 
-    if (tableData) {
-      // Retrieve the files that are not dropped
-      const updatedFiles = tableData.files.filter(
-        (file) => !fileNames.includes(file.fileName)
-      );
+      if (tableData) {
+        const updatedFiles = tableData.files.filter(
+          (file) => !fileNames.includes(file.fileName)
+        );
 
-      await this.indexedDB.tablesKey.put({
-        tableName,
-        files: updatedFiles,
-      });
+        await this.indexedDB.tablesKey.put({
+          tableName,
+          files: updatedFiles,
+        });
+      }
+
+      await this.nativeManager.dropFilesByTableName({ tableName, fileNames });
+    } catch (error) {
+      this.logger.error('Failed to drop files:', error);
+      throw new Error('Failed to drop files');
     }
-
-    // Remove the files from the IndexedDB
-    await this.nativeManager.dropFilesByTableName({ tableName, fileNames });
   }
 
   override async onDBShutdownHandler(): Promise<void> {
-    //no op
+    // no-op
   }
 }

@@ -7,7 +7,7 @@ export interface BaseFileStore {
 
 export interface FileUrlStore extends BaseFileStore {
   type: 'url';
-  fileUrl: string;
+  url: string;
 }
 
 export interface FileJsonStore extends BaseFileStore {
@@ -23,9 +23,8 @@ export interface FileBufferStore extends BaseFileStore {
 export type FileStore = FileJsonStore | FileUrlStore | FileBufferStore;
 
 export interface QueryResult {
-  data?: object[];
+  data?: Record<string, unknown>[];
   schema?: Schema;
-  error?: unknown;
 }
 
 // Initial interface for the native bridge
@@ -34,11 +33,7 @@ export interface NativeBridge {
    * Register files in the file system.
    * @param files - The files to register.
    */
-  registerFiles({
-    files,
-  }: {
-    files: FileStore[];
-  }): Promise<{ filePath: string; fileName: string }[]>;
+  registerFiles(files: FileStore[]): Promise<void>;
 
   /**
    * Query the database.

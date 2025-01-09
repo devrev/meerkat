@@ -139,7 +139,7 @@ export type FileJsonStore = BaseFileStore & {
 };
 
 export type FileUrlStore = BaseFileStore & {
-  fileUrl: string;
+  url: string;
 };
 
 export type FileStore = FileBufferStore | FileJsonStore | FileUrlStore;

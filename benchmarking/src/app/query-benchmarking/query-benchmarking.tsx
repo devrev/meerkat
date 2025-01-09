@@ -1,9 +1,18 @@
-import { useState } from 'react';
+import { TableWiseFiles } from 'meerkat-dbm/src/types';
+import { useMemo, useState } from 'react';
 import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 
-export const QueryBenchmarking = () => {
+type Type =
+  | 'raw'
+  | 'memory'
+  | 'indexed'
+  | 'native'
+  | 'parallel-memory'
+  | 'parallel-indexed';
+
+export const QueryBenchmarking = ({ type }: { type: Type }) => {
   const [output, setOutput] = useState<
     {
       queryName: string;
@@ -12,6 +21,30 @@ export const QueryBenchmarking = () => {
   >([]);
   const [totalTime, setTotalTime] = useState<number>(0);
   const { dbm } = useDBM();
+
+  const preQuery = useMemo(
+    () =>
+      async (tablesFileData: TableWiseFiles[]): Promise<void> => {
+        if (type !== 'native' || !window.api) return;
+
+        for (const table of tablesFileData) {
+          const filePaths = await window.api?.getFilePathsForTable(
+            table.tableName
+          );
+          console.log('filePaths', filePaths);
+          if (!filePaths) {
+            throw new Error('File paths not found');
+          }
+
+          await dbm.query(
+            `CREATE TABLE IF NOT EXISTS ${
+              table.tableName
+            } AS SELECT * FROM read_parquet(['${filePaths.join("','")}']);`
+          );
+        }
+      },
+    [type, dbm]
+  );
 
   useClassicEffect(() => {
     setTotalTime(0);
@@ -27,32 +60,7 @@ export const QueryBenchmarking = () => {
           query: TEST_QUERIES[i],
           tables: [{ name: 'taxi' }],
           options: {
-            // preQuery: async (tablesFileData) => {
-            //   for (const table of tablesFileData) {
-            //     console.log(
-            //       'getFilePathsForTable in query benchmarking',
-            //       table.tableName
-            //     );
-            //     const filePaths: string[] =
-            //       await window.electron?.ipcRenderer.invoke(
-            //         NativeAppEvent.GET_FILE_PATHS_FOR_TABLE,
-            //         {
-            //           tableName: table.tableName,
-            //         }
-            //       );
-            //     console.log('filePaths', filePaths);
-            //     if (!filePaths) {
-            //       throw new Error('File paths not found');
-            //     }
-            //     await dbm.query(
-            //       `CREATE TABLE IF NOT EXISTS ${
-            //         table.tableName
-            //       } AS SELECT * FROM read_parquet(['${filePaths.join(
-            //         "','"
-            //       )}']);`
-            //     );
-            //   }
-            // },
+            preQuery: preQuery,
           },
         })
         .then((results) => {

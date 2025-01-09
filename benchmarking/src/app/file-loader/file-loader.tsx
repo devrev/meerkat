@@ -3,6 +3,7 @@ import { useState } from 'react';
 import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { TAXI_FILE_URL } from './constants';
 
 export const FileLoader = ({ children }: { children: JSX.Element }) => {
   const { fileManager } = useDBM();
@@ -10,10 +11,9 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
 
   useClassicEffect(() => {
     (async () => {
-      const file = await axios.get(
-        'http://localhost:4204/data-sets/fhvhv_tripdata_2023-01.parquet',
-        { responseType: 'arraybuffer' }
-      );
+      const file = await axios.get(TAXI_FILE_URL, {
+        responseType: 'arraybuffer',
+      });
       const fileBuffer = file.data;
 
       const fileBufferView = new Uint8Array(fileBuffer);
