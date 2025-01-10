@@ -25,9 +25,9 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
         await window.api?.registerFiles(files);
       },
 
-      query: async (query): Promise<Record<string, any>> => {
+      query: async (query): Promise<Record<string, unknown>> => {
         const result = await window.api?.query(query);
-        console.log('result', result);
+
         return result ?? {};
       },
       dropFilesByTableName: async ({ tableName, fileNames }): Promise<void> => {

@@ -13,7 +13,7 @@ export const QueryBenchmarking = () => {
     }[]
   >([]);
   const [totalTime, setTotalTime] = useState<number>(0);
-  const { dbm, fileManagerType: type } = useDBM();
+  const { dbm, fileManagerType } = useDBM();
 
   const preQuery = useMemo(
     () =>
@@ -21,16 +21,16 @@ export const QueryBenchmarking = () => {
         for (const table of tablesFileData) {
           let filePaths: string[] = [];
 
-          if (type === 'native' && window.api) {
+          if (fileManagerType === 'native' && window.api) {
             filePaths = await window.api?.getFilePathsForTable(table.tableName);
-          } else if (type === 'indexdb' || type === 'parallel-indexdb') {
+          } else {
             filePaths = table.files.map((file) => file.fileName);
           }
 
           await dbm.query(generateViewQuery(table.tableName, filePaths));
         }
       },
-    [type, dbm]
+    [fileManagerType, dbm]
   );
 
   useClassicEffect(() => {
