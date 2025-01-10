@@ -1,4 +1,4 @@
-import { FileBufferStore, FileJsonStore } from '@devrev/meerkat-dbm';
+import { FileBufferStore } from '@devrev/meerkat-dbm';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { BASE_DIR } from './constants';
@@ -12,7 +12,6 @@ export class FileManager {
   }
 
   public getPath(tableName: string, fileName?: string): string {
-    console.log('tableName', tableName, fileName);
     return fileName
       ? path.join(this.baseDir, tableName, fileName)
       : path.join(this.baseDir, tableName);
@@ -24,14 +23,6 @@ export class FileManager {
     await fs.mkdir(path.dirname(filePath), { recursive: true });
 
     await fs.writeFile(filePath, file.buffer);
-  }
-
-  async writeFileJson(file: FileJsonStore): Promise<void> {
-    const filePath = this.getPath(file.tableName, file.fileName);
-
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-
-    await fs.writeFile(filePath, JSON.stringify(file.json));
   }
 
   async getTableFilePaths(tableName: string): Promise<string[]> {

@@ -56,7 +56,7 @@ export const QueryBenchmarking = ({ type }: { type: FileManagerType }) => {
       const promiseObj = dbm
         .queryWithTables({
           query: TEST_QUERIES[i],
-          tables: [{ name: 'taxi_data' }, { name: 'taxi_json_data' }],
+          tables: [{ name: 'taxi' }, { name: 'taxi_json' }],
           options: {
             preQuery: preQuery,
           },

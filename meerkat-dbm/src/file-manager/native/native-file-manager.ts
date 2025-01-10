@@ -2,7 +2,6 @@ import { NativeBridge } from '../../dbm/dbm-native/native-bridge';
 import { mergeFileStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
-  FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
   FileStore,
@@ -33,6 +32,9 @@ export class NativeFileManager
     this.nativeBridge = nativeBridge;
   }
 
+  /**
+   * Updates the IndexedDB file registry with the files registered
+   */
   private async updateIndexedDBWithTableData(
     files: FileStore[]
   ): Promise<void> {
@@ -62,32 +64,24 @@ export class NativeFileManager
     await this.updateIndexedDBWithTableData(files);
   }
 
-  async bulkRegisterJSON(files: FileJsonStore[]): Promise<void> {
-    await this.nativeBridge.registerFiles(
-      files.map((file) => ({ ...file, type: 'json' }))
-    );
-
-    await this.updateIndexedDBWithTableData(files);
-  }
-
   async registerFileUrl(file: FileUrlStore): Promise<void> {
     await this.nativeBridge.registerFiles([{ ...file, type: 'url' }]);
 
     await this.updateIndexedDBWithTableData([file]);
   }
 
-  async registerJSON(file: FileJsonStore): Promise<void> {
-    await this.nativeBridge.registerFiles([{ ...file, type: 'json' }]);
+  override async registerFileBuffer(file: FileBufferStore): Promise<void> {
+    await this.nativeBridge.registerFiles([{ ...file, type: 'buffer' }]);
 
     await this.updateIndexedDBWithTableData([file]);
   }
 
-  override async registerFileBuffer(file: FileBufferStore): Promise<void> {
-    // no-op
-  }
+  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
+    await this.nativeBridge.registerFiles(
+      fileBuffers.map((file) => ({ ...file, type: 'buffer' }))
+    );
 
-  async bulkRegisterFileBuffer(): Promise<void> {
-    // no-op
+    await this.updateIndexedDBWithTableData(fileBuffers);
   }
 
   override async mountFileBufferByTables(): Promise<void> {

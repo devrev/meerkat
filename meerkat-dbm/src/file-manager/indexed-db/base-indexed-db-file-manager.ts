@@ -1,7 +1,8 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
+import { DBMEvent, DBMLogger } from '../../logger';
 import { Table, TableWiseFiles } from '../../types';
-import { isDefined } from '../../utils';
+import { getBufferFromJSON, isDefined } from '../../utils';
 import {
   FileBufferStore,
   FileJsonStore,
@@ -15,9 +16,65 @@ export abstract class BaseIndexedDBFileManager implements FileManagerType {
   protected indexedDB: MeerkatDatabase; // IndexedDB instance
   protected instanceManager: InstanceManagerType;
 
-  constructor({ instanceManager }: FileManagerConstructorOptions) {
+  private logger?: DBMLogger;
+  private onEvent?: (event: DBMEvent) => void;
+
+  constructor({
+    instanceManager,
+    logger,
+    onEvent,
+  }: FileManagerConstructorOptions) {
     this.indexedDB = new MeerkatDatabase();
     this.instanceManager = instanceManager;
+
+    this.logger = logger;
+    this.onEvent = onEvent;
+  }
+
+  async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
+    const fileBuffers = await Promise.all(
+      jsonData.map(async (jsonFile) => {
+        const { json, tableName, ...fileData } = jsonFile;
+
+        const bufferData = await getBufferFromJSON({
+          instanceManager: this.instanceManager,
+          json: json,
+          tableName,
+          logger: this.logger,
+          onEvent: this.onEvent,
+          metadata: jsonFile.metadata,
+        });
+
+        return { buffer: bufferData, tableName, ...fileData };
+      })
+    );
+
+    await this.bulkRegisterFileBuffer(fileBuffers);
+  }
+
+  async registerJSON(jsonData: FileJsonStore): Promise<void> {
+    const { json, tableName, ...fileData } = jsonData;
+
+    /**
+     * Convert JSON to buffer
+     */
+    const bufferData = await getBufferFromJSON({
+      instanceManager: this.instanceManager,
+      json,
+      tableName,
+      logger: this.logger,
+      onEvent: this.onEvent,
+      metadata: jsonData.metadata,
+    });
+
+    /**
+     * Register the buffer in the file manager
+     */
+    await this.registerFileBuffer({
+      buffer: bufferData,
+      tableName,
+      ...fileData,
+    });
   }
 
   async getFilesNameForTables(
@@ -68,10 +125,6 @@ export abstract class BaseIndexedDBFileManager implements FileManagerType {
   ): Promise<void>;
 
   abstract registerFileBuffer(fileBuffer: FileBufferStore): Promise<void>;
-
-  abstract bulkRegisterJSON(jsonFiles: FileJsonStore[]): Promise<void>;
-
-  abstract registerJSON(jsonFile: FileJsonStore): Promise<void>;
 
   abstract mountFileBufferByTables(tables: TableConfig[]): Promise<void>;
 

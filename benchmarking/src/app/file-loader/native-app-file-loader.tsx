@@ -24,8 +24,8 @@ export const NativeAppFileLoader = ({
 
       await fileManager.registerJSON({
         json: TAXI_JSON_DATA,
-        tableName: 'taxijson',
-        fileName: 'taxijson',
+        tableName: 'taxi_json',
+        fileName: 'taxi_json',
       });
 
       setIsFileLoader(true);
