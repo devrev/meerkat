@@ -1,12 +1,15 @@
+import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import 'fake-indexeddb/auto';
 import { NativeBridge } from '../../dbm/dbm-native/native-bridge';
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../../types';
 import { MeerkatDatabase } from '../indexed-db/meerkat-database';
 import { NativeFileManager } from '../native/native-file-manager';
+import { JSON_FILE, JSON_FILES, mockDB } from './mock';
 import log = require('loglevel');
 
 describe('NativeFileManager', () => {
+  let db: AsyncDuckDB;
   let fileManager: NativeFileManager;
   let indexedDB: MeerkatDatabase;
   let instanceManager: InstanceManagerType;
@@ -35,11 +38,17 @@ describe('NativeFileManager', () => {
   ];
 
   beforeAll(() => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
+    db = mockDB;
     instanceManager = {
-      getDB: jest.fn(),
-      terminateDB: jest.fn(),
+      getDB: async () => {
+        return db;
+      },
+      terminateDB: async () => {
+        return;
+      },
     };
-
     nativeBridge = {
       registerFiles: jest.fn(),
       dropFilesByTableName: jest.fn(),
@@ -47,6 +56,8 @@ describe('NativeFileManager', () => {
   });
 
   beforeEach(async () => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
     indexedDB = new MeerkatDatabase();
     fileManager = new NativeFileManager({
       fetchTableFileBuffers: async () => [],
@@ -57,6 +68,9 @@ describe('NativeFileManager', () => {
       },
       nativeBridge,
     });
+
+    jest.spyOn(fileManager, 'registerFileBuffer');
+    jest.spyOn(fileManager, 'bulkRegisterFileBuffer');
   });
 
   it('should register single file url', async () => {
@@ -103,58 +117,25 @@ describe('NativeFileManager', () => {
   });
 
   it('should register single json file', async () => {
-    const jsonFile = {
-      tableName: 'taxi-json',
-      fileName: 'taxi-json.parquet',
-      json: {
-        test: 'test',
-      },
-    };
+    await fileManager.registerJSON(JSON_FILE);
 
-    await fileManager.registerJSON(jsonFile);
-
-    // Verify nativeBridge was called correctly
-    expect(nativeBridge.registerFiles).toHaveBeenCalledWith([
-      { ...jsonFile, type: 'json' },
-    ]);
-
-    const tableData = await indexedDB.tablesKey.toArray();
-
-    expect(
-      tableData.some((table) => table.tableName === jsonFile.tableName)
-    ).toBe(true);
+    expect(fileManager.registerFileBuffer).toHaveBeenCalledWith({
+      tableName: JSON_FILE.tableName,
+      fileName: JSON_FILE.fileName,
+      buffer: new Uint8Array([1, 2, 3]),
+    });
   });
 
   it('should bulk register json files', async () => {
-    const jsonFiles = [
-      {
-        tableName: 'taxi-json-bulk',
-        fileName: 'taxi-json1.parquet',
-        json: {
-          test: 'test1',
-        },
-      },
-      {
-        tableName: 'taxi-json-bulk',
-        fileName: 'taxi-json2.parquet',
-        json: {
-          test: 'test2',
-        },
-      },
-    ];
+    await fileManager.bulkRegisterJSON(JSON_FILES);
 
-    await fileManager.bulkRegisterJSON(jsonFiles);
-
-    // Verify nativeBridge was called correctly
-    expect(nativeBridge.registerFiles).toHaveBeenCalledWith(
-      jsonFiles.map((file) => ({ ...file, type: 'json' }))
+    expect(fileManager.bulkRegisterFileBuffer).toHaveBeenCalledWith(
+      JSON_FILES.map((file) => ({
+        tableName: file.tableName,
+        fileName: file.fileName,
+        buffer: new Uint8Array([1, 2, 3]),
+      }))
     );
-
-    const tableData = await indexedDB.tablesKey.toArray();
-
-    expect(
-      tableData.some((table) => table.tableName === jsonFiles[0].tableName)
-    ).toBe(true);
   });
 
   it('should drop files by table name', async () => {
