@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { TAXI_FILE_URL } from './constants';
@@ -15,10 +16,16 @@ export const NativeAppFileLoader = ({
     (async () => {
       const url = TAXI_FILE_URL;
 
-      await fileManager?.registerFileUrl({
+      await fileManager.registerFileUrl?.({
         tableName: 'taxi',
-        fileName: 'taxi.parquet',
+        fileName: 'taxi',
         url: url,
+      });
+
+      await fileManager.registerJSON({
+        json: TAXI_JSON_DATA,
+        tableName: 'taxijson',
+        fileName: 'taxijson',
       });
 
       setIsFileLoader(true);

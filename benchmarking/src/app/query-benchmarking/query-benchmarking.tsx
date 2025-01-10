@@ -25,19 +25,17 @@ export const QueryBenchmarking = ({ type }: { type: FileManagerType }) => {
   const preQuery = useMemo(
     () =>
       async (tablesFileData: TableWiseFiles[]): Promise<void> => {
-        if (type !== 'native' || !window.api) return;
-
         for (const table of tablesFileData) {
-          const filePaths = await window.api?.getFilePathsForTable(
-            table.tableName
-          );
-          console.log('filePaths', filePaths);
-          if (!filePaths) {
-            throw new Error('File paths not found');
+          let filePaths: string[] = [];
+
+          if (type === 'native' && window.api) {
+            filePaths = await window.api?.getFilePathsForTable(table.tableName);
+          } else {
+            filePaths = table.files.map((file) => file.fileName);
           }
 
           await dbm.query(
-            `CREATE TABLE IF NOT EXISTS ${
+            `CREATE VIEW IF NOT EXISTS ${
               table.tableName
             } AS SELECT * FROM read_parquet(['${filePaths.join("','")}']);`
           );
@@ -58,7 +56,7 @@ export const QueryBenchmarking = ({ type }: { type: FileManagerType }) => {
       const promiseObj = dbm
         .queryWithTables({
           query: TEST_QUERIES[i],
-          tables: [{ name: 'taxi' }],
+          tables: [{ name: 'taxi_data' }, { name: 'taxi_json_data' }],
           options: {
             preQuery: preQuery,
           },

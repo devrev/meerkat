@@ -19,15 +19,15 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
       const fileBufferView = new Uint8Array(fileBuffer);
 
       await fileManager.registerFileBuffer({
-        tableName: 'taxi',
-        fileName: 'taxi.parquet',
+        tableName: 'taxi_data',
+        fileName: 'taxi_data',
         buffer: fileBufferView,
       });
 
       await fileManager.registerJSON({
         json: TAXI_JSON_DATA,
-        tableName: 'taxijson',
-        fileName: 'taxijson.parquet',
+        tableName: 'taxi_json_data',
+        fileName: 'taxi_json_data',
       });
 
       setIsFileLoader(true);
