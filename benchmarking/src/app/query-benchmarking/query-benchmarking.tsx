@@ -3,16 +3,9 @@ import { useMemo, useState } from 'react';
 import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { generateViewQuery } from '../utils';
 
-type FileManagerType =
-  | 'raw'
-  | 'memory'
-  | 'indexed'
-  | 'native'
-  | 'parallel-memory'
-  | 'parallel-indexed';
-
-export const QueryBenchmarking = ({ type }: { type: FileManagerType }) => {
+export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
     {
       queryName: string;
@@ -20,7 +13,7 @@ export const QueryBenchmarking = ({ type }: { type: FileManagerType }) => {
     }[]
   >([]);
   const [totalTime, setTotalTime] = useState<number>(0);
-  const { dbm } = useDBM();
+  const { dbm, fileManagerType: type } = useDBM();
 
   const preQuery = useMemo(
     () =>
@@ -30,15 +23,11 @@ export const QueryBenchmarking = ({ type }: { type: FileManagerType }) => {
 
           if (type === 'native' && window.api) {
             filePaths = await window.api?.getFilePathsForTable(table.tableName);
-          } else {
+          } else if (type === 'indexdb' || type === 'parallel-indexdb') {
             filePaths = table.files.map((file) => file.fileName);
           }
 
-          await dbm.query(
-            `CREATE VIEW IF NOT EXISTS ${
-              table.tableName
-            } AS SELECT * FROM read_parquet(['${filePaths.join("','")}']);`
-          );
+          await dbm.query(generateViewQuery(table.tableName, filePaths));
         }
       },
     [type, dbm]

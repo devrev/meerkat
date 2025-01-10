@@ -9,6 +9,13 @@ import React from 'react';
 export type DBMContextType = {
   dbm: DBM | DBMParallel | DBMNative;
   fileManager: FileManagerType;
+  fileManagerType:
+    | 'raw'
+    | 'memory'
+    | 'indexdb'
+    | 'native'
+    | 'parallel-memory'
+    | 'parallel-indexdb';
 };
 
 export const DBMContext = React.createContext<DBMContextType | undefined>(

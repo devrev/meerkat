@@ -77,6 +77,7 @@ export const ParallelIndexedDBMProvider = ({
       value={{
         dbm,
         fileManager: fileManagerRef.current as any,
+        fileManagerType: 'parallel-indexdb',
       }}
     >
       {children}

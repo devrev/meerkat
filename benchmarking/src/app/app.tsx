@@ -42,7 +42,7 @@ export function App() {
               <h1>Raw DuckDB</h1>
               <RawDBMProvider>
                 <FileLoader>
-                  <QueryBenchmarking type="raw" />
+                  <QueryBenchmarking />
                 </FileLoader>
               </RawDBMProvider>
             </div>
@@ -56,7 +56,7 @@ export function App() {
 
               <MemoryDBMProvider>
                 <FileLoader>
-                  <QueryBenchmarking type="memory" />
+                  <QueryBenchmarking />
                 </FileLoader>
               </MemoryDBMProvider>
             </div>
@@ -69,7 +69,7 @@ export function App() {
               <h1>IndexedDB DuckDB</h1>
               <IndexedDBMProvider>
                 <FileLoader>
-                  <QueryBenchmarking type="indexed" />
+                  <QueryBenchmarking />
                 </FileLoader>
               </IndexedDBMProvider>
             </div>
@@ -82,7 +82,7 @@ export function App() {
               <h1>Parallel Memory DuckDB</h1>
               <ParallelMemoryDBMProvider>
                 <FileLoader>
-                  <QueryBenchmarking type="parallel-memory" />
+                  <QueryBenchmarking />
                 </FileLoader>
               </ParallelMemoryDBMProvider>
             </div>
@@ -95,7 +95,7 @@ export function App() {
               <h1>Parallel Indexed DuckDB</h1>
               <ParallelIndexedDBMProvider>
                 <FileLoader>
-                  <QueryBenchmarking type="parallel-indexed" />
+                  <QueryBenchmarking />
                 </FileLoader>
               </ParallelIndexedDBMProvider>
             </div>
@@ -108,7 +108,7 @@ export function App() {
               <h1>Native Node DuckDB</h1>
               <NativeDBMProvider>
                 <NativeAppFileLoader>
-                  <QueryBenchmarking type="native" />
+                  <QueryBenchmarking />
                 </NativeAppFileLoader>
               </NativeDBMProvider>
             </div>

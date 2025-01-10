@@ -77,6 +77,7 @@ export const ParallelMemoryDBMProvider = ({
       value={{
         dbm,
         fileManager: fileManagerRef.current as any,
+        fileManagerType: 'parallel-memory',
       }}
     >
       {children}

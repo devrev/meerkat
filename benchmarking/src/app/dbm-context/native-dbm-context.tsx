@@ -80,6 +80,7 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       value={{
         dbm,
         fileManager: fileManagerRef.current,
+        fileManagerType: 'native',
       }}
     >
       {children}

@@ -51,6 +51,7 @@ export const RawDBMProvider = ({ children }: { children: JSX.Element }) => {
       value={{
         dbm,
         fileManager: fileManagerRef.current,
+        fileManagerType: 'raw',
       }}
     >
       {children}
