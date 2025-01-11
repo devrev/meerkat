@@ -47,7 +47,10 @@ export const QueryBenchmarking = () => {
           query: TEST_QUERIES[i],
           tables: [{ name: 'taxi' }, { name: 'taxi_json' }],
           options: {
-            preQuery: preQuery,
+            ...(fileManagerType !== 'parallel-indexdb' &&
+              fileManagerType !== 'parallel-memory' && {
+                preQuery: preQuery,
+              }),
           },
         })
         .then((results) => {

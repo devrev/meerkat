@@ -4,7 +4,7 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../../types';
 import { IndexedDBFileManager } from '../indexed-db/indexed-db-file-manager';
 import { MeerkatDatabase } from '../indexed-db/meerkat-database';
-import { JSON_FILE, JSON_FILES } from './mock';
+import { JSON_FILE, JSON_FILES, mockDB } from './mock';
 import log = require('loglevel');
 
 describe('IndexedDBFileManager', () => {

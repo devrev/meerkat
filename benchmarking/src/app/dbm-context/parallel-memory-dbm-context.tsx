@@ -4,9 +4,11 @@ import {
   ParallelMemoryFileManager,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
+import { TableWiseFiles } from 'meerkat-dbm/src/types/common-types';
 import { useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { generateViewQuery } from '../utils';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
@@ -43,8 +45,19 @@ export const ParallelMemoryDBMProvider = ({
       fetchTableFileBuffers: async (table) => {
         return fileManagerRef.current.getTableBufferData(table);
       },
-      fetchPreQuery: () => {
-        return [];
+      fetchPreQuery: (runnerId: string, tableWiseFiles: TableWiseFiles[]) => {
+        const preQueries: string[] = [];
+
+        for (const tableWiseFile of tableWiseFiles) {
+          preQueries.push(
+            generateViewQuery(
+              tableWiseFile.tableName,
+              tableWiseFile.files.map((file) => file.fileName)
+            )
+          );
+        }
+
+        return preQueries;
       },
       onEvent: (event) => {
         console.info(event);
