@@ -45,9 +45,11 @@ export const validateExpressionNode = ({
           validFunctions,
           parentNode: node,
           validScalarFunctions,
+          hasAggregation: true,
         })
       );
     }
+
     // For non-aggregation functions
     if (validScalarFunctions.has(node.function_name)) {
       return node.children.some((child) => {
