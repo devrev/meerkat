@@ -18,7 +18,7 @@ export class InstanceManager implements InstanceManagerType {
     // Instantiate the asynchronus version of DuckDB-wasm
     const worker = new Worker(worker_url);
     const logger = {
-      log: (msg: LogEntryVariant) => console.log(msg),
+      log: (msg: LogEntryVariant) => {},
     };
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);

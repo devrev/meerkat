@@ -27,14 +27,14 @@ export const queries = [
     sql_expression: 'component',
   },
   {
-    sql_expression: "DATE_TRUNC(''day'', CAST(date as TIMESTAMP))",
+    sql_expression: "DATE_TRUNC('day', CAST(date as TIMESTAMP))",
   },
   {
     sql_expression: 'project_type',
   },
   {
     sql_expression:
-      "CONCAT( UPPER(SUBSTRING(state, 1, 1)), LOWER(REPLACE(SUBSTRING(state, 2), ''_'', '' '')) )",
+      "CONCAT( UPPER(SUBSTRING(state, 1, 1)), LOWER(REPLACE(SUBSTRING(state, 2), '_', ' ')) )",
   },
   {
     sql_expression: 'ctype__x1260822517229_cfid',
@@ -62,14 +62,14 @@ export const queries = [
       'CASE WHEN actual_close_date > created_date THEN actual_close_date ELSE null END',
   },
   {
-    sql_expression: "DATETRUNC(''week'', record_date)",
+    sql_expression: "DATETRUNC('week', record_date)",
   },
   {
     sql_expression: 'customers_element',
   },
   {
     sql_expression:
-      "case when status = ''hit'' then ''Hits'' when status = ''miss'' then ''Miss'' end",
+      "case when status = 'hit' then 'Hits' when status = 'miss' then 'Miss' end",
   },
   {
     sql_expression: 'issue_close_count',
@@ -79,7 +79,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "STRING_SPLIT(TRANSLATE(CAST(json_extract(tags_json, ''$[*].tag_id'') AS STRING), CHR(34) || ''[]'', ''''), '','')",
+      "STRING_SPLIT(TRANSLATE(CAST(json_extract(tags_json, '$[*].tag_id') AS STRING), CHR(34) || '[]', ''), ',')",
   },
   {
     sql_expression: 'mean_unhealthy_days',
@@ -92,7 +92,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''open'' THEN ''Open'' WHEN state = ''in_progress'' THEN ''In Progress'' WHEN state = ''closed'' THEN ''Closed'' END",
+      "CASE WHEN state = 'open' THEN 'Open' WHEN state = 'in_progress' THEN 'In Progress' WHEN state = 'closed' THEN 'Closed' END",
   },
   {
     sql_expression: 'share_count_val',
@@ -116,13 +116,13 @@ export const queries = [
     sql_expression: 'valid_objects',
   },
   {
-    sql_expression: "DATE_TRUNC(''day'',close_date)",
+    sql_expression: "DATE_TRUNC('day',close_date)",
   },
   {
     sql_expression: 'end_time',
   },
   {
-    sql_expression: "IF(region_name IS NULL ,''Other'',region_name)",
+    sql_expression: "IF(region_name IS NULL ,'Other',region_name)",
   },
   {
     sql_expression: 'flag',
@@ -131,26 +131,26 @@ export const queries = [
     sql_expression: 'issue_product',
   },
   {
-    sql_expression: "custom_fields->>''tnt__closed_by''",
+    sql_expression: "custom_fields->>'tnt__closed_by'",
   },
   {
     sql_expression: 'NULLIF(avg_time_to_deploy, 0)',
   },
   {
     sql_expression:
-      "concat(monthname(activity_date),''-'',year(activity_date))",
+      "concat(monthname(activity_date),'-',year(activity_date))",
   },
   {
     sql_expression: 'applies_to_version_ids',
   },
   {
-    sql_expression: "date_trunc(''day'', last_internal_comment_date)",
+    sql_expression: "date_trunc('day', last_internal_comment_date)",
   },
   {
     sql_expression: 'watcher',
   },
   {
-    sql_expression: "cast(replace(partition_ts, ''0024'', ''2024'') as date)",
+    sql_expression: "cast(replace(partition_ts, '0024', '2024') as date)",
   },
   {
     sql_expression: 'valid_qnas',
@@ -160,7 +160,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "(CASE WHEN ''issue'' == ANY(json_extract_string(dim_ticket.links_json,''$[*].target_object_type'')) THEN ''yes'' ELSE ''no'' END)",
+      "(CASE WHEN 'issue' == ANY(json_extract_string(dim_ticket.links_json,'$[*].target_object_type')) THEN 'yes' ELSE 'no' END)",
   },
   {
     sql_expression: 'sdr',
@@ -205,7 +205,7 @@ export const queries = [
     sql_expression: 'event_name',
   },
   {
-    sql_expression: "date_trunc(''day'',close_date)",
+    sql_expression: "date_trunc('day',close_date)",
   },
   {
     sql_expression: 'project',
@@ -214,7 +214,7 @@ export const queries = [
     sql_expression: 'meeting_organizer',
   },
   {
-    sql_expression: "STRING_TO_ARRAY(members_attended,'','')",
+    sql_expression: "STRING_TO_ARRAY(members_attended,',')",
   },
   {
     sql_expression: 'CAST(ticket_time_updated AS TIMESTAMP)',
@@ -223,7 +223,7 @@ export const queries = [
     sql_expression: 'CAST(ticket_time_updated AS DATE)',
   },
   {
-    sql_expression: "DATE_DIFF(''minute'', created_date, first_response_time)",
+    sql_expression: "DATE_DIFF('minute', created_date, first_response_time)",
   },
   {
     sql_expression: 'cumulative_user_count',
@@ -260,7 +260,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "case when state = ''in_progress'' then ''Active'' when stage = ''resolved'' then ''Closed'' else null end",
+      "case when state = 'in_progress' then 'Active' when stage = 'resolved' then 'Closed' else null end",
   },
   {
     sql_expression: 'filter_part',
@@ -282,11 +282,11 @@ export const queries = [
   },
   {
     sql_expression:
-      "json_extract_string(dim_ticket.stage_json, ''$.stage_id'')",
+      "json_extract_string(dim_ticket.stage_json, '$.stage_id')",
   },
   {
     sql_expression:
-      "CAST(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN custom_fields ->> ''ctype__created_at_cfid'' WHEN custom_fields ->> ''ctype__opened_at_cfid'' IS NOT NULL THEN custom_fields ->> ''ctype__opened_at_cfid'' ELSE created_date END AS TIMESTAMP)",
+      "CAST(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN custom_fields ->> 'ctype__created_at_cfid' WHEN custom_fields ->> 'ctype__opened_at_cfid' IS NOT NULL THEN custom_fields ->> 'ctype__opened_at_cfid' ELSE created_date END AS TIMESTAMP)",
   },
   {
     sql_expression: 'health_state_duration_max',
@@ -323,19 +323,19 @@ export const queries = [
   },
   {
     sql_expression:
-      "translate(JSON_EXTRACT(stage_json, ''$.stage_id''), CHR(34), '''')",
+      "translate(JSON_EXTRACT(stage_json, '$.stage_id'), CHR(34), '')",
   },
   {
     sql_expression: 'total_survey_dispatched',
   },
   {
-    sql_expression: "''Total''",
+    sql_expression: "'Total'",
   },
   {
     sql_expression: 'issue_closed_date',
   },
   {
-    sql_expression: "json_extract_string(labels, ''$[1].value'')",
+    sql_expression: "json_extract_string(labels, '$[1].value')",
   },
   {
     sql_expression: 'total_bytes_billed',
@@ -354,20 +354,20 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN actual_close_date > created_date THEN DATEDIFF(''minutes'',actual_close_date, created_date) END",
+      "CASE WHEN actual_close_date > created_date THEN DATEDIFF('minutes',actual_close_date, created_date) END",
   },
   {
     sql_expression: 'cast(applies_to_part_ids as varchar)',
   },
   {
     sql_expression:
-      "DATE_TRUNC(''day'',CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END)",
+      "DATE_TRUNC('day',CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END)",
   },
   {
     sql_expression: 'api',
   },
   {
-    sql_expression: "CONCAT(MONTHNAME(date),''-'',YEAR(date))",
+    sql_expression: "CONCAT(MONTHNAME(date),'-',YEAR(date))",
   },
   {
     sql_expression: 'ROUND(median_resolution_time_days,1)',
@@ -377,7 +377,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "regexp_split_to_array(custom_fields ->> ''tnt__customer_segment'', ''\"|\\[\"|\"\\]'')",
+      "regexp_split_to_array(custom_fields ->> 'tnt__customer_segment', '\"|\\[\"|\"\\]')",
   },
   {
     sql_expression: 'commenter',
@@ -402,7 +402,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP",
+      "COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP",
   },
   {
     sql_expression: 'tag_ids',
@@ -424,7 +424,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN primary_part_id LIKE ''%enhancement%'' OR is_issue_linked = ''yes'' THEN ''yes'' ELSE ''no'' END",
+      "CASE WHEN primary_part_id LIKE '%enhancement%' OR is_issue_linked = 'yes' THEN 'yes' ELSE 'no' END",
   },
   {
     sql_expression: 'acv',
@@ -442,7 +442,7 @@ export const queries = [
     sql_expression: 'cast(cast(timestamp_nsecs as TIMESTAMP) as DATE)',
   },
   {
-    sql_expression: "DATE_TRUNC(''day'',created_date)",
+    sql_expression: "DATE_TRUNC('day',created_date)",
   },
   {
     sql_expression: 'submission_date',
@@ -464,7 +464,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''closed'' THEN (issue_closed_date)::TIMESTAMP ELSE issue_date::TIMESTAMP END",
+      "CASE WHEN state = 'closed' THEN (issue_closed_date)::TIMESTAMP ELSE issue_date::TIMESTAMP END",
   },
   {
     sql_expression: 'daily_distinct_revuser_logins',
@@ -489,7 +489,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "COALESCE(custom_fields->>''ctype__closed_at_cfid'',actual_close_date)",
+      "COALESCE(custom_fields->>'ctype__closed_at_cfid',actual_close_date)",
   },
   {
     sql_expression: 'owned_by_id',
@@ -516,7 +516,7 @@ export const queries = [
     sql_expression: 'ae_name',
   },
   {
-    sql_expression: "''issue''",
+    sql_expression: "'issue'",
   },
   {
     sql_expression: 'api_response_time',
@@ -531,11 +531,11 @@ export const queries = [
     sql_expression: 'opp_id',
   },
   {
-    sql_expression: "CASE WHEN is_internal THEN ''Yes'' ELSE ''No'' END",
+    sql_expression: "CASE WHEN is_internal THEN 'Yes' ELSE 'No' END",
   },
   {
     sql_expression:
-      "STRING_SPLIT(TRANSLATE(JSON_EXTRACT(tags_json, ''$[*].tag_id''), ''\"[]'', '''' ), '','')",
+      "STRING_SPLIT(TRANSLATE(JSON_EXTRACT(tags_json, '$[*].tag_id'), '\"[]', '' ), ',')",
   },
   {
     sql_expression: 'ticket_group',
@@ -548,10 +548,10 @@ export const queries = [
   },
   {
     sql_expression:
-      "DAYNAME(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END)",
+      "DAYNAME(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END)",
   },
   {
-    sql_expression: " CAST(strftime(''%H'', created_date) AS VARCHAR)",
+    sql_expression: " CAST(strftime('%H', created_date) AS VARCHAR)",
   },
   {
     sql_expression: 'started_at',
@@ -561,7 +561,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state_su = ''SyncUnit_StateEnumCompleted'' THEN ''Completed'' WHEN state_su = ''SyncUnit_StateEnumFailed'' THEN ''Failed'' WHEN state_su = ''SyncUnit_StateEnumRecipeDiscoveryWaitingForUserInput'' THEN ''WaitingForUserInput'' WHEN state_su = ''SyncUnit_StateEnumInProgress'' THEN ''InProgress'' WHEN state_su = ''SyncUnit_StateEnumSyncInProgress'' THEN ''SyncInProgress'' WHEN state_su = ''SyncUnit_StateEnumDeleteInProgress'' THEN ''DeleteInProgress'' WHEN state_su = ''SyncUnit_StateEnumDeletePending'' THEN ''DeletePending'' END",
+      "CASE WHEN state_su = 'SyncUnit_StateEnumCompleted' THEN 'Completed' WHEN state_su = 'SyncUnit_StateEnumFailed' THEN 'Failed' WHEN state_su = 'SyncUnit_StateEnumRecipeDiscoveryWaitingForUserInput' THEN 'WaitingForUserInput' WHEN state_su = 'SyncUnit_StateEnumInProgress' THEN 'InProgress' WHEN state_su = 'SyncUnit_StateEnumSyncInProgress' THEN 'SyncInProgress' WHEN state_su = 'SyncUnit_StateEnumDeleteInProgress' THEN 'DeleteInProgress' WHEN state_su = 'SyncUnit_StateEnumDeletePending' THEN 'DeletePending' END",
   },
   {
     sql_expression: 'product',
@@ -634,7 +634,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN issue_subtype = ''njuvewk7oxvgs4din5zgkltborygc43tnfqy4ltomx2f6mjrgmwtav3jonzvkzltfzss243xobwg64tu'' THEN ''E-Support'' WHEN issue_subtype = ''jira_uniphore.atlassian.net_engineering bug intake_issues.bug'' THEN ''E-Bug'' END",
+      "CASE WHEN issue_subtype = 'njuvewk7oxvgs4din5zgkltborygc43tnfqy4ltomx2f6mjrgmwtav3jonzvkzltfzss243xobwg64tu' THEN 'E-Support' WHEN issue_subtype = 'jira_uniphore.atlassian.net_engineering bug intake_issues.bug' THEN 'E-Bug' END",
   },
   {
     sql_expression: 'owned_by_ids::varchar',
@@ -650,10 +650,10 @@ export const queries = [
   },
   {
     sql_expression:
-      "CAST(json_extract_string(tags_json, ''$[*].tag_id'') AS VARCHAR[])",
+      "CAST(json_extract_string(tags_json, '$[*].tag_id') AS VARCHAR[])",
   },
   {
-    sql_expression: "cast(replace(date_broken, ''0024'', ''2024'') as date)",
+    sql_expression: "cast(replace(date_broken, '0024', '2024') as date)",
   },
   {
     sql_expression: 'approved_date',
@@ -666,11 +666,11 @@ export const queries = [
   },
   {
     sql_expression:
-      "regexp_split_to_array(tnt__sub_regions, ''\"|\\[\"|\"\\]'')",
+      "regexp_split_to_array(tnt__sub_regions, '\"|\\[\"|\"\\]')",
   },
   {
     sql_expression:
-      "DATE_TRUNC(''week'', COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP)",
+      "DATE_TRUNC('week', COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP)",
   },
   {
     sql_expression: 'mao',
@@ -683,14 +683,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "CAST(JSON_EXTRACT(custom_fields, ''$.ctype__amount'') AS DOUBLE)",
+      "CAST(JSON_EXTRACT(custom_fields, '$.ctype__amount') AS DOUBLE)",
   },
   {
     sql_expression: 'fiscal_time',
   },
   {
     sql_expression:
-      "CASE WHEN severity = ''5'' THEN ''Sev 1'' WHEN severity = ''6'' THEN ''Sev 2'' WHEN severity = ''7'' THEN ''Sev 3'' WHEN severity = ''8'' THEN ''Sev 4'' END",
+      "CASE WHEN severity = '5' THEN 'Sev 1' WHEN severity = '6' THEN 'Sev 2' WHEN severity = '7' THEN 'Sev 3' WHEN severity = '8' THEN 'Sev 4' END",
   },
   {
     sql_expression: 'engagement_count',
@@ -705,7 +705,7 @@ export const queries = [
     sql_expression: 'num_rev_users',
   },
   {
-    sql_expression: "date_trunc(''week'', created_date)",
+    sql_expression: "date_trunc('week', created_date)",
   },
   {
     sql_expression: 'custom_region',
@@ -730,7 +730,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN links_json like ''%\"target_object_type\":\"issue\"%'' THEN ''Yes'' ELSE ''No'' END",
+      "CASE WHEN links_json like '%\"target_object_type\":\"issue\"%' THEN 'Yes' ELSE 'No' END",
   },
   {
     sql_expression: 'customer_ref',
@@ -739,7 +739,7 @@ export const queries = [
     sql_expression: 'statement_type',
   },
   {
-    sql_expression: "json_extract_string(labels, ''$[0].value'')",
+    sql_expression: "json_extract_string(labels, '$[0].value')",
   },
   {
     sql_expression: 'elapsed_times',
@@ -752,14 +752,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''SyncProgress_StateEnumExtractAttachments'' THEN ''ExtractAttachments'' WHEN state = ''SyncProgress_StateEnumExtractAttachmentsPending'' THEN ''ExtractAttachmentsPending'' WHEN state = ''SyncProgress_StateEnumExtraction'' THEN ''Extraction'' WHEN state = ''SyncProgress_StateEnumExtractionPending'' THEN ''ExtractionPending'' WHEN state = ''SyncProgress_StateEnumLoading'' THEN ''Loading'' WHEN state = ''SyncProgress_StateEnumLoadingPending'' THEN ''LoadingPending'' WHEN state = ''SyncProgress_StateEnumLoadingAttachments'' THEN ''LoadingAttachments'' WHEN state = ''SyncProgress_StateEnumLoadingAttachmentsPending'' THEN ''LoadingAttachmentsPending'' WHEN state = ''SyncProgress_StateEnumLoadingPending'' THEN ''LoadingPending'' WHEN state = ''SyncProgress_StateEnumRecipeDiscovery'' THEN ''RecipeDiscovery'' WHEN state = ''SyncProgress_StateEnumRecipeDiscoveryPending'' THEN ''RecipeDiscoveryPending'' WHEN state = ''SyncProgress_StateEnumStartingPending'' THEN ''StartingPending'' WHEN state = ''SyncProgress_StateEnumTransformation'' THEN ''Transformation'' WHEN state = ''SyncProgress_StateEnumTransformationPending'' THEN ''TransformationPending'' END",
+      "CASE WHEN state = 'SyncProgress_StateEnumExtractAttachments' THEN 'ExtractAttachments' WHEN state = 'SyncProgress_StateEnumExtractAttachmentsPending' THEN 'ExtractAttachmentsPending' WHEN state = 'SyncProgress_StateEnumExtraction' THEN 'Extraction' WHEN state = 'SyncProgress_StateEnumExtractionPending' THEN 'ExtractionPending' WHEN state = 'SyncProgress_StateEnumLoading' THEN 'Loading' WHEN state = 'SyncProgress_StateEnumLoadingPending' THEN 'LoadingPending' WHEN state = 'SyncProgress_StateEnumLoadingAttachments' THEN 'LoadingAttachments' WHEN state = 'SyncProgress_StateEnumLoadingAttachmentsPending' THEN 'LoadingAttachmentsPending' WHEN state = 'SyncProgress_StateEnumLoadingPending' THEN 'LoadingPending' WHEN state = 'SyncProgress_StateEnumRecipeDiscovery' THEN 'RecipeDiscovery' WHEN state = 'SyncProgress_StateEnumRecipeDiscoveryPending' THEN 'RecipeDiscoveryPending' WHEN state = 'SyncProgress_StateEnumStartingPending' THEN 'StartingPending' WHEN state = 'SyncProgress_StateEnumTransformation' THEN 'Transformation' WHEN state = 'SyncProgress_StateEnumTransformationPending' THEN 'TransformationPending' END",
   },
   {
     sql_expression: 'breached_days',
   },
   {
     sql_expression:
-      "STRING_SPLIT(TRANSLATE(json_extract(tags_json, ''$[*].tag_id''), CHR(34) || ''[]'' || '' '', ''''), '','')",
+      "STRING_SPLIT(TRANSLATE(json_extract(tags_json, '$[*].tag_id'), CHR(34) || '[]' || ' ', ''), ',')",
   },
   {
     sql_expression: 'total_code_contributions',
@@ -768,7 +768,7 @@ export const queries = [
     sql_expression: 'node_status',
   },
   {
-    sql_expression: "DATE_TRUNC(''month'', started_at_sh)",
+    sql_expression: "DATE_TRUNC('month', started_at_sh)",
   },
   {
     sql_expression: 'user_type',
@@ -778,13 +778,13 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''closed'' THEN actual_close_date::TIMESTAMP END",
+      "CASE WHEN state = 'closed' THEN actual_close_date::TIMESTAMP END",
   },
   {
-    sql_expression: "DATE_TRUNC(''day'', record_date)",
+    sql_expression: "DATE_TRUNC('day', record_date)",
   },
   {
-    sql_expression: "DATE_TRUNC(''day'', created_date)",
+    sql_expression: "DATE_TRUNC('day', created_date)",
   },
   {
     sql_expression: 'utm_medium',
@@ -793,7 +793,7 @@ export const queries = [
     sql_expression: 'min_upstream_service_time',
   },
   {
-    sql_expression: "JSON_EXTRACT(custom_fields, ''$.ctype__currency'')",
+    sql_expression: "JSON_EXTRACT(custom_fields, '$.ctype__currency')",
   },
   {
     sql_expression: 'April_Customers',
@@ -878,15 +878,15 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN issue_state = ''closed'' THEN (issue_actual_close_date)::TIMESTAMP ELSE issue_created_date::TIMESTAMP END",
+      "CASE WHEN issue_state = 'closed' THEN (issue_actual_close_date)::TIMESTAMP ELSE issue_created_date::TIMESTAMP END",
   },
   {
     sql_expression:
-      "CASE WHEN (range_state=''closed'') THEN ''E-bug Closed'' ELSE ''E-bug Opened'' END",
+      "CASE WHEN (range_state='closed') THEN 'E-bug Closed' ELSE 'E-bug Opened' END",
   },
   {
     sql_expression:
-      " CASE WHEN external_system_type_su = ''ExternalSystemTypeEnum_ZENDESK'' THEN ''ZENDESK'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_JIRA'' THEN ''JIRA'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_HUBSPOT'' THEN ''HUBSPOT'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_GITHUB'' THEN ''GITHUB'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_SERVICENOW'' THEN ''SERVICENOW'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_SALESFORCE_SERVICE'' THEN ''SALESFORCE'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_ADAAS'' THEN ''ADAAS'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_LINEAR'' THEN ''LINEAR'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_ROCKETLANE'' THEN ''ROCKETLANE'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_CONFLUENCE'' THEN ''CONFLUENCE'' END",
+      " CASE WHEN external_system_type_su = 'ExternalSystemTypeEnum_ZENDESK' THEN 'ZENDESK' WHEN external_system_type_su = 'ExternalSystemTypeEnum_JIRA' THEN 'JIRA' WHEN external_system_type_su = 'ExternalSystemTypeEnum_HUBSPOT' THEN 'HUBSPOT' WHEN external_system_type_su = 'ExternalSystemTypeEnum_GITHUB' THEN 'GITHUB' WHEN external_system_type_su = 'ExternalSystemTypeEnum_SERVICENOW' THEN 'SERVICENOW' WHEN external_system_type_su = 'ExternalSystemTypeEnum_SALESFORCE_SERVICE' THEN 'SALESFORCE' WHEN external_system_type_su = 'ExternalSystemTypeEnum_ADAAS' THEN 'ADAAS' WHEN external_system_type_su = 'ExternalSystemTypeEnum_LINEAR' THEN 'LINEAR' WHEN external_system_type_su = 'ExternalSystemTypeEnum_ROCKETLANE' THEN 'ROCKETLANE' WHEN external_system_type_su = 'ExternalSystemTypeEnum_CONFLUENCE' THEN 'CONFLUENCE' END",
   },
   {
     sql_expression: 'country',
@@ -902,7 +902,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "(CASE WHEN links_json != ''[]'' THEN ''yes'' ELSE ''no'' END)",
+      "(CASE WHEN links_json != '[]' THEN 'yes' ELSE 'no' END)",
   },
   {
     sql_expression: '"range"',
@@ -912,7 +912,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN actual_close_date> created_date THEN DATE_TRUNC(''week'', actual_close_date) ELSE null END",
+      "CASE WHEN actual_close_date> created_date THEN DATE_TRUNC('week', actual_close_date) ELSE null END",
   },
   {
     sql_expression: 'awaiting_product_assist_duration_days',
@@ -922,7 +922,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''open'' THEN ''Open'' WHEN state = ''in_progress'' THEN ''In Progress'' END",
+      "CASE WHEN state = 'open' THEN 'Open' WHEN state = 'in_progress' THEN 'In Progress' END",
   },
   {
     sql_expression: 'total_new_revusers',
@@ -941,7 +941,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "TRIM(CHR(34) FROM JSON_EXTRACT(custom_fields, ''$.tnt__sales_engineer''))",
+      "TRIM(CHR(34) FROM JSON_EXTRACT(custom_fields, '$.tnt__sales_engineer'))",
   },
   {
     sql_expression: 'widget_edit_clicked_count_val',
@@ -951,7 +951,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN metric_status = ''hit'' THEN ''Completed'' WHEN metric_status = ''miss'' THEN ''Breached'' END",
+      "CASE WHEN metric_status = 'hit' THEN 'Completed' WHEN metric_status = 'miss' THEN 'Breached' END",
   },
   {
     sql_expression: 'week_start',
@@ -988,7 +988,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CAST( strftime(''%H'', CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END) AS VARCHAR)",
+      "CAST( strftime('%H', CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END) AS VARCHAR)",
   },
   {
     sql_expression: 'sales_data_dr.qty',
@@ -1003,7 +1003,7 @@ export const queries = [
     sql_expression: 'is_devrev_app_activity',
   },
   {
-    sql_expression: "date_trunc(''day'', created_date)",
+    sql_expression: "date_trunc('day', created_date)",
   },
   {
     sql_expression: 'source_name',
@@ -1048,21 +1048,21 @@ export const queries = [
     sql_expression: 'CAST(unhealthy_since AS TIMESTAMP)',
   },
   {
-    sql_expression: "JSON_EXTRACT(custom_fields, ''$.ctype__vendor'')",
+    sql_expression: "JSON_EXTRACT(custom_fields, '$.ctype__vendor')",
   },
   {
     sql_expression: 'deviceType',
   },
   {
     sql_expression:
-      "DATETRUNC(''month'', COALESCE(custom_fields ->> ''ctype__created_at_cfid'', created_date)::TIMESTAMP )+ interval ''1 day''",
+      "DATETRUNC('month', COALESCE(custom_fields ->> 'ctype__created_at_cfid', created_date)::TIMESTAMP )+ interval '1 day'",
   },
   {
     sql_expression:
-      "CAST(json_extract(fact_issue.priority_uenum_json, ''$.id'') as integer)",
+      "CAST(json_extract(fact_issue.priority_uenum_json, '$.id') as integer)",
   },
   {
-    sql_expression: "datediff(''day'', formatted_created_date, current_date)",
+    sql_expression: "datediff('day', formatted_created_date, current_date)",
   },
   {
     sql_expression: 'first_user_interaction',
@@ -1093,23 +1093,23 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN customer_type = ''paying'' THEN ''Paying'' ELSE ''Not Paying'' END",
+      "CASE WHEN customer_type = 'paying' THEN 'Paying' ELSE 'Not Paying' END",
   },
   {
     sql_expression: 'first_account_id',
   },
   {
     sql_expression:
-      " CASE WHEN mode_sh = ''SyncRun_ModeEnumInitial'' THEN ''Initial'' WHEN mode_sh = ''SyncRun_ModeEnumSyncToDevrev'' THEN ''SyncToDevRev'' WHEN mode_sh = ''SyncRun_ModeEnumSyncFromDevrev'' THEN ''SyncFromDevRev'' END",
+      " CASE WHEN mode_sh = 'SyncRun_ModeEnumInitial' THEN 'Initial' WHEN mode_sh = 'SyncRun_ModeEnumSyncToDevrev' THEN 'SyncToDevRev' WHEN mode_sh = 'SyncRun_ModeEnumSyncFromDevrev' THEN 'SyncFromDevRev' END",
   },
   {
-    sql_expression: "DATE_TRUNC(''month'',started_at)",
+    sql_expression: "DATE_TRUNC('month',started_at)",
   },
   {
     sql_expression: 'article_id',
   },
   {
-    sql_expression: "CONCAT(monthname(date),''-'',year(date))",
+    sql_expression: "CONCAT(monthname(date),'-',year(date))",
   },
   {
     sql_expression: 'custom_schema_fragment_ids',
@@ -1119,11 +1119,11 @@ export const queries = [
   },
   {
     sql_expression:
-      "list_aggregate((CAST(json_extract_string(surveys_aggregation_json, ''$[*].average'') as integer[])), ''sum'')/len((CAST(json_extract_string(surveys_aggregation_json, ''$[*].average'') as integer[])))",
+      "list_aggregate((CAST(json_extract_string(surveys_aggregation_json, '$[*].average') as integer[])), 'sum')/len((CAST(json_extract_string(surveys_aggregation_json, '$[*].average') as integer[])))",
   },
   {
     sql_expression:
-      "CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN custom_fields ->> ''ctype__created_at_cfid'' WHEN custom_fields ->> ''ctype__opened_at_cfid'' IS NOT NULL THEN custom_fields ->> ''ctype__opened_at_cfid'' ELSE created_date END",
+      "CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN custom_fields ->> 'ctype__created_at_cfid' WHEN custom_fields ->> 'ctype__opened_at_cfid' IS NOT NULL THEN custom_fields ->> 'ctype__opened_at_cfid' ELSE created_date END",
   },
   {
     sql_expression: 'Total_Client_Features_Planned',
@@ -1135,7 +1135,7 @@ export const queries = [
     sql_expression: 'created_tickets',
   },
   {
-    sql_expression: "concat(breach_percentage, ''%'')",
+    sql_expression: "concat(breach_percentage, '%')",
   },
   {
     sql_expression: 'utm_term',
@@ -1145,7 +1145,7 @@ export const queries = [
   },
   {
     sql_expression:
-      " CASE WHEN external_system_type = ''ExternalSystemTypeEnum_ZENDESK'' THEN ''ZENDESK'' WHEN external_system_type = ''ExternalSystemTypeEnum_JIRA'' THEN ''JIRA'' WHEN external_system_type = ''ExternalSystemTypeEnum_HUBSPOT'' THEN ''HUBSPOT'' WHEN external_system_type = ''ExternalSystemTypeEnum_GITHUB'' THEN ''GITHUB'' WHEN external_system_type = ''ExternalSystemTypeEnum_SERVICENOW'' THEN ''SERVICENOW'' WHEN external_system_type = ''ExternalSystemTypeEnum_SALESFORCE_SERVICE'' THEN ''SALESFORCE'' WHEN external_system_type = ''ExternalSystemTypeEnum_ADAAS'' THEN ''ADAAS'' WHEN external_system_type = ''ExternalSystemTypeEnum_LINEAR'' THEN ''LINEAR'' WHEN external_system_type = ''ExternalSystemTypeEnum_ROCKETLANE'' THEN ''ROCKETLANE'' WHEN external_system_type = ''ExternalSystemTypeEnum_CONFLUENCE'' THEN ''CONFLUENCE'' END",
+      " CASE WHEN external_system_type = 'ExternalSystemTypeEnum_ZENDESK' THEN 'ZENDESK' WHEN external_system_type = 'ExternalSystemTypeEnum_JIRA' THEN 'JIRA' WHEN external_system_type = 'ExternalSystemTypeEnum_HUBSPOT' THEN 'HUBSPOT' WHEN external_system_type = 'ExternalSystemTypeEnum_GITHUB' THEN 'GITHUB' WHEN external_system_type = 'ExternalSystemTypeEnum_SERVICENOW' THEN 'SERVICENOW' WHEN external_system_type = 'ExternalSystemTypeEnum_SALESFORCE_SERVICE' THEN 'SALESFORCE' WHEN external_system_type = 'ExternalSystemTypeEnum_ADAAS' THEN 'ADAAS' WHEN external_system_type = 'ExternalSystemTypeEnum_LINEAR' THEN 'LINEAR' WHEN external_system_type = 'ExternalSystemTypeEnum_ROCKETLANE' THEN 'ROCKETLANE' WHEN external_system_type = 'ExternalSystemTypeEnum_CONFLUENCE' THEN 'CONFLUENCE' END",
   },
   {
     sql_expression: 'arr_booked',
@@ -1167,14 +1167,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''closed'' THEN COALESCE(custom_fields->>''ctype__closed_at_cfid'',actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END",
+      "CASE WHEN state = 'closed' THEN COALESCE(custom_fields->>'ctype__closed_at_cfid',actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END",
   },
   {
     sql_expression: 'latam_sum_acv',
   },
   {
     sql_expression:
-      "REPLACE(UPPER(SUBSTR(state, 1, 1)) || LOWER(SUBSTR(state, 2)), ''_'', '' '')",
+      "REPLACE(UPPER(SUBSTR(state, 1, 1)) || LOWER(SUBSTR(state, 2)), '_', ' ')",
   },
   {
     sql_expression: 'api_url',
@@ -1186,13 +1186,13 @@ export const queries = [
     sql_expression: 'description',
   },
   {
-    sql_expression: "DATETRUNC(''month'', actual_close_date)",
+    sql_expression: "DATETRUNC('month', actual_close_date)",
   },
   {
     sql_expression: 'workspace_name',
   },
   {
-    sql_expression: "DATE_TRUNC(''day'', actual_close_date)",
+    sql_expression: "DATE_TRUNC('day', actual_close_date)",
   },
   {
     sql_expression: 'trend_record_date',
@@ -1208,7 +1208,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "regexp_split_to_array(tag->>''tag_id'', ''\"|\\[\"|\"\\]'')",
+      "regexp_split_to_array(tag->>'tag_id', '\"|\\[\"|\"\\]')",
   },
   {
     sql_expression: 'other_total_acv',
@@ -1227,7 +1227,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''closed'' THEN actual_close_date ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END",
+      "CASE WHEN state = 'closed' THEN actual_close_date ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END",
   },
   {
     sql_expression: 'app_version',
@@ -1245,7 +1245,7 @@ export const queries = [
     sql_expression: 'owned_by',
   },
   {
-    sql_expression: "DATE_TRUNC(''month'', creation_time)",
+    sql_expression: "DATE_TRUNC('month', creation_time)",
   },
   {
     sql_expression: 'ROUND(total_bytes_processed/(1024 * 1024),2)',
@@ -1255,7 +1255,7 @@ export const queries = [
   },
   {
     sql_expression:
-      " CASE WHEN mode = ''SyncRun_ModeEnumSyncFromDevrev'' THEN ''FromDevRev'' WHEN mode = ''SyncRun_ModeEnumSyncToDevrev'' THEN ''ToDevRev'' WHEN mode = ''SyncRun_ModeEnumInitial'' THEN ''Initial'' END",
+      " CASE WHEN mode = 'SyncRun_ModeEnumSyncFromDevrev' THEN 'FromDevRev' WHEN mode = 'SyncRun_ModeEnumSyncToDevrev' THEN 'ToDevRev' WHEN mode = 'SyncRun_ModeEnumInitial' THEN 'Initial' END",
   },
   {
     sql_expression: 'NULLIF(completed_in, 0)',
@@ -1274,10 +1274,10 @@ export const queries = [
   },
   {
     sql_expression:
-      "list_distinct(CAST(json_extract_string(surveys_aggregation_json, ''$[*].minimum'') AS VARCHAR[]))",
+      "list_distinct(CAST(json_extract_string(surveys_aggregation_json, '$[*].minimum') AS VARCHAR[]))",
   },
   {
-    sql_expression: "custom_fields->>''ctype__support_priority''",
+    sql_expression: "custom_fields->>'ctype__support_priority'",
   },
   {
     sql_expression: 'currency',
@@ -1287,28 +1287,28 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN severity_name = ''Blocker'' THEN ''Sev 1'' WHEN severity_name = ''High'' THEN ''Sev 2'' WHEN severity_name = ''Medium'' THEN ''Sev 3'' ELSE ''Sev 4'' END",
+      "CASE WHEN severity_name = 'Blocker' THEN 'Sev 1' WHEN severity_name = 'High' THEN 'Sev 2' WHEN severity_name = 'Medium' THEN 'Sev 3' ELSE 'Sev 4' END",
   },
   {
     sql_expression: 'tags',
   },
   {
     sql_expression:
-      "CASE WHEN created_by_id LIKE ''%:devu/%'' THEN ''dev_user'' WHEN created_by_id LIKE ''%:revu/%'' THEN ''rev_user'' ELSE ''unknown''END",
+      "CASE WHEN created_by_id LIKE '%:devu/%' THEN 'dev_user' WHEN created_by_id LIKE '%:revu/%' THEN 'rev_user' ELSE 'unknown'END",
   },
   {
     sql_expression:
-      "STRING_SPLIT(TRANSLATE(json_extract(tags_json, ''$[*].tag_id'')::TEXT, CHR(34) || ''[]'', ''''), '','')",
+      "STRING_SPLIT(TRANSLATE(json_extract(tags_json, '$[*].tag_id')::TEXT, CHR(34) || '[]', ''), ',')",
   },
   {
     sql_expression: 'close_quarter',
   },
   {
     sql_expression:
-      "CASE WHEN actual_close_date > created_date THEN DATEDIFF(''minutes'',actual_closed_date, created_date) END",
+      "CASE WHEN actual_close_date > created_date THEN DATEDIFF('minutes',actual_closed_date, created_date) END",
   },
   {
-    sql_expression: "IF(account_type IS NULL, ''All'',account_type)",
+    sql_expression: "IF(account_type IS NULL, 'All',account_type)",
   },
   {
     sql_expression: 'created_by_fullname',
@@ -1339,20 +1339,20 @@ export const queries = [
   },
   {
     sql_expression:
-      "CAST(json_extract(dim_issue.priority_uenum_json, ''$.id'') as integer)",
+      "CAST(json_extract(dim_issue.priority_uenum_json, '$.id') as integer)",
   },
   {
     sql_expression: 'forecast_category_str',
   },
   {
     sql_expression:
-      "(COUNT(DISTINCT CASE WHEN turing_interacted = ''yes'' AND is_undeflected = ''no'' THEN id END)/COUNT(DISTINCT CASE WHEN is_resolved_today = ''yes'' THEN id END))",
+      "(COUNT(DISTINCT CASE WHEN turing_interacted = 'yes' AND is_undeflected = 'no' THEN id END)/COUNT(DISTINCT CASE WHEN is_resolved_today = 'yes' THEN id END))",
   },
   {
     sql_expression: 'full_name',
   },
   {
-    sql_expression: "datediff(''day'', created_date)",
+    sql_expression: "datediff('day', created_date)",
   },
   {
     sql_expression: 'identified_at',
@@ -1365,7 +1365,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "TRIM(''\"'' from UNNEST(json_extract(custom_fields->>''ctype__event_type'', ''$[*]'')))",
+      "TRIM('\"' from UNNEST(json_extract(custom_fields->>'ctype__event_type', '$[*]')))",
   },
   {
     sql_expression: 'dev',
@@ -1375,7 +1375,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "DATETRUNC(''month'', COALESCE((COALESCE(custom_fields ->> ''ctype__created_at_cfid'', NULL)::TIMESTAMP), created_date::TIMESTAMP)) + INTERVAL ''1 day''",
+      "DATETRUNC('month', COALESCE((COALESCE(custom_fields ->> 'ctype__created_at_cfid', NULL)::TIMESTAMP), created_date::TIMESTAMP)) + INTERVAL '1 day'",
   },
   {
     sql_expression: 'total_revusers',
@@ -1391,7 +1391,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN range_state = ''closed'' then actual_close_date::TIMESTAMP ELSE   created_date::TIMESTAMP END",
+      "CASE WHEN range_state = 'closed' then actual_close_date::TIMESTAMP ELSE   created_date::TIMESTAMP END",
   },
   {
     sql_expression: 'custom_fields',
@@ -1401,14 +1401,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "case when state = ''in_progress'' then ''Active'' when state = ''closed'' and stage = ''resolved'' then ''Closed'' end",
+      "case when state = 'in_progress' then 'Active' when state = 'closed' and stage = 'resolved' then 'Closed' end",
   },
   {
     sql_expression:
-      "STRING_SPLIT(TRANSLATE(cast(json_extract(tags_json, ''$[*].tag_id'') as string), CHR(34) || ''[]'', ''''), '','')",
+      "STRING_SPLIT(TRANSLATE(cast(json_extract(tags_json, '$[*].tag_id') as string), CHR(34) || '[]', ''), ',')",
   },
   {
-    sql_expression: "custom_fields->>''tnt__region''",
+    sql_expression: "custom_fields->>'tnt__region'",
   },
   {
     sql_expression: 'dim_ticket.subtype',
@@ -1421,7 +1421,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "STRING_SPLIT(TRANSLATE(json_extract(tags_json, ''$[*].tag_id''), CHR(34) || ''[]'', ''''), '','')",
+      "STRING_SPLIT(TRANSLATE(json_extract(tags_json, '$[*].tag_id'), CHR(34) || '[]', ''), ',')",
   },
   {
     sql_expression: 'avg_time_taken_to_download_data_for_dashboard',
@@ -1473,32 +1473,32 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN source = ''issues''  THEN ''Issue Opened Ticket Linked'' ELSE ''Ticket Opened'' END",
+      "CASE WHEN source = 'issues'  THEN 'Issue Opened Ticket Linked' ELSE 'Ticket Opened' END",
   },
   {
     sql_expression:
-      "CASE WHEN range_state = ''closed'' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END",
+      "CASE WHEN range_state = 'closed' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END",
   },
   {
     sql_expression: 'percentage_completion',
   },
   {
     sql_expression:
-      "CASE WHEN state = ''closed'' THEN actual_close_date::TIMESTAMP ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END",
+      "CASE WHEN state = 'closed' THEN actual_close_date::TIMESTAMP ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END",
   },
   {
     sql_expression: 'subtype2',
   },
   {
     sql_expression:
-      "DATE_TRUNC(''week'', CASE WHEN range_state = ''closed'' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END)",
+      "DATE_TRUNC('week', CASE WHEN range_state = 'closed' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END)",
   },
   {
     sql_expression: 'dayofweek(created_date)',
   },
   {
     sql_expression:
-      " CASE WHEN mode = ''SyncRun_ModeEnumInitial'' THEN ''Initial'' WHEN mode = ''SyncRun_ModeEnumSyncToDevrev'' THEN ''SyncToDevRev'' WHEN mode = ''SyncRun_ModeEnumSyncFromDevrev'' THEN ''SyncFromDevRev'' END",
+      " CASE WHEN mode = 'SyncRun_ModeEnumInitial' THEN 'Initial' WHEN mode = 'SyncRun_ModeEnumSyncToDevrev' THEN 'SyncToDevRev' WHEN mode = 'SyncRun_ModeEnumSyncFromDevrev' THEN 'SyncFromDevRev' END",
   },
   {
     sql_expression: 'sub_region',
@@ -1514,13 +1514,13 @@ export const queries = [
   },
   {
     sql_expression:
-      " SUBSTRING(state_sh, POSITION(''SyncProgress_StateEnum'' IN state_sh) + LENGTH(''SyncProgress_StateEnum'')) ",
+      " SUBSTRING(state_sh, POSITION('SyncProgress_StateEnum' IN state_sh) + LENGTH('SyncProgress_StateEnum')) ",
   },
   {
     sql_expression: 'coder_status',
   },
   {
-    sql_expression: "CONCAT(monthname(end_of_month),''-'',year(end_of_month))",
+    sql_expression: "CONCAT(monthname(end_of_month),'-',year(end_of_month))",
   },
   {
     sql_expression: 'dayname(created_date)',
@@ -1532,10 +1532,10 @@ export const queries = [
     sql_expression: 'transition_start_date',
   },
   {
-    sql_expression: "date_trunc(''months'', created_date)",
+    sql_expression: "date_trunc('months', created_date)",
   },
   {
-    sql_expression: "date_trunc(''week'', actual_close_date)",
+    sql_expression: "date_trunc('week', actual_close_date)",
   },
   {
     sql_expression: 'utm_source',
@@ -1572,10 +1572,10 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN actual_close_date > created_date THEN DATEDIFF(''day'',actual_closed_date, current_date) END",
+      "CASE WHEN actual_close_date > created_date THEN DATEDIFF('day',actual_closed_date, current_date) END",
   },
   {
-    sql_expression: "custom_fields->>''tnt__product''",
+    sql_expression: "custom_fields->>'tnt__product'",
   },
   {
     sql_expression: 'rev_uid',
@@ -1584,14 +1584,14 @@ export const queries = [
     sql_expression: 'drilldown_count_val',
   },
   {
-    sql_expression: "DATETRUNC(''day'',actual_close_date)",
+    sql_expression: "DATETRUNC('day',actual_close_date)",
   },
   {
     sql_expression: 'COALESCE(total_first_resp_time, 0)',
   },
   {
     sql_expression:
-      "translate(unnest(json_extract(tags_json, ''$[*].tag_id'')), CHR(34), '''')",
+      "translate(unnest(json_extract(tags_json, '$[*].tag_id')), CHR(34), '')",
   },
   {
     sql_expression: 'developer',
@@ -1601,13 +1601,13 @@ export const queries = [
   },
   {
     sql_expression:
-      "''platform=WEB&vk='' || version_key || ''&si='' || session_id",
+      "'platform=WEB&vk=' || version_key || '&si=' || session_id",
   },
   {
     sql_expression: 'response_time',
   },
   {
-    sql_expression: "issue_custom_fields->>''ctype__customfield_11497_cfid''",
+    sql_expression: "issue_custom_fields->>'ctype__customfield_11497_cfid'",
   },
   {
     sql_expression: 'Features_Planned',
@@ -1617,7 +1617,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN turing_interacted = ''yes'' AND is_undeflected = ''no'' THEN ''yes'' ELSE ''no'' END",
+      "CASE WHEN turing_interacted = 'yes' AND is_undeflected = 'no' THEN 'yes' ELSE 'no' END",
   },
   {
     sql_expression: 'created_at_ts',
@@ -1650,18 +1650,18 @@ export const queries = [
     sql_expression: 'first_response_time',
   },
   {
-    sql_expression: "stage_json->>''name''",
+    sql_expression: "stage_json->>'name'",
   },
   {
     sql_expression:
-      "COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP ",
+      "COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP ",
   },
   {
     sql_expression: 'id_su',
   },
   {
     sql_expression:
-      " CASE WHEN mode_su = ''SyncRun_ModeEnumInitial'' THEN ''Initial'' WHEN mode_su = ''SyncRun_ModeEnumSyncToDevrev'' THEN ''SyncToDevRev'' WHEN mode_su = ''SyncRun_ModeEnumSyncFromDevrev'' THEN ''SyncFromDevRev'' END",
+      " CASE WHEN mode_su = 'SyncRun_ModeEnumInitial' THEN 'Initial' WHEN mode_su = 'SyncRun_ModeEnumSyncToDevrev' THEN 'SyncToDevRev' WHEN mode_su = 'SyncRun_ModeEnumSyncFromDevrev' THEN 'SyncFromDevRev' END",
   },
   {
     sql_expression: 'dim_ticket.id',
@@ -1673,7 +1673,7 @@ export const queries = [
     sql_expression: 'stock_schema_fragment_id',
   },
   {
-    sql_expression: "date_trunc(''day'', target_close_date)",
+    sql_expression: "date_trunc('day', target_close_date)",
   },
   {
     sql_expression: 'host_serial',
@@ -1688,7 +1688,7 @@ export const queries = [
     sql_expression: 'Total_Product_Features_Planned',
   },
   {
-    sql_expression: "JSON_EXTRACT(custom_fields, ''$.ctype__linkedaccount'')",
+    sql_expression: "JSON_EXTRACT(custom_fields, '$.ctype__linkedaccount')",
   },
   {
     sql_expression: 'job_timestamp',
@@ -1701,10 +1701,10 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN array_length(responses, 1) > 2 AND stage = ''resolved'' THEN ''Single touch resolved'' ELSE ''Not resolved in single touch'' END",
+      "CASE WHEN array_length(responses, 1) > 2 AND stage = 'resolved' THEN 'Single touch resolved' ELSE 'Not resolved in single touch' END",
   },
   {
-    sql_expression: "DATETRUNC(''month'', record_date)",
+    sql_expression: "DATETRUNC('month', record_date)",
   },
   {
     sql_expression: 'health_state',
@@ -1713,7 +1713,7 @@ export const queries = [
     sql_expression: 'won_arr',
   },
   {
-    sql_expression: "CASE WHEN escalated THEN ''Yes'' ELSE ''No'' END",
+    sql_expression: "CASE WHEN escalated THEN 'Yes' ELSE 'No' END",
   },
   {
     sql_expression: 'October_Customers',
@@ -1738,7 +1738,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "UNNEST(STRING_TO_ARRAY(REGEXP_REPLACE(custom_fields ->> ''ctype__x1260822517949_cfid'', ''[\\[\\]\"]'', '''', ''g''), '',''))",
+      "UNNEST(STRING_TO_ARRAY(REGEXP_REPLACE(custom_fields ->> 'ctype__x1260822517949_cfid', '[\\[\\]\"]', '', 'g'), ','))",
   },
   {
     sql_expression: 'filtered_query',
@@ -1750,7 +1750,7 @@ export const queries = [
     sql_expression: 'issueId',
   },
   {
-    sql_expression: "DATE_TRUNC(''week'',  issue_date)",
+    sql_expression: "DATE_TRUNC('week',  issue_date)",
   },
   {
     sql_expression: 'customer_type',
@@ -1759,7 +1759,7 @@ export const queries = [
     sql_expression: 'consignment_count',
   },
   {
-    sql_expression: "STRING_TO_ARRAY(members_rsvped,'','')",
+    sql_expression: "STRING_TO_ARRAY(members_rsvped,',')",
   },
   {
     sql_expression: 'module',
@@ -1772,7 +1772,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CAST(CAST(FLOOR(CAST(JSON_EXTRACT(surveys_aggregation_json, ''$[0].average'') AS INT)) AS INT)AS STRING)",
+      "CAST(CAST(FLOOR(CAST(JSON_EXTRACT(surveys_aggregation_json, '$[0].average') AS INT)) AS INT)AS STRING)",
   },
   {
     sql_expression: 'part_percentage*100',
@@ -1790,7 +1790,7 @@ export const queries = [
     sql_expression: 'partner',
   },
   {
-    sql_expression: "IF(tnt__type IS NULL,''All'',tnt__type)",
+    sql_expression: "IF(tnt__type IS NULL,'All',tnt__type)",
   },
   {
     sql_expression: 'job_time',
@@ -1830,7 +1830,7 @@ export const queries = [
     sql_expression: 'ticket_id',
   },
   {
-    sql_expression: "JSON_EXTRACT(surveys_aggregation_json, ''$[0].average'')",
+    sql_expression: "JSON_EXTRACT(surveys_aggregation_json, '$[0].average')",
   },
   {
     sql_expression: 'qna_count',
@@ -1859,7 +1859,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN DATEDIFF(''day'', created_date, CURRENT_DATE) >= 1 THEN ''1 day'' WHEN DATEDIFF(''day'', created_date, CURRENT_DATE) >= 2 THEN ''1-2 days'' WHEN DATEDIFF(''day'', created_date, CURRENT_DATE) >= 7 THEN ''2-7 days'' WHEN DATEDIFF(''day'', created_date, CURRENT_DATE) >= 30 THEN ''7-30 days'' ELSE ''>30 days'' END",
+      "CASE WHEN DATEDIFF('day', created_date, CURRENT_DATE) >= 1 THEN '1 day' WHEN DATEDIFF('day', created_date, CURRENT_DATE) >= 2 THEN '1-2 days' WHEN DATEDIFF('day', created_date, CURRENT_DATE) >= 7 THEN '2-7 days' WHEN DATEDIFF('day', created_date, CURRENT_DATE) >= 30 THEN '7-30 days' ELSE '>30 days' END",
   },
   {
     sql_expression: 'health_status',
@@ -1887,14 +1887,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "case when state != ''closed'' then ''Open'' else ''Closed'' ",
+      "case when state != 'closed' then 'Open' else 'Closed' ",
   },
   {
     sql_expression:
-      "CASE WHEN issue_category = ''incident'' THEN ''bug'' ELSE issue_category END",
+      "CASE WHEN issue_category = 'incident' THEN 'bug' ELSE issue_category END",
   },
   {
-    sql_expression: "DATE_TRUNC(''week'', record_date)",
+    sql_expression: "DATE_TRUNC('week', record_date)",
   },
   {
     sql_expression: 'planning_status',
@@ -1904,10 +1904,10 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END",
+      "CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END",
   },
   {
-    sql_expression: "DATE_TRUNC(''week'', created_date)",
+    sql_expression: "DATE_TRUNC('week', created_date)",
   },
   {
     sql_expression: 'status',
@@ -1949,11 +1949,11 @@ export const queries = [
     sql_expression: 'pr_opened_time',
   },
   {
-    sql_expression: "DATETRUNC(''day'', created_date)",
+    sql_expression: "DATETRUNC('day', created_date)",
   },
   {
     sql_expression:
-      "CASE WHEN (range_state=''closed'') THEN ''Closed'' ELSE ''Opened'' END",
+      "CASE WHEN (range_state='closed') THEN 'Closed' ELSE 'Opened' END",
   },
   {
     sql_expression: 'on_hold_reason',
@@ -1966,7 +1966,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN tnt__on_hold_reasons IS NOT NULL THEN tnt__on_hold_reasons ELSE ''-'' END",
+      "CASE WHEN tnt__on_hold_reasons IS NOT NULL THEN tnt__on_hold_reasons ELSE '-' END",
   },
   {
     sql_expression: 'released_by_id',
@@ -1997,7 +1997,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN subtype = ''zendesk_uniphore_tickets.incident'' THEN CAST(custom_fields ->> ''ctype__created_at_cfid'' AS DATE) WHEN subtype = ''servicenow_redbox_cases'' THEN CAST(custom_fields ->> ''ctype__opened_at_cfid'' AS DATE) ELSE created_date END",
+      "CASE WHEN subtype = 'zendesk_uniphore_tickets.incident' THEN CAST(custom_fields ->> 'ctype__created_at_cfid' AS DATE) WHEN subtype = 'servicenow_redbox_cases' THEN CAST(custom_fields ->> 'ctype__opened_at_cfid' AS DATE) ELSE created_date END",
   },
   {
     sql_expression: 'sprint_date',
@@ -2009,17 +2009,17 @@ export const queries = [
     sql_expression: 'ROUND(max_ttr,2)',
   },
   {
-    sql_expression: "UNNEST(custom_fields ->> ''$.tnt__countries[*]'')",
+    sql_expression: "UNNEST(custom_fields ->> '$.tnt__countries[*]')",
   },
   {
     sql_expression:
-      "CASE             WHEN days_open >= 1 THEN ''1 day''             WHEN days_open >= 2 THEN ''1-2 days''             WHEN days_open >= 7 THEN ''2-7 days''             WHEN days_open >= 30 THEN ''7-30 days''             ELSE ''>30 days''         END",
+      "CASE             WHEN days_open >= 1 THEN '1 day'             WHEN days_open >= 2 THEN '1-2 days'             WHEN days_open >= 7 THEN '2-7 days'             WHEN days_open >= 30 THEN '7-30 days'             ELSE '>30 days'         END",
   },
   {
     sql_expression: 'CAST(created_date as DATE)',
   },
   {
-    sql_expression: "DATE_TRUNC(''month'', record_date) + INTERVAL 1 DAY",
+    sql_expression: "DATE_TRUNC('month', record_date) + INTERVAL 1 DAY",
   },
   {
     sql_expression: 'resolved_date',
@@ -2035,7 +2035,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN status = ''hit'' THEN ''Achieved'' WHEN status = ''miss'' THEN ''Breached'' END",
+      "CASE WHEN status = 'hit' THEN 'Achieved' WHEN status = 'miss' THEN 'Breached' END",
   },
   {
     sql_expression: 'user_email',
@@ -2057,27 +2057,27 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN range_state = ''closed'' THEN (issue_actual_close_date)::TIMESTAMP ELSE issue_created_date::TIMESTAMP END",
+      "CASE WHEN range_state = 'closed' THEN (issue_actual_close_date)::TIMESTAMP ELSE issue_created_date::TIMESTAMP END",
   },
   {
-    sql_expression: "json_extract_string(stage_json, ''$.name'')",
+    sql_expression: "json_extract_string(stage_json, '$.name')",
   },
   {
     sql_expression: 'Cluster',
   },
   {
     sql_expression:
-      "CASE WHEN state_sh = ''SyncProgress_StateEnumCompleted''  THEN ''Completed''   WHEN state_sh = ''SyncProgress_StateEnumExtractionError'' THEN ''Failed''   WHEN state_sh = ''SyncProgress_StateEnumRecipeDiscoveryError'' THEN ''Failed''   WHEN state_sh = ''SyncProgress_StateEnumLoadingError'' THEN ''Failed''   WHEN state_sh = ''SyncProgress_StateEnumExtractAttachmentsError'' THEN ''Failed''   WHEN state_sh = ''SyncProgress_StateEnumDeletionError'' THEN ''Failed''   WHEN state_sh = ''SyncProgress_StateEnumLoadingAttachmentsError'' THEN ''Failed''   WHEN state_sh = ''SyncProgress_StateEnumExtractAttachments'' THEN ''ExtractAttachments'' END",
+      "CASE WHEN state_sh = 'SyncProgress_StateEnumCompleted'  THEN 'Completed'   WHEN state_sh = 'SyncProgress_StateEnumExtractionError' THEN 'Failed'   WHEN state_sh = 'SyncProgress_StateEnumRecipeDiscoveryError' THEN 'Failed'   WHEN state_sh = 'SyncProgress_StateEnumLoadingError' THEN 'Failed'   WHEN state_sh = 'SyncProgress_StateEnumExtractAttachmentsError' THEN 'Failed'   WHEN state_sh = 'SyncProgress_StateEnumDeletionError' THEN 'Failed'   WHEN state_sh = 'SyncProgress_StateEnumLoadingAttachmentsError' THEN 'Failed'   WHEN state_sh = 'SyncProgress_StateEnumExtractAttachments' THEN 'ExtractAttachments' END",
   },
   {
-    sql_expression: "date_trunc(''day'', actual_close_date)",
+    sql_expression: "date_trunc('day', actual_close_date)",
   },
   {
     sql_expression: 'articles_post_mfz_check',
   },
   {
     sql_expression:
-      "CASE WHEN metric_status = ''hit'' THEN ''Achieved'' WHEN metric_status = ''miss'' THEN ''Missed'' ELSE ''In Progress'' END",
+      "CASE WHEN metric_status = 'hit' THEN 'Achieved' WHEN metric_status = 'miss' THEN 'Missed' ELSE 'In Progress' END",
   },
   {
     sql_expression: 'next_mod_timestamp',
@@ -2087,13 +2087,13 @@ export const queries = [
   },
   {
     sql_expression:
-      "DATETRUNC(''month'', COALESCE(NULLIF(custom_fields ->> ''ctype__created_at_cfid'', '''')::TIMESTAMP, created_date::TIMESTAMP)) + INTERVAL ''1 day''",
+      "DATETRUNC('month', COALESCE(NULLIF(custom_fields ->> 'ctype__created_at_cfid', '')::TIMESTAMP, created_date::TIMESTAMP)) + INTERVAL '1 day'",
   },
   {
     sql_expression: 'compare_date',
   },
   {
-    sql_expression: "regexp_split_to_array(owned_by_id, ''\"|\\[\"|\"\\]'')",
+    sql_expression: "regexp_split_to_array(owned_by_id, '\"|\\[\"|\"\\]')",
   },
   {
     sql_expression: 'June_ID',
@@ -2138,7 +2138,7 @@ export const queries = [
     sql_expression: 'owner_id',
   },
   {
-    sql_expression: "JSON_EXTRACT_STRING(value, ''$.amount'')::FLOAT",
+    sql_expression: "JSON_EXTRACT_STRING(value, '$.amount')::FLOAT",
   },
   {
     sql_expression: 'env',
@@ -2178,21 +2178,21 @@ export const queries = [
   },
   {
     sql_expression:
-      "CAST(TRUNC(CAST(FLOOR(CAST(JSON_EXTRACT(surveys_aggregation_json, ''$[0].average'') AS INT)) AS INT)) AS VARCHAR)",
+      "CAST(TRUNC(CAST(FLOOR(CAST(JSON_EXTRACT(surveys_aggregation_json, '$[0].average') AS INT)) AS INT)) AS VARCHAR)",
   },
   {
-    sql_expression: "DATE_TRUNC(''week'',created_date)",
+    sql_expression: "DATE_TRUNC('week',created_date)",
   },
   {
     sql_expression:
-      "DATE_TRUNC(''week'', CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END)",
+      "DATE_TRUNC('week', CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END)",
   },
   {
     sql_expression: 'ctype__x20331512708123_cfid',
   },
   {
     sql_expression:
-      " CASE WHEN external_system_type = ''ExternalSystemTypeEnum_ZENDESK'' THEN ''ZENDESK'' WHEN external_system_type = ''ExternalSystemTypeEnum_JIRA'' THEN ''JIRA'' WHEN external_system_type = ''ExternalSystemTypeEnum_HUBSPOT'' THEN ''HUBSPOT'' WHEN external_system_type = ''ExternalSystemTypeEnum_GITHUB'' THEN ''GITHUB'' WHEN external_system_type = ''ExternalSystemTypeEnum_SERVICENOW'' THEN ''SERVICENOW'' WHEN external_system_type = ''ExternalSystemTypeEnum_SALESFORCE_SERVICE'' THEN ''SALESFORCE'' WHEN external_system_type = ''ExternalSystemTypeEnum_ADAAS'' THEN ''ADAAS'' WHEN external_system_type = ''ExternalSystemTypeEnum_LINEAR'' THEN ''LINEAR'' WHEN external_system_type = ''ExternalSystemTypeEnum_ROCKETLANE'' THEN ''ROCKETLANE'' WHEN external_system_type = ''ExternalSystemTypeEnum_CONFLUENCE'' THEN ''CONFLUENCE''END",
+      " CASE WHEN external_system_type = 'ExternalSystemTypeEnum_ZENDESK' THEN 'ZENDESK' WHEN external_system_type = 'ExternalSystemTypeEnum_JIRA' THEN 'JIRA' WHEN external_system_type = 'ExternalSystemTypeEnum_HUBSPOT' THEN 'HUBSPOT' WHEN external_system_type = 'ExternalSystemTypeEnum_GITHUB' THEN 'GITHUB' WHEN external_system_type = 'ExternalSystemTypeEnum_SERVICENOW' THEN 'SERVICENOW' WHEN external_system_type = 'ExternalSystemTypeEnum_SALESFORCE_SERVICE' THEN 'SALESFORCE' WHEN external_system_type = 'ExternalSystemTypeEnum_ADAAS' THEN 'ADAAS' WHEN external_system_type = 'ExternalSystemTypeEnum_LINEAR' THEN 'LINEAR' WHEN external_system_type = 'ExternalSystemTypeEnum_ROCKETLANE' THEN 'ROCKETLANE' WHEN external_system_type = 'ExternalSystemTypeEnum_CONFLUENCE' THEN 'CONFLUENCE'END",
   },
   {
     sql_expression: 'ordinal',
@@ -2226,7 +2226,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state=''open'' THEN ''Open'' WHEN state=''in_progress'' THEN ''In Progress'' WHEN state=''closed'' THEN ''Closed'' END",
+      "CASE WHEN state='open' THEN 'Open' WHEN state='in_progress' THEN 'In Progress' WHEN state='closed' THEN 'Closed' END",
   },
   {
     sql_expression: 'geography',
@@ -2236,7 +2236,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN component = ''Loader'' then ''Loader'' WHEN component = ''Extractor'' then ''Extractor'' WHEN component = ''Orchestrator'' THEN ''Orchestrator'' WHEN component = ''RecipeManager'' THEN ''RecipeManager'' WHEN component = ''Transformer'' THEN ''Transformer'' END",
+      "CASE WHEN component = 'Loader' then 'Loader' WHEN component = 'Extractor' then 'Extractor' WHEN component = 'Orchestrator' THEN 'Orchestrator' WHEN component = 'RecipeManager' THEN 'RecipeManager' WHEN component = 'Transformer' THEN 'Transformer' END",
   },
   {
     sql_expression: 'session_url',
@@ -2274,7 +2274,7 @@ export const queries = [
     sql_expression: 'forecasted_close_date',
   },
   {
-    sql_expression: "COUNT(CASE WHEN state != ''closed'' THEN id END)",
+    sql_expression: "COUNT(CASE WHEN state != 'closed' THEN id END)",
   },
   {
     sql_expression: 'external_client',
@@ -2283,13 +2283,13 @@ export const queries = [
     sql_expression: 'total_first_resp_time',
   },
   {
-    sql_expression: "DATE_TRUNC(''month'', record_date)",
+    sql_expression: "DATE_TRUNC('month', record_date)",
   },
   {
     sql_expression: 'tnt__opportunity_type',
   },
   {
-    sql_expression: "IF(region_name IS NULL,''Other'',region_name)",
+    sql_expression: "IF(region_name IS NULL,'Other',region_name)",
   },
   {
     sql_expression: 'ticket_created_date',
@@ -2298,15 +2298,15 @@ export const queries = [
     sql_expression: 'forecast',
   },
   {
-    sql_expression: "DATE_DIFF(''minute'', created_date, actual_close_date)",
+    sql_expression: "DATE_DIFF('minute', created_date, actual_close_date)",
   },
   {
     sql_expression:
-      " CASE WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/1'' THEN ''first_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/2'' THEN ''next_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/3'' THEN ''resolution''END ",
+      " CASE WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/1' THEN 'first_response' WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/2' THEN 'next_response' WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/3' THEN 'resolution'END ",
   },
   {
     sql_expression:
-      "CASE WHEN subtype IS NOT  NULL THEN subtype WHEN subtype IS NULL THEN ''Unassigned'' END",
+      "CASE WHEN subtype IS NOT  NULL THEN subtype WHEN subtype IS NULL THEN 'Unassigned' END",
   },
   {
     sql_expression: 'tnt__developer',
@@ -2316,7 +2316,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN stage_json->>''name'' in (''On Hold'', ''On-hold'', ''On hold'') THEN ''On Hold'' WHEN state = ''in_progress'' THEN ''In Progress''  END",
+      "CASE WHEN stage_json->>'name' in ('On Hold', 'On-hold', 'On hold') THEN 'On Hold' WHEN state = 'in_progress' THEN 'In Progress'  END",
   },
   {
     sql_expression: 'first_commit_time',
@@ -2335,7 +2335,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "TRIM(''\"'' from UNNEST(json_extract(custom_fields->>''ctype__alert_name'', ''$[*]'')))",
+      "TRIM('\"' from UNNEST(json_extract(custom_fields->>'ctype__alert_name', '$[*]')))",
   },
   {
     sql_expression: 'environment',
@@ -2348,7 +2348,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN DATE_TRUNC(''day'', record_hour) = DATE_TRUNC(''day'', created_date) THEN ''Created'' WHEN DATE_TRUNC(''day'', created_date) != DATE_TRUNC(''day'', record_hour) AND DATE_TRUNC(''day'', actual_close_date) = DATE_TRUNC(''day'', record_hour) THEN ''Closed'' END",
+      "CASE WHEN DATE_TRUNC('day', record_hour) = DATE_TRUNC('day', created_date) THEN 'Created' WHEN DATE_TRUNC('day', created_date) != DATE_TRUNC('day', record_hour) AND DATE_TRUNC('day', actual_close_date) = DATE_TRUNC('day', record_hour) THEN 'Closed' END",
   },
   {
     sql_expression: 'days_in_current_stage',
@@ -2382,14 +2382,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "json_extract_string(fact_issue.stage_json, ''$.stage_id'')",
+      "json_extract_string(fact_issue.stage_json, '$.stage_id')",
   },
   {
     sql_expression: 'opp_stage_id',
   },
   {
     sql_expression:
-      "CASE WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/1'' THEN ''first_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/2'' THEN ''next_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/3'' THEN ''resolution''END",
+      "CASE WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/1' THEN 'first_response' WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/2' THEN 'next_response' WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/3' THEN 'resolution'END",
   },
   {
     sql_expression: 'turing_effective',
@@ -2444,7 +2444,7 @@ export const queries = [
   },
   {
     sql_expression:
-      " CASE WHEN sync_type_su = ''SyncUnit_SyncTypeEnumManual'' THEN ''Manual'' WHEN sync_type_su = ''SyncUnit_SyncTypeEnumPeriodic'' THEN ''Periodic'' END",
+      " CASE WHEN sync_type_su = 'SyncUnit_SyncTypeEnumManual' THEN 'Manual' WHEN sync_type_su = 'SyncUnit_SyncTypeEnumPeriodic' THEN 'Periodic' END",
   },
   {
     sql_expression: 'ended_at_sh',
@@ -2462,20 +2462,20 @@ export const queries = [
     sql_expression: 'metric_stage',
   },
   {
-    sql_expression: "DATE_TRUNC(''week'', actual_close_date)",
+    sql_expression: "DATE_TRUNC('week', actual_close_date)",
   },
   {
     sql_expression: 'previous_mod_timestamp',
   },
   {
-    sql_expression: "JSON_EXTRACT(custom_fields, ''$.ctype__date'')",
+    sql_expression: "JSON_EXTRACT(custom_fields, '$.ctype__date')",
   },
   {
     sql_expression: 'traversed_stage',
   },
   {
     sql_expression:
-      "case when state = ''in_progress'' then ''active'' when stage = ''resolved'' then ''closed'' else null end",
+      "case when state = 'in_progress' then 'active' when stage = 'resolved' then 'closed' else null end",
   },
   {
     sql_expression: 'last_health_state',
@@ -2488,7 +2488,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN source = ''issues'' and state = ''closed''  THEN ''Issue Closed Ticket Linked'' ELSE ''Issue Opened Linked To Ticket'' END",
+      "CASE WHEN source = 'issues' and state = 'closed'  THEN 'Issue Closed Ticket Linked' ELSE 'Issue Opened Linked To Ticket' END",
   },
   {
     sql_expression: 'booking_goal',
@@ -2521,13 +2521,13 @@ export const queries = [
     sql_expression: 'opp_stage',
   },
   {
-    sql_expression: "json_extract_string(dim_issue.stage_json, ''$.stage_id'')",
+    sql_expression: "json_extract_string(dim_issue.stage_json, '$.stage_id')",
   },
   {
     sql_expression: 'user_id',
   },
   {
-    sql_expression: "DATETRUNC(''month'',created_date)",
+    sql_expression: "DATETRUNC('month',created_date)",
   },
   {
     sql_expression: 'Q3_ID',
@@ -2545,17 +2545,17 @@ export const queries = [
     sql_expression: 'CAST(CAST(record_date AS TIMESTAMP) AS DATE)',
   },
   {
-    sql_expression: "DATETRUNC(''month'', created_date)",
+    sql_expression: "DATETRUNC('month', created_date)",
   },
   {
-    sql_expression: "DATETRUNC(''day'',created_date)",
+    sql_expression: "DATETRUNC('day',created_date)",
   },
   {
     sql_expression:
-      "CASE WHEN json_extract_string(metric, ''$.metric_definition_id'') == ''don:core:dvrv-us-1:devo/0:metric_definition/1'' THEN ''first_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') == ''don:core:dvrv-us-1:devo/0:metric_definition/2'' THEN ''next_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') = ''don:core:dvrv-us-1:devo/0:metric_definition/3'' THEN ''resolution''END",
+      "CASE WHEN json_extract_string(metric, '$.metric_definition_id') == 'don:core:dvrv-us-1:devo/0:metric_definition/1' THEN 'first_response' WHEN json_extract_string(metric, '$.metric_definition_id') == 'don:core:dvrv-us-1:devo/0:metric_definition/2' THEN 'next_response' WHEN json_extract_string(metric, '$.metric_definition_id') = 'don:core:dvrv-us-1:devo/0:metric_definition/3' THEN 'resolution'END",
   },
   {
-    sql_expression: "CAST(strftime(''%H'', created_date) AS VARCHAR)",
+    sql_expression: "CAST(strftime('%H', created_date) AS VARCHAR)",
   },
   {
     sql_expression: 'previous_target_close_date',
@@ -2570,7 +2570,7 @@ export const queries = [
     sql_expression: 'monthname(end_of_month)',
   },
   {
-    sql_expression: "date_trunc(''day'', modified_date)",
+    sql_expression: "date_trunc('day', modified_date)",
   },
   {
     sql_expression: 'COALESCE(created_at, opened_at, created_date)::TIMESTAMP ',
@@ -2583,7 +2583,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN is_issue_linked = ''yes'' THEN ''Escalated to issue'' ELSE ''Not escalated to issue'' END",
+      "CASE WHEN is_issue_linked = 'yes' THEN 'Escalated to issue' ELSE 'Not escalated to issue' END",
   },
   {
     sql_expression: 'repair_type',
@@ -2592,11 +2592,11 @@ export const queries = [
     sql_expression: 'DAYNAME(formatted_created_date)',
   },
   {
-    sql_expression: "DATE_TRUNC(''week'', formatted_created_date)",
+    sql_expression: "DATE_TRUNC('week', formatted_created_date)",
   },
   {
     sql_expression:
-      "dayofweek(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END)",
+      "dayofweek(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END)",
   },
   {
     sql_expression: 'app_launch_time',
@@ -2639,7 +2639,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE when rev_oid = ''don:identity:dvrv-us-1:devo/NJ5yrCDA:revo/ddmwB92c'' THEN ''Proactive'' ELSE ''Reactive'' END",
+      "CASE when rev_oid = 'don:identity:dvrv-us-1:devo/NJ5yrCDA:revo/ddmwB92c' THEN 'Proactive' ELSE 'Reactive' END",
   },
   {
     sql_expression: 'modified_date_quarter',
@@ -2652,7 +2652,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN state = ''closed'' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END",
+      "CASE WHEN state = 'closed' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END",
   },
   {
     sql_expression: 'qnas_post_mfz_check',
@@ -2698,7 +2698,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "IF(tnt__opportunity_type IS NULL,''All'',tnt__opportunity_type)",
+      "IF(tnt__opportunity_type IS NULL,'All',tnt__opportunity_type)",
   },
   {
     sql_expression: 'min_unhealthy_days',
@@ -2719,7 +2719,7 @@ export const queries = [
     sql_expression: 'repo_name',
   },
   {
-    sql_expression: "''ticket''",
+    sql_expression: "'ticket'",
   },
   {
     sql_expression: 'round(duration_hours)',
@@ -2744,7 +2744,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN DATEDIFF(''day'', modified_date, CURRENT_DATE) >= 1 THEN ''1 day'' WHEN DATEDIFF(''day'', modified_date, CURRENT_DATE) >= 2 THEN ''1-2 days'' WHEN DATEDIFF(''day'', modified_date, CURRENT_DATE) >= 7 THEN ''2-7 days'' WHEN DATEDIFF(''day'', modified_date, CURRENT_DATE) >= 30 THEN ''7-30 days'' ELSE ''>30 days'' END",
+      "CASE WHEN DATEDIFF('day', modified_date, CURRENT_DATE) >= 1 THEN '1 day' WHEN DATEDIFF('day', modified_date, CURRENT_DATE) >= 2 THEN '1-2 days' WHEN DATEDIFF('day', modified_date, CURRENT_DATE) >= 7 THEN '2-7 days' WHEN DATEDIFF('day', modified_date, CURRENT_DATE) >= 30 THEN '7-30 days' ELSE '>30 days' END",
   },
   {
     sql_expression: 'display_name_devo',
@@ -2765,17 +2765,17 @@ export const queries = [
     sql_expression: 'opportunity',
   },
   {
-    sql_expression: "DATE_TRUNC(''week'', issue_date)",
+    sql_expression: "DATE_TRUNC('week', issue_date)",
   },
   {
-    sql_expression: "DATE_TRUNC(''days'', created_date)",
+    sql_expression: "DATE_TRUNC('days', created_date)",
   },
   {
     sql_expression: 'most_recent_timestamp',
   },
   {
     sql_expression:
-      "COALESCE(custom_fields ->> ''ctype__created_at_cfid'', created_date)::TIMESTAMP",
+      "COALESCE(custom_fields ->> 'ctype__created_at_cfid', created_date)::TIMESTAMP",
   },
   {
     sql_expression: 'commit_id',
@@ -2808,7 +2808,7 @@ export const queries = [
     sql_expression: 'minimum_time_repair',
   },
   {
-    sql_expression: "json_extract_string(stage_json, ''$.stage_id'')",
+    sql_expression: "json_extract_string(stage_json, '$.stage_id')",
   },
   {
     sql_expression: 'add_section_clicked_count_val',
@@ -2848,18 +2848,18 @@ export const queries = [
   },
   {
     sql_expression:
-      "DATE_TRUNC(''week'', CASE WHEN state = ''closed'' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END)",
+      "DATE_TRUNC('week', CASE WHEN state = 'closed' THEN (actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END)",
   },
   {
     sql_expression:
-      "CASE WHEN on_hold_reason IS NOT NULL THEN on_hold_reason ELSE ''-'' END",
+      "CASE WHEN on_hold_reason IS NOT NULL THEN on_hold_reason ELSE '-' END",
   },
   {
     sql_expression: 'customer',
   },
   {
     sql_expression:
-      " CASE WHEN external_system_type_su = ''ExternalSystemTypeEnum_ZENDESK'' THEN ''ZENDESK'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_JIRA'' THEN ''JIRA'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_HUBSPOT'' THEN ''HUBSPOT'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_GITHUB'' THEN ''GITHUB'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_SERVICENOW'' THEN ''SERVICENOW'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_SALESFORCE_SERVICE'' THEN ''SALESFORCE'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_ADAAS'' THEN ''ADAAS'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_LINEAR'' THEN ''LINEAR'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_ROCKETLANE'' THEN ''ROCKETLANE'' WHEN external_system_type_su = ''ExternalSystemTypeEnum_CONFLUENCE'' THEN ''CONFLUENCE''END",
+      " CASE WHEN external_system_type_su = 'ExternalSystemTypeEnum_ZENDESK' THEN 'ZENDESK' WHEN external_system_type_su = 'ExternalSystemTypeEnum_JIRA' THEN 'JIRA' WHEN external_system_type_su = 'ExternalSystemTypeEnum_HUBSPOT' THEN 'HUBSPOT' WHEN external_system_type_su = 'ExternalSystemTypeEnum_GITHUB' THEN 'GITHUB' WHEN external_system_type_su = 'ExternalSystemTypeEnum_SERVICENOW' THEN 'SERVICENOW' WHEN external_system_type_su = 'ExternalSystemTypeEnum_SALESFORCE_SERVICE' THEN 'SALESFORCE' WHEN external_system_type_su = 'ExternalSystemTypeEnum_ADAAS' THEN 'ADAAS' WHEN external_system_type_su = 'ExternalSystemTypeEnum_LINEAR' THEN 'LINEAR' WHEN external_system_type_su = 'ExternalSystemTypeEnum_ROCKETLANE' THEN 'ROCKETLANE' WHEN external_system_type_su = 'ExternalSystemTypeEnum_CONFLUENCE' THEN 'CONFLUENCE'END",
   },
   {
     sql_expression: 'end_of_month',
@@ -2869,7 +2869,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "list_distinct(CAST(json_extract_string(links_json, ''$[*].target_object_type'') AS VARCHAR[]))",
+      "list_distinct(CAST(json_extract_string(links_json, '$[*].target_object_type') AS VARCHAR[]))",
   },
   {
     sql_expression: 'tnt__closed_by',
@@ -2884,11 +2884,11 @@ export const queries = [
     sql_expression: 'metric_timestamp',
   },
   {
-    sql_expression: "regexp_split_to_array(tnt__regions, ''\"|\\[\"|\"\\]'')",
+    sql_expression: "regexp_split_to_array(tnt__regions, '\"|\\[\"|\"\\]')",
   },
   {
     sql_expression:
-      " CASE WHEN external_system_type = ''ExternalSystemTypeEnum_ZENDESK'' THEN ''ZENDESK'' WHEN external_system_type = ''ExternalSystemTypeEnum_JIRA'' THEN ''JIRA'' WHEN external_system_type = ''ExternalSystemTypeEnum_HUBSPOT'' THEN ''HUBSPOT'' WHEN external_system_type = ''ExternalSystemTypeEnum_GITHUB'' THEN ''GITHUB'' WHEN external_system_type = ''ExternalSystemTypeEnum_SERVICENOW'' THEN ''SERVICENOW'' WHEN external_system_type = ''ExternalSystemTypeEnum_SALESFORCE_SERVICE'' THEN ''SALESFORCE'' WHEN external_system_type = ''ExternalSystemTypeEnum_ADAAS'' THEN ''ADAAS'' WHEN external_system_type = ''ExternalSystemTypeEnum_LINEAR'' THEN ''LINEAR'' WHEN external_system_type = ''ExternalSystemTypeEnum_ROCKETLANE'' THEN ''ROCKETLANE'' END",
+      " CASE WHEN external_system_type = 'ExternalSystemTypeEnum_ZENDESK' THEN 'ZENDESK' WHEN external_system_type = 'ExternalSystemTypeEnum_JIRA' THEN 'JIRA' WHEN external_system_type = 'ExternalSystemTypeEnum_HUBSPOT' THEN 'HUBSPOT' WHEN external_system_type = 'ExternalSystemTypeEnum_GITHUB' THEN 'GITHUB' WHEN external_system_type = 'ExternalSystemTypeEnum_SERVICENOW' THEN 'SERVICENOW' WHEN external_system_type = 'ExternalSystemTypeEnum_SALESFORCE_SERVICE' THEN 'SALESFORCE' WHEN external_system_type = 'ExternalSystemTypeEnum_ADAAS' THEN 'ADAAS' WHEN external_system_type = 'ExternalSystemTypeEnum_LINEAR' THEN 'LINEAR' WHEN external_system_type = 'ExternalSystemTypeEnum_ROCKETLANE' THEN 'ROCKETLANE' END",
   },
   {
     sql_expression: 'move_to_next_stage_days',
@@ -2903,15 +2903,15 @@ export const queries = [
     sql_expression: 'dev_part_id',
   },
   {
-    sql_expression: "DATETRUNC(''week'', created_date)",
+    sql_expression: "DATETRUNC('week', created_date)",
   },
   {
     sql_expression:
-      "CASE WHEN DAYNAME(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END) = ''Monday'' THEN 1 WHEN DAYNAME(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END) = ''Tuesday'' THEN 2 WHEN DAYNAME(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END) = ''Wednesday'' THEN 3 WHEN DAYNAME(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END) = ''Thursday'' THEN 4 WHEN DAYNAME(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END) = ''Friday'' THEN 5 WHEN DAYNAME(CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END) = ''Saturday'' THEN 6 ELSE 7 END",
+      "CASE WHEN DAYNAME(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END) = 'Monday' THEN 1 WHEN DAYNAME(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END) = 'Tuesday' THEN 2 WHEN DAYNAME(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END) = 'Wednesday' THEN 3 WHEN DAYNAME(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END) = 'Thursday' THEN 4 WHEN DAYNAME(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END) = 'Friday' THEN 5 WHEN DAYNAME(CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END) = 'Saturday' THEN 6 ELSE 7 END",
   },
   {
     sql_expression:
-      "(CASE WHEN dim_ticket.conv IS NOT NULL THEN ''yes'' ELSE ''no'' END)",
+      "(CASE WHEN dim_ticket.conv IS NOT NULL THEN 'yes' ELSE 'no' END)",
   },
   {
     sql_expression: 'daily_unique_conversations',
@@ -2938,7 +2938,7 @@ export const queries = [
     sql_expression: 'total_calls',
   },
   {
-    sql_expression: "IF(region_name IS NULL,''Other'', region_name)",
+    sql_expression: "IF(region_name IS NULL,'Other', region_name)",
   },
   {
     sql_expression: 'account',
@@ -2980,7 +2980,7 @@ export const queries = [
     sql_expression: 'region',
   },
   {
-    sql_expression: "IF(segment IS NULL,''None'',segment)",
+    sql_expression: "IF(segment IS NULL,'None',segment)",
   },
   {
     sql_expression: 'date',
@@ -2990,13 +2990,13 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN (range_state=''closed'') THEN ''E-support Closed'' ELSE ''E-support Opened'' END",
+      "CASE WHEN (range_state='closed') THEN 'E-support Closed' ELSE 'E-support Opened' END",
   },
   {
     sql_expression: 'revo_don',
   },
   {
-    sql_expression: "datediff(''day'', created_date, current_date)",
+    sql_expression: "datediff('day', created_date, current_date)",
   },
   {
     sql_expression: 'avg_pr_deployed_time',
@@ -3012,7 +3012,7 @@ export const queries = [
   },
   {
     sql_expression:
-      " CASE WHEN json_extract_string(metric, ''$.metric_definition_id'') == ''don:core:dvrv-us-1:devo/0:metric_definition/1'' THEN ''first_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') == ''don:core:dvrv-us-1:devo/0:metric_definition/2'' THEN ''next_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') = ''don:core:dvrv-us-1:devo/0:metric_definition/3'' THEN ''resolution''END ",
+      " CASE WHEN json_extract_string(metric, '$.metric_definition_id') == 'don:core:dvrv-us-1:devo/0:metric_definition/1' THEN 'first_response' WHEN json_extract_string(metric, '$.metric_definition_id') == 'don:core:dvrv-us-1:devo/0:metric_definition/2' THEN 'next_response' WHEN json_extract_string(metric, '$.metric_definition_id') = 'don:core:dvrv-us-1:devo/0:metric_definition/3' THEN 'resolution'END ",
   },
   {
     sql_expression: 'parent_id',
@@ -3031,11 +3031,11 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN metric_status = ''hit'' THEN ''Achieved'' WHEN metric_status = ''miss'' THEN ''Missed'' END",
+      "CASE WHEN metric_status = 'hit' THEN 'Achieved' WHEN metric_status = 'miss' THEN 'Missed' END",
   },
   {
     sql_expression:
-      "COALESCE(NULLIF(custom_fields ->> ''ctype__created_at_cfid'', '''')::TIMESTAMP, created_date::TIMESTAMP)",
+      "COALESCE(NULLIF(custom_fields ->> 'ctype__created_at_cfid', '')::TIMESTAMP, created_date::TIMESTAMP)",
   },
   {
     sql_expression: 'retry_count',
@@ -3078,7 +3078,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/1'' THEN ''first_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/2'' THEN ''next_response'' WHEN json_extract_string(metric, ''$.metric_definition_id'') LIKE ''%:metric_definition/3'' THEN ''resolution'' END",
+      "CASE WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/1' THEN 'first_response' WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/2' THEN 'next_response' WHEN json_extract_string(metric, '$.metric_definition_id') LIKE '%:metric_definition/3' THEN 'resolution' END",
   },
   {
     sql_expression: 'modified_date',
@@ -3099,7 +3099,7 @@ export const queries = [
     sql_expression: 'annual_recurring_revenue',
   },
   {
-    sql_expression: "probability || '' %''",
+    sql_expression: "probability || ' %'",
   },
   {
     sql_expression: 'console_type',
@@ -3124,7 +3124,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN source = ''tickets'' THEN (actual_close_date)::TIMESTAMP ELSE  COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END",
+      "CASE WHEN source = 'tickets' THEN (actual_close_date)::TIMESTAMP ELSE  COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END",
   },
   {
     sql_expression: 'issue_date',
@@ -3133,22 +3133,22 @@ export const queries = [
     sql_expression: 'conversation',
   },
   {
-    sql_expression: "DATE_TRUNC(''day'',target_close_date)",
+    sql_expression: "DATE_TRUNC('day',target_close_date)",
   },
   {
     sql_expression:
-      "case when category is NULL or category = '''' then ''Missing OCI Label'' else category end",
+      "case when category is NULL or category = '' then 'Missing OCI Label' else category end",
   },
   {
     sql_expression: 'channels',
   },
   {
     sql_expression:
-      "cast(json_extract_string(sla_summary, ''$.target_time'') as timestamp)",
+      "cast(json_extract_string(sla_summary, '$.target_time') as timestamp)",
   },
   {
     sql_expression:
-      "CASE WHEN sla_summary = '''' THEN '''' WHEN sla_summary IS NULL THEN '''' WHEN sla_summary =''null'' THEN '''' ELSE json_extract_string(sla_summary, ''$.target_time'') END",
+      "CASE WHEN sla_summary = '' THEN '' WHEN sla_summary IS NULL THEN '' WHEN sla_summary ='null' THEN '' ELSE json_extract_string(sla_summary, '$.target_time') END",
   },
   {
     sql_expression: 'trial_end_time',
@@ -3158,14 +3158,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "DATE_TRUNC(''week'', CASE WHEN state = ''closed'' THEN COALESCE(custom_fields->>''ctype__closed_at_cfid'',actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> ''ctype__created_at_cfid'', custom_fields ->> ''ctype__opened_at_cfid'', created_date)::TIMESTAMP END)",
+      "DATE_TRUNC('week', CASE WHEN state = 'closed' THEN COALESCE(custom_fields->>'ctype__closed_at_cfid',actual_close_date)::TIMESTAMP ELSE COALESCE(custom_fields ->> 'ctype__created_at_cfid', custom_fields ->> 'ctype__opened_at_cfid', created_date)::TIMESTAMP END)",
   },
   {
     sql_expression: 'state_distribution',
   },
   {
     sql_expression:
-      "CASE WHEN translate( translate(json_extract(links_json, ''$[*].target_object_type''), CHR(34), ''''), ''[]'', '''' )=''issue'' THEN ''Escalated to issue'' ELSE ''Not escalated to issue'' END",
+      "CASE WHEN translate( translate(json_extract(links_json, '$[*].target_object_type'), CHR(34), ''), '[]', '' )='issue' THEN 'Escalated to issue' ELSE 'Not escalated to issue' END",
   },
   {
     sql_expression: 'fy_year',
@@ -3190,14 +3190,14 @@ export const queries = [
   },
   {
     sql_expression:
-      "JSON_EXTRACT_STRING(custom_fields, ''$.tnt__good_category'')",
+      "JSON_EXTRACT_STRING(custom_fields, '$.tnt__good_category')",
   },
   {
     sql_expression: 'percent_group',
   },
   {
     sql_expression:
-      "CASE WHEN source = ''tickets'' AND range_state = ''closed'' then actual_close_date::TIMESTAMP ELSE created_date::TIMESTAMP END",
+      "CASE WHEN source = 'tickets' AND range_state = 'closed' then actual_close_date::TIMESTAMP ELSE created_date::TIMESTAMP END",
   },
   {
     sql_expression: 'record_time',
@@ -3234,7 +3234,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN cache_hit = false THEN ''MISS'' ELSE ''HIT'' END",
+      "CASE WHEN cache_hit = false THEN 'MISS' ELSE 'HIT' END",
   },
   {
     sql_expression: 'member_ids',
@@ -3247,7 +3247,7 @@ export const queries = [
   },
   {
     sql_expression:
-      " CASE WHEN external_system_type = ''ExternalSystemTypeEnum_ZENDESK'' THEN ''ZENDESK'' WHEN external_system_type = ''ExternalSystemTypeEnum_JIRA'' THEN ''JIRA'' WHEN external_system_type = ''ExternalSystemTypeEnum_HUBSPOT'' THEN ''HUBSPOT'' WHEN external_system_type = ''ExternalSystemTypeEnum_GITHUB'' THEN ''GITHUB'' WHEN external_system_type = ''ExternalSystemTypeEnum_SERVICENOW'' THEN ''SERVICENOW'' WHEN external_system_type = ''ExternalSystemTypeEnum_SALESFORCE_SERVICE'' THEN ''SALESFORCE'' WHEN external_system_type = ''ExternalSystemTypeEnum_ADAAS'' THEN ''ADAAS'' WHEN external_system_type = ''ExternalSystemTypeEnum_LINEAR'' THEN ''LINEAR'' WHEN external_system_type = ''ExternalSystemTypeEnum_ROCKETLANE'' THEN ''ROCKETLANE''  WHEN external_system_type = ''ExternalSystemTypeEnum_CONFLUENCE'' THEN ''CONFLUENCE'' END",
+      " CASE WHEN external_system_type = 'ExternalSystemTypeEnum_ZENDESK' THEN 'ZENDESK' WHEN external_system_type = 'ExternalSystemTypeEnum_JIRA' THEN 'JIRA' WHEN external_system_type = 'ExternalSystemTypeEnum_HUBSPOT' THEN 'HUBSPOT' WHEN external_system_type = 'ExternalSystemTypeEnum_GITHUB' THEN 'GITHUB' WHEN external_system_type = 'ExternalSystemTypeEnum_SERVICENOW' THEN 'SERVICENOW' WHEN external_system_type = 'ExternalSystemTypeEnum_SALESFORCE_SERVICE' THEN 'SALESFORCE' WHEN external_system_type = 'ExternalSystemTypeEnum_ADAAS' THEN 'ADAAS' WHEN external_system_type = 'ExternalSystemTypeEnum_LINEAR' THEN 'LINEAR' WHEN external_system_type = 'ExternalSystemTypeEnum_ROCKETLANE' THEN 'ROCKETLANE'  WHEN external_system_type = 'ExternalSystemTypeEnum_CONFLUENCE' THEN 'CONFLUENCE' END",
   },
   {
     sql_expression: 'dev_attendees',
@@ -3269,27 +3269,27 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN stage_json->>''name'' in (''Work In Progress'', ''Support Work In Progress'') THEN ''In Progress'' WHEN stage_json->>''name'' IN (''On Hold'',''On-hold'') THEN ''On Hold'' ELSE stage_json->>''name'' END",
+      "CASE WHEN stage_json->>'name' in ('Work In Progress', 'Support Work In Progress') THEN 'In Progress' WHEN stage_json->>'name' IN ('On Hold','On-hold') THEN 'On Hold' ELSE stage_json->>'name' END",
   },
   {
     sql_expression: '(actual_close_date)::TIMESTAMP',
   },
   {
-    sql_expression: "DATE_TRUNC(''month'',created_date)",
+    sql_expression: "DATE_TRUNC('month',created_date)",
   },
   {
     sql_expression: 'closure_code',
   },
   {
     sql_expression:
-      "FLOOR(CAST(JSON_EXTRACT(surveys_aggregation_json, ''$[0].average'') AS INT))",
+      "FLOOR(CAST(JSON_EXTRACT(surveys_aggregation_json, '$[0].average') AS INT))",
   },
   {
     sql_expression: 'dim_ticket.severity_name',
   },
   {
     sql_expression:
-      "CASE WHEN DATEDIFF(''day'', CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast(custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 1 THEN ''1 day'' WHEN DATEDIFF(''day'', CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast(custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 2 THEN ''1-2 days'' WHEN DATEDIFF(''day'', CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast(custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 7 THEN ''2-7 days'' WHEN DATEDIFF(''day'', CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast(custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 30 THEN ''7-30 days'' ELSE ''>30 days'' END",
+      "CASE WHEN DATEDIFF('day', CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast(custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 1 THEN '1 day' WHEN DATEDIFF('day', CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast(custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 2 THEN '1-2 days' WHEN DATEDIFF('day', CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast(custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 7 THEN '2-7 days' WHEN DATEDIFF('day', CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast(custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END, CURRENT_DATE) >= 30 THEN '7-30 days' ELSE '>30 days' END",
   },
   {
     sql_expression: 'node_id',
@@ -3338,7 +3338,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CAST( strftime(''%H'', formatted_created_date) AS VARCHAR)",
+      "CAST( strftime('%H', formatted_created_date) AS VARCHAR)",
   },
   {
     sql_expression: 'network_type',
@@ -3348,7 +3348,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN severity = 5 THEN ''Blocker'' WHEN severity = 6 THEN ''High'' WHEN severity = 7 THEN ''Medium'' WHEN severity = 8 THEN ''Low'' ELSE ''No Severity'' END",
+      "CASE WHEN severity = 5 THEN 'Blocker' WHEN severity = 6 THEN 'High' WHEN severity = 7 THEN 'Medium' WHEN severity = 8 THEN 'Low' ELSE 'No Severity' END",
   },
   {
     sql_expression: 'na_sum_acv',
@@ -3363,11 +3363,11 @@ export const queries = [
     sql_expression: 'total_arr_week',
   },
   {
-    sql_expression: "CAST( strftime(''%H'', created_date) AS VARCHAR)",
+    sql_expression: "CAST( strftime('%H', created_date) AS VARCHAR)",
   },
   {
     sql_expression:
-      "datediff(''day'', CASE WHEN custom_fields ->> ''ctype__created_at_cfid'' IS NOT NULL THEN Cast( custom_fields ->> ''ctype__created_at_cfid'' AS TIMESTAMP) ELSE created_date END, current_date)",
+      "datediff('day', CASE WHEN custom_fields ->> 'ctype__created_at_cfid' IS NOT NULL THEN Cast( custom_fields ->> 'ctype__created_at_cfid' AS TIMESTAMP) ELSE created_date END, current_date)",
   },
   {
     sql_expression: 'hardware',
@@ -3387,17 +3387,17 @@ export const queries = [
   },
   {
     sql_expression:
-      "cast(json_extract_string(staged_info, ''$.is_staged'') as boolean)",
+      "cast(json_extract_string(staged_info, '$.is_staged') as boolean)",
   },
   {
     sql_expression: 'valid_articles',
   },
   {
     sql_expression:
-      "COALESCE(custom_fields->>''ctype__closed_at_cfid'',actual_close_date)::TIMESTAMP",
+      "COALESCE(custom_fields->>'ctype__closed_at_cfid',actual_close_date)::TIMESTAMP",
   },
   {
-    sql_expression: "custom_fields ->> ''ctype__total_alerts''",
+    sql_expression: "custom_fields ->> 'ctype__total_alerts'",
   },
   {
     sql_expression: 'daily_distinct_devuser_logins',
@@ -3467,7 +3467,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "CASE WHEN issue_subtype = ''njuvewk7oxvgs4din5zgkltborygc43tnfqy4ltomx2f6mjrgmwtav3jonzvkzltfzss243xobwg64tu'' THEN ''E-Support Resolution Days'' WHEN issue_subtype = ''jira_uniphore.atlassian.net_engineering bug intake_issues.bug'' THEN ''E-Bug Resolution Days'' END",
+      "CASE WHEN issue_subtype = 'njuvewk7oxvgs4din5zgkltborygc43tnfqy4ltomx2f6mjrgmwtav3jonzvkzltfzss243xobwg64tu' THEN 'E-Support Resolution Days' WHEN issue_subtype = 'jira_uniphore.atlassian.net_engineering bug intake_issues.bug' THEN 'E-Bug Resolution Days' END",
   },
   {
     sql_expression: 'customers',
@@ -3521,7 +3521,7 @@ export const queries = [
     sql_expression: 'job_date',
   },
   {
-    sql_expression: "DATE_TRUNC(''day'', created_at)",
+    sql_expression: "DATE_TRUNC('day', created_at)",
   },
   {
     sql_expression: 'daily_issues_created',
@@ -3530,7 +3530,7 @@ export const queries = [
     sql_expression: 'Month',
   },
   {
-    sql_expression: "DATE_TRUNC(''day'', creation_time)",
+    sql_expression: "DATE_TRUNC('day', creation_time)",
   },
   {
     sql_expression: 'January_ID',
@@ -3561,7 +3561,7 @@ export const queries = [
   },
   {
     sql_expression:
-      "MONTHNAME(old_record_date) || '' '' || CAST(YEAR(old_record_date) AS VARCHAR)",
+      "MONTHNAME(old_record_date) || ' ' || CAST(YEAR(old_record_date) AS VARCHAR)",
   },
   {
     sql_expression: 'min_latency',

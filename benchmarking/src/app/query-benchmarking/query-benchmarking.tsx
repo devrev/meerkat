@@ -1,13 +1,15 @@
-import { validateDimensionQuery } from '@devrev/meerkat-browser';
+import { validateMeasureQuery } from '@devrev/meerkat-browser';
 import React, { useState } from 'react';
 import { InstanceManager } from '../dbm-context/instance-manager';
-import { queries } from '../dimension';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { MEASURES } from '../QUERIES';
 
 function getFormattedQuery(query: string) {
-  return `SELECT ${query}`;
+  return `SELECT ${query.replace(/'/g, "''")}`;
 }
+
+const queryDa = [...MEASURES];
 
 export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
@@ -39,10 +41,10 @@ export const QueryBenchmarking = () => {
 
     const con = await db.connect();
 
-    for (let i = 0; i < queries.length; i++) {
+    for (let i = 0; i < queryDa.length; i++) {
       const eachQueryStart = performance.now();
-      const promiseObj = validateDimensionQuery({
-        query: getFormattedQuery(queries[i].sql_expression),
+      const promiseObj = await validateMeasureQuery({
+        query: getFormattedQuery(queryDa[i].sql_expression),
         connection: con,
       })
         .then((results) => {
@@ -50,14 +52,12 @@ export const QueryBenchmarking = () => {
             setmyAssumption((prev) => prev + 1);
           } else {
             setNotMyAssumption((prev) => prev + 1);
-            console.log(results, 'errorda function_name');
+            console.log(results, queryDa[i], 'errorda');
           }
         })
         .catch((e) => {
           setErrorCount((prev) => prev + 1);
-          console.log(e, 'errorda function_name');
-
-          console.log(e, 'errorda', queries[i]);
+          console.log(e, queryDa[i], 'errorda');
         });
 
       promiseArr.push(promiseObj);
@@ -92,7 +92,7 @@ export const QueryBenchmarking = () => {
           Total Time: <span id="total_time">{totalTime}</span>
         </div>
       )}
-      Total queies : {queries.length} <br />
+      Total queies : {queryDa.length} <br />
       My Assumption : {myAssumption} <br />
       Not My Assumption : {notMyAssumption} <br />
       Error Count : {errorCount}
