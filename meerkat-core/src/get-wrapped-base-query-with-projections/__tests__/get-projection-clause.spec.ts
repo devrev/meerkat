@@ -31,7 +31,7 @@ describe('get-projection-clause', () => {
     });
     it('should skip aliased items present in already seen', () => {
       const members = ['test.a', 'test.c'];
-      const aliasedColumnSet = new Set<string>(['test.c']);
+      const aliasedColumnSet = new Set<string>(['test__c']);
       const result = getProjectionClause(
         {
           dimensions: members, measures: []
@@ -44,7 +44,7 @@ describe('get-projection-clause', () => {
 
     it('should project columns used inside the measure string', () => {
       const members = ['test.a', 'test.c'];
-      const aliasedColumnSet = new Set<string>(['test.c']);
+      const aliasedColumnSet = new Set<string>(['test__c']);
       const result = getProjectionClause(
         {
           measures: ['test.total_rows'],

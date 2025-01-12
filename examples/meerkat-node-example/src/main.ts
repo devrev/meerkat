@@ -23,7 +23,7 @@ app.post('/api-v1', async (req, res) => {
   const { cube, table_schema } = req.body;
   // const query = await cubeQueryToSQL(sql, cube);
 
-  const data = await cubeQueryToSQL(cube, table_schema);
+  const data = await cubeQueryToSQL({ query: cube, tableSchemas: table_schema });
 
   res.json({ data });
 });

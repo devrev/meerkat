@@ -9,11 +9,11 @@ import { DBM } from '../dbm';
 import { DBMConstructorOptions, TableConfig } from '../types';
 import { InstanceManager } from './mock';
 
-export class MockFileManager<T> implements FileManagerType<T> {
-  private fileBufferStore: Record<string, FileBufferStore<T>> = {};
+export class MockFileManager implements FileManagerType {
+  private fileBufferStore: Record<string, FileBufferStore> = {};
   private tables: Record<string, Table> = {};
 
-  async bulkRegisterFileBuffer(props: FileBufferStore<T>[]): Promise<void> {
+  async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
     for (const prop of props) {
       this.fileBufferStore[prop.fileName] = prop;
       this.tables[prop.tableName] = this.tables[prop.tableName] || {
@@ -23,7 +23,7 @@ export class MockFileManager<T> implements FileManagerType<T> {
     }
   }
 
-  async registerFileBuffer(prop: FileBufferStore<T>): Promise<void> {
+  async registerFileBuffer(prop: FileBufferStore): Promise<void> {
     this.fileBufferStore[prop.fileName] = prop;
     this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
     this.tables[prop.tableName].files.push(prop);
@@ -40,16 +40,8 @@ export class MockFileManager<T> implements FileManagerType<T> {
 
     this.registerFileBuffer({
       ...fileData,
-      buffer: [] as T,
+      buffer: new Uint8Array(),
     });
-  }
-
-  async getFileBuffer(name: string): Promise<T> {
-    const fileBuffer = this.fileBufferStore[name];
-    if (!fileBuffer) {
-      throw new Error(`File buffer for ${name} not found`);
-    }
-    return fileBuffer.buffer;
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
@@ -127,6 +119,11 @@ describe('DBM', () => {
   let instanceManager: InstanceManager;
 
   const tables = [{ name: 'table1' }];
+  const onCreateConnection = jest
+    .fn()
+    .mockImplementation(async (connection) => {
+      await connection.query('SELECT 2');
+    });
 
   beforeAll(async () => {
     fileManager = new MockFileManager();
@@ -145,8 +142,13 @@ describe('DBM', () => {
       options: {
         shutdownInactiveTime: 100,
       },
+      onCreateConnection,
     };
     dbm = new DBM(options);
+  });
+
+  afterEach(() => {
+    onCreateConnection.mockClear();
   });
 
   describe('query', () => {
@@ -452,66 +454,39 @@ describe('DBM', () => {
     });
   });
 
-  describe('table locks', () => {
-    it('should lock the table and release it', async () => {
-      const tableName = 'exampleTable';
+  describe('create connection callback', () => {
+    it('should call the create connection callback', async () => {
+      await dbm.query('SELECT 1');
+      expect(onCreateConnection).toHaveBeenCalled();
 
-      // Request the lock for the table and then release it
-      await dbm.lockTables([tableName]);
-
-      expect(dbm.isTableLocked(tableName)).toBe(true);
-
-      await dbm.unlockTables([tableName]);
-
-      expect(dbm.isTableLocked(tableName)).toBe(false);
-
-      // Again request the lock for the table
-      await dbm.lockTables([tableName]);
-
-      await dbm.unlockTables([tableName]);
-    });
-
-    it('two consumers requesting lock for the same table', async () => {
-      const tableName = 'exampleTable';
-
-      // Set up promises for the two consumers
-      const consumer1Promise = dbm.lockTables([tableName]);
-      const consumer2Promise = dbm.lockTables([tableName]);
-
-      // Wait for the first consumer to get the lock
-      await expect(consumer1Promise).resolves.toBeUndefined();
-
-      expect(dbm.isTableLocked(tableName)).toBe(true);
-
-      const timeout1 = new Promise((resolve) => {
-        setTimeout(resolve, 1000, 'TIMEOUT');
-      });
-
-      // Promise.race will wait for either the promises be resolved
-      // consumer2 will not be able to get the lock as it is already locked by consumer1
-      await expect(Promise.race([consumer2Promise, timeout1])).resolves.toBe(
-        'TIMEOUT'
+      expect(onCreateConnection).toHaveBeenCalledWith(
+        // arguments of the mockdb connection return object
+        expect.objectContaining({
+          query: expect.any(Function),
+          cancelSent: expect.any(Function),
+          close: expect.any(Function),
+        })
       );
 
-      // Release the lock for the first consumer
-      await dbm.unlockTables([tableName]);
+      /**
+       * wait for 200ms
+       */
+      await new Promise((resolve) => setTimeout(resolve, 200));
 
-      // Check if the table is still locked as the consumer2 will get the lock
-      expect(dbm.isTableLocked(tableName)).toBe(true);
+      /**
+       * after shutdown on new connection creation
+       * also call the create connection callback
+       */
 
-      const timeout2 = new Promise((resolve) => {
-        setTimeout(resolve, 1000, 'TIMEOUT');
-      });
-
-      // This time the consumer2 will get the lock
-      await expect(
-        Promise.race([consumer2Promise, timeout2])
-      ).resolves.toBeUndefined();
-
-      // Release the lock
-      await dbm.unlockTables([tableName]);
-
-      expect(dbm.isTableLocked(tableName)).toBe(false);
+      await dbm.query('SELECT 2');
+      expect(onCreateConnection).toHaveBeenCalled();
+      expect(onCreateConnection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.any(Function),
+          cancelSent: expect.any(Function),
+          close: expect.any(Function),
+        })
+      );
     });
   });
 });

@@ -98,10 +98,10 @@ describe('cube-to-sql', () => {
       },
       limit: 2,
     };
-    const sql = await cubeQueryToSQL(query, [TABLE_SCHEMA]);
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toBe(
-      `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT *, customer_id AS orders__customer_id, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '2') GROUP BY orders__customer_id HAVING (orders__total_order_amount = 100) ORDER BY orders__total_order_amount DESC LIMIT 2`
+      `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '2') GROUP BY orders__customer_id HAVING (orders__total_order_amount = 100) ORDER BY orders__total_order_amount DESC LIMIT 2`
     );
     const output = await duckdbExec(sql);
     expect(output).toEqual([
@@ -128,7 +128,7 @@ describe('cube-to-sql', () => {
       },
       limit: 2,
     };
-    const sql = await cubeQueryToSQL(query, [TABLE_SCHEMA]);
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toBe(
       `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT *, orders.order_amount AS orders__order_amount, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount = 100) GROUP BY orders__customer_id ORDER BY orders__total_order_amount DESC LIMIT 2`

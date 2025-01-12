@@ -20,7 +20,7 @@ export const FileLoader = ({
   useClassicEffect(() => {
     (async () => {
       const file = await axios.get(
-        'http://localhost:4201/data-sets/fhvhv_tripdata_2023-01.parquet',
+        'http://localhost:4204/data-sets/fhvhv_tripdata_2023-01.parquet',
         { responseType: 'arraybuffer' }
       );
       const fileBuffer = file.data;

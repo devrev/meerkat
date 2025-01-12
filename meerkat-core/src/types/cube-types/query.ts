@@ -28,11 +28,6 @@ type MemberType = 'measures' | 'dimensions' | 'segments';
  */
 type Member = string;
 
-/**
- * Datetime member identifier. Should satisfy to the following
- * regexp: /^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+(\.(second|minute|hour|day|week|month|year))?$/
- */
-type TimeMember = string;
 
 /**
  * Filter operator string.
@@ -56,19 +51,6 @@ type FilterOperator =
   | 'beforeDate'
   | 'afterDate'
   | 'measureFilter';
-
-/**
- * Time dimension granularity data type.
- */
-type QueryTimeDimensionGranularity =
-  | 'quarter'
-  | 'day'
-  | 'month'
-  | 'year'
-  | 'week'
-  | 'hour'
-  | 'minute'
-  | 'second';
 
 /**
  * Query order data type.
@@ -102,14 +84,6 @@ type LogicalOrFilter = {
   or: (QueryFilter | LogicalAndFilter)[];
 };
 
-/**
- * Query datetime dimention interface.
- */
-interface QueryTimeDimension {
-  dimension: Member;
-  dateRange?: string[] | string;
-  granularity?: QueryTimeDimensionGranularity;
-}
 
 /**
  * Join Edge data type.
@@ -177,37 +151,14 @@ type MeerkatQueryFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 
 interface Query {
   measures: Member[];
-  dimensions?: (Member | TimeMember)[];
+  dimensions?: Member[];
   filters?: MeerkatQueryFilter[];
-  timeDimensions?: QueryTimeDimension[];
   joinPaths?: JoinPath[];
-  segments?: Member[];
   limit?: null | number;
   offset?: number;
-  total?: boolean;
-  totalQuery?: boolean;
-  order?: any;
-  timezone?: string;
-  renewQuery?: boolean;
-  ungrouped?: boolean;
-  responseFormat?: ResultType;
+  order?: Record<string, QueryOrderType>;
 }
 
-/**
- * Normalized filter interface.
- */
-interface NormalizedQueryFilter extends QueryFilter {
-  dimension?: Member;
-}
-
-/**
- * Normalized query interface.
- */
-interface NormalizedQuery extends Query {
-  filters?: NormalizedQueryFilter[];
-  rowLimit?: null | number;
-  order?: [{ id: string; desc: boolean }];
-}
 
 export {
   ApiScopes,
@@ -219,15 +170,10 @@ export {
   MeerkatQueryFilter,
   Member,
   MemberType,
-  NormalizedQuery,
-  NormalizedQueryFilter,
   Query,
   QueryFilter,
   QueryOrderType,
-  QueryTimeDimension,
-  QueryTimeDimensionGranularity,
   QueryType,
   RequestType,
-  ResultType,
-  TimeMember
+  ResultType
 };

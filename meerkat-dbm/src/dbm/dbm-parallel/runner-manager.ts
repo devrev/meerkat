@@ -12,9 +12,7 @@ import { IFrameManager } from './iframe-manager';
 export interface IFrameRunnerManagerConstructor {
   runnerURL: string;
   origin: string;
-  fetchTableFileBuffers: (
-    tables: TableConfig[]
-  ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
+  fetchTableFileBuffers: (tables: TableConfig[]) => Promise<FileBufferStore[]>;
   fetchPreQuery: (
     runnerId: string,
     tableWiseFiles: TableWiseFiles[]
@@ -47,7 +45,7 @@ export class IFrameRunnerManager {
 
   private fetchTableFileBuffers: (
     tables: TableConfig[]
-  ) => Promise<FileBufferStore<SharedArrayBuffer>[]>;
+  ) => Promise<FileBufferStore[]>;
   private fetchPreQuery: (
     runnerId: string,
     tableWiseFiles: TableWiseFiles[]

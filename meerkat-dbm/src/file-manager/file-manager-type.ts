@@ -34,25 +34,27 @@ export interface FileManagerConstructorOptions {
     maxFileSize?: number;
   };
 
+  /**
+   * @description
+   * Returns the file buffers for a given table name.
+   */
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
 }
 
-export interface FileManagerType<BufferType = Uint8Array> {
+export interface FileManagerType {
   /**
    * @description
    * Registers multiple file buffers in the file manager.
    * @param props - An array of FileBufferStore objects.
    */
-  bulkRegisterFileBuffer: (
-    props: FileBufferStore<BufferType>[]
-  ) => Promise<void>;
+  bulkRegisterFileBuffer: (props: FileBufferStore[]) => Promise<void>;
 
   /**
    * @description
    * Registers a single file buffer in the file manager.
    * @param props - The FileBufferStore object to register.
    */
-  registerFileBuffer: (props: FileBufferStore<BufferType>) => Promise<void>;
+  registerFileBuffer: (props: FileBufferStore) => Promise<void>;
 
   /**
    * @description
@@ -71,14 +73,6 @@ export interface FileManagerType<BufferType = Uint8Array> {
    * @param props - The FileJsonStore object to register.
    */
   registerJSON: (props: FileJsonStore) => Promise<void>;
-
-  /**
-   * @description
-   * Retrieves the file buffer associated with a given file name.
-   * @param fileName - The name of the file buffer.
-   * @returns Uint8Array if found.
-   */
-  getFileBuffer: (fileName: string) => Promise<BufferType | undefined>;
 
   /**
    * @description
@@ -133,15 +127,15 @@ export type BaseFileStore = {
   tableName: string;
   fileName: string;
   partitions?: string[];
-  staleTime?: number;
-  cacheTime?: number;
   metadata?: object;
 };
 
-export type FileBufferStore<BufferType = Uint8Array> = BaseFileStore & {
-  buffer: BufferType;
+export type FileBufferStore = BaseFileStore & {
+  buffer: Uint8Array;
 };
 
 export type FileJsonStore = BaseFileStore & {
   json: object;
 };
+
+export type FileStore = FileBufferStore | FileJsonStore;

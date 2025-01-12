@@ -1,10 +1,10 @@
 import {
-  ConjunctionExpression,
   ExpressionClass,
   ExpressionType,
+  OperatorExpression,
 } from '../../types/duckdb-serialization-types/index';
 
-export const notDuckdbCondition = (): ConjunctionExpression => {
+export const notDuckdbCondition = (): OperatorExpression => {
   return {
     class: ExpressionClass.OPERATOR,
     type: ExpressionType.OPERATOR_NOT,
