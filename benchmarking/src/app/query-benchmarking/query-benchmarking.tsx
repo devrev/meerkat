@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { TableWiseFiles } from 'meerkat-dbm/src/types';
+import { useMemo, useState } from 'react';
 import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { generateViewQuery } from '../utils';
 
 export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
@@ -11,7 +13,25 @@ export const QueryBenchmarking = () => {
     }[]
   >([]);
   const [totalTime, setTotalTime] = useState<number>(0);
-  const { dbm } = useDBM();
+  const { dbm, fileManagerType } = useDBM();
+
+  const preQuery = useMemo(
+    () =>
+      async (tablesFileData: TableWiseFiles[]): Promise<void> => {
+        for (const table of tablesFileData) {
+          let filePaths: string[] = [];
+
+          if (fileManagerType === 'native' && window.api) {
+            filePaths = await window.api?.getFilePathsForTable(table.tableName);
+          } else {
+            filePaths = table.files.map((file) => file.fileName);
+          }
+
+          await dbm.query(generateViewQuery(table.tableName, filePaths));
+        }
+      },
+    [fileManagerType, dbm]
+  );
 
   useClassicEffect(() => {
     setTotalTime(0);
@@ -25,7 +45,13 @@ export const QueryBenchmarking = () => {
       const promiseObj = dbm
         .queryWithTables({
           query: TEST_QUERIES[i],
-          tables: [{ name: 'taxi' }, { name: 'taxijson' }],
+          tables: [{ name: 'taxi' }, { name: 'taxi_json' }],
+          options: {
+            ...(fileManagerType !== 'parallel-indexdb' &&
+              fileManagerType !== 'parallel-memory' && {
+                preQuery: preQuery,
+              }),
+          },
         })
         .then((results) => {
           const end = performance.now();

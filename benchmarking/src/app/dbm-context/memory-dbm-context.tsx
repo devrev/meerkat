@@ -50,6 +50,7 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
       value={{
         dbm,
         fileManager: fileManagerRef.current,
+        fileManagerType: 'memory',
       }}
     >
       {children}

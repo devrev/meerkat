@@ -1,53 +1,41 @@
-import { convertUint8ArrayToSharedArrayBuffer } from '@devrev/meerkat-dbm';
 import axios from 'axios';
 import { useState } from 'react';
 import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
+import { generateViewQuery } from '../utils';
+import { TAXI_FILE_URL } from './constants';
 
-type BufferType = 'sharedArrayBuffer' | 'uint8Array';
-
-export const FileLoader = ({
-  children,
-  bufferType = 'uint8Array',
-}: {
-  children: JSX.Element;
-  bufferType: BufferType;
-}) => {
-  const { fileManager } = useDBM();
+export const FileLoader = ({ children }: { children: JSX.Element }) => {
+  const { fileManager, fileManagerType, dbm } = useDBM();
   const [isFileLoader, setIsFileLoader] = useState<boolean>(false);
 
   useClassicEffect(() => {
     (async () => {
-      const file = await axios.get(
-        'http://localhost:4204/data-sets/fhvhv_tripdata_2023-01.parquet',
-        { responseType: 'arraybuffer' }
-      );
+      const file = await axios.get(TAXI_FILE_URL, {
+        responseType: 'arraybuffer',
+      });
       const fileBuffer = file.data;
 
-      if (bufferType === 'sharedArrayBuffer') {
-        const sharedBuffer = convertUint8ArrayToSharedArrayBuffer(fileBuffer);
+      const fileBufferView = new Uint8Array(fileBuffer);
 
-        await fileManager.registerFileBuffer({
-          tableName: 'taxi',
-          fileName: 'taxi.parquet',
-          buffer: sharedBuffer as any,
-        });
-      } else {
-        const fileBufferView = new Uint8Array(fileBuffer);
-
-        await fileManager.registerFileBuffer({
-          tableName: 'taxi',
-          fileName: 'taxi.parquet',
-          buffer: fileBufferView,
-        });
-      }
+      await fileManager.registerFileBuffer({
+        tableName: 'taxi',
+        fileName: 'taxi.parquet',
+        buffer: fileBufferView,
+      });
 
       await fileManager.registerJSON({
         json: TAXI_JSON_DATA,
-        tableName: 'taxijson',
-        fileName: 'taxijson.parquet',
+        tableName: 'taxi_json',
+        fileName: 'taxi_json.parquet',
       });
+
+      // Create views for raw and memory file manager after registering the files
+      if (fileManagerType === 'raw' || fileManagerType === 'memory') {
+        await dbm.query(generateViewQuery('taxi', ['taxi.parquet']));
+        await dbm.query(generateViewQuery('taxi_json', ['taxi_json.parquet']));
+      }
 
       setIsFileLoader(true);
     })();
