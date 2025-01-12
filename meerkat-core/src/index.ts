@@ -14,7 +14,6 @@ export { getFilterParamsSQL } from './get-filter-params-sql/get-filter-params-sq
 export { getFinalBaseSQL } from './get-final-base-sql/get-final-base-sql';
 export { getWrappedBaseQueryWithProjections } from './get-wrapped-base-query-with-projections/get-wrapped-base-query-with-projections';
 export * from './joins/joins';
-export { FilterType } from './types/cube-types';
 export * from './types/cube-types/index';
 export * from './types/duckdb-serialization-types/index';
 export * from './types/utils';
