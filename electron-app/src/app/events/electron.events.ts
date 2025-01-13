@@ -10,29 +10,36 @@ export default class ElectronEvents {
   }
 }
 
-ipcMain.on(NativeAppEvent.REGISTER_FILES, async (event, files: FileStore[]) => {
-  for (const file of files) {
-    switch (file.type) {
-      case 'url': {
-        const buffer = await fetchParquetFile(file.url);
+ipcMain.handle(
+  NativeAppEvent.REGISTER_FILES,
+  async (event, files: FileStore[]) => {
+    for (const file of files) {
+      switch (file.type) {
+        case 'url': {
+          const buffer = await fetchParquetFile(file.url);
 
-        await fileManager.writeFileBuffer({
-          ...file,
-          buffer,
-        });
-        break;
-      }
-      case 'buffer': {
-        await fileManager.writeFileBuffer(file);
-        break;
-      }
+          await fileManager.writeFileBuffer({
+            ...file,
+            buffer,
+          });
 
-      default: {
-        throw new Error(`Unhandled file type ${file.type}`);
+          break;
+        }
+        case 'buffer': {
+          await fileManager.writeFileBuffer(file);
+
+          break;
+        }
+
+        default: {
+          throw new Error(`Unhandled file type ${file.type}`);
+        }
       }
     }
+
+    return;
   }
-});
+);
 
 ipcMain.handle(NativeAppEvent.QUERY, async (event, query: string) => {
   const result = await duckDB.executeQuery({ query });
@@ -44,12 +51,16 @@ ipcMain.handle(
   NativeAppEvent.DROP_FILES_BY_TABLE_NAME,
   async (event, tableData: DropTableFilesPayload) => {
     await fileManager.deleteTableFiles(tableData.tableName, tableData.files);
+
+    return;
   }
 );
 
 ipcMain.handle(
   NativeAppEvent.GET_FILE_PATHS_FOR_TABLE,
   async (event, tableName: string) => {
-    return await fileManager.getTableFilePaths(tableName);
+    const filePaths = await fileManager.getTableFilePaths(tableName);
+
+    return filePaths;
   }
 );
