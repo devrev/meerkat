@@ -1,5 +1,5 @@
+import { NativeFileStore } from '@devrev/meerkat-dbm';
 import { ipcMain } from 'electron';
-import { FileStore } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
 import duckDB from '../duckdb/duckdb';
 import { fileManager } from '../file-manager';
 import { DropTableFilesPayload, NativeAppEvent } from '../types';
@@ -12,7 +12,7 @@ export default class ElectronEvents {
 
 ipcMain.handle(
   NativeAppEvent.REGISTER_FILES,
-  async (event, files: FileStore[]) => {
+  async (event, files: NativeFileStore[]) => {
     for (const file of files) {
       switch (file.type) {
         case 'url': {

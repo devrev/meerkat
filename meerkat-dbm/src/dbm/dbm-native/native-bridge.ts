@@ -1,26 +1,22 @@
 import { Schema } from 'apache-arrow';
+import { BaseFileStore } from '../../file-manager/file-manager-type';
 
-export interface BaseFileStore {
-  tableName: string;
-  fileName: string;
-}
-
-export interface FileUrlStore extends BaseFileStore {
+interface FileUrlStore extends BaseFileStore {
   type: 'url';
   url: string;
 }
 
-export interface FileJsonStore extends BaseFileStore {
+interface FileJsonStore extends BaseFileStore {
   type: 'json';
   json: object;
 }
 
-export interface FileBufferStore extends BaseFileStore {
+interface FileBufferStore extends BaseFileStore {
   type: 'buffer';
   buffer: Uint8Array;
 }
 
-export type FileStore = FileJsonStore | FileUrlStore | FileBufferStore;
+export type NativeFileStore = FileJsonStore | FileUrlStore | FileBufferStore;
 
 export interface QueryResult {
   data?: Record<string, unknown>[];
@@ -32,7 +28,7 @@ export interface NativeBridge {
    * Register files in the file system.
    * @param files - The files to register.
    */
-  registerFiles(files: FileStore[]): Promise<void>;
+  registerFiles(files: NativeFileStore[]): Promise<void>;
 
   /**
    * Query the database.

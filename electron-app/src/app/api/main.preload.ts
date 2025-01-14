@@ -1,16 +1,16 @@
+import { NativeFileStore } from '@devrev/meerkat-dbm';
 import { contextBridge, ipcRenderer } from 'electron';
-import { FileStore } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
 import { DropTableFilesPayload, NativeAppEvent } from '../types';
 
 export type ContextBridgeApi = {
-  registerFiles: (files: FileStore[]) => Promise<void>;
+  registerFiles: (files: NativeFileStore[]) => Promise<void>;
   query: (query: string) => Promise<{ data: Record<string, unknown> }>;
   getFilePathsForTable: (tableName: string) => Promise<string[]>;
   dropFilesByTableName: (tableData: DropTableFilesPayload) => Promise<void>;
 };
 
 const API: ContextBridgeApi = {
-  registerFiles: (files: FileStore[]) => {
+  registerFiles: (files: NativeFileStore[]) => {
     return ipcRenderer.invoke(NativeAppEvent.REGISTER_FILES, files);
   },
 
