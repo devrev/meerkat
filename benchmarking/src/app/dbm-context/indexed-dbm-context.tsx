@@ -52,6 +52,7 @@ export const IndexedDBMProvider = ({ children }: { children: JSX.Element }) => {
       value={{
         dbm,
         fileManager: fileManagerRef.current,
+        fileManagerType: 'indexdb',
       }}
     >
       {children}

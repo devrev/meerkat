@@ -4,21 +4,8 @@ import { InstanceManagerType } from '../../dbm/instance-manager';
 import { FILE_TYPES } from '../../types';
 import { IndexedDBFileManager } from '../indexed-db/indexed-db-file-manager';
 import { MeerkatDatabase } from '../indexed-db/meerkat-database';
+import { JSON_FILE, JSON_FILES, mockDB } from './mock';
 import log = require('loglevel');
-
-const mockDB = {
-  registerFileBuffer: jest.fn(),
-  registerFileText: jest.fn(),
-  copyFileToBuffer: jest.fn(),
-  registerEmptyFileBuffer: jest.fn(),
-  connect: async () => {
-    return {
-      query: jest.fn(),
-      insertJSONFromPath: jest.fn(),
-      close: jest.fn(),
-    };
-  },
-};
 
 describe('IndexedDBFileManager', () => {
   let fileManager: IndexedDBFileManager;
@@ -229,57 +216,32 @@ describe('IndexedDBFileManager', () => {
   });
 
   it('should register JSON data', async () => {
-    const jsonFile = {
-      tableName: 'taxi-json',
-      fileName: 'taxi-json.parquet',
-      json: {
-        test: 'test',
-      },
-    };
-
-    await fileManager.registerJSON(jsonFile);
+    await fileManager.registerJSON(JSON_FILE);
 
     const tableData = await indexedDB.tablesKey.toArray();
     const fileBufferData = await indexedDB.files.toArray();
 
     expect(
-      tableData.some((table) => table.tableName === jsonFile.tableName)
+      tableData.some((table) => table.tableName === JSON_FILE.tableName)
     ).toBe(true);
 
     expect(
-      fileBufferData.some((file) => file.fileName === jsonFile.fileName)
+      fileBufferData.some((file) => file.fileName === JSON_FILE.fileName)
     ).toBe(true);
   });
 
   it('should register multiple JSON data', async () => {
-    const jsonFiles = [
-      {
-        tableName: 'taxi-json-bulk',
-        fileName: 'taxi-json1.parquet',
-        json: {
-          test: 'test',
-        },
-      },
-      {
-        tableName: 'taxi-json-bulk',
-        fileName: 'taxi-json2.parquet',
-        json: {
-          test: 'test',
-        },
-      },
-    ];
-
-    await fileManager.bulkRegisterJSON(jsonFiles);
+    await fileManager.bulkRegisterJSON(JSON_FILES);
 
     const tableData = await indexedDB.tablesKey.toArray();
     const fileBufferData = await indexedDB.files.toArray();
 
     expect(
-      tableData.some((table) => table.tableName === jsonFiles[0].tableName)
+      tableData.some((table) => table.tableName === JSON_FILES[0].tableName)
     ).toBe(true);
 
     expect(fileBufferData.map((file) => file.fileName)).toEqual(
-      expect.arrayContaining(jsonFiles.map((file) => file.fileName))
+      expect.arrayContaining(JSON_FILES.map((file) => file.fileName))
     );
   });
 });

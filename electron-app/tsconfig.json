@@ -2,7 +2,8 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
-    "module": "commonjs"
+    "module": "commonjs",
+    "esModuleInterop": true
   },
   "include": ["**/*.ts"]
 }

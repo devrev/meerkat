@@ -76,6 +76,20 @@ export interface FileManagerType {
 
   /**
    * @description
+   * Registers multiple file URLs in the file manager.
+   * @param props - The FileUrlStore object to register.
+   */
+  bulkRegisterFileUrl?: (props: FileUrlStore[]) => Promise<void>;
+
+  /**
+   * @description
+   * Registers a single file URL in the file manager.
+   * @param props - The FileUrlStore object to register.
+   */
+  registerFileUrl?: (props: FileUrlStore) => Promise<void>;
+
+  /**
+   * @description
    * Mounts or registers file buffers based on an array of table names in DuckDB.
    * @param tables - An array of table.
    */
@@ -138,4 +152,8 @@ export type FileJsonStore = BaseFileStore & {
   json: object;
 };
 
-export type FileStore = FileBufferStore | FileJsonStore;
+export type FileUrlStore = BaseFileStore & {
+  url: string;
+};
+
+export type FileStore = FileBufferStore | FileJsonStore | FileUrlStore;

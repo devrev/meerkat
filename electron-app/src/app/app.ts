@@ -31,6 +31,7 @@ export default class App {
     if (RENDERER_APP_NAME) {
       App.initMainWindow();
       App.loadMainWindow();
+      App.mainWindow.webContents.openDevTools();
     }
   }
 
