@@ -1,13 +1,21 @@
-import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
-import { DuckDBSingleton } from '../../duckdb-singleton';
-import { DBMNode } from '../dbm-node';
+import {
+  DuckDBConnection,
+  DuckDBInstance,
+  DuckDBMaterializedResult,
+} from '@duckdb/node-api';
+import { DuckDBSingleton } from '../duckdb-singleton';
+import { DuckDBManager } from './duckdb-manager';
 
 // Mock DuckDB related modules
-jest.mock('../../duckdb-singleton');
+jest.mock('../duckdb-singleton', () => ({
+  DuckDBSingleton: {
+    getInstance: jest.fn(),
+  },
+}));
 jest.mock('@duckdb/node-api');
 
-describe('DBMNode', () => {
-  let dbmNode: DBMNode;
+describe('DuckDBManager', () => {
+  let dbmNode: DuckDBManager;
   let mockDb: jest.Mocked<DuckDBInstance>;
   let mockConnection: jest.Mocked<DuckDBConnection>;
 
@@ -29,10 +37,19 @@ describe('DBMNode', () => {
     jest.clearAllMocks();
   });
 
+  const mockResult = {
+    columnNames: jest.fn().mockReturnValue(['id', 'name']),
+    columnTypes: jest.fn().mockReturnValue(['INTEGER', 'VARCHAR']),
+    getRows: jest.fn().mockResolvedValue([
+      [1, 'test'],
+      [2, 'test2'],
+    ]),
+  };
+
   describe('constructor', () => {
     it('should initialize with custom database initializer', async () => {
       const initializeDatabase = jest.fn();
-      dbmNode = new DBMNode({ initializeDatabase });
+      dbmNode = new DuckDBManager({ initializeDatabase });
 
       // Wait for initialization to complete
       await new Promise(process.nextTick);
@@ -42,7 +59,7 @@ describe('DBMNode', () => {
     });
 
     it('should initialize without database initializer', async () => {
-      dbmNode = new DBMNode({});
+      dbmNode = new DuckDBManager({});
 
       // Wait for initialization to complete
       await new Promise(process.nextTick);
@@ -53,46 +70,64 @@ describe('DBMNode', () => {
 
   describe('query', () => {
     beforeEach(() => {
-      dbmNode = new DBMNode({});
+      dbmNode = new DuckDBManager({});
     });
 
-    it('should execute a query successfully', async () => {
-      const mockResult = {
-        columnTypes: jest.fn().mockReturnValue(['INTEGER', 'VARCHAR']),
-      };
-      mockConnection.run.mockResolvedValue(mockResult);
+    it('should execute a query and transform the result successfully', async () => {
+      mockConnection.run.mockResolvedValue(
+        mockResult as unknown as DuckDBMaterializedResult
+      );
 
       const result = await dbmNode.query('SELECT * FROM test');
 
       expect(mockConnection.run).toHaveBeenCalledWith('SELECT * FROM test');
-      expect(result).toBe(mockResult);
+      expect(result).toEqual({
+        data: [
+          { id: 1, name: 'test' },
+          { id: 2, name: 'test2' },
+        ],
+        columnTypes: [
+          { name: 'id', type: 'INTEGER' },
+          { name: 'name', type: 'VARCHAR' },
+        ],
+      });
     });
 
-    it('should throw error if database is not initialized', async () => {
+    it('should throw error if connection is not initialized', async () => {
       // Force connection to be null
       mockDb.connect.mockResolvedValue(null);
 
       await expect(dbmNode.query('SELECT * FROM test')).rejects.toThrow(
-        'Database not initialized'
+        'DuckDB connection not initialized'
       );
     });
   });
 
   describe('close', () => {
     beforeEach(() => {
-      dbmNode = new DBMNode({});
+      dbmNode = new DuckDBManager({});
     });
 
-    it('should close the connection', async () => {
+    it('should close the connection if it exists', async () => {
+      mockConnection.run.mockResolvedValue(
+        mockResult as unknown as DuckDBMaterializedResult
+      );
+
       // First make a query to establish connection
       await dbmNode.query('SELECT 1');
 
+      // Then close the connection
       await dbmNode.close();
-      expect(mockConnection.close).toHaveBeenCalled();
+
+      // Verify close was called
+      expect(mockConnection.close).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle closing when no connection exists', async () => {
+    it('should handle case when connection is null', async () => {
+      // Close without establishing connection
       await dbmNode.close();
+
+      // Verify close was not called
       expect(mockConnection.close).not.toHaveBeenCalled();
     });
   });

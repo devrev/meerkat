@@ -7,9 +7,8 @@ import {
 } from '@duckdb/node-api';
 import { DuckDBSingleton } from '../duckdb-singleton';
 import { convertRowsToRecords } from '../utils/convert-rows-to-records';
-import { convertRecordDuckDBValueToJSON } from '../utils/duckdb-type-convertor';
 
-export class DBMNode {
+export class DuckDBManager {
   private db: DuckDBInstance | null = null;
   private connection: DuckDBConnection | null = null;
 
@@ -46,6 +45,9 @@ export class DBMNode {
     return this.connection;
   }
 
+  /**
+   * Transforms the DuckDB result into a JSON object
+   */
   private async getTransformedData(result: DuckDBResult): Promise<{
     data: Record<string, DuckDBValue>[];
     columnTypes: { name: string; type: DuckDBType }[];
@@ -80,13 +82,7 @@ export class DBMNode {
 
     const data = await this.getTransformedData(result);
 
-    const transformedData = convertRecordDuckDBValueToJSON(
-      data.data,
-      data.columnTypes
-    );
-
-    console.log(transformedData);
-    return transformedData;
+    return data;
   }
 
   /**
