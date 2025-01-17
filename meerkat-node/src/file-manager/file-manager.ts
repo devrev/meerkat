@@ -38,7 +38,6 @@ export class FileManager {
 
   /**
    * Get the file paths for a table.
-
    */
   async getTableFilePaths(tableName: string): Promise<string[]> {
     try {
@@ -67,8 +66,6 @@ export class FileManager {
 
   /**
    * Stream and register a file from a URL.
-   * @param params - The parameters for streaming and registering the file.
-   * @returns A promise that resolves when the file is streamed and registered.
    */
   async streamAndRegisterFile({
     tableName,
@@ -91,7 +88,9 @@ export class FileManager {
         url,
       });
 
-      const filePath = this.getPath(tableName, fileName);
+      const hashedFileName = encryptString(fileName);
+
+      const filePath = this.getPath(tableName, hashedFileName);
       await fs.mkdir(path.dirname(filePath), { recursive: true });
 
       const writer = createWriteStream(filePath);

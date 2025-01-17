@@ -18,7 +18,7 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
   const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
 
   const dbState = useAsyncDuckDB();
-
+  console.log(window.api);
   const nativeBridge: NativeBridge = useMemo(() => {
     return {
       registerFiles: async (files: FileStore[]): Promise<void> => {

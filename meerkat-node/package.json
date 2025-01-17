@@ -3,6 +3,7 @@
   "version": "0.0.88",
   "dependencies": {
     "@swc/helpers": "~0.5.0",
+    "lodash": "^4.17.21",
     "@devrev/meerkat-core": "*",
     "duckdb": "^0.10.2"
   },

@@ -1,121 +1,99 @@
-import { DuckDBSingleton } from '../duckdb-singleton';
-import { DBMNode } from './dbm-node';
-jest.mock('../../duckdb-singleton');
+import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
+import { DuckDBSingleton } from '../../duckdb-singleton';
+import { DBMNode } from '../dbm-node';
 
-export const mockDB = {
-  registerFileBuffer: async (name: string, buffer: Uint8Array) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(buffer);
-      }, 200);
-    });
-  },
-  connect: async () => {
-    return;
-  },
-};
+// Mock DuckDB related modules
+jest.mock('../../duckdb-singleton');
+jest.mock('@duckdb/node-api');
 
 describe('DBMNode', () => {
   let dbmNode: DBMNode;
+  let mockDb: jest.Mocked<DuckDBInstance>;
+  let mockConnection: jest.Mocked<DuckDBConnection>;
 
   beforeEach(() => {
+    // Setup mocks
+    mockConnection = {
+      run: jest.fn(),
+      close: jest.fn(),
+    } as unknown as jest.Mocked<DuckDBConnection>;
+
+    mockDb = {
+      connect: jest.fn().mockResolvedValue(mockConnection),
+    } as unknown as jest.Mocked<DuckDBInstance>;
+
+    (DuckDBSingleton.getInstance as jest.Mock).mockResolvedValue(mockDb);
+  });
+
+  afterEach(() => {
     jest.clearAllMocks();
-    dbmNode = new DBMNode();
   });
 
-  afterEach(async () => {
-    await dbmNode.close();
-  });
+  describe('constructor', () => {
+    it('should initialize with custom database initializer', async () => {
+      const initializeDatabase = jest.fn();
+      dbmNode = new DBMNode({ initializeDatabase });
 
-  describe('initialization', () => {
-    it('should initialize successfully', async () => {
-      const mockDb = {
-        connect: jest.fn(),
-        prepare: jest.fn(),
-      };
-
-      (DuckDBSingleton.getInstance as jest.Mock).mockResolvedValue(mockDb);
-
-      const instance = new DBMNode();
       // Wait for initialization to complete
-      await instance.query('SELECT 1');
+      await new Promise(process.nextTick);
 
       expect(DuckDBSingleton.getInstance).toHaveBeenCalled();
-      expect(mockDb.connect).toHaveBeenCalled();
+      expect(initializeDatabase).toHaveBeenCalledWith(mockDb);
+    });
+
+    it('should initialize without database initializer', async () => {
+      dbmNode = new DBMNode({});
+
+      // Wait for initialization to complete
+      await new Promise(process.nextTick);
+
+      expect(DuckDBSingleton.getInstance).toHaveBeenCalled();
     });
   });
 
   describe('query', () => {
+    beforeEach(() => {
+      dbmNode = new DBMNode({});
+    });
+
     it('should execute a query successfully', async () => {
-      const mockColumns = [{ name: 'id', type: 'INTEGER' }];
-      const mockData = [{ id: 1 }];
-      const mockStatement = {
-        columns: jest.fn().mockReturnValue(mockColumns),
-        all: jest
-          .fn()
-          .mockImplementation((callback) => callback(null, mockData)),
-        finalize: jest.fn().mockImplementation((callback) => callback(null)),
+      const mockResult = {
+        columnTypes: jest.fn().mockReturnValue(['INTEGER', 'VARCHAR']),
       };
-
-      const mockDb = {
-        connect: jest.fn(),
-        prepare: jest
-          .fn()
-          .mockImplementation((query, callback) =>
-            callback(null, mockStatement)
-          ),
-      };
-
-      (DuckDBSingleton.getInstance as jest.Mock).mockResolvedValue(mockDb);
+      mockConnection.run.mockResolvedValue(mockResult);
 
       const result = await dbmNode.query('SELECT * FROM test');
 
-      expect(result).toEqual({
-        columns: mockColumns,
-        data: mockData,
-      });
-      expect(mockDb.prepare).toHaveBeenCalledWith(
-        'SELECT * FROM test',
-        expect.any(Function)
-      );
+      expect(mockConnection.run).toHaveBeenCalledWith('SELECT * FROM test');
+      expect(result).toBe(mockResult);
     });
 
-    it('should handle query preparation errors', async () => {
-      const mockDb = {
-        connect: jest.fn(),
-        prepare: jest
-          .fn()
-          .mockImplementation((query, callback) =>
-            callback(new Error('Preparation failed'))
-          ),
-      };
+    it('should throw error if database is not initialized', async () => {
+      // Force connection to be null
+      mockDb.connect.mockResolvedValue(null);
 
-      (DuckDBSingleton.getInstance as jest.Mock).mockResolvedValue(mockDb);
-
-      await expect(dbmNode.query('INVALID SQL')).rejects.toThrow(
-        'Query preparation failed: Preparation failed'
+      await expect(dbmNode.query('SELECT * FROM test')).rejects.toThrow(
+        'Database not initialized'
       );
     });
   });
 
   describe('close', () => {
-    it('should close connections properly', async () => {
-      const mockConnection = {
-        close: jest.fn(),
-      };
+    beforeEach(() => {
+      dbmNode = new DBMNode({});
+    });
 
-      const mockDb = {
-        connect: jest.fn().mockReturnValue(mockConnection),
-        close: jest.fn(),
-      };
+    it('should close the connection', async () => {
+      // First make a query to establish connection
+      await dbmNode.query('SELECT 1');
 
-      (DuckDBSingleton.getInstance as jest.Mock).mockResolvedValue(mockDb);
-
-      const instance = new DBMNode();
-      await instance.close();
-
+      await dbmNode.close();
       expect(mockConnection.close).toHaveBeenCalled();
-      expect(mockDb.close).toHaveBeenCalled();
+    });
+
+    it('should handle closing when no connection exists', async () => {
+      await dbmNode.close();
+      expect(mockConnection.close).not.toHaveBeenCalled();
     });
   });
 });
