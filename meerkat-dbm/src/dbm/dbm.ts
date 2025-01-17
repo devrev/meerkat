@@ -149,7 +149,6 @@ export class DBM extends TableLockManager {
      */
     const startQueryTime = Date.now();
     const result = await this.query(query);
-
     const endQueryTime = Date.now();
 
     const queryQueueDuration = endQueryTime - startQueryTime;

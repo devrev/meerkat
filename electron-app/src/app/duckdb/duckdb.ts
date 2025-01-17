@@ -1,5 +1,5 @@
-import { DBMNode } from '@devrev/meerkat-node';
+import { DuckDBManager } from '@devrev/meerkat-node';
 
-const duckDB = new DBMNode({});
+const duckDB = new DuckDBManager({});
 
 export default duckDB;

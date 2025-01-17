@@ -50,7 +50,7 @@ export class DuckDBManager {
    */
   private async getTransformedData(result: DuckDBResult): Promise<{
     data: Record<string, DuckDBValue>[];
-    columnTypes: { name: string; type: DuckDBType }[];
+    schema: { name: string; type: DuckDBType }[];
   }> {
     const columnNames = result.columnNames();
     const columnTypes = result.columnTypes();
@@ -64,7 +64,7 @@ export class DuckDBManager {
 
     const data = convertRowsToRecords(rows, columnNames);
 
-    return { data, columnTypes: columnDefinitions };
+    return { data, schema: columnDefinitions };
   }
 
   /**
@@ -72,7 +72,7 @@ export class DuckDBManager {
    */
   async query(query: string): Promise<{
     data: Record<string, DuckDBValue>[];
-    columnTypes: { name: string; type: DuckDBType }[];
+    schema: { name: string; type: DuckDBType }[];
   }> {
     const connection = await this.getConnection();
 

@@ -5,7 +5,6 @@ export const convertArrowValueToJS = (
   field: Field,
   value: unknown
 ): unknown => {
-  console.log(field, value, 'field');
   if (_isNil(value)) return value;
   switch (field.typeId) {
     case Type.Null:
