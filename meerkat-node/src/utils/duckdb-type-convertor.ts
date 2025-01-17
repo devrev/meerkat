@@ -4,11 +4,13 @@ import {
   DuckDBTypeId,
   DuckDBValue,
 } from '@duckdb/node-api';
-
+import { isNil } from 'lodash';
 export const convertDuckDBValueToJS = (
   field: DuckDBType,
   value: DuckDBValue
 ): unknown => {
+  if (isNil(value)) return value;
+
   switch (field.typeId) {
     case DuckDBTypeId.SQLNULL:
       return null;
@@ -46,6 +48,7 @@ export const convertRecordDuckDBValueToJSON = (
   data: Record<string, DuckDBValue>[],
   columns: { name: string; type: DuckDBType }[]
 ): Record<string, unknown>[] => {
+  console.log(data);
   return data.map((row: Record<string, DuckDBValue>) => {
     return columns.reduce((acc, column) => {
       acc[column.name] = convertDuckDBValueToJS(column.type, row[column.name]);

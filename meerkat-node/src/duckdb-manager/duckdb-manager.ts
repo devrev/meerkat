@@ -1,12 +1,9 @@
-import {
-  DuckDBConnection,
-  DuckDBInstance,
-  DuckDBResult,
-  DuckDBType,
-  DuckDBValue,
-} from '@duckdb/node-api';
+import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
 import { DuckDBSingleton } from '../duckdb-singleton';
-import { convertRowsToRecords } from '../utils/convert-rows-to-records';
+import {
+  QueryResult,
+  transformDuckDBQueryResult,
+} from '../utils/transform-duckdb-result';
 
 export class DuckDBManager {
   private db: DuckDBInstance | null = null;
@@ -46,41 +43,16 @@ export class DuckDBManager {
   }
 
   /**
-   * Transforms the DuckDB result into a JSON object
-   */
-  private async getTransformedData(result: DuckDBResult): Promise<{
-    data: Record<string, DuckDBValue>[];
-    schema: { name: string; type: DuckDBType }[];
-  }> {
-    const columnNames = result.columnNames();
-    const columnTypes = result.columnTypes();
-
-    const columnDefinitions = columnNames.map((name, index) => ({
-      name,
-      type: columnTypes[index],
-    }));
-
-    const rows = await result.getRows();
-
-    const data = convertRowsToRecords(rows, columnNames);
-
-    return { data, schema: columnDefinitions };
-  }
-
-  /**
    * Execute a query on the DuckDB connection.
    */
-  async query(query: string): Promise<{
-    data: Record<string, DuckDBValue>[];
-    schema: { name: string; type: DuckDBType }[];
-  }> {
+  async query(query: string): Promise<QueryResult> {
     const connection = await this.getConnection();
 
     if (!connection) throw new Error('DuckDB connection not initialized');
 
     const result = await connection.run(query);
 
-    const data = await this.getTransformedData(result);
+    const data = await transformDuckDBQueryResult(result);
 
     return data;
   }
