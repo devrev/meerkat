@@ -1,126 +1,151 @@
-import { DuckDBInstance } from '@duckdb/node-api';
+import { Database, TableData } from 'duckdb';
 import { DuckDBSingleton } from '../duckdb-singleton';
 import { DuckDBManager } from './duckdb-manager';
 
-// Mock DuckDB related modules
 jest.mock('../duckdb-singleton', () => ({
   DuckDBSingleton: {
     getInstance: jest.fn(),
   },
 }));
-jest.mock('duckdb');
 
 describe('DuckDBManager', () => {
-  let dbmNode: DuckDBManager;
-  let mockDb: jest.Mocked<DuckDBInstance>;
-  let mockStatement: any;
+  let mockDb: jest.Mocked<Database>;
+  let mockConnection: {
+    close: jest.Mock;
+    prepare: jest.Mock;
+    run: jest.Mock;
+  };
+  let mockStatement: {
+    columns: jest.Mock;
+    all: jest.Mock;
+  };
 
   beforeEach(() => {
-    // Setup mocks
+    // Reset all mocks
+    jest.clearAllMocks();
+
+    // Setup mock connection
+    mockConnection = {
+      close: jest.fn(),
+      prepare: jest.fn(),
+      run: jest.fn(),
+    };
+
+    // Setup mock statement
     mockStatement = {
-      columns: jest.fn().mockReturnValue([
-        { name: 'id', type: { id: 'INTEGER' } },
-        { name: 'name', type: { id: 'VARCHAR' } },
-      ]),
+      columns: jest.fn().mockReturnValue(['col1', 'col2']),
       all: jest.fn(),
     };
 
+    // Setup mock database
     mockDb = {
-      prepare: jest.fn(),
-    } as unknown as jest.Mocked<DuckDBInstance>;
+      connect: jest.fn().mockResolvedValue(mockConnection),
+    } as any;
 
-    (DuckDBSingleton.getInstance as jest.Mock).mockResolvedValue(mockDb);
+    // Mock getInstance to return our mockDb
+    (DuckDBSingleton.getInstance as jest.Mock).mockReturnValue(mockDb);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  describe('initialization', () => {
+    it('should initialize with onInitialize callback', async () => {
+      const onInitialize = jest.fn();
+      const manager = new DuckDBManager({ onInitialize });
 
-  describe('constructor', () => {
-    it('should initialize with custom database initializer', async () => {
-      const initializeDatabase = jest.fn();
-      dbmNode = new DuckDBManager({ onInitialize: initializeDatabase });
-
-      // Wait for initialization to complete
-      await new Promise(process.nextTick);
+      await manager['initPromise'];
 
       expect(DuckDBSingleton.getInstance).toHaveBeenCalled();
-      expect(initializeDatabase).toHaveBeenCalledWith(mockDb);
+
+      // check if onInitialize is called with db instance
+
+      expect(onInitialize).toHaveBeenCalledWith(mockDb);
     });
+  });
 
-    it('should initialize without database initializer', async () => {
-      dbmNode = new DuckDBManager({});
+  describe('getConnection', () => {
+    it('should return a database connection', async () => {
+      const manager = new DuckDBManager({});
+      const connection = await manager.getConnection();
 
-      // Wait for initialization to complete
-      await new Promise(process.nextTick);
-
-      expect(DuckDBSingleton.getInstance).toHaveBeenCalled();
+      expect(connection).toBe(mockConnection);
+      expect(mockDb.connect).toHaveBeenCalled();
     });
   });
 
   describe('query', () => {
-    beforeEach(() => {
-      dbmNode = new DuckDBManager({});
-    });
+    it('should execute a query and return results', async () => {
+      const manager = new DuckDBManager({});
+      const testData: TableData = [{ col1: 'value1', col2: 'value2' }];
 
-    it('should execute a query and return results successfully', async () => {
-      const mockData = [
-        { id: 1, name: 'test' },
-        { id: 2, name: 'test2' },
-      ];
+      mockConnection.prepare.mockImplementation(
+        (
+          query: string,
+          callback: (error: Error | null, statement?: any) => void
+        ) => {
+          callback(null, mockStatement);
+        }
+      );
 
-      mockDb.prepare.mockImplementation((query, callback) => {
-        callback(null, mockStatement);
-        mockStatement.all.mockImplementation((callback) => {
-          callback(null, mockData);
-        });
+      mockStatement.all.mockImplementation((callback) => {
+        callback(null, testData);
       });
 
-      const result = await dbmNode.query('SELECT * FROM test');
+      const result = await manager.query('SELECT * FROM test');
 
-      expect(mockDb.prepare).toHaveBeenCalledWith(
+      expect(mockConnection.prepare).toHaveBeenCalledWith(
         'SELECT * FROM test',
         expect.any(Function)
       );
+      expect(mockStatement.columns).toHaveBeenCalled();
+
+      expect(mockStatement.all).toHaveBeenCalled();
       expect(result).toEqual({
-        columns: [
-          { name: 'id', type: { id: 'INTEGER' } },
-          { name: 'name', type: { id: 'VARCHAR' } },
-        ],
-        data: mockData,
+        columns: ['col1', 'col2'],
+        data: testData,
       });
     });
 
-    it('should throw error if database is not initialized', async () => {
-      (DuckDBSingleton.getInstance as jest.Mock).mockResolvedValue(null);
-      const dbManager = new DuckDBManager({});
+    it('should handle prepare errors', async () => {
+      const manager = new DuckDBManager({});
+      const error = new Error('Prepare error');
 
-      await expect(dbManager.query('SELECT * FROM test')).rejects.toThrow(
-        'Database not initialized'
-      );
-    });
-
-    it('should throw error if prepare fails', async () => {
-      mockDb.prepare.mockImplementation((query, callback) => {
-        callback(new Error('Prepare failed'), null);
+      mockConnection.prepare.mockImplementation((query: string, callback) => {
+        callback(error);
       });
 
-      await expect(dbmNode.query('SELECT * FROM test')).rejects.toThrow(
-        'Query preparation failed: Prepare failed'
+      await expect(manager.query('SELECT * FROM test')).rejects.toThrow(
+        'Query preparation failed: Prepare error'
       );
     });
 
-    it('should throw error if execution fails', async () => {
-      mockDb.prepare.mockImplementation((query, callback) => {
+    it('should handle execution errors', async () => {
+      const manager = new DuckDBManager({});
+      const error = new Error('Execution error');
+
+      mockConnection.prepare.mockImplementation((query: string, callback) => {
         callback(null, mockStatement);
-        mockStatement.all.mockImplementation((callback) => {
-          callback(new Error('Execution failed'), null);
-        });
       });
 
-      await expect(dbmNode.query('SELECT * FROM test')).rejects.toThrow(
-        'Query execution failed: Execution failed'
+      mockStatement.all.mockImplementation((callback) => {
+        callback(error);
+      });
+
+      await expect(manager.query('SELECT * FROM test')).rejects.toThrow(
+        'Query execution failed: Execution error'
       );
+    });
+  });
+
+  describe('close', () => {
+    it('should close the connection', async () => {
+      const manager = new DuckDBManager({});
+
+      // Set the connection manually since we're testing private property
+      (manager as any).connection = mockConnection;
+
+      await manager.close();
+
+      expect(mockConnection.close).toHaveBeenCalled();
+      expect((manager as any).connection).toBeNull();
     });
   });
 });
