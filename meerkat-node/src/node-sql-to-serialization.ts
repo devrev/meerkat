@@ -11,21 +11,16 @@ export interface ParsedSerialization {
 export const nodeSQLToSerialization = async (
   sql: string
 ): Promise<ParsedSerialization> => {
-  const queryOutput = await duckdbExec<
-    {
-      [key: string]: string;
-    }[]
-  >(sql);
+  const queryOutput = await duckdbExec(sql);
 
   const parsedOutput: ParsedSerialization = {};
 
   for (const key in queryOutput[0]) {
     if (Object.prototype.hasOwnProperty.call(queryOutput[0], key)) {
-      parsedOutput[key] = JSON.parse(queryOutput[0][key]) as {
+      parsedOutput[key] = JSON.parse(queryOutput[0][key] as string) as {
         error: boolean;
         statements: SelectStatement[];
       };
-      break;
     }
   }
   return parsedOutput;

@@ -1,7 +1,7 @@
 import {
   DuckDBConnection,
   DuckDBInstance,
-  DuckDBMaterializedResult,
+  DuckDBResult,
 } from '@duckdb/node-api';
 import { DuckDBSingleton } from '../duckdb-singleton';
 import { DuckDBManager } from './duckdb-manager';
@@ -75,7 +75,7 @@ describe('DuckDBManager', () => {
 
     it('should execute a query and transform the result successfully', async () => {
       mockConnection.run.mockResolvedValue(
-        mockResult as unknown as DuckDBMaterializedResult
+        mockResult as unknown as DuckDBResult
       );
 
       const result = await dbmNode.query('SELECT * FROM test');
@@ -100,35 +100,6 @@ describe('DuckDBManager', () => {
       await expect(dbmNode.query('SELECT * FROM test')).rejects.toThrow(
         'DuckDB connection not initialized'
       );
-    });
-  });
-
-  describe('close', () => {
-    beforeEach(() => {
-      dbmNode = new DuckDBManager({});
-    });
-
-    it('should close the connection if it exists', async () => {
-      mockConnection.run.mockResolvedValue(
-        mockResult as unknown as DuckDBMaterializedResult
-      );
-
-      // First make a query to establish connection
-      await dbmNode.query('SELECT 1');
-
-      // Then close the connection
-      await dbmNode.close();
-
-      // Verify close was called
-      expect(mockConnection.close).toHaveBeenCalledTimes(1);
-    });
-
-    it('should handle case when connection is null', async () => {
-      // Close without establishing connection
-      await dbmNode.close();
-
-      // Verify close was not called
-      expect(mockConnection.close).not.toHaveBeenCalled();
     });
   });
 });

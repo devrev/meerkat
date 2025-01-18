@@ -56,11 +56,4 @@ export class DuckDBManager {
 
     return data;
   }
-
-  /**
-   * Close the DuckDB connection
-   */
-  async close(): Promise<void> {
-    this.connection?.close();
-  }
 }

@@ -7,13 +7,9 @@ export const duckdbExec = async (
   const db = await DuckDBSingleton.getInstance();
   const connection = await db.connect();
 
-  try {
-    const result = await connection.run(query);
+  const result = await connection.run(query);
 
-    const { data } = await transformDuckDBQueryResult(result);
+  const { data } = await transformDuckDBQueryResult(result);
 
-    return data;
-  } finally {
-    connection.close();
-  }
+  return data;
 };

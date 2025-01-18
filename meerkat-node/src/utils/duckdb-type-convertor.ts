@@ -5,6 +5,7 @@ import {
   DuckDBValue,
 } from '@duckdb/node-api';
 import { isNil } from 'lodash';
+
 export const convertDuckDBValueToJS = (
   field: DuckDBType,
   value: DuckDBValue
