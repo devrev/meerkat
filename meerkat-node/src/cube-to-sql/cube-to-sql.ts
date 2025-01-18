@@ -11,16 +11,14 @@ import {
   detectApplyContextParamsToBaseSQL,
   getCombinedTableSchema,
   getFilterParamsSQL,
-  getFinalBaseSQL
+  getFinalBaseSQL,
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
-
-
 interface CubeQueryToSQLParams {
-  query: Query,
-  tableSchemas: TableSchema[],
-  contextParams?: ContextParams
+  query: Query;
+  tableSchemas: TableSchema[];
+  contextParams?: ContextParams;
 }
 
 export const cubeQueryToSQL = async ({
@@ -30,7 +28,11 @@ export const cubeQueryToSQL = async ({
 }: CubeQueryToSQLParams) => {
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
-      const baseFilterParamsSQL = await getFinalBaseSQL({query, tableSchema: schema, getQueryOutput: duckdbExec });
+      const baseFilterParamsSQL = await getFinalBaseSQL({
+        query,
+        tableSchema: schema,
+        getQueryOutput: duckdbExec,
+      });
       return {
         ...schema,
         sql: baseFilterParamsSQL,
@@ -50,11 +52,7 @@ export const cubeQueryToSQL = async ({
 
   const queryTemp = astDeserializerQuery(ast);
 
-  const queryOutput = await duckdbExec<
-    {
-      [key: string]: string;
-    }[]
-  >(queryTemp);
+  const queryOutput = (await duckdbExec(queryTemp)) as Record<string, string>[];
   const preBaseQuery = deserializeQuery(queryOutput);
 
   const filterParamsSQL = await getFilterParamsSQL({

@@ -1,4 +1,4 @@
-import { Database } from 'duckdb';
+import { DuckDBInstance } from '@duckdb/node-api';
 
 /**
  * DuckDBSingleton is designed as a Singleton class, which ensures that only one Database connection exists across the entire application.
@@ -13,15 +13,15 @@ import { Database } from 'duckdb';
  * but are not persistent; they lose data as soon as the program ends or the machine is turned off, which is okay for our use-case.
  */
 export class DuckDBSingleton {
-  private static instance: Database;
+  private static instance: DuckDBInstance;
 
   private constructor() {
     // private to prevent direct instantiation.
   }
 
-  static getInstance(): Database {
+  static async getInstance(): Promise<DuckDBInstance> {
     if (!DuckDBSingleton.instance) {
-      DuckDBSingleton.instance = new Database(':memory:');
+      DuckDBSingleton.instance = await DuckDBInstance.create(':memory:');
     }
     return DuckDBSingleton.instance;
   }

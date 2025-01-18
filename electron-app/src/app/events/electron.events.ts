@@ -42,9 +42,9 @@ ipcMain.handle(
 );
 
 ipcMain.handle(NativeAppEvent.QUERY, async (event, query: string) => {
-  const result = await duckDB.executeQuery({ query });
+  const result = await duckDB.query(query);
 
-  return { data: result };
+  return result;
 });
 
 ipcMain.handle(

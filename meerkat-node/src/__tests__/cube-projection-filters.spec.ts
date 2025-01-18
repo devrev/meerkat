@@ -80,7 +80,7 @@ describe('cube-to-sql', () => {
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     const expectQueryResult = [
-      { person__count_star: BigInt(2), person__other_dimension: 'dashboard_others' },
+      { person__count_star: 2, person__other_dimension: 'dashboard_others' },
     ];
     expect(output).toEqual(expectQueryResult);
   });
@@ -110,14 +110,14 @@ describe('cube-to-sql', () => {
           },
         ],
       },
-      tableSchemas: [SCHEMA]
+      tableSchemas: [SCHEMA],
     });
     const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT *, id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension FROM (SELECT * FROM person) AS person) AS person WHERE (((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
     expect(sql).toBe(expectedSQL);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     const expectQueryResult = [
-      { person__count_star: BigInt(4), person__other_dimension: 'dashboard_others' },
+      { person__count_star: 4, person__other_dimension: 'dashboard_others' },
     ];
     expect(output).toEqual(expectQueryResult);
   });
@@ -152,14 +152,14 @@ describe('cube-to-sql', () => {
           },
         ],
       },
-      tableSchemas: [SCHEMA]
+      tableSchemas: [SCHEMA],
     });
     const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT *, id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension FROM (SELECT * FROM person) AS person) AS person WHERE ((person__id != '2') AND ((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
     expect(sql).toBe(expectedSQL);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     const expectQueryResult = [
-      { person__count_star: BigInt(3), person__other_dimension: 'dashboard_others' },
+      { person__count_star: 3, person__other_dimension: 'dashboard_others' },
     ];
     expect(output).toEqual(expectQueryResult);
   });
