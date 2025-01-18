@@ -18,6 +18,10 @@ export class FileManager {
       : path.join(this.baseDir, tableName);
   }
 
+  private getHashedFileName(fileName: string): string {
+    return hashString(fileName);
+  }
+
   /**
    * Write a file buffer to the file system.
    */
@@ -27,7 +31,7 @@ export class FileManager {
     buffer: Uint8Array;
   }): Promise<void> {
     // Hash the file name to avoid file name length issues
-    const hashedFileName = hashString(file.fileName);
+    const hashedFileName = this.getHashedFileName(file.fileName);
 
     const filePath = this.getPath(file.tableName, hashedFileName);
 
@@ -56,7 +60,9 @@ export class FileManager {
     await Promise.all(
       files.map(async (file) => {
         try {
-          await fs.unlink(this.getPath(tableName, file));
+          await fs.unlink(
+            this.getPath(tableName, this.getHashedFileName(file))
+          );
         } catch (err) {
           console.error(err);
         }

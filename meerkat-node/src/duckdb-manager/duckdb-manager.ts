@@ -1,6 +1,7 @@
 import { ColumnInfo, Connection, Database, TableData } from 'duckdb';
 
 import { DuckDBSingleton } from '../duckdb-singleton';
+import { convertTableDataToJSON } from '../utils/duckdb-type-convertor';
 
 export class DuckDBManager {
   private db: Database | null = null;
@@ -66,7 +67,9 @@ export class DuckDBManager {
             return;
           }
 
-          resolve({ columns, data });
+          const result = convertTableDataToJSON(data, columns);
+
+          resolve({ columns, data: result });
         });
       });
     });

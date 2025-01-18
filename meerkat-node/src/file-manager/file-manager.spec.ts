@@ -105,7 +105,7 @@ describe('FileManager', () => {
 
       files.forEach((file) => {
         expect(fs.unlink).toHaveBeenCalledWith(
-          `${mockBaseDir}/test-table/${file}`
+          `${mockBaseDir}/test-table/hashed_${file}`
         );
       });
     });
