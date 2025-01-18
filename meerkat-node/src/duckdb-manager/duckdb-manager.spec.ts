@@ -21,28 +21,24 @@ describe('DuckDBManager', () => {
   };
 
   beforeEach(() => {
-    // Reset all mocks
     jest.clearAllMocks();
 
-    // Setup mock connection
+    // Setup all mocks
     mockConnection = {
       close: jest.fn(),
       prepare: jest.fn(),
       run: jest.fn(),
     };
 
-    // Setup mock statement
     mockStatement = {
       columns: jest.fn().mockReturnValue(['col1', 'col2']),
       all: jest.fn(),
     };
 
-    // Setup mock database
     mockDb = {
       connect: jest.fn().mockResolvedValue(mockConnection),
     } as any;
 
-    // Mock getInstance to return our mockDb
     (DuckDBSingleton.getInstance as jest.Mock).mockReturnValue(mockDb);
   });
 
@@ -56,7 +52,6 @@ describe('DuckDBManager', () => {
       expect(DuckDBSingleton.getInstance).toHaveBeenCalled();
 
       // check if onInitialize is called with db instance
-
       expect(onInitialize).toHaveBeenCalledWith(mockDb);
     });
   });

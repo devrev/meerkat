@@ -22,7 +22,7 @@ jest.mock('path', () => ({
 }));
 
 jest.mock('../utils/hash-string', () => ({
-  hashString: jest.fn((str) => `encrypted_${str}`),
+  hashString: jest.fn((str) => `hashed_${str}`),
 }));
 
 describe('FileManager', () => {
@@ -75,7 +75,7 @@ describe('FileManager', () => {
         { recursive: true }
       );
       expect(fs.writeFile).toHaveBeenCalledWith(
-        `${mockBaseDir}/${mockFile.tableName}/encrypted_${mockFile.fileName}`,
+        `${mockBaseDir}/${mockFile.tableName}/hashed_${mockFile.fileName}`,
         mockFile.buffer
       );
     });
