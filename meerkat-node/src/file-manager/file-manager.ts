@@ -2,7 +2,7 @@ import axios from 'axios';
 import { createWriteStream, promises as fs } from 'fs';
 import * as path from 'path';
 
-import { encryptString } from '../utils/encrypt-string';
+import { hashString } from '../utils/hash-string';
 
 export class FileManager {
   private readonly baseDir: string;
@@ -27,7 +27,7 @@ export class FileManager {
     buffer: Uint8Array;
   }): Promise<void> {
     // Hash the file name to avoid file name length issues
-    const hashedFileName = encryptString(file.fileName);
+    const hashedFileName = hashString(file.fileName);
 
     const filePath = this.getPath(file.tableName, hashedFileName);
 
@@ -88,7 +88,7 @@ export class FileManager {
         url,
       });
 
-      const hashedFileName = encryptString(fileName);
+      const hashedFileName = hashString(fileName);
 
       const filePath = this.getPath(tableName, hashedFileName);
       await fs.mkdir(path.dirname(filePath), { recursive: true });

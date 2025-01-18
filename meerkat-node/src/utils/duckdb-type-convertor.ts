@@ -1,43 +1,41 @@
-import {
-  DuckDBListValue,
-  DuckDBType,
-  DuckDBTypeId,
-  DuckDBValue,
-} from '@duckdb/node-api';
+import { ColumnInfo, ListTypeInfo, TableData, TypeInfo } from 'duckdb';
 import { isNil } from 'lodash';
 
 export const convertDuckDBValueToJS = (
-  field: DuckDBType,
-  value: DuckDBValue
+  field: TypeInfo,
+  value: unknown
 ): unknown => {
-  if (isNil(value)) return value;
+  if (isNil(value)) return null;
 
-  switch (field.typeId) {
-    case DuckDBTypeId.SQLNULL:
+  switch (field.id) {
+    case 'SQL_NULL':
       return null;
-    case DuckDBTypeId.DATE:
-    case DuckDBTypeId.TIMESTAMP:
-    case DuckDBTypeId.TIME:
+    case 'TIMESTAMP':
+    case 'TIME':
       return new Date(value as number).toISOString();
-    case DuckDBTypeId.FLOAT:
-    case DuckDBTypeId.DOUBLE:
+    case 'FLOAT':
+    case 'DOUBLE':
       return value;
-    case DuckDBTypeId.INTEGER:
-    case DuckDBTypeId.TINYINT:
-    case DuckDBTypeId.SMALLINT:
-    case DuckDBTypeId.BIGINT:
-    case DuckDBTypeId.UTINYINT:
-    case DuckDBTypeId.USMALLINT:
-    case DuckDBTypeId.UINTEGER:
-    case DuckDBTypeId.UBIGINT:
-      return parseInt((value as object).toString());
-    case DuckDBTypeId.DECIMAL:
+    case 'INTEGER':
+    case 'TINYINT':
+    case 'SMALLINT':
+    case 'BIGINT':
+    case 'UTINYINT':
+    case 'USMALLINT':
+    case 'UINTEGER':
+    case 'UBIGINT':
+    case 'HUGEINT':
+    case 'UHUGEINT': {
+      console.log('valuevalue', value, field);
+      return parseInt((value as object).toString(), 10);
+    }
+    case 'DECIMAL':
       return parseFloat((value as object).toString());
-    case DuckDBTypeId.LIST: {
+    case 'LIST': {
       if (!value) return [];
-      const listValue = value as DuckDBListValue;
-      return listValue.items.map((item) =>
-        convertDuckDBValueToJS(field.valueType, item)
+      const listValue = value as [];
+      return listValue.map((item) =>
+        convertDuckDBValueToJS((field as ListTypeInfo).child, item)
       );
     }
     default:
@@ -45,12 +43,11 @@ export const convertDuckDBValueToJS = (
   }
 };
 
-export const convertRecordDuckDBValueToJSON = (
-  data: Record<string, DuckDBValue>[],
-  columns: { name: string; type: DuckDBType }[]
+export const convertTableDataToJSON = (
+  data: TableData,
+  columns: ColumnInfo[]
 ): Record<string, unknown>[] => {
-  console.log(data);
-  return data.map((row: Record<string, DuckDBValue>) => {
+  return data.map((row: Record<string, unknown>) => {
     return columns.reduce((acc, column) => {
       acc[column.name] = convertDuckDBValueToJS(column.type, row[column.name]);
       return acc;

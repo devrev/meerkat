@@ -1,70 +1,92 @@
 import { DuckDBType, DuckDBTypeId, DuckDBValue } from '@duckdb/node-api';
 
+import { TypeInfo } from 'duckdb';
 import {
   convertDuckDBValueToJS,
-  convertRecordDuckDBValueToJSON,
+  convertTableDataToJSON,
 } from '../duckdb-type-convertor';
 
-const duckDbSimpleTypeConvertorArray = [
+const duckDbSimpleTypeConvertorArray: {
+  type: TypeInfo;
+  input: unknown;
+  output: unknown;
+}[] = [
   {
-    field: {
-      typeId: DuckDBTypeId.SQLNULL,
+    type: {
+      id: 'SQLNULL',
+      sql_type: 'NULL',
     },
     input: null,
     output: null,
   },
   {
-    field: {
-      typeId: DuckDBTypeId.DATE,
+    type: {
+      id: 'DATE',
+      sql_type: 'DATE',
     },
     input: 1648771200000,
     output: '2022-04-01T00:00:00.000Z',
   },
   {
-    field: {
-      typeId: DuckDBTypeId.TIMESTAMP,
+    type: {
+      id: 'TIMESTAMP',
+      sql_type: 'TIMESTAMP',
     },
     input: 1648771200000,
     output: '2022-04-01T00:00:00.000Z',
   },
   {
-    field: {
-      typeId: DuckDBTypeId.TIME,
+    type: {
+      id: 'TIME',
+      sql_type: 'TIME',
     },
     input: 1648771200000,
     output: '2022-04-01T00:00:00.000Z',
   },
   {
-    field: {
-      typeId: DuckDBTypeId.FLOAT,
+    type: {
+      id: 'FLOAT',
+      sql_type: 'FLOAT',
     },
     input: 1.23,
     output: 1.23,
   },
   {
-    field: {
-      typeId: DuckDBTypeId.INTEGER,
+    type: {
+      id: 'BIGINT',
+      sql_type: 'BIGINT',
+    },
+    input: BigInt(123),
+    output: 123,
+  },
+  {
+    type: {
+      id: 'INTEGER',
+      sql_type: 'INTEGER',
     },
     input: 123,
     output: 123,
   },
   {
-    field: {
-      typeId: DuckDBTypeId.DECIMAL,
+    type: {
+      id: 'DECIMAL',
+      sql_type: 'DECIMAL',
     },
     input: '1.23',
     output: 1.23,
   },
   {
-    field: {
-      typeId: DuckDBTypeId.BOOLEAN,
+    type: {
+      id: 'BOOLEAN',
+      sql_type: 'BOOLEAN',
     },
     input: true,
     output: true,
   },
   {
-    field: {
-      typeId: DuckDBTypeId.VARCHAR,
+    type: {
+      id: 'VARCHAR',
+      sql_type: 'VARCHAR',
     },
     input: 'test',
     output: 'test',
@@ -130,7 +152,7 @@ describe('DuckDBTypeConvertor', () => {
   it('should convert simple types correctly', () => {
     duckDbSimpleTypeConvertorArray.forEach((item) => {
       expect(
-        convertDuckDBValueToJS(item.field as DuckDBType, item.input)
+        convertDuckDBValueToJS(item.type as TypeInfo, item.input)
       ).toStrictEqual(item.output);
     });
   });
@@ -138,7 +160,7 @@ describe('DuckDBTypeConvertor', () => {
   it('should convert complex types correctly', () => {
     duckDBComplexTypeConvertorArray.forEach((item) => {
       expect(
-        convertRecordDuckDBValueToJSON(
+        convertTableDataToJSON(
           item.data as Record<string, DuckDBValue>[],
           item.columnTypes as { name: string; type: DuckDBType }[]
         )

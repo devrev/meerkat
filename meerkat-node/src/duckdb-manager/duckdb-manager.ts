@@ -1,59 +1,85 @@
-import { DuckDBConnection, DuckDBInstance } from '@duckdb/node-api';
+import { ColumnInfo, Connection, Database, TableData } from 'duckdb';
+
 import { DuckDBSingleton } from '../duckdb-singleton';
-import {
-  QueryResult,
-  transformDuckDBQueryResult,
-} from '../utils/transform-duckdb-result';
 
 export class DuckDBManager {
-  private db: DuckDBInstance | null = null;
-  private connection: DuckDBConnection | null = null;
+  private db: Database | null = null;
+  private connection: Connection | null = null;
 
   private initPromise: Promise<void>;
 
   constructor({
-    initializeDatabase,
+    onInitialize,
   }: {
-    initializeDatabase?: (db: DuckDBInstance) => Promise<void>;
+    onInitialize?: (db: Database) => Promise<void>;
   }) {
-    this.initPromise = this.initialize({ initializeDatabase });
+    this.initPromise = this.initialize({ onInitialize });
   }
 
   /**
    * Initialize the DuckDB instance
    */
   private async initialize({
-    initializeDatabase,
+    onInitialize,
   }: {
-    initializeDatabase?: (db: DuckDBInstance) => Promise<void>;
-  }): Promise<void> {
-    this.db = await DuckDBSingleton.getInstance();
+    onInitialize?: (db: Database) => Promise<void>;
+  }) {
+    this.db = DuckDBSingleton.getInstance();
 
-    await initializeDatabase?.(this.db);
-  }
-
-  private async getConnection(): Promise<DuckDBConnection | null> {
-    await this.initPromise;
-
-    if (!this.connection) {
-      this.connection = (await this.db?.connect()) ?? null;
-    }
-
-    return this.connection;
+    await onInitialize?.(this.db);
   }
 
   /**
    * Execute a query on the DuckDB connection.
    */
-  async query(query: string): Promise<QueryResult> {
-    const connection = await this.getConnection();
+  async query(
+    query: string
+  ): Promise<{ columns: ColumnInfo[]; data: TableData }> {
+    await this.initPromise;
 
-    if (!connection) throw new Error('DuckDB connection not initialized');
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error('Database not initialized'));
+        return;
+      }
 
-    const result = await connection.run(query);
+      this.db.prepare(query, (err, statement) => {
+        if (err) {
+          reject(new Error(`Query preparation failed: ${err.message}`));
+          return;
+        }
 
-    const data = await transformDuckDBQueryResult(result);
+        const columns = statement.columns();
 
-    return data;
+        statement.all((err, data) => {
+          if (err) {
+            reject(new Error(`Query execution failed: ${err.message}`));
+            return;
+          }
+
+          resolve({ columns, data });
+        });
+      });
+    });
+  }
+
+  /**
+   * Close the DuckDB connection and cleanup resources.
+   */
+  async close(): Promise<void> {
+    if (this.connection) {
+      this.connection.close();
+      this.connection = null;
+    }
   }
 }
+
+const duckDB = new DuckDBManager({
+  onInitialize: async (db) => {
+    const connection = await db.connect();
+
+    await connection.run('CREATE SCHEMA system');
+  },
+});
+
+export default duckDB;

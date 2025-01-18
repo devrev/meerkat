@@ -1,15 +1,13 @@
 import { DuckDBSingleton } from './duckdb-singleton';
-import { transformDuckDBQueryResult } from './utils/transform-duckdb-result';
 
-export const duckdbExec = async (
-  query: string
-): Promise<Record<string, unknown>[]> => {
-  const db = await DuckDBSingleton.getInstance();
-  const connection = await db.connect();
-
-  const result = await connection.run(query);
-
-  const { data } = await transformDuckDBQueryResult(result);
-
-  return data;
+export const duckdbExec = <T = unknown>(query: string): Promise<T> => {
+  const db = DuckDBSingleton.getInstance();
+  return new Promise((resolve, reject) => {
+    db.all(query, (err, res) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(res as T);
+    });
+  });
 };
