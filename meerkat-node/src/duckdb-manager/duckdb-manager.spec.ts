@@ -1,4 +1,4 @@
-import { Database, TableData } from 'duckdb';
+import { Database } from 'duckdb';
 import { DuckDBSingleton } from '../duckdb-singleton';
 import { DuckDBManager } from './duckdb-manager';
 
@@ -31,7 +31,10 @@ describe('DuckDBManager', () => {
     };
 
     mockStatement = {
-      columns: jest.fn().mockReturnValue(['col1', 'col2']),
+      columns: jest.fn().mockReturnValue([
+        { name: 'col1', type: { sql_type: 'text', name: 'text' } },
+        { name: 'col2', type: { sql_type: 'int', name: 'int' } },
+      ]),
       all: jest.fn(),
     };
 
@@ -69,7 +72,10 @@ describe('DuckDBManager', () => {
   describe('query', () => {
     it('should execute a query and return results', async () => {
       const manager = new DuckDBManager({});
-      const testData: TableData = [{ col1: 'value1', col2: 'value2' }];
+      const testData = [
+        { col1: 'value1', col2: 2 },
+        { col1: 'value2', col2: 3 },
+      ];
 
       mockConnection.prepare.mockImplementation(
         (
@@ -91,11 +97,16 @@ describe('DuckDBManager', () => {
         expect.any(Function)
       );
       expect(mockStatement.columns).toHaveBeenCalled();
-
       expect(mockStatement.all).toHaveBeenCalled();
       expect(result).toEqual({
-        columns: ['col1', 'col2'],
-        data: testData,
+        columns: [
+          { name: 'col1', type: { sql_type: 'text', name: 'text' } },
+          { name: 'col2', type: { sql_type: 'int', name: 'int' } },
+        ],
+        data: [
+          { col1: 'value1', col2: 2 },
+          { col1: 'value2', col2: 3 },
+        ],
       });
     });
 
