@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { createWriteStream, promises as fs } from 'fs';
-import { encryptString } from '../utils/encrypt-string';
+import { hashString } from '../utils/hash-string';
 import { FileManager } from './file-manager';
 
 // Mock external dependencies
@@ -21,8 +21,8 @@ jest.mock('path', () => ({
   dirname: jest.fn((path) => path.split('/').slice(0, -1).join('/')),
 }));
 
-jest.mock('../utils/encrypt-string', () => ({
-  encryptString: jest.fn((str) => `encrypted_${str}`),
+jest.mock('../utils/hash-string', () => ({
+  hashString: jest.fn((str) => `hashed_${str}`),
 }));
 
 describe('FileManager', () => {
@@ -69,13 +69,13 @@ describe('FileManager', () => {
     it('should write file buffer successfully', async () => {
       await fileManager.writeFileBuffer(mockFile);
 
-      expect(encryptString).toHaveBeenCalledWith(mockFile.fileName);
+      expect(hashString).toHaveBeenCalledWith(mockFile.fileName);
       expect(fs.mkdir).toHaveBeenCalledWith(
         `${mockBaseDir}/${mockFile.tableName}`,
         { recursive: true }
       );
       expect(fs.writeFile).toHaveBeenCalledWith(
-        `${mockBaseDir}/${mockFile.tableName}/encrypted_${mockFile.fileName}`,
+        `${mockBaseDir}/${mockFile.tableName}/hashed_${mockFile.fileName}`,
         mockFile.buffer
       );
     });
@@ -105,7 +105,7 @@ describe('FileManager', () => {
 
       files.forEach((file) => {
         expect(fs.unlink).toHaveBeenCalledWith(
-          `${mockBaseDir}/test-table/${file}`
+          `${mockBaseDir}/test-table/hashed_${file}`
         );
       });
     });

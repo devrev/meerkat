@@ -11,7 +11,11 @@ export interface ParsedSerialization {
 export const nodeSQLToSerialization = async (
   sql: string
 ): Promise<ParsedSerialization> => {
-  const queryOutput = await duckdbExec(sql);
+  const queryOutput = await duckdbExec<
+    {
+      [key: string]: string;
+    }[]
+  >(sql);
 
   const parsedOutput: ParsedSerialization = {};
 

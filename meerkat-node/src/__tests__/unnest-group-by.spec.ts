@@ -101,23 +101,23 @@ describe('cube-to-sql', () => {
     const output = await duckdbExec(sql);
     expect(output).toEqual([
       {
-        tickets__count: 3,
+        tickets__count: BigInt(3),
         tickets__owners: ['b'],
       },
       {
-        tickets__count: 2,
+        tickets__count: BigInt(2),
         tickets__owners: ['d'],
       },
       {
-        tickets__count: 2,
+        tickets__count: BigInt(2),
         tickets__owners: ['c'],
       },
       {
-        tickets__count: 2,
+        tickets__count: BigInt(2),
         tickets__owners: ['a'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__owners: ['e'],
       },
     ]);
@@ -150,27 +150,27 @@ describe('cube-to-sql', () => {
     const output = await duckdbExec(sql);
     expect(output).toEqual([
       {
-        tickets__count: 2,
+        tickets__count: BigInt(2),
         tickets__owners: null,
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__owners: ['e'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__owners: ['b', 'c', 'd'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__owners: ['b', 'c'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__owners: ['a', 'd'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__owners: ['a', 'b'],
       },
     ]);
@@ -203,15 +203,15 @@ describe('cube-to-sql', () => {
     const output = await duckdbExec(sql);
     expect(output).toEqual([
       {
-        tickets__count: 4,
+        tickets__count: BigInt(4),
         tickets__created_by: 'z',
       },
       {
-        tickets__count: 2,
+        tickets__count: BigInt(2),
         tickets__created_by: 'x',
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'y',
       },
     ]);
@@ -244,15 +244,15 @@ describe('cube-to-sql', () => {
     const output = await duckdbExec(sql);
     expect(output).toEqual([
       {
-        tickets__count: 4,
+        tickets__count: BigInt(4),
         tickets__created_by: 'z',
       },
       {
-        tickets__count: 2,
+        tickets__count: BigInt(2),
         tickets__created_by: 'x',
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'y',
       },
     ]);
@@ -293,85 +293,85 @@ describe('cube-to-sql', () => {
     const output = await duckdbExec(sql);
     expect(output).toEqual([
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'z',
         tickets__owners: ['d'],
         tickets__tags: [null],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'z',
         tickets__owners: ['c'],
         tickets__tags: [null],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'z',
         tickets__owners: ['b'],
         tickets__tags: [null],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'z',
         tickets__owners: [null],
         tickets__tags: ['t5'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'z',
         tickets__owners: [null],
         tickets__tags: ['t4'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'z',
         tickets__owners: ['a'],
         tickets__tags: ['t4'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'y',
         tickets__owners: [null],
         tickets__tags: ['t4'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'y',
         tickets__owners: [null],
         tickets__tags: ['t3'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'y',
         tickets__owners: ['e'],
         tickets__tags: ['t1'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'x',
         tickets__owners: ['d'],
         tickets__tags: [null],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'x',
         tickets__owners: ['b'],
         tickets__tags: [null],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'x',
         tickets__owners: ['c'],
         tickets__tags: ['t3'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'x',
         tickets__owners: ['b'],
         tickets__tags: ['t2'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__created_by: 'x',
         tickets__owners: ['a'],
         tickets__tags: ['t1'],
@@ -424,11 +424,11 @@ describe('cube-to-sql', () => {
     const output = await duckdbExec(sql);
     expect(output).toEqual([
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__tags: ['t4'],
       },
       {
-        tickets__count: 1,
+        tickets__count: BigInt(1),
         tickets__tags: ['t1'],
       },
     ]);
