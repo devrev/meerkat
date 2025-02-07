@@ -1,4 +1,11 @@
-import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
+import {
+  JoinPath,
+  MeerkatQueryFilter,
+  Member,
+  Query,
+  TableSchema,
+  isJoinNode,
+} from '../types/cube-types';
 
 export type Graph = {
   [key: string]: { [key: string]: { [key: string]: string } };
@@ -57,9 +64,11 @@ export function generateSqlQuery(
       // If visitedFrom is undefined, this is the first visit to the node
       visitedNodes.set(currentEdge.right, currentEdge);
 
-      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${currentEdge.right
-        }  ON ${directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
-        }`;
+      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
+        currentEdge.right
+      }  ON ${
+        directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
+      }`;
     }
   }
 
@@ -150,7 +159,6 @@ export const createDirectedGraph = (
   return directedGraph;
 };
 
-
 export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
   for (let i = 0; i < joinPath.length; i++) {
     const visitedNodes = new Set<string>();
@@ -166,28 +174,100 @@ export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
       }
     }
   }
-  return false
-}
+  return false;
+};
+
+export const getUsedTableSchema = (
+  tableSchema: TableSchema[],
+  cubeQuery: Query
+): TableSchema[] => {
+  if (!cubeQuery.filters || cubeQuery.filters.length === 0) {
+    return tableSchema;
+  }
+
+  const getTableFromMember = (member: Member): string => {
+    return member.toString().split('.')[0];
+  };
+
+  // Helper function to extract table names from filters
+  const getTablesFromFilter = (filter: MeerkatQueryFilter): Set<string> => {
+    const tables = new Set<string>();
+
+    if ('and' in filter) {
+      filter.and.forEach((f) => {
+        if ('or' in f) {
+          f.or.forEach((orFilter) => {
+            const orTables = getTablesFromFilter(orFilter);
+            orTables.forEach((t) => tables.add(t));
+          });
+        } else {
+          tables.add(getTableFromMember(f.member));
+        }
+      });
+    } else if ('or' in filter) {
+      filter.or.forEach((f) => {
+        const orTables = getTablesFromFilter(f);
+        orTables.forEach((t) => tables.add(t));
+      });
+    } else {
+      tables.add(getTableFromMember(filter.member));
+    }
+
+    return tables;
+  };
+
+  // Get all tables mentioned in filters
+  const usedTables = new Set<string>();
+
+  // Add tables from filters
+  cubeQuery.filters.forEach((filter) => {
+    const filterTables = getTablesFromFilter(filter);
+    filterTables.forEach((t) => usedTables.add(t));
+  });
+
+  // Add tables from measures
+  cubeQuery.measures?.forEach((measure) => {
+    usedTables.add(getTableFromMember(measure));
+  });
+
+  // Add tables from dimensions
+  cubeQuery.dimensions?.forEach((dimension) => {
+    usedTables.add(getTableFromMember(dimension));
+  });
+
+  // Filter table schema to only include used tables
+  const filteredSchema = tableSchema.filter((schema) =>
+    usedTables.has(schema.name)
+  );
+  console.log('filteredSchema', filteredSchema);
+  return filteredSchema;
+};
 
 export const getCombinedTableSchema = async (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ) => {
+  let newtableSchema: TableSchema[] = tableSchema;
   if (tableSchema.length === 1) {
     return tableSchema[0];
+  } else {
+    newtableSchema = getUsedTableSchema(tableSchema, cubeQuery);
   }
-
-  const tableSchemaSqlMap = tableSchema.reduce(
+  const tableSchemaSqlMap = newtableSchema.reduce(
     (acc: { [key: string]: string }, schema: TableSchema) => {
       return { ...acc, [schema.name]: schema.sql };
     },
     {}
   );
 
-  const directedGraph = createDirectedGraph(tableSchema, tableSchemaSqlMap);
+  const directedGraph = createDirectedGraph(newtableSchema, tableSchemaSqlMap);
   const hasLoop = checkLoopInJoinPath(cubeQuery.joinPaths || []);
   if (hasLoop) {
-    throw new Error(`A loop was detected in the joins. ${JSON.stringify(cubeQuery.joinPaths || [])}`);
+    throw new Error(
+      `A loop was detected in the joins. ${JSON.stringify(
+        cubeQuery.joinPaths || []
+      )}`
+    );
   }
 
   const baseSql = generateSqlQuery(
@@ -196,7 +276,7 @@ export const getCombinedTableSchema = async (
     directedGraph
   );
 
-  const combinedTableSchema = tableSchema.reduce(
+  const combinedTableSchema = newtableSchema.reduce(
     (acc: TableSchema, schema: TableSchema) => {
       return {
         name: 'MEERKAT_GENERATED_TABLE',
