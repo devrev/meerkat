@@ -189,7 +189,6 @@ export const getUsedTableSchema = (
     return member.toString().split('.')[0];
   };
 
-  // Helper function to extract table names from filters
   const getTablesFromFilter = (filter: MeerkatQueryFilter): Set<string> => {
     const tables = new Set<string>();
 
@@ -239,7 +238,6 @@ export const getUsedTableSchema = (
   const filteredSchema = tableSchema.filter((schema) =>
     usedTables.has(schema.name)
   );
-  console.log('filteredSchema', filteredSchema);
   return filteredSchema;
 };
 
