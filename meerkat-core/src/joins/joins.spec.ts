@@ -1,10 +1,10 @@
+import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
 import { Query, TableSchema } from '../types/cube-types';
 import {
   checkLoopInJoinPath,
   createDirectedGraph,
   generateSqlQuery,
   getCombinedTableSchema,
-  getUsedTableSchema,
 } from './joins';
 
 describe('Table schema functions', () => {
@@ -284,6 +284,95 @@ describe('Table schema functions', () => {
         {
           name: 'table3',
           sql: 'SELECT * FROM table3',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+      ]);
+    });
+    it('should filter table schema based on filters, measures, dimensions, order, and joinPaths', () => {
+      const tableSchema: TableSchema[] = [
+        {
+          name: 'table1',
+          sql: 'SELECT * FROM table1',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+        {
+          name: 'table2',
+          sql: 'SELECT * FROM table2',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+        {
+          name: 'table3',
+          sql: 'SELECT * FROM table3',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+        {
+          name: 'table4',
+          sql: 'SELECT * FROM table4',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+      ];
+
+      const cubeQuery: Query = {
+        measures: ['table1.measure1'],
+        dimensions: ['table2.dimension1'],
+        filters: [
+          {
+            member: 'table3.dimension2',
+            operator: 'equals',
+            values: ['value'],
+          },
+        ],
+        order: {
+          'table4.dimension3': 'asc',
+        },
+        joinPaths: [
+          [
+            {
+              left: 'table1.dimension1',
+              right: 'table2.dimension1',
+              on: 'id',
+            },
+          ],
+        ],
+      };
+
+      const result = getUsedTableSchema(tableSchema, cubeQuery);
+
+      expect(result).toEqual([
+        {
+          name: 'table1',
+          sql: 'SELECT * FROM table1',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+        {
+          name: 'table2',
+          sql: 'SELECT * FROM table2',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+        {
+          name: 'table3',
+          sql: 'SELECT * FROM table3',
+          measures: [],
+          dimensions: [],
+          joins: [],
+        },
+        {
+          name: 'table4',
+          sql: 'SELECT * FROM table4',
           measures: [],
           dimensions: [],
           joins: [],
