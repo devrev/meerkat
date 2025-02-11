@@ -10,7 +10,14 @@ export const getUsedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ): TableSchema[] => {
-  if (!cubeQuery.filters || cubeQuery.filters.length === 0) {
+  // If no filters, measures, dimensions, order, or joinPaths are present, return all tables
+  if (
+    (!cubeQuery.filters || cubeQuery.filters.length === 0) &&
+    (!cubeQuery.measures || cubeQuery.measures.length === 0) &&
+    (!cubeQuery.dimensions || cubeQuery.dimensions.length === 0) &&
+    !cubeQuery.order &&
+    (!cubeQuery.joinPaths || cubeQuery.joinPaths.length === 0)
+  ) {
     return tableSchema;
   }
 
@@ -20,7 +27,6 @@ export const getUsedTableSchema = (
 
   const getTablesFromFilter = (filter: MeerkatQueryFilter): Set<string> => {
     const tables = new Set<string>();
-
     if ('and' in filter) {
       filter.and.forEach((f) => {
         if ('or' in f) {
@@ -40,7 +46,6 @@ export const getUsedTableSchema = (
     } else {
       tables.add(getTableFromMember(filter.member));
     }
-
     return tables;
   };
 
@@ -48,20 +53,26 @@ export const getUsedTableSchema = (
   const usedTables = new Set<string>();
 
   // Add tables from filters
-  cubeQuery.filters.forEach((filter) => {
-    const filterTables = getTablesFromFilter(filter);
-    filterTables.forEach((t) => usedTables.add(t));
-  });
+  if (cubeQuery.filters && cubeQuery.filters.length > 0) {
+    cubeQuery.filters.forEach((filter) => {
+      const filterTables = getTablesFromFilter(filter);
+      filterTables.forEach((t) => usedTables.add(t));
+    });
+  }
 
   // Add tables from measures
-  cubeQuery.measures?.forEach((measure) => {
-    usedTables.add(getTableFromMember(measure));
-  });
+  if (cubeQuery.measures && cubeQuery.measures.length > 0) {
+    cubeQuery.measures.forEach((measure) => {
+      usedTables.add(getTableFromMember(measure));
+    });
+  }
 
   // Add tables from dimensions
-  cubeQuery.dimensions?.forEach((dimension) => {
-    usedTables.add(getTableFromMember(dimension));
-  });
+  if (cubeQuery.dimensions && cubeQuery.dimensions.length > 0) {
+    cubeQuery.dimensions.forEach((dimension) => {
+      usedTables.add(getTableFromMember(dimension));
+    });
+  }
 
   // Add tables from order
   if (cubeQuery.order) {
@@ -71,20 +82,25 @@ export const getUsedTableSchema = (
   }
 
   // Add tables from joinPaths
-  if (cubeQuery.joinPaths) {
+  if (cubeQuery.joinPaths && cubeQuery.joinPaths.length > 0) {
     cubeQuery.joinPaths.forEach((joinPath) => {
       joinPath.forEach((node) => {
-        usedTables.add(getTableFromMember(node.left));
+        if (typeof node.left === 'string') {
+          usedTables.add(node.left);
+        } else {
+          usedTables.add(getTableFromMember(node.left));
+        }
         if (isJoinNode(node)) {
-          usedTables.add(getTableFromMember(node.right));
+          if (typeof node.right === 'string') {
+            usedTables.add(node.right);
+          } else {
+            usedTables.add(getTableFromMember(node.right));
+          }
         }
       });
     });
   }
 
   // Filter table schema to only include used tables
-  const filteredSchema = tableSchema.filter((schema) =>
-    usedTables.has(schema.name)
-  );
-  return filteredSchema;
+  return tableSchema.filter((schema) => usedTables.has(schema.name));
 };
