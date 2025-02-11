@@ -10,11 +10,6 @@ export const getUsedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ): TableSchema[] => {
-  // If no filters, measures, dimensions, order, or joinPaths are present, return all tables
-  if (!cubeQuery.filters || cubeQuery.filters.length === 0) {
-    return tableSchema;
-  }
-
   const getTableFromMember = (member: Member): string => {
     return member.toString().split('.')[0];
   };
@@ -88,5 +83,8 @@ export const getUsedTableSchema = (
   }
 
   // Filter table schema to only include used tables
-  return tableSchema.filter((schema) => usedTables.has(schema.name));
+  const filteredSchema = tableSchema.filter((schema) =>
+    usedTables.has(schema.name)
+  );
+  return filteredSchema;
 };

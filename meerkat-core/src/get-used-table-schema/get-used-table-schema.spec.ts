@@ -62,24 +62,6 @@ describe('getUsedTableSchema', () => {
     },
   ];
 
-  it('should return all tables when filters array is empty', () => {
-    const query: Query = {
-      filters: [],
-      measures: ['table1.measure1'],
-      dimensions: ['table2.dimension2'],
-    };
-    const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toEqual(sampleTableSchema);
-  });
-
-  it('should return all tables when filters is undefined', () => {
-    const query: Query = {
-      measures: ['table1.measure1'],
-    };
-    const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toEqual(sampleTableSchema);
-  });
-
   it('should filter tables based on simple filter', () => {
     const query: Query = {
       filters: [
