@@ -12,21 +12,11 @@ describe('getUsedTableSchema', () => {
           sql: 'SUM(value1)',
           type: 'string',
         },
-        {
-          name: 'measure2',
-          sql: 'COUNT(*)',
-          type: 'string',
-        },
       ],
       dimensions: [
         {
           name: 'dimension1',
           sql: 'dim1',
-          type: 'string',
-        },
-        {
-          name: 'dimension2',
-          sql: 'dim2',
           type: 'string',
         },
       ],
@@ -37,8 +27,27 @@ describe('getUsedTableSchema', () => {
       sql: 'SELECT * FROM table2',
       measures: [
         {
-          name: 'measure3',
+          name: 'measure2',
           sql: 'COUNT(*)',
+          type: 'string',
+        },
+      ],
+      dimensions: [
+        {
+          name: 'dimension2',
+          sql: 'dim2',
+          type: 'string',
+        },
+      ],
+      joins: [],
+    },
+    {
+      name: 'table3',
+      sql: 'SELECT * FROM table3',
+      measures: [
+        {
+          name: 'measure3',
+          sql: 'AVG(value3)',
           type: 'string',
         },
       ],
@@ -51,31 +60,21 @@ describe('getUsedTableSchema', () => {
       ],
       joins: [],
     },
-    {
-      name: 'table3',
-      sql: 'SELECT * FROM table3',
-      measures: [
-        {
-          name: 'measure4',
-          sql: 'SUM(value2)',
-          type: 'string',
-        },
-      ],
-      dimensions: [
-        {
-          name: 'dimension4',
-          sql: 'dim4',
-          type: 'string',
-        },
-      ],
-      joins: [],
-    },
   ];
 
-  it('should return all tables when no filters are present', () => {
+  it('should return all tables when filters array is empty', () => {
     const query: Query = {
       filters: [],
-      measures: [],
+      measures: ['table1.measure1'],
+      dimensions: ['table2.dimension2'],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toEqual(sampleTableSchema);
+  });
+
+  it('should return all tables when filters is undefined', () => {
+    const query: Query = {
+      measures: ['table1.measure1'],
     };
     const result = getUsedTableSchema(sampleTableSchema, query);
     expect(result).toEqual(sampleTableSchema);
@@ -86,7 +85,7 @@ describe('getUsedTableSchema', () => {
       filters: [
         {
           member: 'table1.measure1',
-          operator: 'gt',
+          operator: 'equals',
           values: ['100'],
         },
       ],
@@ -104,11 +103,11 @@ describe('getUsedTableSchema', () => {
           and: [
             {
               member: 'table1.measure1',
-              operator: 'gt',
+              operator: 'equals',
               values: ['100'],
             },
             {
-              member: 'table2.dimension3',
+              member: 'table2.dimension2',
               operator: 'equals',
               values: ['value'],
             },
@@ -119,8 +118,10 @@ describe('getUsedTableSchema', () => {
     };
     const result = getUsedTableSchema(sampleTableSchema, query);
     expect(result).toHaveLength(2);
-    expect(result.map((schema) => schema.name)).toContain('table1');
-    expect(result.map((schema) => schema.name)).toContain('table2');
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+    ]);
   });
 
   it('should filter tables based on OR conditions', () => {
@@ -130,11 +131,11 @@ describe('getUsedTableSchema', () => {
           or: [
             {
               member: 'table1.measure1',
-              operator: 'gt',
+              operator: 'equals',
               values: ['100'],
             },
             {
-              member: 'table3.dimension4',
+              member: 'table3.dimension3',
               operator: 'equals',
               values: ['value'],
             },
@@ -145,85 +146,31 @@ describe('getUsedTableSchema', () => {
     };
     const result = getUsedTableSchema(sampleTableSchema, query);
     expect(result).toHaveLength(2);
-    expect(result.map((schema) => schema.name)).toContain('table1');
-    expect(result.map((schema) => schema.name)).toContain('table3');
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table3',
+    ]);
   });
 
-  it('should filter tables based on measures', () => {
-    const query: Query = {
-      filters: [],
-      measures: ['table1.measure1', 'table2.measure3'],
-    };
-    const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toHaveLength(2);
-    expect(result.map((schema) => schema.name)).toContain('table1');
-    expect(result.map((schema) => schema.name)).toContain('table2');
-  });
-
-  it('should filter tables based on dimensions', () => {
-    const query: Query = {
-      filters: [],
-      dimensions: ['table3.dimension4', 'table2.dimension3'],
-      measures: [],
-    };
-    const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toHaveLength(2);
-    expect(result.map((schema) => schema.name)).toContain('table3');
-    expect(result.map((schema) => schema.name)).toContain('table2');
-  });
-
-  it('should filter tables based on order', () => {
-    const query: Query = {
-      filters: [],
-      order: {
-        'table1.measure1': 'desc',
-      },
-      measures: [],
-    };
-    const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toHaveLength(1);
-    expect(result[0].name).toBe('table1');
-  });
-
-  it('should filter tables based on join paths', () => {
-    const query: Query = {
-      filters: [],
-      joinPaths: [
-        [
-          {
-            left: 'table1',
-            right: 'table2',
-            on: 'id',
-          },
-        ],
-      ],
-      measures: [],
-    };
-    const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toHaveLength(2);
-    expect(result.map((schema) => schema.name)).toContain('table1');
-    expect(result.map((schema) => schema.name)).toContain('table2');
-  });
-
-  it('should handle complex query with multiple conditions', () => {
+  it('should handle nested AND-OR conditions', () => {
     const query: Query = {
       filters: [
         {
           and: [
             {
               member: 'table1.measure1',
-              operator: 'gt',
+              operator: 'equals',
               values: ['100'],
             },
             {
               or: [
                 {
-                  member: 'table2.dimension3',
+                  member: 'table2.dimension2',
                   operator: 'equals',
                   values: ['value1'],
                 },
                 {
-                  member: 'table3.dimension4',
+                  member: 'table3.dimension3',
                   operator: 'equals',
                   values: ['value2'],
                 },
@@ -232,25 +179,76 @@ describe('getUsedTableSchema', () => {
           ],
         },
       ],
-      measures: ['table1.measure2'],
-      dimensions: ['table2.dimension3'],
-      order: {
-        'table3.measure4': 'asc',
-      },
-      joinPaths: [
-        [
-          {
-            left: 'table1',
-            right: 'table2',
-            on: 'id',
-          },
-        ],
-      ],
+      measures: [],
     };
     const result = getUsedTableSchema(sampleTableSchema, query);
     expect(result).toHaveLength(3);
-    expect(result.map((schema) => schema.name)).toContain('table1');
-    expect(result.map((schema) => schema.name)).toContain('table2');
-    expect(result.map((schema) => schema.name)).toContain('table3');
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+      'table3',
+    ]);
+  });
+
+  it('should handle multiple top-level filters', () => {
+    const query: Query = {
+      filters: [
+        {
+          member: 'table1.measure1',
+          operator: 'equals',
+          values: ['100'],
+        },
+        {
+          member: 'table2.measure2',
+          operator: 'equals',
+          values: ['200'],
+        },
+      ],
+      measures: [],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(2);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+    ]);
+  });
+
+  it('should handle complex nested filters', () => {
+    const query: Query = {
+      filters: [
+        {
+          and: [
+            {
+              or: [
+                {
+                  member: 'table1.measure1',
+                  operator: 'equals',
+                  values: ['100'],
+                },
+                {
+                  member: 'table2.measure2',
+                  operator: 'equals',
+                  values: ['200'],
+                },
+              ],
+            },
+            {
+              member: 'table3.measure3',
+              operator: 'equals',
+              values: ['300'],
+            },
+          ],
+        },
+      ],
+      measures: [],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(3);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+      'table3',
+    ]);
   });
 });

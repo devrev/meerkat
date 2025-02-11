@@ -175,20 +175,20 @@ export const getCombinedTableSchema = async (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ) => {
-  let newtableSchema: TableSchema[] = tableSchema;
   if (tableSchema.length === 1) {
     return tableSchema[0];
-  } else {
-    newtableSchema = getUsedTableSchema(tableSchema, cubeQuery);
   }
-  const tableSchemaSqlMap = newtableSchema.reduce(
+
+  tableSchema = getUsedTableSchema(tableSchema, cubeQuery);
+
+  const tableSchemaSqlMap = tableSchema.reduce(
     (acc: { [key: string]: string }, schema: TableSchema) => {
       return { ...acc, [schema.name]: schema.sql };
     },
     {}
   );
 
-  const directedGraph = createDirectedGraph(newtableSchema, tableSchemaSqlMap);
+  const directedGraph = createDirectedGraph(tableSchema, tableSchemaSqlMap);
   const hasLoop = checkLoopInJoinPath(cubeQuery.joinPaths || []);
   if (hasLoop) {
     throw new Error(
@@ -204,7 +204,7 @@ export const getCombinedTableSchema = async (
     directedGraph
   );
 
-  const combinedTableSchema = newtableSchema.reduce(
+  const combinedTableSchema = tableSchema.reduce(
     (acc: TableSchema, schema: TableSchema) => {
       return {
         name: 'MEERKAT_GENERATED_TABLE',
