@@ -60,6 +60,44 @@ describe('getUsedTableSchema', () => {
       ],
       joins: [],
     },
+    {
+      name: 'table4',
+      sql: 'SELECT * FROM table4',
+      measures: [
+        {
+          name: 'measure4',
+          sql: 'SUM(value4)',
+          type: 'string',
+        },
+      ],
+      dimensions: [
+        {
+          name: 'dimension1',
+          sql: 'dim4',
+          type: 'string',
+        },
+      ],
+      joins: [],
+    },
+    {
+      name: 'table5',
+      sql: 'SELECT * FROM table5',
+      measures: [
+        {
+          name: 'measure5',
+          sql: 'COUNT(*)',
+          type: 'string',
+        },
+      ],
+      dimensions: [
+        {
+          name: 'dimension2',
+          sql: 'dim5',
+          type: 'string',
+        },
+      ],
+      joins: [],
+    },
   ];
 
   it('should filter tables based on simple filter', () => {
@@ -293,8 +331,7 @@ describe('getUsedTableSchema', () => {
       'table3',
     ]);
   });
-
-  it('should filter tables based on a combination of measures, dimensions, order, and joinPaths', () => {
+  it('should filter tables based on a combination of measures, dimensions, order, and unique joinPaths', () => {
     const query: Query = {
       measures: ['table1.measure1'],
       dimensions: ['table2.dimension2'],
@@ -302,15 +339,17 @@ describe('getUsedTableSchema', () => {
         'table3.dimension3': 'asc',
       },
       joinPaths: [
-        [{ left: 'table1.dimension1', right: 'table2.dimension2', on: 'id' }],
+        [{ left: 'table4.dimension1', right: 'table5.dimension2', on: 'id' }],
       ],
     };
     const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toHaveLength(3);
+    expect(result).toHaveLength(5);
     expect(result.map((schema) => schema.name).sort()).toEqual([
       'table1',
       'table2',
       'table3',
+      'table4',
+      'table5',
     ]);
   });
 });
