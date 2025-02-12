@@ -76,7 +76,7 @@ export const getUsedTableSchema = (
       joinPath.forEach((node) => {
         usedTables.add(getTableFromMember(node.left));
         if (isJoinNode(node)) {
-          usedTables.add(node.right);
+          usedTables.add(getTableFromMember(node.right));
         }
       });
     });

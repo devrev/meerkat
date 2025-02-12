@@ -233,4 +233,84 @@ describe('getUsedTableSchema', () => {
       'table3',
     ]);
   });
+
+  it('should filter tables based on measures', () => {
+    const query: Query = {
+      measures: ['table1.measure1', 'table2.measure2'],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(2);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+    ]);
+  });
+
+  it('should filter tables based on dimensions', () => {
+    const query: Query = {
+      measures: [],
+      dimensions: ['table1.dimension1', 'table3.dimension3'],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(2);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table3',
+    ]);
+  });
+
+  it('should filter tables based on order', () => {
+    const query: Query = {
+      measures: [],
+      order: {
+        'table1.dimension1': 'asc',
+        'table2.dimension2': 'desc',
+      },
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(2);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+    ]);
+  });
+
+  it('should filter tables based on joinPaths', () => {
+    const query: Query = {
+      measures: [],
+      joinPaths: [
+        [
+          { left: 'table1.dimension1', right: 'table2.dimension2', on: 'id' },
+          { left: 'table2.dimension2', right: 'table3.dimension3', on: 'id' },
+        ],
+      ],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(3);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+      'table3',
+    ]);
+  });
+
+  it('should filter tables based on a combination of measures, dimensions, order, and joinPaths', () => {
+    const query: Query = {
+      measures: ['table1.measure1'],
+      dimensions: ['table2.dimension2'],
+      order: {
+        'table3.dimension3': 'asc',
+      },
+      joinPaths: [
+        [{ left: 'table1.dimension1', right: 'table2.dimension2', on: 'id' }],
+      ],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(3);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+      'table3',
+    ]);
+  });
 });
