@@ -1,3 +1,4 @@
+import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
 import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
 
 export type Graph = {
@@ -177,6 +178,7 @@ export const getCombinedTableSchema = async (
   if (tableSchema.length === 1) {
     return tableSchema[0];
   }
+  tableSchema = getUsedTableSchema(tableSchema, cubeQuery);
 
   const tableSchemaSqlMap = tableSchema.reduce(
     (acc: { [key: string]: string }, schema: TableSchema) => {
