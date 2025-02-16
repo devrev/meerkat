@@ -1,3 +1,4 @@
+import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
 import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
 
 export type Graph = {
@@ -57,9 +58,11 @@ export function generateSqlQuery(
       // If visitedFrom is undefined, this is the first visit to the node
       visitedNodes.set(currentEdge.right, currentEdge);
 
-      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${currentEdge.right
-        }  ON ${directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
-        }`;
+      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
+        currentEdge.right
+      }  ON ${
+        directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
+      }`;
     }
   }
 
@@ -150,7 +153,6 @@ export const createDirectedGraph = (
   return directedGraph;
 };
 
-
 export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
   for (let i = 0; i < joinPath.length; i++) {
     const visitedNodes = new Set<string>();
@@ -166,8 +168,8 @@ export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
       }
     }
   }
-  return false
-}
+  return false;
+};
 
 export const getCombinedTableSchema = async (
   tableSchema: TableSchema[],
@@ -176,6 +178,7 @@ export const getCombinedTableSchema = async (
   if (tableSchema.length === 1) {
     return tableSchema[0];
   }
+  tableSchema = getUsedTableSchema(tableSchema, cubeQuery);
 
   const tableSchemaSqlMap = tableSchema.reduce(
     (acc: { [key: string]: string }, schema: TableSchema) => {
@@ -187,7 +190,11 @@ export const getCombinedTableSchema = async (
   const directedGraph = createDirectedGraph(tableSchema, tableSchemaSqlMap);
   const hasLoop = checkLoopInJoinPath(cubeQuery.joinPaths || []);
   if (hasLoop) {
-    throw new Error(`A loop was detected in the joins. ${JSON.stringify(cubeQuery.joinPaths || [])}`);
+    throw new Error(
+      `A loop was detected in the joins. ${JSON.stringify(
+        cubeQuery.joinPaths || []
+      )}`
+    );
   }
 
   const baseSql = generateSqlQuery(
