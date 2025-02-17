@@ -1,5 +1,5 @@
 import { ColumnInfo, ListTypeInfo, TableData, TypeInfo } from 'duckdb';
-import { isNil } from 'lodash';
+import isNil from 'lodash/isNil';
 
 export const convertDuckDBValueToJS = (
   field: TypeInfo,
