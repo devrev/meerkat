@@ -1,11 +1,17 @@
-import { MeerkatQueryFilter, Query, TableSchema } from '../types/cube-types';
+import {
+  isJoinNode,
+  MeerkatQueryFilter,
+  Member,
+  Query,
+  TableSchema,
+} from '../types/cube-types';
 
 export const getUsedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ): TableSchema[] => {
-  const getTableFromMember = (member: string): string => {
-    return member.split('.')[0];
+  const getTableFromMember = (member: Member): string => {
+    return member.toString().split('.')[0];
   };
 
   const getTablesFromFilter = (filter: MeerkatQueryFilter): Set<string> => {
@@ -45,23 +51,9 @@ export const getUsedTableSchema = (
 
   // Add tables from measures
   if (cubeQuery.measures && cubeQuery.measures.length > 0) {
-    if (cubeQuery.measures.includes('*')) {
-      // If measures includes '*', include all tables from join paths
-      if (cubeQuery.joinPaths) {
-        cubeQuery.joinPaths.forEach((joinPath) => {
-          joinPath.forEach((node) => {
-            usedTables.add(node.left);
-            if ('right' in node) {
-              usedTables.add(node.right);
-            }
-          });
-        });
-      }
-    } else {
-      cubeQuery.measures.forEach((measure) => {
-        usedTables.add(getTableFromMember(measure));
-      });
-    }
+    cubeQuery.measures.forEach((measure) => {
+      usedTables.add(getTableFromMember(measure));
+    });
   }
 
   // Add tables from dimensions
@@ -82,10 +74,8 @@ export const getUsedTableSchema = (
   if (cubeQuery.joinPaths && cubeQuery.joinPaths.length > 0) {
     cubeQuery.joinPaths.forEach((joinPath) => {
       joinPath.forEach((node) => {
-        // Extract table name from the left side
         usedTables.add(getTableFromMember(node.left));
-        // If it's a join node with a right side, add that table too
-        if ('right' in node) {
+        if (isJoinNode(node)) {
           usedTables.add(getTableFromMember(node.right));
         }
       });
