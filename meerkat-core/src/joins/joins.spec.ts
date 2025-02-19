@@ -1,5 +1,5 @@
 import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
-import { TableSchema } from '../types/cube-types';
+import { Query, TableSchema } from '../types/cube-types';
 import {
   checkLoopInJoinPath,
   createDirectedGraph,
@@ -115,6 +115,7 @@ describe('Table schema functions', () => {
       expect(checkLoopInJoinPath(joinPath)).toBe(false);
     });
   });
+
   describe('getCombinedTableSchema', () => {
     it('should return single table schema when only one table is provided', async () => {
       const tableSchema = [
