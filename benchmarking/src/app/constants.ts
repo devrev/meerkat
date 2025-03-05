@@ -1,102 +1,40 @@
+import { tableName } from './query-benchmarking/dummy-data';
+
+const QUERY_1 = `SELECT * FROM taxi limit 50`;
+
+const QUERY_2 = `(SELECT *
+FROM taxi t1 
+WHERE t1.PULocationID NOT IN (
+  SELECT PULocationID 
+  FROM in_memory_taxi_trips
+))
+UNION
+(SELECT *
+FROM in_memory_taxi_trips) limit 50`;
+
+const QUERY_3 = `(SELECT *
+    FROM taxi t1 
+    WHERE NOT EXISTS (
+        SELECT 1 
+        FROM in_memory_taxi_trips t2 
+        WHERE t2.PULocationID = t1.PULocationID
+    ))
+    UNION ALL
+    (SELECT * FROM in_memory_taxi_trips) limit 50`;
+
+const QUERY_4 = `SELECT t1.*,
+FROM taxi t1
+LEFT ANTI JOIN ${tableName} t2
+ON t1.PULocationID = t2.PULocationID
+UNION ALL
+SELECT *,
+FROM ${tableName} limit 50`;
+
+const BASE_QUERY = `(SELECT * FROM taxi LIMIT 50) AS taxi`;
+
 export const TEST_QUERIES = [
-  `
-      WITH group_by_query AS (
-        SELECT
-            hvfhs_license_num,
-            COUNT(*)
-        FROM
-            taxi
-        GROUP BY
-            hvfhs_license_num
-    ),
-
-    full_query AS (
-        SELECT
-            *
-        FROM
-            taxi
-    )
-
-  SELECT
-      COUNT(*)
-  FROM
-      group_by_query
-  LEFT JOIN
-      full_query
-  ON
-      group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
-  LIMIT 1
-    `,
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
-  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
-  `
-    WITH group_by_query AS (
-      SELECT
-          hvfhs_license_num,
-          COUNT(*)
-      FROM
-          taxi
-      GROUP BY
-          hvfhs_license_num
-  ),
-
-  full_query AS (
-      SELECT
-          *
-      FROM
-          taxi
-  )
-
-  SELECT
-    COUNT(*)
-  FROM
-    group_by_query
-  LEFT JOIN
-    full_query
-  ON
-    group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
-  LIMIT 1
-  `,
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
-  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
-  `
-  WITH group_by_query AS (
-    SELECT
-        hvfhs_license_num,
-        COUNT(*)
-    FROM
-        taxi
-    GROUP BY
-        hvfhs_license_num
-  ),
-
-  full_query AS (
-    SELECT
-        *
-    FROM
-        taxi
-  )
-
-  SELECT
-  COUNT(*)
-  FROM
-  group_by_query
-  LEFT JOIN
-  full_query
-  ON
-  group_by_query.hvfhs_license_num = full_query.hvfhs_license_num
-  LIMIT 1
-  `,
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
-  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi_json',
-  'SELECT * FROM taxi_json WHERE price >= 1.0005812645 LIMIT 100',
-  'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi_json GROUP BY order_count',
-  'SELECT * FROM taxi_json ORDER BY seconds_in_bucket LIMIT 100',
+  `SELECT count(*) FROM taxi`,
+  // `select * from (
+  //   SELECT * FROM ${BASE_QUERY} WHERE taxi.PULocationID NOT IN (SELECT ${tableName}.PULocationID FROM ${tableName})
+  //   UNION ALL (SELECT * FROM ${tableName}))`,
 ];

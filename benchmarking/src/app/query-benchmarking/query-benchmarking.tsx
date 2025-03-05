@@ -1,9 +1,19 @@
+import { DBM, DBMNative, DBMParallel } from 'meerkat-dbm/src/dbm';
 import { TableWiseFiles } from 'meerkat-dbm/src/types';
 import { useMemo, useState } from 'react';
 import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { generateViewQuery } from '../utils';
+import { createTableSQL, DUMMY_DATA, insertDataSQL } from './dummy-data';
+
+const createData = async (dbm: DBM | DBMParallel | DBMNative) => {
+  const createSQL = createTableSQL();
+  const insertSQL = insertDataSQL(DUMMY_DATA.taxi_trips);
+  await dbm.query(createSQL);
+  await dbm.query(insertSQL);
+  console.log('Data created');
+};
 
 export const QueryBenchmarking = () => {
   const [output, setOutput] = useState<
@@ -34,40 +44,45 @@ export const QueryBenchmarking = () => {
   );
 
   useClassicEffect(() => {
-    setTotalTime(0);
+    createData(dbm).then(() => {
+      setTotalTime(0);
+      setOutput([]);
 
-    setOutput([]);
-    const promiseArr = [];
-    const start = performance.now();
-    for (let i = 0; i < TEST_QUERIES.length; i++) {
-      const eachQueryStart = performance.now();
+      const promiseArr = [];
+      const start = performance.now();
+      for (let i = 0; i < TEST_QUERIES.length; i++) {
+        const eachQueryStart = performance.now();
 
-      const promiseObj = dbm
-        .queryWithTables({
-          query: TEST_QUERIES[i],
-          tables: [{ name: 'taxi' }, { name: 'taxi_json' }],
-          options: {
-            ...(fileManagerType !== 'parallel-indexdb' &&
-              fileManagerType !== 'parallel-memory' && {
-                preQuery: preQuery,
-              }),
-          },
-        })
-        .then((results) => {
-          const end = performance.now();
-          const time = end - eachQueryStart;
-          setOutput((prev) => [
-            ...prev,
-            { queryName: `Query ${i} ---->`, time },
-          ]);
-        });
+        const promiseObj = dbm
+          .queryWithTables({
+            query: TEST_QUERIES[i],
+            tables: [{ name: 'taxi' }],
+            options: {
+              ...(fileManagerType !== 'parallel-indexdb' &&
+                fileManagerType !== 'parallel-memory' && {
+                  preQuery: preQuery,
+                }),
+            },
+          })
+          .then((results) => {
+            const end = performance.now();
+            console.log({
+              responseData: results.toArray().map((row) => row.toJSON()),
+            });
+            const time = end - eachQueryStart;
+            setOutput((prev) => [
+              ...prev,
+              { queryName: `Query ${i} ---->`, time },
+            ]);
+          });
 
-      promiseArr.push(promiseObj);
-    }
-    Promise.all(promiseArr).then(() => {
-      const end = performance.now();
-      const time = end - start;
-      setTotalTime(time);
+        promiseArr.push(promiseObj);
+      }
+      Promise.all(promiseArr).then(() => {
+        const end = performance.now();
+        const time = end - start;
+        setTotalTime(time);
+      });
     });
   }, []);
 
