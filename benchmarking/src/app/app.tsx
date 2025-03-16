@@ -105,7 +105,7 @@ export function App() {
           path="/native-dbm"
           element={
             <div>
-              <h1>Native Node DuckDB</h1>
+              <h1>Go Process DuckDB</h1>
               <NativeDBMProvider>
                 <NativeAppFileLoader>
                   <QueryBenchmarking />
