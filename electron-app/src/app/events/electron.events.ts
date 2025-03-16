@@ -1,6 +1,5 @@
 import { NativeFileStore } from '@devrev/meerkat-dbm';
 import { ipcMain } from 'electron';
-import duckDB from '../duckdb/duckdb';
 import { fileManager } from '../file-manager';
 import { DropTableFilesPayload, NativeAppEvent } from '../types';
 import { fetchParquetFile } from '../utils';
@@ -9,6 +8,8 @@ export default class ElectronEvents {
     return ipcMain;
   }
 }
+
+import goService from '../go-service';
 
 ipcMain.handle(
   NativeAppEvent.REGISTER_FILES,
@@ -42,7 +43,9 @@ ipcMain.handle(
 );
 
 ipcMain.handle(NativeAppEvent.QUERY, async (event, query: string) => {
-  const result = await duckDB.query(query);
+  const result = await goService.query(query);
+
+  // const result = await duckDB.query(query);
 
   return result;
 });

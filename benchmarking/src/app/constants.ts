@@ -28,9 +28,9 @@ export const TEST_QUERIES = [
   LIMIT 1
     `,
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
+  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 10",
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
-  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
+  'SELECT * FROM taxi ORDER BY bcf LIMIT 10',
   `
     WITH group_by_query AS (
       SELECT
@@ -60,9 +60,9 @@ export const TEST_QUERIES = [
   LIMIT 1
   `,
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
+  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 10",
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
-  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
+  'SELECT * FROM taxi ORDER BY bcf LIMIT 10',
   `
   WITH group_by_query AS (
     SELECT
@@ -92,11 +92,11 @@ export const TEST_QUERIES = [
   LIMIT 1
   `,
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi',
-  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 100",
+  "SELECT * FROM taxi WHERE originating_base_num='B03404' LIMIT 10",
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi GROUP BY hvfhs_license_num',
-  'SELECT * FROM taxi ORDER BY bcf LIMIT 100',
+  'SELECT * FROM taxi ORDER BY bcf LIMIT 10',
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi_json',
-  'SELECT * FROM taxi_json WHERE price >= 1.0005812645 LIMIT 100',
+  'SELECT * FROM taxi_json WHERE price >= 1.0005812645 LIMIT 10',
   'SELECT CAST(COUNT(*) as VARCHAR) as total_count FROM taxi_json GROUP BY order_count',
-  'SELECT * FROM taxi_json ORDER BY seconds_in_bucket LIMIT 100',
+  'SELECT * FROM taxi_json ORDER BY seconds_in_bucket LIMIT 10',
 ];

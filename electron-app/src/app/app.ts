@@ -72,7 +72,7 @@ export default class App {
 
   private static loadMainWindow() {
     if (!App.application.isPackaged) {
-      App.mainWindow.loadURL(`http://localhost:${RENDER_APP_PORT}`);
+      App.mainWindow.loadURL(`http://localhost:${RENDER_APP_PORT}/native-dbm`);
     } else {
       App.mainWindow.loadURL(
         format({
