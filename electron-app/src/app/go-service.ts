@@ -39,7 +39,6 @@ export class GoService {
 
             if (cmd) cmd.reject(new Error(error));
           } else {
-            // Try to parse as JSON (direct result without prefix)
             try {
               const data = JSON.parse(output);
 
