@@ -1,4 +1,4 @@
-import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
@@ -16,7 +16,7 @@ export const setTransform: CubeToParseExpressionTransform = (query) => {
         class: 'COLUMN_REF',
         type: 'COLUMN_REF',
         alias: '',
-        column_names: splitIntoDataSourceAndFields(member),
+        column_names: member.split(COLUMN_NAME_DELIMITER),
       },
     ],
   };

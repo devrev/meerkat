@@ -1,6 +1,6 @@
+import { COLUMN_NAME_DELIMITER } from 'meerkat-core/src/member-formatters/constants';
 import { Dimension, Measure } from '../../types/cube-types/index';
 
-import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
 import {
   ExpressionClass,
   ExpressionType,
@@ -24,7 +24,7 @@ export const baseDuckdbCondition = (
       class: ExpressionClass.COLUMN_REF,
       type: ExpressionType.COLUMN_REF,
       alias: '',
-      column_names: splitIntoDataSourceAndFields(columnName),
+      column_names: columnName.split(COLUMN_NAME_DELIMITER),
     },
     right: {
       class: ExpressionClass.CONSTANT,
@@ -65,7 +65,7 @@ export const baseArrayDuckdbCondition = (
                 class: ExpressionClass.COLUMN_REF,
                 type: ExpressionType.COLUMN_REF,
                 alias: '',
-                column_names: splitIntoDataSourceAndFields(columnName),
+                column_names: columnName.split(COLUMN_NAME_DELIMITER),
               },
             ],
             filter: null,

@@ -1,7 +1,7 @@
+import { COLUMN_NAME_DELIMITER } from 'meerkat-core/src/member-formatters/constants';
 import { Member, QueryFilter } from '../../types/cube-types/query';
 import { Dimension, Measure } from '../../types/cube-types/table';
 
-import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
 import {
   ExpressionClass,
   ExpressionType,
@@ -32,7 +32,7 @@ export const containsDuckdbCondition = (
         class: 'COLUMN_REF',
         type: 'COLUMN_REF',
         alias: '',
-        column_names: splitIntoDataSourceAndFields(columnName),
+        column_names: columnName.split(COLUMN_NAME_DELIMITER),
       },
       {
         class: 'CONSTANT',

@@ -1,7 +1,7 @@
 import { Dimension, Measure } from '../../types/cube-types/table';
 import { CubeToParseExpressionTransform } from '../factory';
 
-import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
@@ -25,7 +25,7 @@ const notInDuckDbCondition = (
     class: 'COLUMN_REF',
     type: 'COLUMN_REF',
     alias: '',
-    column_names: splitIntoDataSourceAndFields(columnName),
+    column_names: columnName.split(COLUMN_NAME_DELIMITER),
   };
   switch (memberInfo.type) {
     case 'number_array':
