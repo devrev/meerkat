@@ -1,10 +1,10 @@
-import { TableSchema } from '../types/cube-types/table';
 import {
   LogicalAndFilterWithInfo,
   LogicalOrFilterWithInfo,
   QueryFiltersWithInfo,
   QueryOperatorsWithInfo,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
+import { TableSchema } from '../types/cube-types/table';
 import { getMemberInfoFromTableSchema } from './key-from-measures-dimension';
 import {
   isFilterArray,
