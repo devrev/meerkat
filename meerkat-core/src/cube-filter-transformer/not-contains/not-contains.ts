@@ -1,3 +1,4 @@
+import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
 import { Member, QueryFilter } from '../../types/cube-types/query';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import {
@@ -5,7 +6,6 @@ import {
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
-import { COLUMN_NAME_DELIMITER } from '../constant';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 
@@ -31,7 +31,7 @@ export const notContainsDuckdbCondition = (
         class: 'COLUMN_REF',
         type: 'COLUMN_REF',
         alias: '',
-        column_names: columnName.split(COLUMN_NAME_DELIMITER),
+        column_names: splitIntoDataSourceAndFields(columnName),
       },
       {
         class: 'CONSTANT',

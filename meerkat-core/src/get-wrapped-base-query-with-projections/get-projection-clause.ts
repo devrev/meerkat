@@ -1,7 +1,11 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
+import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
+import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Query, TableSchema } from '../types/cube-types';
-import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
-import { getDimensionProjection, getFilterMeasureProjection } from './get-aliased-columns-from-filters';
+import {
+  getDimensionProjection,
+  getFilterMeasureProjection,
+} from './get-aliased-columns-from-filters';
 import { MODIFIERS } from './sql-expression-modifiers';
 
 const memberClauseAggregator = ({
@@ -32,10 +36,12 @@ export const getProjectionClause = (
 ) => {
   const { measures, dimensions = [] } = query;
   const filteredDimensions = dimensions.filter((dimension) => {
-    return dimension.split('.')[0] === tableSchema.name;
+    const dimensionDataSource = splitIntoDataSourceAndFields(dimension)[0];
+    return dimensionDataSource === tableSchema.name;
   });
   const filteredMeasures = measures.filter((measure) => {
-    return measure.split('.')[0] === tableSchema.name;
+    const measureDataSource = splitIntoDataSourceAndFields(measure)[0];
+    return measureDataSource === tableSchema.name;
   });
   const dimensionsProjectionsArr = filteredDimensions.reduce(
     (acc, member, currentIndex, members) => {
@@ -43,7 +49,7 @@ export const getProjectionClause = (
         key: member,
         tableSchema,
         modifiers: MODIFIERS,
-        query
+        query,
       });
       return memberClauseAggregator({
         member: memberKeyToSafeKey(member),
@@ -82,7 +88,7 @@ export const getProjectionClause = (
   const usedMeasureObjects = tableSchema.measures.filter((measure) => {
     return (
       measures.findIndex((key) => {
-        const keyWithoutTable = key.split('.')[1];
+        const [, keyWithoutTable] = splitIntoDataSourceAndFields(key)[1];
         return keyWithoutTable === measure.name;
       }) !== -1
     );
