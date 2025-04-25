@@ -1,8 +1,8 @@
+import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
-import { COLUMN_NAME_DELIMITER } from '../constant';
 import { CubeToParseExpressionTransform } from '../factory';
 
 export const setTransform: CubeToParseExpressionTransform = (query) => {
@@ -16,7 +16,7 @@ export const setTransform: CubeToParseExpressionTransform = (query) => {
         class: 'COLUMN_REF',
         type: 'COLUMN_REF',
         alias: '',
-        column_names: member.split(COLUMN_NAME_DELIMITER),
+        column_names: splitIntoDataSourceAndFields(member),
       },
     ],
   };
