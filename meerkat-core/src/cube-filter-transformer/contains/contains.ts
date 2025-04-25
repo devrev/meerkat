@@ -1,7 +1,7 @@
-import { COLUMN_NAME_DELIMITER } from 'meerkat-core/src/member-formatters/constants';
 import { Member, QueryFilter } from '../../types/cube-types/query';
 import { Dimension, Measure } from '../../types/cube-types/table';
 
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
