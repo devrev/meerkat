@@ -22,7 +22,8 @@ describe('get-projection-clause', () => {
       const aliasedColumnSet = new Set<string>();
       const result = getProjectionClause(
         {
-          dimensions: members, measures: []
+          dimensions: members,
+          measures: [],
         },
         TABLE_SCHEMA,
         aliasedColumnSet
@@ -34,7 +35,8 @@ describe('get-projection-clause', () => {
       const aliasedColumnSet = new Set<string>(['test__c']);
       const result = getProjectionClause(
         {
-          dimensions: members, measures: []
+          dimensions: members,
+          measures: [],
         },
         TABLE_SCHEMA,
         aliasedColumnSet
@@ -48,11 +50,12 @@ describe('get-projection-clause', () => {
       const result = getProjectionClause(
         {
           measures: ['test.total_rows'],
-          dimensions: members
+          dimensions: members,
         },
         TABLE_SCHEMA,
         aliasedColumnSet
       );
+      console.log({ aliasedColumnSet });
       expect(result).toEqual('others AS test__a, test.id AS test__id');
     });
   });

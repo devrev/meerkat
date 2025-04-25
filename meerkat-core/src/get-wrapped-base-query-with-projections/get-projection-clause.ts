@@ -36,11 +36,12 @@ export const getProjectionClause = (
 ) => {
   const { measures, dimensions = [] } = query;
   const filteredDimensions = dimensions.filter((dimension) => {
-    const dimensionDataSource = splitIntoDataSourceAndFields(dimension)[0];
+    const [dimensionDataSource] = splitIntoDataSourceAndFields(dimension);
+    console.log({ dimensionDataSource, name: tableSchema.name });
     return dimensionDataSource === tableSchema.name;
   });
   const filteredMeasures = measures.filter((measure) => {
-    const measureDataSource = splitIntoDataSourceAndFields(measure)[0];
+    const [measureDataSource] = splitIntoDataSourceAndFields(measure);
     return measureDataSource === tableSchema.name;
   });
   const dimensionsProjectionsArr = filteredDimensions.reduce(
@@ -88,7 +89,7 @@ export const getProjectionClause = (
   const usedMeasureObjects = tableSchema.measures.filter((measure) => {
     return (
       measures.findIndex((key) => {
-        const [, keyWithoutTable] = splitIntoDataSourceAndFields(key)[1];
+        const [, keyWithoutTable] = splitIntoDataSourceAndFields(key);
         return keyWithoutTable === measure.name;
       }) !== -1
     );
