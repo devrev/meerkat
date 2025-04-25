@@ -1,6 +1,6 @@
-import { COLUMN_NAME_DELIMITER } from 'meerkat-core/src/member-formatters/constants';
 import { Dimension, Measure } from '../../types/cube-types/index';
 
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
