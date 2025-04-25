@@ -1,4 +1,3 @@
-import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
 
 export type Graph = {
@@ -103,14 +102,10 @@ export const createDirectedGraph = (
    */
   tableSchema.forEach((schema) => {
     schema?.joins?.forEach((join) => {
-      const tables = join.sql.split('=').map((str) => {
-        const [dataSource] = splitIntoDataSourceAndFields(str);
-        return dataSource.trim();
-      });
-      const conditions = join.sql.split('=').map((str) => {
-        const [, column] = splitIntoDataSourceAndFields(str);
-        return column.trim();
-      });
+      const tables = join.sql.split('=').map((str) => str.split('.')[0].trim());
+      const conditions = join.sql
+        .split('=')
+        .map((str) => str.split('.')[1].trim());
 
       /**
        * If the join SQL does not contain exactly 2 tables, then the join is invalid.

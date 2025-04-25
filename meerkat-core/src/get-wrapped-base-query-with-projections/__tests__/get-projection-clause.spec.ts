@@ -55,7 +55,6 @@ describe('get-projection-clause', () => {
         TABLE_SCHEMA,
         aliasedColumnSet
       );
-      console.log({ aliasedColumnSet });
       expect(result).toEqual('others AS test__a, test.id AS test__id');
     });
   });

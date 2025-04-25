@@ -37,7 +37,6 @@ export const getProjectionClause = (
   const { measures, dimensions = [] } = query;
   const filteredDimensions = dimensions.filter((dimension) => {
     const [dimensionDataSource] = splitIntoDataSourceAndFields(dimension);
-    console.log({ dimensionDataSource, name: tableSchema.name });
     return dimensionDataSource === tableSchema.name;
   });
   const filteredMeasures = measures.filter((measure) => {
