@@ -1,4 +1,4 @@
-import { COLUMN_NAME_DELIMITER } from '../cube-filter-transformer/constant';
+import { COLUMN_NAME_DELIMITER } from '../member-formatters';
 import { ParsedExpression } from '../types/duckdb-serialization-types';
 import {
   isBetweenExpression,

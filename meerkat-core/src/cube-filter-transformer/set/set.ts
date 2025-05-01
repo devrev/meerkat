@@ -1,8 +1,8 @@
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
-import { COLUMN_NAME_DELIMITER } from '../constant';
 import { CubeToParseExpressionTransform } from '../factory';
 
 export const setTransform: CubeToParseExpressionTransform = (query) => {

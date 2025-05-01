@@ -1,10 +1,10 @@
+import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../types/duckdb-serialization-types/serialization/Expression';
 import { OrderType } from '../types/duckdb-serialization-types/serialization/Nodes';
 import { ResultModifierType } from '../types/duckdb-serialization-types/serialization/ResultModifier';
-import { memberKeyToSafeKey } from '../utils/member-key-to-safe-key';
 
 export const cubeOrderByToAST = (order: { [key: string]: 'asc' | 'desc' }) => {
   const orderArr = [];

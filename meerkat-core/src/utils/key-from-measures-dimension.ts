@@ -1,12 +1,13 @@
+import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 
 export const getMemberInfoFromTableSchema = (
   memberKey: string,
-  tableSchema: TableSchema,
+  tableSchema: TableSchema
 ) => {
   let memberInfo: Measure | Dimension | undefined;
 
-  const memberKeyName = memberKey.split('.')[1];
+  const [_, memberKeyName] = splitIntoDataSourceAndFields(memberKey);
 
   /**
    * Finding the table key from the measures.

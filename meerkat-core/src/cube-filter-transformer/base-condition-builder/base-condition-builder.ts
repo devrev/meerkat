@@ -1,5 +1,6 @@
 import { Dimension, Measure } from '../../types/cube-types/index';
 
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
@@ -8,7 +9,6 @@ import {
 } from '../../types/duckdb-serialization-types/index';
 import { CUBE_TYPE_TO_DUCKDB_TYPE } from '../../utils/cube-type-to-duckdb-type';
 import { convertFloatToInt, getTypeInfo } from '../../utils/get-type-info';
-import { COLUMN_NAME_DELIMITER } from '../constant';
 
 export const baseDuckdbCondition = (
   columnName: string,
