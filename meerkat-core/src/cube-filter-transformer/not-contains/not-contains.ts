@@ -1,3 +1,4 @@
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import { Member, QueryFilter } from '../../types/cube-types/query';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import {
@@ -5,7 +6,6 @@ import {
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
-import { COLUMN_NAME_DELIMITER } from '../constant';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 

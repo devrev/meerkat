@@ -1,2 +1,2 @@
+export const COLUMN_NAME_DELIMITER = '.';
 export const MEERKAT_OUTPUT_DELIMITER = '__';
-export const MEERKAT_INPUT_DELIMITER = '.';

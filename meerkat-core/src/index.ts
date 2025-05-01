@@ -14,6 +14,7 @@ export { getFilterParamsSQL } from './get-filter-params-sql/get-filter-params-sq
 export { getFinalBaseSQL } from './get-final-base-sql/get-final-base-sql';
 export { getWrappedBaseQueryWithProjections } from './get-wrapped-base-query-with-projections/get-wrapped-base-query-with-projections';
 export * from './joins/joins';
+export * from './member-formatters';
 export { FilterType } from './types/cube-types';
 export * from './types/cube-types/index';
 export * from './types/duckdb-serialization-types/index';
@@ -23,4 +24,3 @@ export * from './utils/cube-to-table-schema';
 export * from './utils/get-column-names-from-ast';
 export * from './utils/get-possible-nodes';
 export { meerkatPlaceholderReplacer } from './utils/meerkat-placeholder-replacer';
-export { memberKeyToSafeKey } from './utils/member-key-to-safe-key';

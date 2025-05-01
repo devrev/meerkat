@@ -1,12 +1,12 @@
 import { Dimension, Measure } from '../../types/cube-types/table';
 import { CubeToParseExpressionTransform } from '../factory';
 
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
-import { COLUMN_NAME_DELIMITER } from '../constant';
 
 const notInDuckDbCondition = (
   columnName: string,
