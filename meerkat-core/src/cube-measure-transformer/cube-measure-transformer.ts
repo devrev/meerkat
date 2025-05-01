@@ -71,7 +71,8 @@ const addDimensionToSQLProjection = (
   let newSelectString = selectString;
   for (let i = 0; i < dimensions.length; i++) {
     const dimension = dimensions[i];
-    const dimensionKeyWithoutTable = splitIntoDataSourceAndFields(dimension)[1];
+    const [_, dimensionKeyWithoutTable] =
+      splitIntoDataSourceAndFields(dimension);
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
