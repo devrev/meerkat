@@ -46,7 +46,7 @@ export const cubeMeasureToSQLSelectString = (
 
     //Replace all the columnsUsedInMeasure with safeKey
     columnsUsedInMeasure?.forEach((measureKey) => {
-      const column = splitIntoDataSourceAndFields(measureKey)[1];
+      const [_, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = `${tableSchemaName}.${column}`;
       const columnKey = memberKeyToSafeKey(memberKey);
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
