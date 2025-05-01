@@ -1,12 +1,12 @@
 {
   "name": "@devrev/meerkat-node",
-  "version": "0.0.91",
+  "version": "0.0.92",
   "dependencies": {
     "@swc/helpers": "~0.5.0",
     "@devrev/meerkat-core": "*",
-    "axios": "^1.6.0",
+    "axios": "^1.8.3",
     "lodash": "^4.17.21",
-    "duckdb": "^1.0.0"
+    "duckdb": "^1.2.0"
   },
   "scripts": {
     "release": "semantic-release"
