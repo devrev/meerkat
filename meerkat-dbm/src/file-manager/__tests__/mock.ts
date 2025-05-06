@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+/// <reference types="jest" />
 
 export const mockDB = {
   registerFileBuffer: jest.fn(),
