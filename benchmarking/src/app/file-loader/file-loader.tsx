@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { useState } from 'react';
-import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
+
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { generateViewQuery } from '../utils';
@@ -25,16 +25,14 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         buffer: fileBufferView,
       });
 
-      await fileManager.registerJSON({
-        json: TAXI_JSON_DATA,
-        tableName: 'taxi_json',
-        fileName: 'taxi_json.parquet',
-      });
-
       // Create views for raw and memory file manager after registering the files
-      if (fileManagerType === 'raw' || fileManagerType === 'memory') {
+      if (
+        fileManagerType === 'raw' ||
+        fileManagerType === 'memory' ||
+        fileManagerType === 'opfs'
+      ) {
         await dbm.query(generateViewQuery('taxi', ['taxi.parquet']));
-        await dbm.query(generateViewQuery('taxi_json', ['taxi_json.parquet']));
+        // await dbm.query(generateViewQuery('taxi_json', ['taxi_json.parquet']));
       }
 
       setIsFileLoader(true);
