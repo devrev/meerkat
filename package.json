@@ -100,5 +100,10 @@
   },
   "keywords": [],
   "author": "devrev",
-  "license": "ISC"
+  "license": "ISC",
+  "overrides": {
+    "duckdb": {
+      "node-gyp": "10.0.0"
+    }
+  }
 }
