@@ -1,6 +1,10 @@
 import { InstanceManagerType } from '@devrev/meerkat-dbm';
 import * as duckdb from '@duckdb/duckdb-wasm';
-import { AsyncDuckDB, LogEntryVariant } from '@duckdb/duckdb-wasm';
+import {
+  AsyncDuckDB,
+  DuckDBAccessMode,
+  LogEntryVariant,
+} from '@duckdb/duckdb-wasm';
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 
 export class InstanceManager implements InstanceManagerType {
@@ -30,6 +34,11 @@ export class InstanceManager implements InstanceManagerType {
     if (!this.db) {
       console.info('Creating new DB');
       this.db = await this.initDB();
+
+      await this.db.open({
+        path: 'opfs://test.db',
+        accessMode: DuckDBAccessMode.READ_WRITE,
+      });
     }
     return this.db;
   }

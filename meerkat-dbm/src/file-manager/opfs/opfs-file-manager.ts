@@ -1,111 +1,130 @@
-import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
-import { DBMEvent, DBMLogger } from '../../logger';
-import { Table, TableWiseFiles } from '../../types';
-import { getBufferFromJSON } from '../../utils';
+import { mergeFileStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
-  FileJsonStore,
   FileManagerConstructorOptions,
   FileManagerType,
 } from '../file-manager-type';
+import { FileRegisterer } from '../file-registerer';
+import { BaseIndexedDBFileManager } from '../indexed-db/base-indexed-db-file-manager';
 
-export class OPFSFileManager implements FileManagerType {
+export class OPFSFileManager
+  extends BaseIndexedDBFileManager
+  implements FileManagerType
+{
+  private fileRegisterer: FileRegisterer;
+  private configurationOptions: FileManagerConstructorOptions['options'];
+
   fetchTableFileBuffers: (tableName: string) => Promise<FileBufferStore[]>;
-  instanceManager: InstanceManagerType;
-
-  private logger?: DBMLogger;
-  private onEvent?: (event: DBMEvent) => void;
 
   constructor({
     fetchTableFileBuffers,
     instanceManager,
+    options,
     logger,
     onEvent,
   }: FileManagerConstructorOptions) {
+    super({ instanceManager, fetchTableFileBuffers, logger, onEvent });
+
     this.fetchTableFileBuffers = fetchTableFileBuffers;
-    this.instanceManager = instanceManager;
-    this.logger = logger;
-    this.onEvent = onEvent;
+    this.fileRegisterer = new FileRegisterer({ instanceManager });
+    this.configurationOptions = options;
   }
 
-  async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
-    const promiseArr = props.map((fileBuffer) =>
-      this.registerFileBuffer(fileBuffer)
-    );
-    console.info('bulkRegisterFileBuffer', promiseArr);
-    const output = await Promise.all(promiseArr);
-    console.info('bulkRegisterFileBuffer done', output);
-    console.info('bulkRegisterFileBuffer done', promiseArr);
-  }
-
-  async registerFileBuffer(props: FileBufferStore): Promise<void> {
-    console.info('registerFileBuffer', props);
+  async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
     const db = await this.instanceManager.getDB();
-    return db.registerFileBuffer(props.fileName, props.buffer);
-  }
 
-  async bulkRegisterJSON(jsonData: FileJsonStore[]): Promise<void> {
-    const promiseArr = jsonData.map((fileBuffer) =>
-      this.registerJSON(fileBuffer)
+    const tableNames = Array.from(
+      new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
     );
 
-    await Promise.all(promiseArr);
+    const currentTableData = await this.indexedDB.tablesKey.toArray();
+
+    const updatedTableMap = mergeFileStoreIntoTable(
+      fileBuffers,
+      currentTableData
+    );
+
+    /**
+     * Extracts the tables and files data from the tablesMap and fileBuffers
+     * in format that can be stored in IndexedDB
+     */
+    const updatedTableData = tableNames.map((tableName) => {
+      return { tableName, files: updatedTableMap.get(tableName)?.files ?? [] };
+    });
+
+    const newFilesData = fileBuffers.map((fileBuffer) => {
+      return { buffer: fileBuffer.buffer, fileName: fileBuffer.fileName };
+    });
+
+    // Update the tables and files table in IndexedDB
+    await this.indexedDB
+      .transaction(
+        'rw',
+        this.indexedDB.tablesKey,
+        this.indexedDB.files,
+        async () => {
+          await this.indexedDB.tablesKey.bulkPut(updatedTableData);
+
+          await Promise.all(
+            newFilesData.map((file) =>
+              this.fileRegisterer.registerFileBuffer(file.fileName, file.buffer)
+            )
+          );
+        }
+      )
+      .catch((error) => {
+        console.error(error);
+      });
   }
 
-  async registerJSON(jsonData: FileJsonStore): Promise<void> {
-    const { json, tableName, ...fileData } = jsonData;
+  async registerFileBuffer(fileBuffer: FileBufferStore): Promise<void> {
+    const { buffer, fileName, tableName } = fileBuffer;
 
-    /**
-     * Convert JSON to buffer
-     */
-    const bufferData = await getBufferFromJSON({
-      instanceManager: this.instanceManager,
-      json,
-      tableName,
-      logger: this.logger,
-      onEvent: this.onEvent,
-      metadata: jsonData.metadata,
-    });
+    const currentTableData = await this.indexedDB.tablesKey.toArray();
 
-    /**
-     * Register buffer in DB
-     */
-    await this.registerFileBuffer({
-      buffer: bufferData,
-      tableName,
-      ...fileData,
-    });
+    const updatedTableMap = mergeFileStoreIntoTable(
+      [fileBuffer],
+      currentTableData
+    );
+
+    // Update the tables and files table in IndexedDB
+    await this.indexedDB
+      .transaction(
+        'rw',
+        this.indexedDB.tablesKey,
+        this.indexedDB.files,
+        async () => {
+          await this.indexedDB.tablesKey.put({
+            tableName: fileBuffer.tableName,
+            files: updatedTableMap.get(tableName)?.files ?? [],
+          });
+
+          await this.fileRegisterer.registerFileBuffer(fileName, buffer);
+        }
+      )
+      .catch((error) => {
+        console.error(error);
+      });
   }
 
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    // not needed for opfs file manager
-  }
+    const tableData = await this.getFilesNameForTables(tables);
 
-  async getFilesNameForTables(
-    tables: TableConfig[]
-  ): Promise<TableWiseFiles[]> {
-    // not needed for opfs file manager
-    return [];
-  }
-
-  async getTableData(table: TableConfig): Promise<Table | undefined> {
-    // not needed for opfs file manager
-    return;
-  }
-
-  async setTableMetadata(table: string, metadata: object): Promise<void> {
-    // not needed for opfs file manager
+    /**
+     * Check if the file registered size is not more than the limit
+     * If it is more than the limit, then remove the files which are not needed while mounting this the tables
+     */
   }
 
   async dropFilesByTableName(
     tableName: string,
     fileNames: string[]
   ): Promise<void> {
-    // not needed for opfs file manager
+    const tableData = await this.indexedDB.tablesKey.get(tableName);
   }
 
   async onDBShutdownHandler() {
-    // not needed for opfs file manager
+    this.fileRegisterer.flushFileCache();
   }
 }

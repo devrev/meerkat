@@ -1,4 +1,4 @@
-import { AsyncDuckDBConnection, DuckDBAccessMode } from '@duckdb/duckdb-wasm';
+import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { Table } from 'apache-arrow/table';
 import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager';
@@ -102,11 +102,6 @@ export class DBM extends TableLockManager {
   private async _getConnection() {
     if (!this.connection) {
       const db = await this.instanceManager.getDB();
-
-      await db.open({
-        path: 'opfs://test.db',
-        accessMode: DuckDBAccessMode.READ_WRITE,
-      });
 
       this.connection = await db.connect();
       if (this.onCreateConnection) {
