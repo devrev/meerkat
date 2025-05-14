@@ -26,6 +26,12 @@ export class InstanceManager implements InstanceManagerType {
     };
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+
+    await db.open({
+      path: 'opfs://test.db',
+      accessMode: DuckDBAccessMode.READ_ONLY,
+    });
+
     URL.revokeObjectURL(worker_url);
     return db;
   }
@@ -34,11 +40,6 @@ export class InstanceManager implements InstanceManagerType {
     if (!this.db) {
       console.info('Creating new DB');
       this.db = await this.initDB();
-
-      await this.db.open({
-        path: 'opfs://test.db',
-        accessMode: DuckDBAccessMode.READ_WRITE,
-      });
     }
     return this.db;
   }
