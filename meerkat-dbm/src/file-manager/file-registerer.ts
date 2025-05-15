@@ -40,7 +40,7 @@ export class FileRegisterer implements FileRegistererType {
     });
     return this.instanceManager
       .getDB()
-      .then((db) => db.registerFileBuffer(fileName, buffer));
+      .then((db) => db.registerOPFSFileName(fileName));
   };
 
   registerEmptyFileBuffer: AsyncDuckDB['registerEmptyFileBuffer'] = async (

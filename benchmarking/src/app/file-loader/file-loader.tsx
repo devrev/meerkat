@@ -40,7 +40,7 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
       // Register file buffer with the file manager
       await fileManager.registerFileBuffer({
         tableName: 'taxi',
-        fileName,
+        fileName: 'opfs://taxi.parquet',
         buffer: fileBufferView,
       });
 
@@ -50,7 +50,7 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         fileManagerType === 'memory' ||
         fileManagerType === 'opfs'
       ) {
-        await dbm.query(generateViewQuery('taxi', [fileName]));
+        await dbm.query(generateViewQuery('taxi', ['opfs://taxi.parquet']));
         // await dbm.query(generateViewQuery('taxi_json', ['taxi_json.parquet']));
       }
 
