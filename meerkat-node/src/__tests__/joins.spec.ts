@@ -300,8 +300,13 @@ describe('Joins Tests', () => {
       dimensions: ['authors.author_name'],
     };
     await expect(
-      cubeQueryToSQL({ query: query, tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA] })
-    ).rejects.toThrow('Invalid path, multiple data sources are present without a join path.');
+      cubeQueryToSQL({
+        query: query,
+        tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
+      })
+    ).rejects.toThrow(
+      'Invalid path, multiple data sources are present without a join path.'
+    );
   });
 
   it('Loops in the join paths', async () => {
@@ -325,7 +330,7 @@ describe('Joins Tests', () => {
       dimensions: ['authors.author_name'],
     };
     await expect(
-      cubeQueryToSQL({query, tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA]})
+      cubeQueryToSQL({ query, tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA] })
     ).rejects.toThrow(`A loop was detected in the joins.`);
   });
 
@@ -354,12 +359,15 @@ describe('Joins Tests', () => {
       dimensions: ['customers.customer_id', 'orders.customer_id'],
     };
     await expect(
-      cubeQueryToSQL({query, tableSchemas: [
-        BOOK_SCHEMA,
-        CUSTOMER_SCHEMA,
-        ORDER_SCHEMA,
-        AUTHOR_SCHEMA,
-      ]})
+      cubeQueryToSQL({
+        query,
+        tableSchemas: [
+          BOOK_SCHEMA,
+          CUSTOMER_SCHEMA,
+          ORDER_SCHEMA,
+          AUTHOR_SCHEMA,
+        ],
+      })
     ).rejects.toThrow(
       'Invalid path, starting node is not the same for all paths.'
     );
@@ -379,7 +387,10 @@ describe('Joins Tests', () => {
         ],
       ],
     };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [AUTHOR_SCHEMA, ORDER_SCHEMA]});
+    const sql = await cubeQueryToSQL({
+      query,
+      tableSchemas: [AUTHOR_SCHEMA, ORDER_SCHEMA],
+    });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -439,11 +450,7 @@ describe('Joins Tests', () => {
     };
     const sql = await cubeQueryToSQL({
       query,
-      tableSchemas: [
-        DEMO_SCHEMA,
-        CUSTOMER_SCHEMA,
-        PRODUCT_SCHEMA,
-      ]
+      tableSchemas: [DEMO_SCHEMA, CUSTOMER_SCHEMA, PRODUCT_SCHEMA],
     });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
@@ -499,11 +506,10 @@ describe('Joins Tests', () => {
         'customers.customer_id',
       ],
     };
-    const sql = await cubeQueryToSQL({query, tableSchemas: [
-      ORDER_SCHEMA,
-      DEMO_SCHEMA,
-      PRODUCT_SCHEMA,
-    ]});
+    const sql = await cubeQueryToSQL({
+      query,
+      tableSchemas: [ORDER_SCHEMA, DEMO_SCHEMA, PRODUCT_SCHEMA],
+    });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -550,11 +556,14 @@ describe('Joins Tests', () => {
       ],
       order: {
         'orders.total_order_amount': 'desc',
-        'customers.customer_id': 'asc'
+        'customers.customer_id': 'asc',
       },
     };
 
-    const sql = await cubeQueryToSQL({ query: query1, tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA] });
+    const sql = await cubeQueryToSQL({
+      query: query1,
+      tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
+    });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -601,7 +610,10 @@ describe('Joins Tests', () => {
       ],
     };
 
-    const sql2 = await cubeQueryToSQL({ query: query2, tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA] });
+    const sql2 = await cubeQueryToSQL({
+      query: query2,
+      tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
+    });
     const output2 = await duckdbExec(sql2);
     const parsedOutput2 = JSON.parse(JSON.stringify(output2));
     expect(parsedOutput2).toHaveLength(1);
@@ -643,7 +655,10 @@ describe('Joins Tests', () => {
       },
       limit: 2,
     };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA] });
+    const sql = await cubeQueryToSQL({
+      query,
+      tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
+    });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));
