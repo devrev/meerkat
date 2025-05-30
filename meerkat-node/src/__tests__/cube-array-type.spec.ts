@@ -63,7 +63,7 @@ describe('cube-to-sql', () => {
         {
           member: 'person.activities',
           operator: 'equals',
-          values: ['Hiking'],
+          values: ['Hiking', 'Cycling'],
         },
       ],
       dimensions: [],
@@ -82,14 +82,14 @@ describe('cube-to-sql', () => {
         {
           member: 'person.activities',
           operator: 'equals',
-          values: ['Hiking'],
+          values: ['Hiking', 'Cycling'],
         },
       ],
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     expect(sql).toBe(
-      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE ('Hiking' = ANY(SELECT unnest(person__activities)))`
+      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE (list_sort(person__activities) = list_sort(main.list_value('Hiking', 'Cycling')))`
     );
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);
@@ -105,7 +105,7 @@ describe('cube-to-sql', () => {
             {
               member: 'person.activities',
               operator: 'equals',
-              values: ['Running'],
+              values: ['Reading', 'Cooking', 'Running'],
             },
             {
               member: 'person.id',
@@ -119,7 +119,7 @@ describe('cube-to-sql', () => {
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     expect(sql).toBe(
-      `SELECT person.* FROM (SELECT *, activities AS person__activities, id AS person__id FROM (select * from person) AS person) AS person WHERE (('Running' = ANY(SELECT unnest(person__activities))) AND (person__id = '2'))`
+      `SELECT person.* FROM (SELECT *, activities AS person__activities, id AS person__id FROM (select * from person) AS person) AS person WHERE ((list_sort(person__activities) = list_sort(main.list_value('Reading', 'Cooking', 'Running'))) AND (person__id = '2'))`
     );
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);
@@ -141,11 +141,13 @@ describe('cube-to-sql', () => {
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     expect(sql).toBe(
-      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE (NOT ('Running' = ANY(SELECT unnest(person__activities))))`
+      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE (NOT (list_sort(person__activities) = list_sort(main.list_value('Running'))))`
     );
     const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(2);
-    expect(output[0].id).toBe('3');
-    expect(output[1].id).toBe('4');
+    expect(output).toHaveLength(4);
+    expect(output[0].id).toBe('1');
+    expect(output[1].id).toBe('2');
+    expect(output[2].id).toBe('3');
+    expect(output[3].id).toBe('4');
   });
 });
