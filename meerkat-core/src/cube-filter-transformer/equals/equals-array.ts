@@ -1,10 +1,10 @@
-import { COLUMN_NAME_DELIMITER } from 'meerkat-core/src/member-formatters/constants';
-import { Dimension, Measure } from 'meerkat-core/src/types/cube-types/table';
+import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
+import { Dimension, Measure } from '../../types/cube-types/table';
 import {
   ExpressionClass,
   ExpressionType,
-} from 'meerkat-core/src/types/duckdb-serialization-types/serialization/Expression';
-import { ResultModifierType } from 'meerkat-core/src/types/duckdb-serialization-types/serialization/ResultModifier';
+} from '../../types/duckdb-serialization-types/serialization/Expression';
+import { ResultModifierType } from '../../types/duckdb-serialization-types/serialization/ResultModifier';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 
