@@ -419,10 +419,9 @@ describe('cube-to-sql', () => {
     });
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toBe(
-      `SELECT COUNT(*) AS tickets__count ,   tickets__tags FROM (SELECT *, owners AS tickets__owners, array[unnest(tags)] AS tickets__tags FROM (select * from tickets) AS tickets) AS tickets WHERE (list_has_all(tickets__owners, main.list_value('a'))) GROUP BY tickets__tags ORDER BY tickets__count DESC, tickets__tags DESC`
+      "SELECT COUNT(*) AS tickets__count ,   tickets__tags FROM (SELECT *, owners AS tickets__owners, array[unnest(tags)] AS tickets__tags FROM (select * from tickets) AS tickets) AS tickets WHERE (list_has_all(tickets__owners, main.list_value('a'))) GROUP BY tickets__tags ORDER BY tickets__count DESC, tickets__tags DESC"
     );
     const output = await duckdbExec(sql);
-    console.info('Output: ', output);
     expect(output).toEqual([
       {
         tickets__count: BigInt(1),
