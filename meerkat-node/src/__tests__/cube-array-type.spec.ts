@@ -52,7 +52,8 @@ describe('cube-to-sql', () => {
     ('1', 'John Doe', 30, ARRAY['Running', 'Swimming']),
     ('2', 'Jane Doe', 25, ARRAY['Reading', 'Cooking', 'Running']),
     ('3', 'Sam Smith', 35, ARRAY['Cycling', 'Hiking']),
-    ('4', 'Emma Stone', 40, ARRAY['Photography', 'Painting']);
+    ('4', 'Emma Stone', 40, ARRAY['Photography', 'Painting']),
+    ('5', 'Alex Johnson', 28, ARRAY['Running', 'Swimming', 'Cycling']);
 `);
   });
 
@@ -89,7 +90,7 @@ describe('cube-to-sql', () => {
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     expect(sql).toBe(
-      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE ('Hiking' = ANY(SELECT unnest(person__activities)))`
+      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE list_has_all(person__activities, main.list_value('Hiking'))`
     );
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);
@@ -119,7 +120,7 @@ describe('cube-to-sql', () => {
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     expect(sql).toBe(
-      `SELECT person.* FROM (SELECT *, activities AS person__activities, id AS person__id FROM (select * from person) AS person) AS person WHERE (('Running' = ANY(SELECT unnest(person__activities))) AND (person__id = '2'))`
+      `SELECT person.* FROM (SELECT *, activities AS person__activities, id AS person__id FROM (select * from person) AS person) AS person WHERE (list_has_all(person__activities, main.list_value('Running')) AND (person__id = '2'))`
     );
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);
@@ -141,11 +142,111 @@ describe('cube-to-sql', () => {
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     expect(sql).toBe(
-      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE (NOT ('Running' = ANY(SELECT unnest(person__activities))))`
+      `SELECT person.* FROM (SELECT *, activities AS person__activities FROM (select * from person) AS person) AS person WHERE (NOT list_has_all(person__activities, main.list_value('Running')))`
     );
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
     expect(output[0].id).toBe('3');
     expect(output[1].id).toBe('4');
+  });
+  it('Should test array contains all specified elements (equals operator behavior)', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          member: 'person.activities',
+          operator: 'equals',
+          values: ['Running', 'Swimming'],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    console.info('Array contains all elements SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+
+    expect(output).toHaveLength(2);
+    const ids = output.map((row: any) => row.id);
+    expect(ids).toEqual(['1', '5']);
+  });
+
+  it('Should test array contains all specified elements in reverse order', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          member: 'person.activities',
+          operator: 'equals',
+          values: ['Swimming', 'Running'],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    console.info('Array contains all elements in reverse order SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+
+    expect(output).toHaveLength(2);
+    const ids = output.map((row: any) => row.id);
+    expect(ids).toEqual(['1', '5']);
+  });
+
+  it('Should test no match condition - searching for non-existent activity', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          member: 'person.activities',
+          operator: 'equals',
+          values: ['NonExistentActivity'],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    console.info('No match SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+    // Should return no results
+    expect(output).toHaveLength(0);
+  });
+
+  it('Should test complex array contains all with multiple elements', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          member: 'person.activities',
+          operator: 'equals',
+          values: ['Reading', 'Cooking', 'Running'],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    console.info('Complex contains all SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+
+    expect(output).toHaveLength(1);
+    expect(output[0].id).toBe('2');
+    expect(output[0].name).toBe('Jane Doe');
+  });
+
+  it('Should test notEquals - arrays that do NOT contain all specified elements', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          member: 'person.activities',
+          operator: 'notEquals',
+          values: ['Running', 'Swimming'],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(3);
+    const ids = output.map((row: any) => row.id);
+    expect(ids).toEqual(['2', '3', '4']);
   });
 });
