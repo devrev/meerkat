@@ -48,8 +48,6 @@ export const cubeQueryToSQLWithResolution = async ({
     return baseSql;
   }
 
-  const combinedSchemas = [...tableSchemas, ...resolutionConfig.tableSchemas];
-
   // Create a table schema for the base query.
   const baseTable: TableSchema = {
     name: BASE_DATA_SOURCE_NAME,
@@ -57,10 +55,10 @@ export const cubeQueryToSQLWithResolution = async ({
     measures: [],
     dimensions: [
       ...(query.dimensions || []).map((dim) =>
-        resolveDimension(dim, combinedSchemas)
+        resolveDimension(dim, tableSchemas)
       ),
       ...(query.measures || []).map((meas) =>
-        resolveMeasure(meas, combinedSchemas)
+        resolveMeasure(meas, tableSchemas)
       ),
     ],
     joins: resolutionConfig.columnConfigs.map((config) => ({
