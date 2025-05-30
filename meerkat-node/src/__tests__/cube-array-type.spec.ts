@@ -166,7 +166,28 @@ describe('cube-to-sql', () => {
     const output: any = await duckdbExec(sql);
 
     expect(output).toHaveLength(2);
-    const ids = output.map((row: any) => row.id).sort();
+    const ids = output.map((row: any) => row.id);
+    expect(ids).toEqual(['1', '5']);
+  });
+
+  it('Should test array contains all specified elements in reverse order', async () => {
+    const query = {
+      measures: ['*'],
+      filters: [
+        {
+          member: 'person.activities',
+          operator: 'equals',
+          values: ['Swimming', 'Running'],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    console.info('Array contains all elements in reverse order SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+
+    expect(output).toHaveLength(2);
+    const ids = output.map((row: any) => row.id);
     expect(ids).toEqual(['1', '5']);
   });
 
@@ -225,7 +246,7 @@ describe('cube-to-sql', () => {
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(3);
-    const ids = output.map((row: any) => row.id).sort();
+    const ids = output.map((row: any) => row.id);
     expect(ids).toEqual(['2', '3', '4']);
   });
 });
