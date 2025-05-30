@@ -1,7 +1,3 @@
-import {
-  FilterOperator,
-  MeerkatQueryFilter,
-} from '../../../meerkat-core/src/types/cube-types/query';
 import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
 import { duckdbExec } from '../duckdb-exec';
 
@@ -159,10 +155,10 @@ describe('cube-to-sql', () => {
       filters: [
         {
           member: 'person.activities',
-          operator: 'equals' as FilterOperator,
+          operator: 'equals',
           values: ['Running', 'Swimming'],
         },
-      ] as MeerkatQueryFilter[],
+      ],
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
@@ -180,10 +176,10 @@ describe('cube-to-sql', () => {
       filters: [
         {
           member: 'person.activities',
-          operator: 'equals' as FilterOperator,
+          operator: 'equals',
           values: ['NonExistentActivity'],
         },
-      ] as MeerkatQueryFilter[],
+      ],
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
@@ -199,10 +195,10 @@ describe('cube-to-sql', () => {
       filters: [
         {
           member: 'person.activities',
-          operator: 'equals' as FilterOperator,
+          operator: 'equals',
           values: ['Reading', 'Cooking', 'Running'],
         },
-      ] as MeerkatQueryFilter[],
+      ],
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
@@ -220,10 +216,10 @@ describe('cube-to-sql', () => {
       filters: [
         {
           member: 'person.activities',
-          operator: 'notEquals' as FilterOperator,
+          operator: 'notEquals',
           values: ['Running', 'Swimming'],
         },
-      ] as MeerkatQueryFilter[],
+      ],
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
