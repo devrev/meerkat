@@ -4,7 +4,6 @@ import {
   ExpressionClass,
   ExpressionType,
 } from 'meerkat-core/src/types/duckdb-serialization-types/serialization/Expression';
-import { ComparisonExpression } from 'meerkat-core/src/types/duckdb-serialization-types/serialization/ParsedExpression';
 import { ResultModifierType } from 'meerkat-core/src/types/duckdb-serialization-types/serialization/ResultModifier';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
@@ -19,24 +18,6 @@ const equalsDuckDbCondition = (
     type: ExpressionType.COLUMN_REF,
     alias: '',
     column_names: columnName.split(COLUMN_NAME_DELIMITER),
-  };
-
-  const sortedColumnRef = {
-    class: ExpressionClass.FUNCTION,
-    type: ExpressionType.FUNCTION,
-    alias: '',
-    function_name: 'list_sort',
-    schema: '',
-    children: [columnRef],
-    filter: null,
-    order_bys: {
-      type: ResultModifierType.ORDER_MODIFIER,
-      orders: [],
-    },
-    distinct: false,
-    is_operator: false,
-    export_state: false,
-    catalog: '',
   };
 
   const sqlTreeValues = values.map((value) => {
@@ -67,13 +48,13 @@ const equalsDuckDbCondition = (
     catalog: '',
   };
 
-  const sortedFilterValuesArray = {
+  const sqlTree = {
     class: ExpressionClass.FUNCTION,
     type: ExpressionType.FUNCTION,
     alias: '',
-    function_name: 'list_sort',
+    function_name: 'list_has_all',
     schema: '',
-    children: [filterValuesArray],
+    children: [columnRef, filterValuesArray],
     filter: null,
     order_bys: {
       type: ResultModifierType.ORDER_MODIFIER,
@@ -83,15 +64,6 @@ const equalsDuckDbCondition = (
     is_operator: false,
     export_state: false,
     catalog: '',
-  };
-
-  const sqlTree: ComparisonExpression = {
-    class: ExpressionClass.COMPARISON,
-    type: ExpressionType.COMPARE_EQUAL,
-    alias: '',
-    query_location: 31,
-    left: sortedColumnRef,
-    right: sortedFilterValuesArray,
   };
   return sqlTree;
 };

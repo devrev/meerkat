@@ -393,7 +393,7 @@ describe('cube-to-sql', () => {
             {
               member: 'tickets.owners',
               operator: 'equals',
-              values: ['a', 'b'],
+              values: ['a'],
             },
           ],
         },
@@ -419,19 +419,20 @@ describe('cube-to-sql', () => {
     });
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toBe(
-      "SELECT COUNT(*) AS tickets__count ,   tickets__tags FROM (SELECT *, owners AS tickets__owners, array[unnest(tags)] AS tickets__tags FROM (select * from tickets) AS tickets) AS tickets WHERE ((list_sort(tickets__owners) = list_sort(main.list_value('a', 'b')))) GROUP BY tickets__tags ORDER BY tickets__count DESC, tickets__tags DESC"
+      `SELECT COUNT(*) AS tickets__count ,   tickets__tags FROM (SELECT *, owners AS tickets__owners, array[unnest(tags)] AS tickets__tags FROM (select * from tickets) AS tickets) AS tickets WHERE (list_has_all(tickets__owners, main.list_value('a'))) GROUP BY tickets__tags ORDER BY tickets__count DESC, tickets__tags DESC`
     );
     const output = await duckdbExec(sql);
-    // expect(output).toEqual([
-    //   {
-    //     tickets__count: BigInt(1),
-    //     tickets__tags: ['t4'],
-    //   },
-    //   {
-    //     tickets__count: BigInt(1),
-    //     tickets__tags: ['t1'],
-    //   },
-    // ]);
+    console.info('Output: ', output);
+    expect(output).toEqual([
+      {
+        tickets__count: BigInt(1),
+        tickets__tags: ['t4'],
+      },
+      {
+        tickets__count: BigInt(1),
+        tickets__tags: ['t1'],
+      },
+    ]);
   });
   it('Should not unnest without measure', async () => {
     const query: Query = {
