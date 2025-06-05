@@ -138,6 +138,7 @@ describe('Resolution Tests', () => {
             {
               name: 'base_table.part_id_1',
               source: 'dim_part',
+              joinColumn: 'id',
               resolutionColumns: ['display_id'],
             },
           ],
@@ -166,16 +167,19 @@ describe('Resolution Tests', () => {
           {
             name: 'base_table.part_id_1',
             source: 'dim_part',
+            joinColumn: 'id',
             resolutionColumns: ['display_id'],
           },
           {
             name: 'base_table.work_id',
             source: 'dim_work',
+            joinColumn: 'id',
             resolutionColumns: ['display_id', 'title'],
           },
           {
             name: 'base_table.part_id_2',
             source: 'dim_part',
+            joinColumn: 'id',
             resolutionColumns: ['display_id'],
           },
         ],
@@ -218,6 +222,7 @@ describe('Resolution Tests', () => {
           {
             name: 'base_table.part_id_1',
             source: 'dim_part',
+            joinColumn: 'id',
             resolutionColumns: ['display_id'],
           },
         ],

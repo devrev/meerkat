@@ -1,0 +1,27 @@
+import { ContextParams, Query, TableSchema } from '@devrev/meerkat-core';
+
+export interface ResolutionColumnConfig {
+  // Name of the column that needs resolution.
+  // Should match a measure or dimension in the query.
+  name: string;
+  // Name of the data source to use for resolution.
+  source: string;
+  // Name of the column in the data source to join on.
+  joinColumn: string;
+  // Columns from the source table that should be included for resolution.
+  resolutionColumns: string[];
+}
+
+export interface ResolutionConfig {
+  columnConfigs: ResolutionColumnConfig[];
+  tableSchemas: TableSchema[];
+}
+
+export interface CubeQueryToSQLWithResolutionParams {
+  query: Query;
+  tableSchemas: TableSchema[];
+  resolutionConfig: ResolutionConfig;
+  contextParams?: ContextParams;
+}
+
+export const BASE_DATA_SOURCE_NAME = '__base_query';
