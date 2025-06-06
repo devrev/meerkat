@@ -140,6 +140,43 @@ export const TEST_DATA = [
   },
   {
     testName: 'Equals',
+    expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '1')`,
+    cubeInput: {
+      measures: ['*'],
+      filters: [
+        {
+          member: 'orders.customer_id',
+          operator: 'equals',
+          values: ['1'],
+        },
+      ],
+      dimensions: [],
+    },
+    expectedOutput: [
+      {
+        customer_id: '1',
+        order_amount: 50,
+        order_date: '2022-01-01T00:00:00.000Z',
+        order_id: 1,
+        orders__customer_id: '1',
+        orders__order_date: undefined,
+        product_id: '1',
+        vendors: ['myntra', 'amazon', 'flipkart'],
+      },
+      {
+        customer_id: '1',
+        order_amount: 80,
+        order_date: '2022-01-02T00:00:00.000Z',
+        order_id: 2,
+        orders__customer_id: '1',
+        orders__order_date: undefined,
+        product_id: '2',
+        vendors: ['myntra'],
+      },
+    ],
+  },
+  {
+    testName: 'Equals with multiple values',
     expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = '1') AND (orders__customer_id = '2'))`,
     cubeInput: {
       measures: ['*'],
