@@ -6,6 +6,7 @@ import {
   TABLE_SCHEMA,
   TEST_DATA,
 } from './test-data';
+
 describe('cube-to-sql', () => {
   beforeAll(async () => {
     // Create orders table
@@ -15,9 +16,12 @@ describe('cube-to-sql', () => {
     await duckdbExec(INPUT_DATA_QUERY);
   });
 
-  for (const data of TEST_DATA) {
+  TEST_DATA.flat().forEach((data) => {
     it(`Testing ${data.testName}`, async () => {
-      const sql = await cubeQueryToSQL({ query: data.cubeInput, tableSchemas: [TABLE_SCHEMA]});
+      const sql = await cubeQueryToSQL({
+        query: data.cubeInput,
+        tableSchemas: [TABLE_SCHEMA],
+      });
       expect(sql).toEqual(data.expectedSQL);
       console.info(`SQL for ${data.testName}: `, sql);
       //TODO: Remove order by
@@ -57,7 +61,7 @@ describe('cube-to-sql', () => {
        */
       expect(sql).toBe(data.expectedSQL);
     });
-  }
+  });
 
   it('Should order the projected value', async () => {
     const query = {
@@ -69,7 +73,7 @@ describe('cube-to-sql', () => {
       },
       limit: 2,
     };
-    const sql = await cubeQueryToSQL({query, tableSchemas: [TABLE_SCHEMA]});
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -89,7 +93,10 @@ describe('cube-to-sql', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL({query: query, tableSchemas: [TABLE_SCHEMA]});
+    const sql = await cubeQueryToSQL({
+      query: query,
+      tableSchemas: [TABLE_SCHEMA],
+    });
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toEqual(
       'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'

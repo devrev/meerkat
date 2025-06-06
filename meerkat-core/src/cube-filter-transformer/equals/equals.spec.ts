@@ -1,5 +1,8 @@
+import {
+  ExpressionClass,
+  ExpressionType,
+} from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
-import { ExpressionClass, ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { equalsTransform } from './equals'; // replace with your module name
 
@@ -52,7 +55,7 @@ describe('Equals Transform Tests', () => {
       },
     }) as ConjunctionExpression;
     expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
-    expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
+    expect(output.type).toEqual(ExpressionType.CONJUNCTION_AND);
     expect(output.children.length).toEqual(3);
   });
 });
