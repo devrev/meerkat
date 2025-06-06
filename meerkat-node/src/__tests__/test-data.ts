@@ -138,57 +138,59 @@ export const TEST_DATA = [
       },
     ],
   },
-  {
-    testName: 'Equals',
-    expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '1')`,
-    cubeInput: {
-      measures: ['*'],
-      filters: [
+  [
+    {
+      testName: 'Equals',
+      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '1')`,
+      cubeInput: {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['1'],
+          },
+        ],
+        dimensions: [],
+      },
+      expectedOutput: [
         {
-          member: 'orders.customer_id',
-          operator: 'equals',
-          values: ['1'],
+          order_id: 1,
+          customer_id: '1',
+          orders__customer_id: '1',
+          product_id: '1',
+          order_date: '2022-01-01',
+          order_amount: 50.0,
+          vendors: ['myntra', 'amazon', 'flipkart'],
+        },
+        {
+          order_id: 2,
+          customer_id: '1',
+          orders__customer_id: '1',
+          product_id: '2',
+          order_date: '2022-01-02',
+          order_amount: 80.0,
+          vendors: ['myntra'],
         },
       ],
-      dimensions: [],
     },
-    expectedOutput: [
-      {
-        order_id: 1,
-        customer_id: '1',
-        orders__customer_id: '1',
-        product_id: '1',
-        order_date: '2022-01-01',
-        order_amount: 50.0,
-        vendors: ['myntra', 'amazon', 'flipkart'],
+    {
+      testName: 'Equals for multiple values',
+      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = '1') AND (orders__customer_id = '2'))`,
+      cubeInput: {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['1', '2'],
+          },
+        ],
+        dimensions: [],
       },
-      {
-        order_id: 2,
-        customer_id: '1',
-        orders__customer_id: '1',
-        product_id: '2',
-        order_date: '2022-01-02',
-        order_amount: 80.0,
-        vendors: ['myntra'],
-      },
-    ],
-  },
-  {
-    testName: 'Equals for multiple values',
-    expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = '1') AND (orders__customer_id = '2'))`,
-    cubeInput: {
-      measures: ['*'],
-      filters: [
-        {
-          member: 'orders.customer_id',
-          operator: 'equals',
-          values: ['1', '2'],
-        },
-      ],
-      dimensions: [],
+      expectedOutput: [],
     },
-    expectedOutput: [],
-  },
+  ],
   {
     testName: 'NotEquals',
     expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id != '1')`,
