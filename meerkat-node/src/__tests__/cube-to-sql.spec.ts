@@ -17,7 +17,10 @@ describe('cube-to-sql', () => {
 
   for (const data of TEST_DATA) {
     it(`Testing ${data.testName}`, async () => {
-      const sql = await cubeQueryToSQL({ query: data.cubeInput, tableSchemas: [TABLE_SCHEMA]});
+      const sql = await cubeQueryToSQL({
+        query: data.cubeInput,
+        tableSchemas: [TABLE_SCHEMA],
+      });
       expect(sql).toEqual(data.expectedSQL);
       console.info(`SQL for ${data.testName}: `, sql);
       //TODO: Remove order by
@@ -69,7 +72,7 @@ describe('cube-to-sql', () => {
       },
       limit: 2,
     };
-    const sql = await cubeQueryToSQL({query, tableSchemas: [TABLE_SCHEMA]});
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
     console.info(`SQL for Simple Cube Query: `, sql);
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -89,7 +92,10 @@ describe('cube-to-sql', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL({query: query, tableSchemas: [TABLE_SCHEMA]});
+    const sql = await cubeQueryToSQL({
+      query: query,
+      tableSchemas: [TABLE_SCHEMA],
+    });
     console.info(`SQL for Simple Cube Query: `, sql);
     expect(sql).toEqual(
       'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
