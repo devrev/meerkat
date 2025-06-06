@@ -7,21 +7,6 @@ import {
   TEST_DATA,
 } from './test-data';
 
-// Helper function to flatten TEST_DATA which contains both objects and arrays
-function flattenTestData() {
-  const flattened: any[] = [];
-  TEST_DATA.forEach((item) => {
-    if (Array.isArray(item)) {
-      flattened.push(...item);
-    } else {
-      flattened.push(item);
-    }
-  });
-  return flattened;
-}
-
-const flattenedTests = flattenTestData();
-
 describe('cube-to-sql', () => {
   beforeAll(async () => {
     // Create orders table
@@ -31,7 +16,7 @@ describe('cube-to-sql', () => {
     await duckdbExec(INPUT_DATA_QUERY);
   });
 
-  flattenedTests.forEach((data: any) => {
+  TEST_DATA.flat().forEach((data) => {
     it(`Testing ${data.testName}`, async () => {
       const sql = await cubeQueryToSQL({
         query: data.cubeInput,
