@@ -1,193 +1,251 @@
 # Meerkat DBM
 
-Meerkat-dbm is a wrapper built on top of [duckdb-wasm](https://github.com/duckdb/duckdb-wasm), designed to manage the database. It handles query execution, manages connections, fetches files, maintains files in cache/browser storage, and oversees swap memory.
+**Meerkat DBM is a browser-first database management layer built on [duckdb-wasm](https://github.com/duckdb/duckdb-wasm). It orchestrates query execution, manages DuckDB instances, caches files, persists data in browser storage, and optimizes memory usage to enable robust, high-performance data processing in web applications.**
 
-## Overview
+It's designed to bring the power of analytical SQL to the browser without compromising application stability or user experience. Whether you're building a data-intensive dashboard, an interactive reporting tool, or an offline-first application, Meerkat DBM provides the foundation you need.
 
-Meerkat DBM addresses critical duckdb-wasm limitations:
+## Architecture
 
-- **Memory Safety**: Prevents OOM errors through sequential execution
-- **Persistence**: IndexedDB storage for data across sessions
-- **File Management**: Handles Parquet, JSON, and URL-based files
-- **Parallel Processing**: Optional iframe-based parallelism
+Meerkat DBM is composed of several key components that work together to manage data and execute queries in the browser:
 
-## Installation
+- **DBM (Database Manager)**: The central orchestrator. It receives queries, manages the execution lifecycle, and coordinates with other components.
+- **FileManager**: Handles all aspects of data storage and retrieval. It can manage data in-memory or persist it to IndexedDB.
+- **InstanceManager**: A user-implemented component responsible for creating, managing, and terminating `duckdb-wasm` instances.
+- **DuckDB Instances**: The underlying `duckdb-wasm` engines where queries are executed, running in the main thread or in iFrames for parallelism.
 
-```bash
-npm install @devrev/meerkat-dbm
-```
+This modular design provides a clear separation of concerns for managing complex data workflows in the browser.
+
+## Why Meerkat DBM?
+
+While `duckdb-wasm` is incredibly powerful, using it directly in a complex web application can be challenging. Meerkat DBM provides a structured, production-ready layer that solves common problems:
+
+- **🧠 Memory Safety**: Prevents Out-Of-Memory (OOM) errors by managing query queues and memory swapping, ensuring your app remains stable even with large datasets.
+- **💾 Persistence**: Offers seamless IndexedDB storage, allowing data to persist across browser sessions.
+- **🗂️ Advanced File Management**: Simplifies handling of various file formats (Parquet, JSON, remote URLs) with intelligent caching and partitioning.
+- **⚡ Parallel Processing**: Unlocks high-performance analytics with an optional iframe-based architecture for parallel query execution, preventing UI freezes.
 
 ## Key Features
 
 ### 🚀 Database Management
 
-- **Instance Management**: Automated DuckDB instance lifecycle
-- **Connection Pooling**: Efficient connection management
-- **Query Queue**: Parallel query execution with intelligent scheduling
-- **Table Locking**: Thread-safe table operations
+- **Instance Management**: Automated lifecycle management for DuckDB instances.
+- **Connection Pooling**: Efficient management of database connections.
+- **Query Queueing**: Intelligent scheduling of queries for sequential or parallel execution.
+- **Table Locking**: Ensures thread-safe table operations during concurrent access.
 
-### 📁 File Management
+### 📂 File Management
 
-- **Multiple Formats**: Support for Parquet, JSON, and URL-based files
-- **Bulk Operations**: Efficient bulk file registration and processing
-- **Partitioning**: Table partitioning support for large datasets
-- **Metadata Handling**: Rich metadata support for tables and files
-- **Multiple Storage Modes**: Choose between different file manager types based on your needs
+- **Multiple Formats**: Native support for Parquet, JSON, and URL-based files.
+- **Bulk Operations**: High-performance APIs for registering and processing files in bulk.
+- **Partitioning**: Support for table partitioning to efficiently manage and query large datasets.
+- **Metadata Handling**: Rich metadata support for tables and files.
+- **Multiple Storage Modes**: Flexible storage options, including in-memory and IndexedDB.
 
-### 🔄 Window Communication
+### 🔄 Parallelism & Communication
 
-- **Inter-Window Messaging**: Seamless communication between main and worker threads
-- **Parallel Processing**: Distribute work across multiple contexts
-- **Event Handling**: Comprehensive event system for monitoring operations
+- **Inter-Window Messaging**: Seamless communication between the main thread and worker iframes.
+- **Work Distribution**: Distributes query workloads across multiple isolated contexts for true parallel processing.
+- **Event System**: A comprehensive event system for monitoring operations and state changes.
 
 ## File Manager Types
 
-### Memory File Manager
+Meerkat DBM offers different file managers to suit your application's needs for performance, persistence, and memory usage.
 
-- **Execution**: Sequential queries
-- **Storage**: In-memory
-- **Use Case**: Predictable memory usage, OOM prevention
+| File Manager Type                   | Query Execution        | Storage   | Best For                               | Parallelism        | Persistence |
+| ----------------------------------- | ---------------------- | --------- | -------------------------------------- | ------------------ | ----------- |
+| **Memory File Manager**             | Sequential             | In-memory | Predictable memory use, OOM prevention | No                 | No          |
+| **IndexedDB File Manager**          | Sequential             | IndexedDB | Large datasets, session persistence    | No                 | Yes         |
+| **Parallel IndexedDB File Manager** | Parallel (via iframes) | IndexedDB | High performance + persistence         | Yes (iframe-based) | Yes         |
 
-### IndexedDB File Manager
+## Installation
 
-- **Execution**: Sequential queries
-- **Storage**: IndexedDB (persistent)
-- **Use Case**: Large datasets, session persistence
-
-### Parallel IndexedDB File Manager
-
-- **Execution**: Parallel queries via iframes
-- **Storage**: IndexedDB (persistent)
-- **Use Case**: High performance + persistence
-
-## Key Features
-
-- **Sequential Execution**: Prevents OOM errors
-- **IndexedDB Storage**: Persistent data across sessions
-- **Memory Swapping**: LRU and query-aware caching
-- **Parallel Processing**: iframe-based architecture for performance
+```bash
+npm install @devrev/meerkat-dbm @duckdb/duckdb-wasm
+```
 
 ## Usage
 
-### Example 1: DBM with Memory File Manager
+### 1. Implement the InstanceManager
 
-Sequential execution with in-memory storage:
+Meerkat DBM requires you to provide an `InstanceManager`. This decouples the library from a specific `duckdb-wasm` version, giving you full control over its instantiation and configuration.
 
 ```typescript
-import { DBM, MemoryFileManager, InstanceManager } from '@devrev/meerkat-dbm';
+// src/instance-manager.ts
+import * as duckdb from '@duckdb/duckdb-wasm';
+import { InstanceManagerType } from '@devrev/meerkat-dbm';
 
-// Initialize components
+// Select the desired DuckDB bundle
+const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+
+export class InstanceManager implements InstanceManagerType {
+  private db: duckdb.AsyncDuckDB | null = null;
+
+  private async initDB(): Promise<duckdb.AsyncDuckDB> {
+    const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+
+    const worker_url = URL.createObjectURL(new Blob([`importScripts("${bundle.mainWorker!}");`], { type: 'text/javascript' }));
+
+    const worker = new Worker(worker_url);
+    const logger = { log: (msg: any) => console.log(msg) };
+    const db = new duckdb.AsyncDuckDB(logger, worker);
+
+    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+
+    URL.revokeObjectURL(worker_url);
+    return db;
+  }
+
+  async getDB(): Promise<duckdb.AsyncDuckDB> {
+    if (!this.db) {
+      this.db = await this.initDB();
+    }
+    return this.db;
+  }
+
+  async terminateDB(): Promise<void> {
+    if (this.db) {
+      await this.db.terminate();
+      this.db = null;
+    }
+  }
+}
+```
+
+### 2. Example: Sequential Queries with Persistent Storage
+
+This example uses the `DBM` with an `IndexedDBFileManager` for safe, sequential query execution and data persistence across browser sessions.
+
+```typescript
+import { DBM, IndexedDBFileManager } from '@devrev/meerkat-dbm';
+import { InstanceManager } from './instance-manager';
+
+// 1. Create the managers
 const instanceManager = new InstanceManager();
-
-const fileManager = new MemoryFileManager({
+const fileManager = new IndexedDBFileManager({
   instanceManager,
-  logger,
+  // This function is called by Meerkat to fetch file data when needed
   fetchTableFileBuffers: async (tableName) => {
-    const response = await fetch(`/api/data/${tableName}.parquet`);
-    const buffer = new Uint8Array(await response.arrayBuffer());
-    return [{ tableName, fileName: `${tableName}.parquet`, buffer }];
+    // In a real app, you would fetch data from a indexdb
+    return [];
   },
 });
 
-// Create DBM instance
+// 2. Create the DBM instance
 const dbm = new DBM({
-  fileManager,
   instanceManager,
-  logger,
+  fileManager,
+  onEvent: (event) => console.info('DBM Event:', event),
+  options: {
+    // Automatically shut down the DuckDB instance after 5s of inactivity
+    shutdownInactiveTime: 5000,
+  },
 });
 
-// Register data
+// 3. Register data
 await fileManager.registerJSON({
   tableName: 'sales',
-  fileName: 'sales.parquet',
+  fileName: 'sales.json',
   json: [
     { id: 1, product: 'Laptop', amount: 1200 },
     { id: 2, product: 'Mouse', amount: 25 },
+    { id: 3, product: 'Keyboard', amount: 75 },
   ],
 });
 
-// Execute queries sequentially
+// 4. Run a query
 const results = await dbm.query('SELECT * FROM sales WHERE amount > 50');
 console.log(results);
+
+// Expected output:
+// [
+//   { id: 1, product: 'Laptop', amount: 1200 },
+//   { id: 3, product: 'Keyboard', amount: 75 },
+// ]
 ```
 
-### Example 2: Parallel DBM with Parallel IndexedDB File Manager
+### 3. Example: Parallel Queries with IFrame Runners
 
-Parallel execution with persistent storage:
+This setup uses `DBMParallel` and `ParallelIndexedDBFileManager` for maximum performance, executing queries in parallel across multiple iframe-based DuckDB instances.
 
 ```typescript
-import { ParallelDBM, ParallelIndexedDBFileManager, InstanceManager, Logger } from '@devrev/meerkat-dbm';
+import { DBMParallel, IFrameRunnerManager, ParallelIndexedDBFileManager } from '@devrev/meerkat-dbm';
+import log from 'loglevel';
+import { InstanceManager } from './instance-manager';
 
-// Initialize components
-const logger = new Logger();
-const instanceManager = new InstanceManager({ logger });
+// 1. Create instance and file managers
+const instanceManager = new InstanceManager();
 const fileManager = new ParallelIndexedDBFileManager({
   instanceManager,
-  logger,
-  fetchTableFileBuffers: async (tableName) => {
-    const response = await fetch(`/api/data/${tableName}.parquet`);
-    const buffer = new Uint8Array(await response.arrayBuffer());
-    return [{ tableName, fileName: `${tableName}.parquet`, buffer }];
+  fetchTableFileBuffers: async (table) => [],
+  logger: log,
+});
+
+// 2. Set up the iframe runner manager for parallel execution
+const iframeManager = new IFrameRunnerManager({
+  // URL to the runner HTML file that hosts the DuckDB instance
+  runnerURL: 'http://localhost:4204/runner/indexeddb-runner.html',
+  origin: 'http://localhost:4204',
+  totalRunners: 4, // Number of parallel iframes
+  fetchTableFileBuffers: async (table) => [],
+  logger: log,
+});
+
+// 3. Create the parallel DBM instance
+const parallelDBM = new DBMParallel({
+  instanceManager,
+  fileManager,
+  iFrameRunnerManager: iframeManager,
+  logger: log,
+  options: {
+    shutdownInactiveTime: 10000,
   },
 });
 
-// Create Parallel DBM instance
-const parallelDBM = new ParallelDBM({
-  fileManager,
-  instanceManager,
-  logger,
-});
-
-// Register data with partitioning
+// 4. Register data
 await fileManager.bulkRegisterJSON([
   {
     tableName: 'transactions',
-    fileName: 'transactions.parquet',
-    partitions: ['2024'],
+    fileName: 'transactions.json',
     json: [
-      { id: 1, product: 'Laptop', amount: 1200 },
-      { id: 2, product: 'Mouse', amount: 25 },
+      { id: 1, product_id: 101, amount: 1200 },
+      { id: 2, product_id: 102, amount: 25 },
     ],
   },
   {
     tableName: 'products',
-    fileName: 'products.parquet',
+    fileName: 'products.json',
     json: [
-      { id: 1, name: 'Laptop', category: 'Electronics' },
-      { id: 2, name: 'Mouse', category: 'Electronics' },
+      { id: 101, name: 'Laptop', category: 'Electronics' },
+      { id: 102, name: 'Mouse', category: 'Accessories' },
     ],
   },
 ]);
 
-// Execute queries in parallel
-const [sales, analysis] = await Promise.all([
+// 5. Execute queries in parallel
+const [transactions, analysis] = await Promise.all([
   parallelDBM.query('SELECT * FROM transactions WHERE amount > 100'),
   parallelDBM.query(`
-    SELECT p.category, COUNT(*) as count 
+    SELECT p.category, COUNT(*) as product_count 
     FROM transactions t 
-    JOIN products p ON t.product = p.name 
+    JOIN products p ON t.product_id = p.id 
     GROUP BY p.category
   `),
 ]);
 
-console.log('Sales:', sales);
-console.log('Analysis:', analysis);
+console.log('High-Value Transactions:', transactions);
+console.log('Category Analysis:', analysis);
 ```
 
-## API
+## API Overview
 
-```typescript
-// Core imports
-import { DBM, MemoryFileManager, ParallelDBM, ParallelIndexedDBFileManager } from '@devrev/meerkat-dbm';
+- **`DBM`**: The main class for sequential query execution and database management.
+- **`DBMParallel`**: Extends `DBM` to support parallel query execution using iframe runners.
+- **`MemoryFileManager`**: An in-memory file manager. Data is lost when the session ends.
+- **`IndexedDBFileManager`**: A file manager that persists data in IndexedDB.
+- **`ParallelIndexedDBFileManager`**: An IndexedDB-based file manager optimized for use with `DBMParallel`.
+- **`IFrameRunnerManager`**: Manages the pool of iframe runners for parallel query execution.
+- **`InstanceManagerType`**: The interface your custom `InstanceManager` must implement to manage the `duckdb-wasm` lifecycle.
 
-// File registration
-await fileManager.registerJSON({ tableName, fileName, json });
-await fileManager.bulkRegisterJSON([...]);
+## License
 
-// Query execution
-const result = await dbm.query('SELECT * FROM table');
-```
-
-## Repository
-
-[GitHub](https://github.com/devrev/meerkat)
+This project is licensed under the MIT License.

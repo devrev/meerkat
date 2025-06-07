@@ -1,11 +1,69 @@
-# meerkat-node
+# @devrev/meerkat-node
 
-This library was generated with [Nx](https://nx.dev).
+`@devrev/meerkat-node` is a library for converting cube queries into SQL and executing them in a Node.js environment using [DuckDB](https://duckdb.org/). It serves as a server-side query engine within the Meerkat ecosystem.
 
-## Building
+This package uses `@devrev/meerkat-core` to generate a DuckDB-compatible AST and `@duckdb/node-api` to execute the resulting query against local data files like Parquet or CSV.
 
-Run `nx build meerkat-node` to build the library.
+## Key Features
 
-## Running unit tests
+- **Cube to SQL Execution**: Translates cube queries into SQL and executes them.
+- **Node.js Optimized**: Built to work seamlessly with `@duckdb/node-api`.
+- **File-based Data**: Designed to query data directly from files (e.g., Parquet, CSV).
+- **Simplified API**: Provides a `duckdbExec` utility for easy query execution.
 
-Run `nx test meerkat-node` to execute the unit tests via [Jest](https://jestjs.io).
+## Installation
+
+```bash
+npm install @devrev/meerkat-node @devrev/meerkat-core
+```
+
+## Basic Usage
+
+Here's a basic example of how to convert a cube query into SQL and execute it.
+
+```typescript
+import { cubeQueryToSQL, duckdbExec } from '@devrev/meerkat-node';
+import { Query, TableSchema } from '@devrev/meerkat-core';
+
+async function main() {
+  // 1. Define your table schema. In Node.js, the SQL typically points to a data file.
+  const tableSchema: TableSchema = {
+    name: 'users',
+    sql: `SELECT * FROM 'users.parquet'`,
+    columns: [
+      { name: 'id', type: 'INTEGER' },
+      { name: 'name', type: 'VARCHAR' },
+      { name: 'city', type: 'VARCHAR' },
+      { name: 'signed_up_at', type: 'TIMESTAMP' },
+    ],
+  };
+
+  // 2. Define your Cube query.
+  const query: Query = {
+    measures: ['users.count'],
+    dimensions: ['users.city'],
+    filters: [
+      {
+        member: 'users.city',
+        operator: 'equals',
+        values: ['New York'],
+      },
+    ],
+    limit: 100,
+  };
+
+  // 3. Convert the query to SQL.
+  const sql = await cubeQueryToSQL({
+    query,
+    tableSchemas: [tableSchema],
+  });
+
+  console.log('Generated SQL:', sql);
+
+  // 4. Execute the query using DuckDB.
+  const results = await duckdbExec(sql);
+  console.log('Query Results:', results);
+}
+
+main();
+```
