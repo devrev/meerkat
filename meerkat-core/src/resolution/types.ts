@@ -1,4 +1,4 @@
-import { TableSchema } from '@devrev/meerkat-core';
+import { TableSchema } from '../types/cube-types/table';
 
 export interface ResolutionColumnConfig {
   // Name of the column that needs resolution.
