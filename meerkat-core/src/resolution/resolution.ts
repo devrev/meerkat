@@ -1,4 +1,5 @@
 import {
+  JoinPath,
   Member,
   Query,
   splitIntoDataSourceAndFields,
@@ -7,7 +8,7 @@ import {
 
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
-export const resolveDimension = (dim: string, tableSchemas: TableSchema[]) => {
+const resolveDimension = (dim: string, tableSchemas: TableSchema[]) => {
   const [tableName, columnName] = splitIntoDataSourceAndFields(dim);
   const tableSchema = tableSchemas.find((ts) => ts.name === tableName);
   if (!tableSchema) {
@@ -25,10 +26,7 @@ export const resolveDimension = (dim: string, tableSchemas: TableSchema[]) => {
   };
 };
 
-export const resolveMeasure = (
-  measure: string,
-  tableSchemas: TableSchema[]
-) => {
+const resolveMeasure = (measure: string, tableSchemas: TableSchema[]) => {
   const [tableName, columnName] = splitIntoDataSourceAndFields(measure);
   const tableSchema = tableSchemas.find((ts) => ts.name === tableName);
   if (!tableSchema) {
@@ -46,13 +44,35 @@ export const resolveMeasure = (
   };
 };
 
+export const createBaseTableSchema = (
+  baseSql: string,
+  tableSchemas: TableSchema[],
+  resolutionConfig: ResolutionConfig,
+  measures: Member[],
+  dimensions?: Member[]
+) => ({
+  name: BASE_DATA_SOURCE_NAME,
+  sql: baseSql,
+  measures: [],
+  dimensions: [
+    ...(dimensions || []).map((dim) => resolveDimension(dim, tableSchemas)),
+    ...(measures || []).map((meas) => resolveMeasure(meas, tableSchemas)),
+  ],
+  joins: resolutionConfig.columnConfigs.map((config) => ({
+    sql: `${BASE_DATA_SOURCE_NAME}.${generateName(
+      config.name
+    )} = ${generateName(config.name)}.${config.joinColumn}`,
+  })),
+});
+
 export const generateResolutionSchemas = (config: ResolutionConfig) => {
   const resolutionSchemas: TableSchema[] = [];
   config.columnConfigs.forEach((colConfig) => {
-    const { source, resolutionColumns } = colConfig;
-    const tableSchema = config.tableSchemas.find((ts) => ts.name === source);
+    const tableSchema = config.tableSchemas.find(
+      (ts) => ts.name === colConfig.source
+    );
     if (!tableSchema) {
-      throw new Error(`Table schema not found for ${source}`);
+      throw new Error(`Table schema not found for ${colConfig.source}`);
     }
 
     const baseName = generateName(colConfig.name);
@@ -64,7 +84,7 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
       name: baseName,
       sql: tableSchema.sql,
       measures: [],
-      dimensions: resolutionColumns.map((col) => {
+      dimensions: colConfig.resolutionColumns.map((col) => {
         const dimension = tableSchema.dimensions.find((d) => d.name === col);
         if (!dimension) {
           throw new Error(`Dimension not found: ${col}`);
@@ -104,7 +124,18 @@ export const generateResolvedDimensions = (
   return resolvedDimensions;
 };
 
+export const generateResolutionJoinPaths = (
+  resolutionConfig: ResolutionConfig
+): JoinPath[] => {
+  return resolutionConfig.columnConfigs.map((config) => [
+    {
+      left: BASE_DATA_SOURCE_NAME,
+      right: generateName(config.name),
+      on: generateName(config.name),
+    },
+  ]);
+};
+
 // Generates a valid column name from a generic reference
 // by replacing '.' with '__'.
-export const generateName = (columnName: string) =>
-  columnName.replace('.', '__');
+const generateName = (columnName: string) => columnName.replace('.', '__');

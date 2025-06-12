@@ -1,4 +1,4 @@
-import { ContextParams, Query, TableSchema } from '@devrev/meerkat-core';
+import { TableSchema } from '@devrev/meerkat-core';
 
 export interface ResolutionColumnConfig {
   // Name of the column that needs resolution.
@@ -15,13 +15,6 @@ export interface ResolutionColumnConfig {
 export interface ResolutionConfig {
   columnConfigs: ResolutionColumnConfig[];
   tableSchemas: TableSchema[];
-}
-
-export interface CubeQueryToSQLWithResolutionParams {
-  query: Query;
-  tableSchemas: TableSchema[];
-  resolutionConfig: ResolutionConfig;
-  contextParams?: ContextParams;
 }
 
 export const BASE_DATA_SOURCE_NAME = '__base_query';

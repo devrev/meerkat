@@ -1,4 +1,4 @@
-import { cubeQueryToSQLWithResolution } from '../cube-to-sql/cube-to-sql-with-resolution';
+import { cubeQueryToSQLWithResolution } from '../cube-to-sql-with-resolution/cube-to-sql-with-resolution';
 
 export const BASE_TABLE_SCHEMA = {
   name: 'base_table',
