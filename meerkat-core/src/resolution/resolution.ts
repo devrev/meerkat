@@ -1,12 +1,7 @@
-import {
-  BASE_DATA_SOURCE_NAME,
-  JoinPath,
-  Member,
-  Query,
-  ResolutionConfig,
-  splitIntoDataSourceAndFields,
-  TableSchema,
-} from '@devrev/meerkat-core';
+import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
+import { JoinPath, Member, Query } from '../types/cube-types/query';
+import { TableSchema } from '../types/cube-types/table';
+import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
 const resolveDimension = (dim: string, tableSchemas: TableSchema[]) => {
   const [tableName, columnName] = splitIntoDataSourceAndFields(dim);
