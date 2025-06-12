@@ -15,7 +15,7 @@ import {
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
-interface CubeQueryToSQLParams {
+export interface CubeQueryToSQLParams {
   query: Query;
   tableSchemas: TableSchema[];
   contextParams?: ContextParams;
