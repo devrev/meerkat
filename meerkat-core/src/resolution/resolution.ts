@@ -1,12 +1,12 @@
 import {
+  BASE_DATA_SOURCE_NAME,
   JoinPath,
   Member,
   Query,
+  ResolutionConfig,
   splitIntoDataSourceAndFields,
   TableSchema,
 } from '@devrev/meerkat-core';
-
-import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
 const resolveDimension = (dim: string, tableSchemas: TableSchema[]) => {
   const [tableName, columnName] = splitIntoDataSourceAndFields(dim);
