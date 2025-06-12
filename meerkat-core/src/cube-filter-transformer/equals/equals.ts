@@ -1,8 +1,8 @@
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { isArrayTypeMember } from '../../utils/is-array-member-type';
+import { andDuckdbCondition } from '../and/and';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
-import { orDuckdbCondition } from '../or/or';
 import { equalsArrayTransform } from './equals-array';
 
 export const equalsTransform: CubeToParseExpressionTransform = (query) => {
@@ -32,11 +32,11 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
   }
 
   /**
-   * If there are multiple values, we need to create an OR condition
+   * If there are multiple values, we need to create an AND condition
    */
-  const orCondition = orDuckdbCondition();
+  const andCondition = andDuckdbCondition();
   values.forEach((value) => {
-    orCondition.children.push(
+    andCondition.children.push(
       baseDuckdbCondition(
         member,
         ExpressionType.COMPARE_EQUAL,
@@ -45,5 +45,5 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
       )
     );
   });
-  return orCondition;
+  return andCondition;
 };
