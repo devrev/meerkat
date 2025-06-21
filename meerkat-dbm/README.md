@@ -1,6 +1,6 @@
-# Meerkat DBM
+# @devrev/meerkat-dbm
 
-**Meerkat DBM is a browser-first database management layer built on [duckdb-wasm](https://github.com/duckdb/duckdb-wasm). It orchestrates query execution, manages DuckDB instances, caches files, persists data in browser storage, and optimizes memory usage to enable robust, high-performance data processing in web applications.**
+`@devrev/meerkat-dbm` is a browser-first database management layer built on [duckdb-wasm](https://github.com/duckdb/duckdb-wasm). It orchestrates query execution, manages DuckDB instances, caches files, persists data in browser storage, and optimizes memory usage to enable robust, high-performance data processing in web applications.
 
 It's designed to bring the power of analytical SQL to the browser without compromising application stability or user experience. Whether you're building a data-intensive dashboard, an interactive reporting tool, or an offline-first application, Meerkat DBM provides the foundation you need.
 
