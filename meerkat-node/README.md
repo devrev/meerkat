@@ -2,13 +2,12 @@
 
 `@devrev/meerkat-node` is a library for converting cube queries into SQL and executing them in a Node.js environment using [DuckDB](https://duckdb.org/). It serves as a server-side query engine within the Meerkat ecosystem.
 
-This package uses `@devrev/meerkat-core` to generate a DuckDB-compatible AST and `@duckdb/node-api` to execute the resulting query against local data files like Parquet or CSV.
+This package uses `@devrev/meerkat-core` to generate a DuckDB-compatible AST and `duckdb` to execute the resulting query against local data files like Parquet or CSV.
 
 ## Key Features
 
 - **Cube to SQL Execution**: Translates cube queries into SQL and executes them.
-- **Node.js Optimized**: Built to work seamlessly with `@duckdb/node-api`.
-- **File-based Data**: Designed to query data directly from files (e.g., Parquet, CSV).
+- **Node.js Optimized**: Built to work seamlessly with `duckdb`.
 - **Simplified API**: Provides a `duckdbExec` utility for easy query execution.
 
 ## Installation
@@ -58,10 +57,9 @@ async function main() {
     tableSchemas: [tableSchema],
   });
 
-  console.log('Generated SQL:', sql);
-
   // 4. Execute the query using DuckDB.
   const results = await duckdbExec(sql);
+
   console.log('Query Results:', results);
 }
 

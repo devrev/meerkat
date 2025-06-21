@@ -35,27 +35,11 @@ While `duckdb-wasm` is incredibly powerful, using it directly in a complex web a
 
 ### 📂 File Management
 
-- **Multiple Formats**: Native support for Parquet, JSON, and URL-based files.
+- **Multiple Formats**: Native support for Parquet, JSON files.
 - **Bulk Operations**: High-performance APIs for registering and processing files in bulk.
 - **Partitioning**: Support for table partitioning to efficiently manage and query large datasets.
 - **Metadata Handling**: Rich metadata support for tables and files.
 - **Multiple Storage Modes**: Flexible storage options, including in-memory and IndexedDB.
-
-### 🔄 Parallelism & Communication
-
-- **Inter-Window Messaging**: Seamless communication between the main thread and worker iframes.
-- **Work Distribution**: Distributes query workloads across multiple isolated contexts for true parallel processing.
-- **Event System**: A comprehensive event system for monitoring operations and state changes.
-
-## File Manager Types
-
-Meerkat DBM offers different file managers to suit your application's needs for performance, persistence, and memory usage.
-
-| File Manager Type                   | Query Execution        | Storage   | Best For                               | Parallelism        | Persistence |
-| ----------------------------------- | ---------------------- | --------- | -------------------------------------- | ------------------ | ----------- |
-| **Memory File Manager**             | Sequential             | In-memory | Predictable memory use, OOM prevention | No                 | No          |
-| **IndexedDB File Manager**          | Sequential             | IndexedDB | Large datasets, session persistence    | No                 | Yes         |
-| **Parallel IndexedDB File Manager** | Parallel (via iframes) | IndexedDB | High performance + persistence         | Yes (iframe-based) | Yes         |
 
 ## Installation
 
@@ -155,12 +139,6 @@ await fileManager.registerJSON({
 // 4. Run a query
 const results = await dbm.query('SELECT * FROM sales WHERE amount > 50');
 console.log(results);
-
-// Expected output:
-// [
-//   { id: 1, product: 'Laptop', amount: 1200 },
-//   { id: 3, product: 'Keyboard', amount: 75 },
-// ]
 ```
 
 ### 3. Example: Parallel Queries with IFrame Runners
@@ -222,7 +200,7 @@ await fileManager.bulkRegisterJSON([
 ]);
 
 // 5. Execute queries in parallel
-const [transactions, analysis] = await Promise.all([
+const results = await Promise.all([
   parallelDBM.query('SELECT * FROM transactions WHERE amount > 100'),
   parallelDBM.query(`
     SELECT p.category, COUNT(*) as product_count 
@@ -232,20 +210,5 @@ const [transactions, analysis] = await Promise.all([
   `),
 ]);
 
-console.log('High-Value Transactions:', transactions);
-console.log('Category Analysis:', analysis);
+console.log('Query Results', results);
 ```
-
-## API Overview
-
-- **`DBM`**: The main class for sequential query execution and database management.
-- **`DBMParallel`**: Extends `DBM` to support parallel query execution using iframe runners.
-- **`MemoryFileManager`**: An in-memory file manager. Data is lost when the session ends.
-- **`IndexedDBFileManager`**: A file manager that persists data in IndexedDB.
-- **`ParallelIndexedDBFileManager`**: An IndexedDB-based file manager optimized for use with `DBMParallel`.
-- **`IFrameRunnerManager`**: Manages the pool of iframe runners for parallel query execution.
-- **`InstanceManagerType`**: The interface your custom `InstanceManager` must implement to manage the `duckdb-wasm` lifecycle.
-
-## License
-
-This project is licensed under the MIT License.

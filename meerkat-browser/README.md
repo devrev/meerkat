@@ -72,10 +72,9 @@ async function main() {
     tableSchemas,
   });
 
-  console.log('Generated SQL:', sqlQuery);
-
   // 5. You can now execute the generated SQL query with DuckDB
   const result = await connection.query(sqlQuery);
+
   console.log(
     'Query Results:',
     result.toArray().map((row) => row.toJSON())
