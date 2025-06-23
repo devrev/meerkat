@@ -119,4 +119,21 @@ describe('cube-to-sql', () => {
       'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
     );
   });
+  it('Should handle empty order', async () => {
+    const query = {
+      order: {},
+      measures: ['*'],
+      filters: [
+        {
+          or: [],
+        },
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
+    console.info(`SQL for Simple Cube Query: `, sql);
+    expect(sql).toEqual(
+      'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
+    );
+  });
 });
