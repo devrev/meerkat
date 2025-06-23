@@ -124,7 +124,7 @@ export const cubeToDuckdbAST = (
     node.group_sets = [groupSets];
   }
   node.modifiers = [];
-  if (query.order) {
+  if (query.order && Object.keys(query.order).length > 0) {
     node.modifiers.push(cubeOrderByToAST(query.order));
   }
   if (query.limit || query.offset) {
