@@ -105,6 +105,7 @@ describe('cube-to-sql', () => {
 
   it('Without filter query generator with empty or', async () => {
     const query = {
+      order: {},
       measures: ['*'],
       filters: [
         {
