@@ -1,8 +1,8 @@
 {
   "name": "@devrev/meerkat-browser",
-  "version": "0.0.97",
+  "version": "0.0.98",
   "dependencies": {
-    "@swc/helpers": "~0.5.0",
+    "tslib": "^2.3.0",
     "@devrev/meerkat-core": "*",
     "@duckdb/duckdb-wasm": "1.28.1-dev258.0"
   },
