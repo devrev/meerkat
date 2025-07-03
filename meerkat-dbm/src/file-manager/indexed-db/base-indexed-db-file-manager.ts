@@ -1,7 +1,7 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
-import { Table, TableWiseFiles } from '../../types';
+import { Table } from '../../types';
 import { getBufferFromJSON, isDefined } from '../../utils';
 import {
   FileBufferStore,
@@ -77,25 +77,16 @@ export abstract class BaseIndexedDBFileManager implements FileManagerType {
     });
   }
 
-  async getFilesNameForTables(
-    tables: TableConfig[]
-  ): Promise<TableWiseFiles[]> {
-    const tableNames = tables.map((table) => table.name);
+  async getFilesNameForTables(tables: TableConfig[]): Promise<Table[]> {
+    const results = await Promise.all(
+      tables.map(async (table) => {
+        const tableData = await this.getTableData(table);
 
-    const tableData = (await this.indexedDB.tablesKey.bulkGet(tableNames))
-      .filter(isDefined)
-      .reduce((tableObj, table) => {
-        tableObj[table.tableName] = table;
-        return tableObj;
-      }, {} as { [key: string]: Table });
+        return tableData;
+      })
+    );
 
-    return tables.map((table) => ({
-      tableName: table.name,
-      files: getFilesByPartition(
-        tableData[table.name]?.files ?? [],
-        table.partitions
-      ),
-    }));
+    return results.filter(isDefined);
   }
 
   async getTableData(table: TableConfig): Promise<Table | undefined> {
