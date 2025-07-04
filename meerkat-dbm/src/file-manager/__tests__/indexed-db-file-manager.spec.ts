@@ -244,4 +244,30 @@ describe('IndexedDBFileManager', () => {
       expect.arrayContaining(JSON_FILES.map((file) => file.fileName))
     );
   });
+
+  it('should get the files for tables', async () => {
+    const metadata = {
+      test: 'test',
+    };
+
+    await fileManager.registerFileBuffer(fileBuffer);
+
+    await fileManager.setTableMetadata('taxi1', metadata);
+
+    const files = await fileManager.getFilesNameForTables([{ name: 'taxi1' }]);
+
+    expect(files).toEqual([
+      {
+        tableName: 'taxi1',
+        files: [
+          {
+            fileName: 'taxi1.parquet',
+            fileType: 'parquet',
+            partitions: fileBuffer.partitions,
+          },
+        ],
+        metadata,
+      },
+    ]);
+  });
 });
