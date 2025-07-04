@@ -22,6 +22,12 @@ export class InstanceManager implements InstanceManagerType {
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
     URL.revokeObjectURL(worker_url);
+
+    const connection = await db.connect();
+    await connection.query('create schema system;');
+
+    await connection.close();
+
     return db;
   }
 

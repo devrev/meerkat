@@ -6,7 +6,7 @@ import {
   FileManagerType,
   getMainAppName,
   getRunnerAppName,
-  RunnerMemoryDBFileManager,
+  ParallelIndexedDBFileManager,
   WindowCommunication,
 } from '@devrev/meerkat-dbm';
 
@@ -72,7 +72,7 @@ export function App() {
   }
 
   if (!fileManagerRef.current) {
-    fileManagerRef.current = new RunnerMemoryDBFileManager({
+    fileManagerRef.current = new ParallelIndexedDBFileManager({
       instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async () => [],
       logger: log,
@@ -82,7 +82,6 @@ export function App() {
           payload: event,
         });
       },
-      communication: communicationRef.current,
     });
   }
 
@@ -119,6 +118,11 @@ export function App() {
                           tableWiseFiles: tableWiseFiles,
                         },
                       });
+
+                    console.info(
+                      'preQuery inside app',
+                      preQueryMessage?.message
+                    );
 
                     const preQueries: string[] = preQueryMessage?.message ?? [];
 

@@ -39,7 +39,7 @@ export const ParallelIndexedDBMProvider = ({
       return;
     }
     const iframeManager = new IFrameRunnerManager({
-      runnerURL: 'http://localhost:4204/runner/indexeddb-runner.html',
+      runnerURL: 'http://localhost:4204/runner/index.html',
       origin: 'http://localhost:4204',
       totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
@@ -48,6 +48,7 @@ export const ParallelIndexedDBMProvider = ({
       fetchPreQuery: (runnerId: string, tableWiseFiles: TableWiseFiles[]) => {
         const preQueries: string[] = [];
 
+        console.info('tableWiseFiles', tableWiseFiles);
         for (const tableWiseFile of tableWiseFiles) {
           preQueries.push(
             generateViewQuery(

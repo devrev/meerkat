@@ -1,4 +1,3 @@
-import { TableConfig } from '../../dbm/types';
 import {
   FileManagerConstructorOptions,
   FileManagerType,
@@ -11,9 +10,5 @@ export class ParallelIndexedDBFileManager
 {
   constructor(options: FileManagerConstructorOptions) {
     super(options);
-  }
-
-  override async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
-    // no-op
   }
 }

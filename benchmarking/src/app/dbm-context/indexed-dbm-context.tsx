@@ -9,9 +9,7 @@ import { useAsyncDuckDB } from './use-async-duckdb';
 export const IndexedDBMProvider = ({ children }: { children: JSX.Element }) => {
   const fileManagerRef = React.useRef<IndexedDBFileManager | null>(null);
   const [dbm, setdbm] = useState<DBM | null>(null);
-  const instanceManagerRef = React.useRef<InstanceManager>(
-    new InstanceManager()
-  );
+  const instanceManagerRef = React.useRef(new InstanceManager());
 
   const dbState = useAsyncDuckDB();
 
