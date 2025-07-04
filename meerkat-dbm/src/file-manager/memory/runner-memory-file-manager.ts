@@ -1,7 +1,7 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
-import { Table, TableWiseFiles } from '../../types';
+import { Table } from '../../types';
 import {
   convertSharedArrayBufferToUint8Array,
   getBufferFromJSON,
@@ -152,9 +152,7 @@ export class RunnerMemoryDBFileManager implements FileManagerType {
     });
   }
 
-  async getFilesNameForTables(
-    tables: TableConfig[]
-  ): Promise<TableWiseFiles[]> {
+  async getFilesNameForTables(tables: TableConfig[]): Promise<Table[]> {
     const tableNames = tables.map((table) => table.name);
 
     return tableNames.map((tableName) => {

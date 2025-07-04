@@ -1,6 +1,6 @@
 import { QueryOptions, TableConfig } from '../dbm/types';
 import { DBMEvent } from '../logger';
-import { TableWiseFiles } from '../types';
+import { Table } from '../types';
 
 export const BROWSER_RUNNER_TYPE = {
   RUNNER_ON_READY: 'RUNNER_ON_READY',
@@ -47,7 +47,7 @@ export interface BrowserRunnerGetFileBuffersMessage {
 export interface BrowserRunnerPreQueryMessage {
   type: typeof BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY;
   payload: {
-    tableWiseFiles: TableWiseFiles[];
+    tables: Table[];
   };
 }
 

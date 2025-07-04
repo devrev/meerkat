@@ -2,9 +2,9 @@ import {
   DBMParallel,
   IFrameRunnerManager,
   ParallelIndexedDBFileManager,
+  Table,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import { TableWiseFiles } from 'meerkat-dbm/src/types/common-types';
 import { useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
@@ -45,14 +45,14 @@ export const ParallelIndexedDBMProvider = ({
       fetchTableFileBuffers: async (table) => {
         return [];
       },
-      fetchPreQuery: (runnerId: string, tableWiseFiles: TableWiseFiles[]) => {
+      fetchPreQuery: (runnerId: string, tables: Table[]) => {
         const preQueries: string[] = [];
 
-        for (const tableWiseFile of tableWiseFiles) {
+        for (const tableData of tables) {
           preQueries.push(
             generateViewQuery(
-              tableWiseFile.tableName,
-              tableWiseFile.files.map((file) => file.fileName)
+              tableData.tableName,
+              tableData.files.map((file) => file.fileName)
             )
           );
         }

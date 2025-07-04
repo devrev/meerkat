@@ -1,7 +1,7 @@
 import { InstanceManagerType } from '../../dbm/instance-manager';
 import { TableConfig } from '../../dbm/types';
 import { DBMEvent, DBMLogger } from '../../logger';
-import { Table, TableWiseFiles } from '../../types';
+import { Table } from '../../types';
 import {
   convertUint8ArrayToSharedArrayBuffer,
   getBufferFromJSON,
@@ -115,9 +115,7 @@ export class ParallelMemoryFileManager
     // no-op
   }
 
-  async getFilesNameForTables(
-    tables: TableConfig[]
-  ): Promise<TableWiseFiles[]> {
+  async getFilesNameForTables(tables: TableConfig[]): Promise<Table[]> {
     return [];
   }
 

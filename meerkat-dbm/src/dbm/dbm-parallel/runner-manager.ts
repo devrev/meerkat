@@ -1,6 +1,6 @@
 import { FileBufferStore } from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
-import { TableWiseFiles } from '../../types';
+import { Table } from '../../types';
 import {
   BROWSER_RUNNER_TYPE,
   BrowserRunnerMessage,
@@ -13,10 +13,7 @@ export interface IFrameRunnerManagerConstructor {
   runnerURL: string;
   origin: string;
   fetchTableFileBuffers: (tables: TableConfig[]) => Promise<FileBufferStore[]>;
-  fetchPreQuery: (
-    runnerId: string,
-    tableWiseFiles: TableWiseFiles[]
-  ) => string[];
+  fetchPreQuery: (runnerId: string, tables: Table[]) => string[];
   totalRunners: number;
   logger: DBMLogger;
   onEvent?: (event: DBMEvent) => void;
@@ -46,10 +43,7 @@ export class IFrameRunnerManager {
   private fetchTableFileBuffers: (
     tables: TableConfig[]
   ) => Promise<FileBufferStore[]>;
-  private fetchPreQuery: (
-    runnerId: string,
-    tableWiseFiles: TableWiseFiles[]
-  ) => string[];
+  private fetchPreQuery: (runnerId: string, tables: Table[]) => string[];
 
   constructor({
     runnerURL,
@@ -173,9 +167,9 @@ export class IFrameRunnerManager {
             return;
           }
 
-          const { tableWiseFiles } = message.message.payload;
+          const { tables } = message.message.payload;
 
-          const preQueries = this.fetchPreQuery(runnerId, tableWiseFiles);
+          const preQueries = this.fetchPreQuery(runnerId, tables);
 
           manager.communication.sendResponse(message.uuid, preQueries);
         }

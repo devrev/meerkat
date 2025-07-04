@@ -4,7 +4,7 @@ import {
   FileJsonStore,
   FileManagerType,
 } from '../../file-manager/file-manager-type';
-import { FileData, Table, TableWiseFiles } from '../../types';
+import { FileData, Table } from '../../types';
 import { DBM } from '../dbm';
 import { DBMConstructorOptions, TableConfig } from '../types';
 import { InstanceManager } from './mock';
@@ -77,10 +77,8 @@ export class MockFileManager implements FileManagerType {
     }
   }
 
-  async getFilesNameForTables(
-    tableNames: TableConfig[]
-  ): Promise<TableWiseFiles[]> {
-    const data: TableWiseFiles[] = [];
+  async getFilesNameForTables(tableNames: TableConfig[]): Promise<Table[]> {
+    const data: Table[] = [];
 
     for (const { name: tableName } of tableNames) {
       const files: FileData[] = [];
