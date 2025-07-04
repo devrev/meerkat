@@ -1,4 +1,4 @@
-import { Table } from 'meerkat-dbm/src/types';
+import { Table } from '@devrev/meerkat-dbm';
 import { useMemo, useState } from 'react';
 import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
