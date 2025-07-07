@@ -1,65 +1,106 @@
 import { TableLock } from './types';
 
+/*
+ * A table lock manager that allows multiple readersCount or a single writer to access a table at a time.
+ */
 export class TableLockManager {
   private tableLockRegistry: Record<string, TableLock> = {};
 
-  async lockTables(tableNames: string[]): Promise<void> {
-    const promises = [];
+  private getOrCreateLock(tableName: string): TableLock {
+    if (!this.tableLockRegistry[tableName]) {
+      this.tableLockRegistry[tableName] = {
+        readersCount: 0,
+        readersQueue: [],
+        writersQueue: [],
+        writer: false,
+      };
+    }
+    return this.tableLockRegistry[tableName];
+  }
+
+  async lockTables(
+    tableNames: string[],
+    mode: 'read' | 'write' = 'write'
+  ): Promise<void> {
+    const promises: Promise<void>[] = [];
 
     for (const tableName of tableNames) {
-      const tableLock = this.tableLockRegistry[tableName];
+      const tableLock = this.getOrCreateLock(tableName);
 
-      // If the table lock doesn't exist, create a new lock
-      if (!tableLock) {
-        this.tableLockRegistry[tableName] = {
-          isLocked: true,
-          promiseQueue: [],
-        };
-        continue;
-      }
+      if (mode === 'read') {
+        // Can read if no writer
+        if (!tableLock.writer) {
+          tableLock.readersCount++;
+          continue;
+        }
 
-      // If the table is already locked, add the promise to the queue
-      if (tableLock.isLocked) {
-        const promise = new Promise<void>((resolve, reject) => {
-          tableLock.promiseQueue.push({ reject, resolve });
+        // Wait for read access
+        const promise = new Promise<void>((resolve) => {
+          tableLock.readersQueue.push(resolve);
         });
         promises.push(promise);
-      }
+      } else {
+        // Can write if no readersCount and no writer
+        if (tableLock.readersCount === 0 && !tableLock.writer) {
+          tableLock.writer = true;
+          continue;
+        }
 
-      // Set the table as locked
-      tableLock.isLocked = true;
+        // Wait for write access
+        const promise = new Promise<void>((resolve) => {
+          tableLock.writersQueue.push(resolve);
+        });
+
+        promises.push(promise);
+      }
     }
 
-    // Wait for all promises to resolve (locks to be acquired)
     await Promise.all(promises);
   }
 
-  async unlockTables(tableNames: string[]): Promise<void> {
+  unlockTables(tableNames: string[], mode: 'read' | 'write' = 'write'): void {
     for (const tableName of tableNames) {
       const tableLock = this.tableLockRegistry[tableName];
+      if (!tableLock) continue;
 
-      // If the table lock doesn't exist, create a new lock
-      if (!tableLock) {
-        this.tableLockRegistry[tableName] = {
-          isLocked: false,
-          promiseQueue: [],
-        };
-      }
+      if (mode === 'read') {
+        tableLock.readersCount--;
 
-      const nextPromiseInQueue = tableLock?.promiseQueue?.shift();
+        // If no more readersCount, let a writer go
+        if (tableLock.readersCount === 0 && tableLock.writersQueue.length > 0) {
+          const nextWriter = tableLock.writersQueue.shift();
 
-      // If there is a promise in the queue, resolve it and keep the table as locked
-      if (nextPromiseInQueue) {
-        tableLock.isLocked = true;
-        nextPromiseInQueue.resolve();
+          if (nextWriter) {
+            // Set the writer flag to true and call the writer to release the lock
+            tableLock.writer = true;
+            nextWriter();
+          }
+        }
       } else {
-        // If there are no promises in the queue, set the table as unlocked
-        tableLock.isLocked = false;
+        tableLock.writer = false;
+
+        // readersCount first, then writers
+        if (tableLock.readersQueue.length > 0) {
+          const readersCount = tableLock.readersQueue.splice(0);
+          tableLock.readersCount += readersCount.length;
+
+          // Call the readersCount to release the lock
+          readersCount.forEach((reader) => reader());
+        } else if (tableLock.writersQueue.length > 0) {
+          const nextWriter = tableLock.writersQueue.shift();
+
+          if (nextWriter) {
+            // Set the writer flag to true and call the writer to release the lock
+            tableLock.writer = true;
+            nextWriter();
+          }
+        }
       }
     }
   }
 
-  public isTableLocked(tableName: string): boolean {
-    return this.tableLockRegistry[tableName]?.isLocked ?? false;
+  isTableLocked(tableName: string): boolean {
+    const tableLock = this.tableLockRegistry[tableName];
+    return tableLock ? tableLock.readersCount > 0 || tableLock.writer : false;
   }
 }

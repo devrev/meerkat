@@ -1,70 +1,165 @@
 import { TableLockManager } from '../table-lock-manager';
 
-describe('Table Lock Manager', () => {
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+describe('TableLockManager', () => {
   let tableLockManager: TableLockManager;
+  const tableName = 'testTable';
 
   beforeEach(() => {
     tableLockManager = new TableLockManager();
   });
 
-  it('should lock the table and release it', async () => {
-    const tableName = 'exampleTable';
+  describe('write locks', () => {
+    it('should acquire and release a write lock', async () => {
+      await tableLockManager.lockTables([tableName], 'write');
+      expect(tableLockManager.isTableLocked(tableName)).toBe(true);
 
-    // Request the lock for the table and then release it
-    await tableLockManager.lockTables([tableName]);
+      tableLockManager.unlockTables([tableName], 'write');
+      expect(tableLockManager.isTableLocked(tableName)).toBe(false);
+    });
 
-    expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+    it('a second writer should wait for the first writer to release the lock', async () => {
+      let writer1Finished = false;
+      const writer1 = async () => {
+        await tableLockManager.lockTables([tableName], 'write');
 
-    await tableLockManager.unlockTables([tableName]);
+        await delay(50); // Simulate work
 
-    expect(tableLockManager.isTableLocked(tableName)).toBe(false);
+        expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+        tableLockManager.unlockTables([tableName], 'write');
+        writer1Finished = true;
+      };
 
-    // Again request the lock for the table
-    await tableLockManager.lockTables([tableName]);
+      let writer2Finished = false;
+      const writer2 = async () => {
+        await tableLockManager.lockTables([tableName], 'write');
 
-    await tableLockManager.unlockTables([tableName]);
+        // When writer2 gets the lock, writer1 should be finished.
+        expect(writer1Finished).toBe(true);
+
+        expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+        tableLockManager.unlockTables([tableName], 'write');
+        writer2Finished = true;
+      };
+
+      await Promise.all([writer1(), writer2()]);
+
+      expect(writer1Finished).toBe(true);
+      expect(writer2Finished).toBe(true);
+
+      expect(tableLockManager.isTableLocked(tableName)).toBe(false);
+    });
   });
 
-  it('two consumers requesting lock for the same table', async () => {
-    const tableName = 'exampleTable';
+  describe('read locks', () => {
+    it('should allow multiple readers to acquire a lock simultaneously', async () => {
+      const readerPromises = [
+        tableLockManager.lockTables([tableName], 'read'),
+        tableLockManager.lockTables([tableName], 'read'),
+        tableLockManager.lockTables([tableName], 'read'),
+      ];
 
-    // Set up promises for the two consumers
-    const consumer1Promise = tableLockManager.lockTables([tableName]);
-    const consumer2Promise = tableLockManager.lockTables([tableName]);
+      await Promise.all(readerPromises);
+      expect(tableLockManager.isTableLocked(tableName)).toBe(true);
 
-    // Wait for the first consumer to get the lock
-    await expect(consumer1Promise).resolves.toBeUndefined();
+      tableLockManager.unlockTables([tableName], 'read');
+      tableLockManager.unlockTables([tableName], 'read');
+      tableLockManager.unlockTables([tableName], 'read');
+      expect(tableLockManager.isTableLocked(tableName)).toBe(false);
+    });
+  });
 
-    expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+  describe('mixed read/write locks', () => {
+    it('should not allow a writer if readers have the lock', async () => {
+      await tableLockManager.lockTables([tableName], 'read');
 
-    const timeout1 = new Promise((resolve) => {
-      setTimeout(resolve, 1000, 'TIMEOUT');
+      let writerAcquiredLock = false;
+      const writerPromise = tableLockManager
+        .lockTables([tableName], 'write')
+        .then(() => {
+          writerAcquiredLock = true;
+        });
+
+      await delay(10); // Give writer time to wait
+      expect(writerAcquiredLock).toBe(false);
+      expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+
+      // Reader releases the lock
+      tableLockManager.unlockTables([tableName], 'read');
+
+      await writerPromise;
+      expect(writerAcquiredLock).toBe(true);
+      expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+
+      tableLockManager.unlockTables([tableName], 'write');
+      expect(tableLockManager.isTableLocked(tableName)).toBe(false);
     });
 
-    // Promise.race will wait for either the promises be resolved
-    // consumer2 will not be able to get the lock as it is already locked by consumer1
-    await expect(Promise.race([consumer2Promise, timeout1])).resolves.toBe(
-      'TIMEOUT'
-    );
+    it('should not allow a reader if a writer has the lock', async () => {
+      await tableLockManager.lockTables([tableName], 'write');
 
-    // Release the lock for the first consumer
-    await tableLockManager.unlockTables([tableName]);
+      let readerAcquiredLock = false;
+      const readerPromise = tableLockManager
+        .lockTables([tableName], 'read')
+        .then(() => {
+          readerAcquiredLock = true;
+        });
 
-    // Check if the table is still locked as the consumer2 will get the lock
-    expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+      await delay(10);
+      expect(readerAcquiredLock).toBe(false);
+      expect(tableLockManager.isTableLocked(tableName)).toBe(true);
 
-    const timeout2 = new Promise((resolve) => {
-      setTimeout(resolve, 1000, 'TIMEOUT');
+      // Writer releases lock
+      tableLockManager.unlockTables([tableName], 'write');
+
+      await readerPromise;
+      expect(readerAcquiredLock).toBe(true);
+
+      tableLockManager.unlockTables([tableName], 'read');
+      expect(tableLockManager.isTableLocked(tableName)).toBe(false);
     });
 
-    // This time the consumer2 will get the lock
-    await expect(
-      Promise.race([consumer2Promise, timeout2])
-    ).resolves.toBeUndefined();
+    it('should prioritize waiting readers over a new writer', async () => {
+      // Writer1 acquires the lock
+      await tableLockManager.lockTables([tableName], 'write');
 
-    // Release the lock
-    await tableLockManager.unlockTables([tableName]);
+      // Readers start waiting
+      const readerPromises = [
+        tableLockManager.lockTables([tableName], 'read'),
+        tableLockManager.lockTables([tableName], 'read'),
+      ];
 
-    expect(tableLockManager.isTableLocked(tableName)).toBe(false);
+      // Writer2 starts waiting
+      const writer2Promise = tableLockManager.lockTables([tableName], 'write');
+
+      // Release writer1's lock
+      tableLockManager.unlockTables([tableName], 'write');
+
+      // The waiting readers should get the lock next
+      await Promise.all(readerPromises);
+      expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+
+      let writer2AcquiredLock = false;
+      writer2Promise.then(() => {
+        writer2AcquiredLock = true;
+      });
+
+      await delay(10);
+      // Writer2 should still be waiting
+      expect(writer2AcquiredLock).toBe(false);
+
+      // Readers release locks
+      tableLockManager.unlockTables([tableName], 'read');
+      tableLockManager.unlockTables([tableName], 'read');
+
+      // Now writer2 should get the lock
+      await writer2Promise;
+      expect(writer2AcquiredLock).toBe(true);
+      expect(tableLockManager.isTableLocked(tableName)).toBe(true);
+
+      tableLockManager.unlockTables([tableName], 'write');
+      expect(tableLockManager.isTableLocked(tableName)).toBe(false);
+    });
   });
 });
