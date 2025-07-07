@@ -156,4 +156,36 @@ describe('DBMParallel', () => {
 
     jest.useRealTimers();
   });
+
+  it('should wait for a write lock to be released before executing a query', async () => {
+    const tableName = 'lockedTable';
+    let queryExecuted = false;
+
+    // Mock sendRequest to track execution
+    runnerMock.communication.sendRequest.mockImplementation(() => {
+      queryExecuted = true;
+      return Promise.resolve({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+    });
+
+    // Acquire a write lock
+    await dbmParallel.lockTables([tableName], 'write');
+
+    // Execute a query that requires a read lock on the same table
+    const queryPromise = dbmParallel.queryWithTables({
+      query: `SELECT * FROM ${tableName}`,
+      tables: [{ name: tableName }],
+    });
+
+    // The query should not have been executed yet because of the write lock
+    expect(queryExecuted).toBe(false);
+
+    // Release the write lock
+    dbmParallel.unlockTables([tableName], 'write');
+
+    // Now the query should be able to execute
+    await queryPromise;
+    expect(queryExecuted).toBe(true);
+  });
 });

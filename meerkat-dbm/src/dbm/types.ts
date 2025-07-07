@@ -112,9 +112,8 @@ export interface QueryQueueItem {
 }
 
 export interface TableLock {
-  promiseQueue: {
-    resolve: () => void;
-    reject: () => void;
-  }[];
-  isLocked: boolean;
+  readersCount: number;
+  writer: boolean;
+  readersQueue: (() => void)[];
+  writersQueue: (() => void)[];
 }
