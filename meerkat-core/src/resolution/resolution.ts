@@ -1,3 +1,4 @@
+import { memberKeyToSafeKey } from '../member-formatters';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { JoinPath, Member, Query } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
@@ -15,8 +16,8 @@ const resolveDimension = (dim: string, tableSchemas: TableSchema[]) => {
   }
 
   return {
-    name: `${generateName(dim)}`,
-    sql: `${BASE_DATA_SOURCE_NAME}.${generateName(dim)}`,
+    name: `${memberKeyToSafeKey(dim)}`,
+    sql: `${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(dim)}`,
     type: dimension.type,
   };
 };
@@ -33,8 +34,8 @@ const resolveMeasure = (measure: string, tableSchemas: TableSchema[]) => {
   }
 
   return {
-    name: `${generateName(measure)}`,
-    sql: `${BASE_DATA_SOURCE_NAME}.${generateName(measure)}`,
+    name: `${memberKeyToSafeKey(measure)}`,
+    sql: `${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(measure)}`,
     type: measureSchema.type,
   };
 };
@@ -54,9 +55,9 @@ export const createBaseTableSchema = (
     ...(measures || []).map((meas) => resolveMeasure(meas, tableSchemas)),
   ],
   joins: resolutionConfig.columnConfigs.map((config) => ({
-    sql: `${BASE_DATA_SOURCE_NAME}.${generateName(
+    sql: `${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(
       config.name
-    )} = ${generateName(config.name)}.${config.joinColumn}`,
+    )} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
   })),
 });
 
@@ -70,7 +71,7 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
       throw new Error(`Table schema not found for ${colConfig.source}`);
     }
 
-    const baseName = generateName(colConfig.name);
+    const baseName = memberKeyToSafeKey(colConfig.name);
 
     // For each column that needs to be resolved, create a copy of the relevant table schema.
     // We use the name of the column in the base query as the table schema name
@@ -109,10 +110,10 @@ export const generateResolvedDimensions = (
     const resolution = config.columnConfigs.find((c) => c.name === dimension);
 
     if (!resolution) {
-      return [`${BASE_DATA_SOURCE_NAME}.${generateName(dimension)}`];
+      return [`${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(dimension)}`];
     } else {
       return resolution.resolutionColumns.map(
-        (col) => `${generateName(dimension)}.${col}`
+        (col) => `${memberKeyToSafeKey(dimension)}.${col}`
       );
     }
   });
@@ -125,12 +126,8 @@ export const generateResolutionJoinPaths = (
   return resolutionConfig.columnConfigs.map((config) => [
     {
       left: BASE_DATA_SOURCE_NAME,
-      right: generateName(config.name),
-      on: generateName(config.name),
+      right: memberKeyToSafeKey(config.name),
+      on: memberKeyToSafeKey(config.name),
     },
   ]);
 };
-
-// Generates a valid column name from a generic reference
-// by replacing '.' with '__'.
-const generateName = (columnName: string) => columnName.replace('.', '__');
