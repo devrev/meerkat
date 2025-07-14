@@ -377,4 +377,46 @@ describe('cubeToDuckdbAST', () => {
       type: 'COLUMN_REF',
     });
   });
+
+  it('should handle aliases', () => {
+    const tableSchema: TableSchema = {
+      name: 'test_table',
+      sql: 'test_table',
+      measures: [
+        {
+          name: 'measure',
+          sql: 'test_table.measure',
+          type: 'number',
+          alias: 'measure_with_alias',
+        },
+      ],
+      dimensions: [
+        {
+          name: 'dimension',
+          sql: 'test_table.dimension',
+          type: 'string',
+          alias: 'dimension_with_alias',
+        },
+      ],
+    };
+
+    const query: Query = {
+      measures: ['test_table.measure'],
+      dimensions: ['test_table.dimension'],
+    };
+
+    const aliases = {
+      'test_table.measure': 'measure_with_alias',
+      'test_table.dimension': 'dimension_with_alias',
+    };
+    const result = cubeToDuckdbAST(query, tableSchema, aliases);
+    expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
+    expect(result.node.group_expressions).toHaveLength(1);
+    expect(result.node.group_expressions[0]).toEqual({
+      alias: '',
+      class: 'COLUMN_REF',
+      column_names: ['dimension_with_alias'],
+      type: 'COLUMN_REF',
+    });
+  });
 });

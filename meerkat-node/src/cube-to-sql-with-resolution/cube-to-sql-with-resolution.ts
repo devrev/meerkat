@@ -1,4 +1,6 @@
 import {
+  constructDimensionsNameMap,
+  constructMeasuresNameMap,
   ContextParams,
   createBaseTableSchema,
   generateResolutionJoinPaths,
@@ -37,17 +39,24 @@ export const cubeQueryToSQLWithResolution = async ({
     return baseSql;
   }
 
+  const columnNameMap = {
+    ...constructMeasuresNameMap(tableSchemas),
+    ...constructDimensionsNameMap(tableSchemas),
+  };
+
   // Create a table schema for the base query.
   const baseTable: TableSchema = createBaseTableSchema(
     baseSql,
-    tableSchemas,
+    columnNameMap,
     resolutionConfig,
     query.measures,
     query.dimensions
   );
 
-  const resolutionSchemas: TableSchema[] =
-    generateResolutionSchemas(resolutionConfig);
+  const resolutionSchemas: TableSchema[] = generateResolutionSchemas(
+    resolutionConfig,
+    columnNameMap
+  );
 
   const resolveParams: CubeQueryToSQLParams = {
     query: {

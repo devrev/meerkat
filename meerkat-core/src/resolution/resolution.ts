@@ -1,48 +1,42 @@
 import { memberKeyToSafeKey } from '../member-formatters';
-import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
+import { constructAlias } from '../member-formatters/get-alias';
 import { JoinPath, Member, Query } from '../types/cube-types/query';
-import { TableSchema } from '../types/cube-types/table';
+import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
-const resolveDimension = (dim: string, tableSchemas: TableSchema[]) => {
-  const [tableName, columnName] = splitIntoDataSourceAndFields(dim);
-  const tableSchema = tableSchemas.find((ts) => ts.name === tableName);
-  if (!tableSchema) {
-    throw new Error(`Table schema not found for ${tableName}`);
-  }
-  const dimension = tableSchema.dimensions.find((d) => d.name === columnName);
-  if (!dimension) {
-    throw new Error(`Dimension not found: ${dim}`);
-  }
-
-  return {
-    name: `${memberKeyToSafeKey(dim)}`,
-    sql: `${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(dim)}`,
-    type: dimension.type,
-  };
+export const constructDimensionsNameMap = (tableSchema: TableSchema[]) => {
+  const columnNameMap: Record<string, Dimension> = {};
+  tableSchema.forEach((table) => {
+    table.dimensions.forEach((dimension) => {
+      columnNameMap[`${table.name}.${dimension.name}`] = dimension;
+    });
+  });
+  return columnNameMap;
 };
 
-const resolveMeasure = (measure: string, tableSchemas: TableSchema[]) => {
-  const [tableName, columnName] = splitIntoDataSourceAndFields(measure);
-  const tableSchema = tableSchemas.find((ts) => ts.name === tableName);
-  if (!tableSchema) {
-    throw new Error(`Table schema not found for ${tableName}`);
-  }
-  const measureSchema = tableSchema.measures.find((m) => m.name === columnName);
-  if (!measureSchema) {
-    throw new Error(`Measure not found: ${measure}`);
-  }
+export const constructMeasuresNameMap = (tableSchema: TableSchema[]) => {
+  const columnNameMap: Record<string, Measure> = {};
+  tableSchema.forEach((table) => {
+    table.measures.forEach((measure) => {
+      columnNameMap[`${table.name}.${measure.name}`] = measure;
+    });
+  });
+  return columnNameMap;
+};
 
+const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
   return {
-    name: `${memberKeyToSafeKey(measure)}`,
-    sql: `${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(measure)}`,
-    type: measureSchema.type,
+    name: `${memberKeyToSafeKey(name)}`,
+    sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias(name, schema.alias, true)}`,
+    type: schema.type,
+    // Constructs alias to match the name in the base query.
+    alias: constructAlias(name, schema.alias),
   };
 };
 
 export const createBaseTableSchema = (
   baseSql: string,
-  tableSchemas: TableSchema[],
+  columnsByName: Record<string, Measure | Dimension>,
   resolutionConfig: ResolutionConfig,
   measures: Member[],
   dimensions?: Member[]
@@ -50,18 +44,31 @@ export const createBaseTableSchema = (
   name: BASE_DATA_SOURCE_NAME,
   sql: baseSql,
   measures: [],
-  dimensions: [
-    ...(dimensions || []).map((dim) => resolveDimension(dim, tableSchemas)),
-    ...(measures || []).map((meas) => resolveMeasure(meas, tableSchemas)),
-  ],
+  dimensions: [...measures, ...(dimensions || [])].map((member) => {
+    const schema = columnsByName[member];
+    if (schema) {
+      return constructBaseDimension(member, schema);
+    } else {
+      throw new Error(`Not found: ${member}`);
+    }
+  }),
   joins: resolutionConfig.columnConfigs.map((config) => ({
-    sql: `${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(
-      config.name
+    sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias(
+      config.name,
+      columnsByName[config.name]?.alias,
+      true
     )} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
   })),
 });
 
-export const generateResolutionSchemas = (config: ResolutionConfig) => {
+export const generateResolutionSchemas = (
+  config: ResolutionConfig,
+  baseColumnsByName: Record<string, Measure | Dimension>
+) => {
+  const resolutionColumnsByName = constructDimensionsNameMap(
+    config.tableSchemas
+  );
+
   const resolutionSchemas: TableSchema[] = [];
   config.columnConfigs.forEach((colConfig) => {
     const tableSchema = config.tableSchemas.find(
@@ -72,6 +79,10 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
     }
 
     const baseName = memberKeyToSafeKey(colConfig.name);
+    const baseAlias = constructAlias(
+      colConfig.name,
+      baseColumnsByName[colConfig.name]?.alias
+    );
 
     // For each column that needs to be resolved, create a copy of the relevant table schema.
     // We use the name of the column in the base query as the table schema name
@@ -81,7 +92,7 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
       sql: tableSchema.sql,
       measures: [],
       dimensions: colConfig.resolutionColumns.map((col) => {
-        const dimension = tableSchema.dimensions.find((d) => d.name === col);
+        const dimension = resolutionColumnsByName[`${colConfig.source}.${col}`];
         if (!dimension) {
           throw new Error(`Dimension not found: ${col}`);
         }
@@ -89,6 +100,7 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
           name: col,
           sql: `${baseName}.${col}`,
           type: dimension.type,
+          alias: `${baseAlias} - ${constructAlias(col, dimension.alias)}`,
         };
       }),
     };

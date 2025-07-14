@@ -47,6 +47,18 @@ describe('cubeMeasureToSQLSelectString', () => {
     expect(result).toBe(`SELECT test.*`);
   });
 
+  it('should use alias for measures when provided', () => {
+    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+    const aliases = {
+      'temp.measure1': 'alias_measure1',
+      'temp.measure2': 'alias_measure2',
+    };
+    const result = cubeMeasureToSQLSelectString(measures, tableSchema, aliases);
+    expect(result).toBe(
+      `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
+    );
+  });
+
   it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM my_table';
@@ -87,6 +99,25 @@ describe('cubeMeasureToSQLSelectString', () => {
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
+    );
+  });
+
+  it('should use aliases when provided', () => {
+    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+    const aliases = {
+      'temp.measure1': 'alias_measure1',
+      'temp.measure2': 'alias_measure2',
+    };
+    const sqlToReplace = 'SELECT * FROM my_table';
+    const result = applyProjectionToSQLQuery(
+      [],
+      measures,
+      tableSchema,
+      sqlToReplace,
+      aliases
+    );
+    expect(result).toBe(
+      `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`
     );
   });
 });
