@@ -62,7 +62,7 @@ export const cubeQueryToSQLWithResolution = async ({
     query: {
       measures: [],
       dimensions: generateResolvedDimensions(query, resolutionConfig),
-      joinPaths: generateResolutionJoinPaths(resolutionConfig),
+      joinPaths: generateResolutionJoinPaths(resolutionConfig, columnNameMap),
     },
     tableSchemas: [baseTable, ...resolutionSchemas],
   };

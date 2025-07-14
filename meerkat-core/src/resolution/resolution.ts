@@ -133,13 +133,18 @@ export const generateResolvedDimensions = (
 };
 
 export const generateResolutionJoinPaths = (
-  resolutionConfig: ResolutionConfig
+  resolutionConfig: ResolutionConfig,
+  baseColumnsByName: Record<string, Measure | Dimension>
 ): JoinPath[] => {
   return resolutionConfig.columnConfigs.map((config) => [
     {
       left: BASE_DATA_SOURCE_NAME,
       right: memberKeyToSafeKey(config.name),
-      on: memberKeyToSafeKey(config.name),
+      on: constructAlias(
+        config.name,
+        baseColumnsByName[config.name]?.alias,
+        true
+      ),
     },
   ]);
 };
