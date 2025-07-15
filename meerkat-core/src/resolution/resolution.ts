@@ -1,4 +1,4 @@
-import { addNamespace, memberKeyToSafeKey } from '../member-formatters';
+import { getNamespacedKey, memberKeyToSafeKey } from '../member-formatters';
 import { constructAlias } from '../member-formatters/get-alias';
 import { JoinPath, Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
@@ -8,7 +8,7 @@ export const constructDimensionsNameMap = (tableSchema: TableSchema[]) => {
   const columnNameMap: Record<string, Dimension> = {};
   tableSchema.forEach((table) => {
     table.dimensions.forEach((dimension) => {
-      columnNameMap[addNamespace(table.name, dimension.name)] = dimension;
+      columnNameMap[getNamespacedKey(table.name, dimension.name)] = dimension;
     });
   });
   return columnNameMap;
@@ -18,7 +18,7 @@ export const constructMeasuresNameMap = (tableSchema: TableSchema[]) => {
   const columnNameMap: Record<string, Measure> = {};
   tableSchema.forEach((table) => {
     table.measures.forEach((measure) => {
-      columnNameMap[addNamespace(table.name, measure.name)] = measure;
+      columnNameMap[getNamespacedKey(table.name, measure.name)] = measure;
     });
   });
   return columnNameMap;
@@ -93,14 +93,14 @@ export const generateResolutionSchemas = (
       measures: [],
       dimensions: colConfig.resolutionColumns.map((col) => {
         const dimension =
-          resolutionColumnsByName[addNamespace(colConfig.source, col)];
+          resolutionColumnsByName[getNamespacedKey(colConfig.source, col)];
         if (!dimension) {
           throw new Error(`Dimension not found: ${col}`);
         }
         return {
           // Need to create a new name due to limitations with how
           // CubeToSql handles duplicate dimension names between different sources.
-          name: memberKeyToSafeKey(addNamespace(colConfig.name, col)),
+          name: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
           sql: `${baseName}.${col}`,
           type: dimension.type,
           alias: `${baseAlias} - ${constructAlias(col, dimension.alias)}`,
@@ -126,13 +126,13 @@ export const generateResolvedDimensions = (
 
     if (!columnConfig) {
       return [
-        addNamespace(BASE_DATA_SOURCE_NAME, memberKeyToSafeKey(dimension)),
+        getNamespacedKey(BASE_DATA_SOURCE_NAME, memberKeyToSafeKey(dimension)),
       ];
     } else {
       return columnConfig.resolutionColumns.map((col) =>
-        addNamespace(
+        getNamespacedKey(
           memberKeyToSafeKey(dimension),
-          memberKeyToSafeKey(addNamespace(columnConfig.name, col))
+          memberKeyToSafeKey(getNamespacedKey(columnConfig.name, col))
         )
       );
     }

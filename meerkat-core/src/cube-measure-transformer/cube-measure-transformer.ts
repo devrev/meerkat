@@ -1,3 +1,4 @@
+import { getNamespacedKey } from '../member-formatters';
 import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
@@ -51,7 +52,7 @@ export const cubeMeasureToSQLSelectString = (
     //Replace all the columnsUsedInMeasure with safeKey
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [_, column] = splitIntoDataSourceAndFields(measureKey);
-      const memberKey = `${tableSchemaName}.${column}`;
+      const memberKey = getNamespacedKey(tableSchemaName, column);
       const columnKey = getAliasFromSchema({
         name: memberKey,
         tableSchema,
