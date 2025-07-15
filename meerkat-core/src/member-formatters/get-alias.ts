@@ -1,11 +1,19 @@
+import { TableSchema } from '../types/cube-types';
+import { findInSchema } from '../utils/find-in-table-schema';
 import { memberKeyToSafeKey } from './member-key-to-safe-key';
+import { splitIntoDataSourceAndFields } from './split-into-data-source-and-fields';
 
-export const getAlias = (
-  name: string,
-  aliases?: Record<string, string>,
-  safe?: boolean
-): string => {
-  return constructAlias(name, aliases?.[name], safe);
+export const getAliasFromSchema = ({
+  name,
+  tableSchema,
+  safe,
+}: {
+  name: string;
+  tableSchema: TableSchema;
+  safe?: boolean;
+}): string => {
+  const [, field] = splitIntoDataSourceAndFields(name);
+  return constructAlias(name, findInSchema(field, tableSchema)?.alias, safe);
 };
 
 export const constructAlias = (

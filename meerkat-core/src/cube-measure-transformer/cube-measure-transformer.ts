@@ -1,4 +1,4 @@
-import { getAlias } from '../member-formatters';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
@@ -6,8 +6,7 @@ import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replace
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema,
-  aliases?: Record<string, string>
+  tableSchema: TableSchema
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -19,7 +18,11 @@ export const cubeMeasureToSQLSelectString = (
     const [tableSchemaName, measureKeyWithoutTable] =
       splitIntoDataSourceAndFields(measure);
 
-    const aliasKey = getAlias(measure, aliases, true);
+    const aliasKey = getAliasFromSchema({
+      name: measure,
+      tableSchema,
+      safe: true,
+    });
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
     );
@@ -49,7 +52,11 @@ export const cubeMeasureToSQLSelectString = (
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [_, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = `${tableSchemaName}.${column}`;
-      const columnKey = getAlias(memberKey, aliases, true);
+      const columnKey = getAliasFromSchema({
+        name: memberKey,
+        tableSchema,
+        safe: true,
+      });
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
         columnKey
@@ -64,8 +71,7 @@ export const cubeMeasureToSQLSelectString = (
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema,
-  aliases?: Record<string, string>
+  tableSchema: TableSchema
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -78,7 +84,11 @@ const addDimensionToSQLProjection = (
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    const aliasKey = getAlias(dimension, aliases, true);
+    const aliasKey = getAliasFromSchema({
+      name: dimension,
+      tableSchema,
+      safe: true,
+    });
 
     if (!dimensionSchema) {
       continue;
@@ -151,14 +161,9 @@ export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string,
-  aliases?: Record<string, string>
+  sqlToReplace: string
 ) => {
-  let measureSelectString = cubeMeasureToSQLSelectString(
-    measures,
-    tableSchema,
-    aliases
-  );
+  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
 
   if (measures.length > 0 && dimensions.length > 0) {
     measureSelectString += ', ';
@@ -166,8 +171,7 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema,
-    aliases
+    tableSchema
   );
 
   return getSelectReplacedSql(sqlToReplace, selectString);

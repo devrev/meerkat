@@ -7,7 +7,7 @@ import {
 } from './cube-measure-transformer';
 
 describe('cubeMeasureToSQLSelectString', () => {
-  let tableSchema: TableSchema;
+  let tableSchema: TableSchema, tableSchemaWithAliases: TableSchema;
   const cube = 'cube_test';
 
   beforeEach(() => {
@@ -26,6 +26,26 @@ describe('cubeMeasureToSQLSelectString', () => {
           type: 'number',
         },
       ],
+    };
+
+    tableSchemaWithAliases = {
+      name: 'test_with_aliases',
+      sql: cube,
+      measures: [
+        {
+          name: 'measure1',
+          sql: 'COUNT(*)',
+          type: 'number',
+          alias: 'alias_measure1',
+        },
+        {
+          name: 'measure2',
+          sql: 'SUM(total)',
+          type: 'number',
+          alias: 'alias_measure2',
+        },
+      ],
+      dimensions: [],
     };
   });
 
@@ -49,11 +69,10 @@ describe('cubeMeasureToSQLSelectString', () => {
 
   it('should use alias for measures when provided', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const aliases = {
-      'temp.measure1': 'alias_measure1',
-      'temp.measure2': 'alias_measure2',
-    };
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema, aliases);
+    const result = cubeMeasureToSQLSelectString(
+      measures,
+      tableSchemaWithAliases
+    );
     expect(result).toBe(
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
     );
@@ -104,17 +123,12 @@ describe('cubeMeasureToSQLSelectString', () => {
 
   it('should use aliases when provided', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const aliases = {
-      'temp.measure1': 'alias_measure1',
-      'temp.measure2': 'alias_measure2',
-    };
     const sqlToReplace = 'SELECT * FROM my_table';
     const result = applyProjectionToSQLQuery(
       [],
       measures,
-      tableSchema,
-      sqlToReplace,
-      aliases
+      tableSchemaWithAliases,
+      sqlToReplace
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`

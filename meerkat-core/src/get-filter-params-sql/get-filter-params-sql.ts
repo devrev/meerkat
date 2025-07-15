@@ -9,21 +9,14 @@ export const getFilterParamsSQL = async ({
   query,
   tableSchema,
   filterType,
-  aliases,
   getQueryOutput,
 }: {
   query: Query;
   tableSchema: TableSchema;
   filterType?: FilterType;
-  aliases?: Record<string, string>;
   getQueryOutput: (query: string) => Promise<any>;
 }) => {
-  const filterParamsAST = getFilterParamsAST(
-    query,
-    tableSchema,
-    filterType,
-    aliases
-  );
+  const filterParamsAST = getFilterParamsAST(query, tableSchema, filterType);
   const filterParamsSQL = [];
   for (const filterParamAST of filterParamsAST) {
     if (!filterParamAST.ast) {

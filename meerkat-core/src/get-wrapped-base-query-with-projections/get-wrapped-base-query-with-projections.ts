@@ -7,13 +7,11 @@ interface GetWrappedBaseQueryWithProjectionsParams {
   baseQuery: string;
   tableSchema: TableSchema;
   query: Query;
-  aliases?: Record<string, string>;
 }
 
 export const getWrappedBaseQueryWithProjections = ({
   baseQuery,
   tableSchema,
-  aliases,
   query,
 }: GetWrappedBaseQueryWithProjectionsParams) => {
   /*
@@ -27,14 +25,12 @@ export const getWrappedBaseQueryWithProjections = ({
   const memberProjections = getProjectionClause(
     query,
     tableSchema,
-    aliasedColumnSet,
-    aliases
+    aliasedColumnSet
   );
 
   const aliasFromFilters = getAliasedColumnsFromFilters({
     aliasedColumnSet,
     baseSql: 'SELECT *',
-    aliases,
     // setting measures to empty array, since we don't want to project measures present in the filters in the base query
     tableSchema: tableSchema,
     query,

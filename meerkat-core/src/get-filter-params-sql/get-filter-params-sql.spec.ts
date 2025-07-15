@@ -130,6 +130,24 @@ describe('getFilterParamsSQL', () => {
     ]);
   });
   it('should apply aliases', async () => {
+    const tableSchema: TableSchema = {
+      ...TABLE_SCHEMA,
+      dimensions: [
+        {
+          name: 'status',
+          sql: 'status',
+          type: 'string',
+          alias: 'Order Status',
+        },
+        {
+          name: 'amount',
+          sql: 'amount',
+          type: 'number',
+          alias: 'Order Amount',
+        },
+      ],
+    };
+
     const result = await getFilterParamsSQL({
       filterType: 'PROJECTION_FILTER',
       query: {
@@ -144,10 +162,7 @@ describe('getFilterParamsSQL', () => {
         ],
         dimensions: [],
       },
-      tableSchema: TABLE_SCHEMA,
-      aliases: {
-        'orders.status': 'Order Status',
-      },
+      tableSchema: tableSchema,
       getQueryOutput,
     });
     expect(result).toEqual([

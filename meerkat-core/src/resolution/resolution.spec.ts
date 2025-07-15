@@ -350,7 +350,7 @@ describe('Generate resolution schemas', () => {
         measures: [],
         dimensions: [
           {
-            name: 'display_id',
+            name: 'base_table__column1__display_id',
             sql: 'base_table__column1.display_id',
             type: 'string',
             alias: 'base_table__column1 - display_id',
@@ -363,13 +363,13 @@ describe('Generate resolution schemas', () => {
         measures: [],
         dimensions: [
           {
-            name: 'id',
+            name: 'base_table__column2__id',
             sql: 'base_table__column2.id',
             type: 'string',
             alias: 'base_table__column2 - id',
           },
           {
-            name: 'display_name',
+            name: 'base_table__column2__display_name',
             sql: 'base_table__column2.display_name',
             type: 'string',
             alias: 'base_table__column2 - display_name',
@@ -502,7 +502,7 @@ describe('Generate resolution schemas', () => {
         measures: [],
         dimensions: [
           {
-            name: 'display_id',
+            name: 'base_table__column1__display_id',
             sql: 'base_table__column1.display_id',
             type: 'string',
             alias: 'base_table__column1 - display_id',
@@ -570,7 +570,7 @@ describe('Generate resolution schemas', () => {
         measures: [],
         dimensions: [
           {
-            name: 'display_id',
+            name: 'base_table__column1__display_id',
             sql: 'base_table__column1.display_id',
             type: 'string',
             alias: 'Column 1 - Display ID',
@@ -611,8 +611,8 @@ describe('Generate resolved dimensions', () => {
     );
 
     expect(resolvedDimensions).toEqual([
-      'base_table__column1.display_id',
-      'base_table__column2.display_name',
+      'base_table__column1.base_table__column1__display_id',
+      'base_table__column2.base_table__column2__display_name',
     ]);
   });
 

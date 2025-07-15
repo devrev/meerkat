@@ -67,6 +67,32 @@ describe('get final base sql', () => {
   });
 
   it('should use aliases', async () => {
+    const tableSchema: TableSchema = {
+      ...TABLE_SCHEMA,
+      measures: [
+        {
+          name: 'count',
+          sql: 'COUNT(*)',
+          type: 'number',
+          alias: 'total orders',
+        },
+      ],
+      dimensions: [
+        {
+          name: 'status',
+          sql: 'status',
+          type: 'string',
+          alias: 'order status',
+        },
+        {
+          name: 'amount',
+          sql: 'amount',
+          type: 'number',
+          alias: 'order amount',
+        },
+      ],
+    };
+
     const result = await getFinalBaseSQL({
       query: {
         measures: ['orders.count'],
@@ -80,12 +106,7 @@ describe('get final base sql', () => {
         ],
         dimensions: ['orders.status'],
       },
-      tableSchema: TABLE_SCHEMA,
-      aliases: {
-        'orders.count': 'total orders',
-        'orders.status': 'order status',
-        'orders.amount': 'order amount',
-      },
+      tableSchema: tableSchema,
       getQueryOutput,
     });
     expect(result).toEqual(

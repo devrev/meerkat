@@ -1,4 +1,3 @@
-export * from './aliases/aliases';
 export * from './ast-builder/ast-builder';
 export * from './ast-deserializer/ast-deserializer';
 export * from './ast-serializer/ast-serializer';

@@ -8,11 +8,9 @@ export const getFinalBaseSQL = async ({
   query,
   getQueryOutput,
   tableSchema,
-  aliases,
 }: {
   query: Query;
   tableSchema: TableSchema;
-  aliases?: Record<string, string>;
   getQueryOutput: (query: string) => Promise<any>;
 }) => {
   /**
@@ -23,7 +21,6 @@ export const getFinalBaseSQL = async ({
     query: query,
     tableSchema,
     filterType: 'BASE_FILTER',
-    aliases,
     getQueryOutput,
   });
   const baseSQL = applyFilterParamsToBaseSQL(
@@ -34,7 +31,6 @@ export const getFinalBaseSQL = async ({
     baseQuery: baseSQL,
     tableSchema,
     query: query,
-    aliases,
   });
   return baseSQLWithFilterProjection;
 };

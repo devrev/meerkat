@@ -86,8 +86,7 @@ export const detectAllFilterParamsFromSQL = (
 export const getFilterParamsAST = (
   query: Query,
   tableSchema: TableSchema,
-  filterType: FilterType = 'PROJECTION_FILTER',
-  aliases?: Record<string, string>
+  filterType: FilterType = 'PROJECTION_FILTER'
 ): {
   memberKey: string;
   ast: SelectStatement | null;
@@ -109,7 +108,6 @@ export const getFilterParamsAST = (
         ast: cubeToDuckdbAST(
           { filters, measures: [], dimensions: [] },
           tableSchema,
-          aliases,
           {
             filterType,
           }

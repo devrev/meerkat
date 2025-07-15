@@ -405,11 +405,7 @@ describe('cubeToDuckdbAST', () => {
       dimensions: ['test_table.dimension'],
     };
 
-    const aliases = {
-      'test_table.measure': 'measure_with_alias',
-      'test_table.dimension': 'dimension_with_alias',
-    };
-    const result = cubeToDuckdbAST(query, tableSchema, aliases);
+    const result = cubeToDuckdbAST(query, tableSchema);
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.group_expressions).toHaveLength(1);
     expect(result.node.group_expressions[0]).toEqual({

@@ -1,5 +1,5 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
-import { getAlias } from '../member-formatters';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Query, TableSchema } from '../types/cube-types';
 import {
@@ -32,8 +32,7 @@ const memberClauseAggregator = ({
 export const getProjectionClause = (
   query: Query,
   tableSchema: TableSchema,
-  aliasedColumnSet: Set<string>,
-  aliases?: Record<string, string>
+  aliasedColumnSet: Set<string>
 ) => {
   const { measures, dimensions = [] } = query;
   const filteredDimensions = dimensions.filter((dimension) => {
@@ -50,11 +49,10 @@ export const getProjectionClause = (
         key: member,
         tableSchema,
         modifiers: MODIFIERS,
-        aliases,
         query,
       });
       return memberClauseAggregator({
-        member: getAlias(member, aliases, true),
+        member: getAliasFromSchema({ name: member, tableSchema, safe: true }),
         aliasedColumnSet,
         acc,
         currentIndex,
@@ -71,7 +69,6 @@ export const getProjectionClause = (
       const { sql: memberSql } = getFilterMeasureProjection({
         key: member,
         tableSchema,
-        aliases,
         measures,
       });
       return memberClauseAggregator({
@@ -103,7 +100,11 @@ export const getProjectionClause = (
 
   let columnsUsedInMeasuresInProjection = '';
   columnsUsedInMeasures.forEach((column, index) => {
-    const safeKey = getAlias(column, aliases, true);
+    const safeKey = getAliasFromSchema({
+      name: column,
+      tableSchema,
+      safe: true,
+    });
     columnsUsedInMeasuresInProjection += `${column} AS ${safeKey}`;
     if (index !== columnsUsedInMeasures.length - 1) {
       columnsUsedInMeasuresInProjection += ', ';

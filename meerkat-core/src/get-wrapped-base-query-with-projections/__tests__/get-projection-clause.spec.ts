@@ -62,18 +62,20 @@ describe('get-projection-clause', () => {
   it('should apply aliases', () => {
     const members = ['test.a', 'test.c'];
     const aliasedColumnSet = new Set<string>();
-    const aliases = {
-      'test.a': 'test a',
-      'test.c': 'test c',
+    const tableSchema: TableSchema = {
+      ...TABLE_SCHEMA,
+      dimensions: [
+        { name: 'a', sql: 'others', type: 'number', alias: 'test a' },
+        { name: 'c', sql: 'any', type: 'string', alias: 'test c' },
+      ],
     };
     const result = getProjectionClause(
       {
         dimensions: members,
         measures: [],
       },
-      TABLE_SCHEMA,
-      aliasedColumnSet,
-      aliases
+      tableSchema,
+      aliasedColumnSet
     );
     expect(result).toEqual('others AS "test a", any AS "test c"');
   });

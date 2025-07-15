@@ -7,7 +7,7 @@ import {
   QueryFiltersWithInfoSingular,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { traverseAndFilter } from '../filter-params/filter-params-ast';
-import { getAlias } from '../member-formatters';
+import { constructAlias } from '../member-formatters/get-alias';
 import {
   FilterType,
   MeerkatQueryFilter,
@@ -22,7 +22,6 @@ import { modifyLeafMeerkatFilter } from '../utils/modify-meerkat-filter';
 
 const formatFilters = (
   queryFiltersWithInfo: QueryFiltersWithInfo,
-  aliases?: Record<string, string>,
   filterType?: FilterType
 ) => {
   /*
@@ -33,7 +32,7 @@ const formatFilters = (
     : (modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
         return {
           ...item,
-          member: getAlias(item.member, aliases),
+          member: constructAlias(item.member, item.memberInfo.alias),
         };
       }) as QueryFiltersWithInfo);
 };
@@ -43,25 +42,22 @@ const getFormattedFilters = ({
   filterType,
   mapperFn,
   baseAST,
-  aliases,
 }: {
   queryFiltersWithInfo: QueryFiltersWithInfo;
   filterType?: FilterType;
   baseAST: SelectStatement;
   mapperFn: (val: QueryFiltersWithInfoSingular) => MeerkatQueryFilter | null;
-  aliases?: Record<string, string>;
 }) => {
   const filters = queryFiltersWithInfo
     .map((item) => mapperFn(item))
     .filter(Boolean) as QueryFiltersWithInfoSingular[];
-  const formattedFilters = formatFilters(filters, aliases, filterType);
+  const formattedFilters = formatFilters(filters, filterType);
   return cubeFilterToDuckdbAST(formattedFilters, baseAST);
 };
 
 export const cubeToDuckdbAST = (
   query: Query,
   tableSchema: TableSchema,
-  aliases?: Record<string, string>,
   options?: { filterType: FilterType }
 ) => {
   /**
@@ -95,7 +91,6 @@ export const cubeToDuckdbAST = (
         ),
       queryFiltersWithInfo,
       filterType: options?.filterType,
-      aliases,
     });
 
     const havingClause = getFormattedFilters({
@@ -106,7 +101,6 @@ export const cubeToDuckdbAST = (
         ),
       queryFiltersWithInfo,
       filterType: options?.filterType,
-      aliases,
     });
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -121,7 +115,7 @@ export const cubeToDuckdbAST = (
   ) {
     node.group_expressions = cubeDimensionToGroupByAST(
       query.dimensions,
-      aliases
+      tableSchema
     );
     const groupSets = [];
     /**
@@ -134,7 +128,7 @@ export const cubeToDuckdbAST = (
   }
   node.modifiers = [];
   if (query.order && Object.keys(query.order).length > 0) {
-    node.modifiers.push(cubeOrderByToAST(query.order, aliases));
+    node.modifiers.push(cubeOrderByToAST(query.order, tableSchema));
   }
   if (query.limit || query.offset) {
     // Type assertion is needed here because the AST is not typed correctly.

@@ -1,4 +1,4 @@
-import { getAlias } from '../member-formatters';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { MeerkatQueryFilter, Query, TableSchema } from '../types/cube-types';
 import {
@@ -12,13 +12,11 @@ export const getDimensionProjection = ({
   tableSchema,
   modifiers,
   query,
-  aliases,
 }: {
   key: string;
   tableSchema: TableSchema;
   modifiers: Modifier[];
   query: Query;
-  aliases?: Record<string, string>;
 }) => {
   // Find the table access key
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
@@ -42,7 +40,7 @@ export const getDimensionProjection = ({
     query,
   });
 
-  const aliasKey = getAlias(key, aliases, true);
+  const aliasKey = getAliasFromSchema({ name: key, tableSchema, safe: true });
   // Add the alias key to the set. So we have a reference to all the previously selected members.
   return { sql: `${modifiedSql} AS ${aliasKey}`, foundMember, aliasKey };
 };
@@ -51,12 +49,10 @@ export const getFilterMeasureProjection = ({
   key,
   tableSchema,
   measures,
-  aliases,
 }: {
   key: string;
   tableSchema: TableSchema;
   measures: string[];
-  aliases?: Record<string, string>;
 }) => {
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
   const foundMember = findInMeasureSchema(measureWithoutTable, tableSchema);
@@ -71,7 +67,7 @@ export const getFilterMeasureProjection = ({
       aliasKey: undefined,
     };
   }
-  const aliasKey = getAlias(key, aliases, true);
+  const aliasKey = getAliasFromSchema({ name: key, tableSchema, safe: true });
   return { sql: `${key} AS ${aliasKey}`, foundMember, aliasKey };
 };
 
@@ -80,13 +76,11 @@ const getFilterProjections = ({
   tableSchema,
   measures,
   query,
-  aliases,
 }: {
   member: string;
   tableSchema: TableSchema;
   measures: string[];
   query: Query;
-  aliases?: Record<string, string>;
 }) => {
   const [, memberWithoutTable] = splitIntoDataSourceAndFields(member);
   const isDimension = findInDimensionSchema(memberWithoutTable, tableSchema);
@@ -95,7 +89,6 @@ const getFilterProjections = ({
       key: member,
       tableSchema,
       modifiers: [],
-      aliases,
       query,
     });
   }
@@ -104,7 +97,6 @@ const getFilterProjections = ({
     return getFilterMeasureProjection({
       key: member,
       tableSchema,
-      aliases,
       measures,
     });
   }
@@ -119,14 +111,12 @@ export const getAliasedColumnsFromFilters = ({
   baseSql,
   meerkatFilters,
   tableSchema,
-  aliases,
   aliasedColumnSet,
   query,
 }: {
   meerkatFilters?: MeerkatQueryFilter[];
   tableSchema: TableSchema;
   baseSql: string;
-  aliases?: Record<string, string>;
   aliasedColumnSet: Set<string>;
   query: Query;
 }) => {
@@ -139,7 +129,6 @@ export const getAliasedColumnsFromFilters = ({
         baseSql: '',
         meerkatFilters: filter.and,
         tableSchema,
-        aliases,
         aliasedColumnSet,
         query,
       });
@@ -150,7 +139,6 @@ export const getAliasedColumnsFromFilters = ({
         baseSql: '',
         tableSchema,
         meerkatFilters: filter.or,
-        aliases,
         aliasedColumnSet,
         query,
       });
@@ -164,7 +152,6 @@ export const getAliasedColumnsFromFilters = ({
         member: filter.member,
         tableSchema,
         measures,
-        aliases,
         query,
       });
       if (!foundMember || aliasedColumnSet.has(aliasKey)) {

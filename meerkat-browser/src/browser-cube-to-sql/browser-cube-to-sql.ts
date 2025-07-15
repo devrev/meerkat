@@ -9,7 +9,6 @@ import {
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
-  getAliases,
   getCombinedTableSchema,
   getFilterParamsSQL,
   getFinalBaseSQL,
@@ -38,14 +37,11 @@ export const cubeQueryToSQL = async ({
   tableSchemas,
   contextParams,
 }: CubeQueryToSQLParams) => {
-  const aliases = getAliases(tableSchemas);
-
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
       const baseFilterParamsSQL = await getFinalBaseSQL({
         query,
         tableSchema: schema,
-        aliases,
         getQueryOutput: (query) => getQueryOutput(query, connection),
       });
       return {
@@ -60,7 +56,7 @@ export const cubeQueryToSQL = async ({
     query
   );
 
-  const ast = cubeToDuckdbAST(query, updatedTableSchema, aliases);
+  const ast = cubeToDuckdbAST(query, updatedTableSchema);
   if (!ast) {
     throw new Error('Could not generate AST');
   }
@@ -75,7 +71,6 @@ export const cubeQueryToSQL = async ({
     getQueryOutput: (query) => getQueryOutput(query, connection),
     query,
     tableSchema: updatedTableSchema,
-    aliases,
     filterType: 'BASE_FILTER',
   });
 
@@ -109,8 +104,7 @@ export const cubeQueryToSQL = async ({
     dimensions,
     measures,
     updatedTableSchema,
-    replaceBaseTableName,
-    aliases
+    replaceBaseTableName
   );
 
   return finalQuery;

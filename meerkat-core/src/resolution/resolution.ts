@@ -1,4 +1,4 @@
-import { memberKeyToSafeKey } from '../member-formatters';
+import { addNamespace, memberKeyToSafeKey } from '../member-formatters';
 import { constructAlias } from '../member-formatters/get-alias';
 import { JoinPath, Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
@@ -8,7 +8,7 @@ export const constructDimensionsNameMap = (tableSchema: TableSchema[]) => {
   const columnNameMap: Record<string, Dimension> = {};
   tableSchema.forEach((table) => {
     table.dimensions.forEach((dimension) => {
-      columnNameMap[`${table.name}.${dimension.name}`] = dimension;
+      columnNameMap[addNamespace(table.name, dimension.name)] = dimension;
     });
   });
   return columnNameMap;
@@ -18,7 +18,7 @@ export const constructMeasuresNameMap = (tableSchema: TableSchema[]) => {
   const columnNameMap: Record<string, Measure> = {};
   tableSchema.forEach((table) => {
     table.measures.forEach((measure) => {
-      columnNameMap[`${table.name}.${measure.name}`] = measure;
+      columnNameMap[addNamespace(table.name, measure.name)] = measure;
     });
   });
   return columnNameMap;
@@ -26,7 +26,7 @@ export const constructMeasuresNameMap = (tableSchema: TableSchema[]) => {
 
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
   return {
-    name: `${memberKeyToSafeKey(name)}`,
+    name: memberKeyToSafeKey(name),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias(name, schema.alias, true)}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
@@ -92,12 +92,15 @@ export const generateResolutionSchemas = (
       sql: tableSchema.sql,
       measures: [],
       dimensions: colConfig.resolutionColumns.map((col) => {
-        const dimension = resolutionColumnsByName[`${colConfig.source}.${col}`];
+        const dimension =
+          resolutionColumnsByName[addNamespace(colConfig.source, col)];
         if (!dimension) {
           throw new Error(`Dimension not found: ${col}`);
         }
         return {
-          name: col,
+          // Need to create a new name due to limitations with how
+          // CubeToSql handles duplicate dimension names between different sources.
+          name: memberKeyToSafeKey(addNamespace(colConfig.name, col)),
           sql: `${baseName}.${col}`,
           type: dimension.type,
           alias: `${baseAlias} - ${constructAlias(col, dimension.alias)}`,
@@ -119,13 +122,18 @@ export const generateResolvedDimensions = (
     ...query.measures,
     ...(query.dimensions || []),
   ].flatMap((dimension) => {
-    const resolution = config.columnConfigs.find((c) => c.name === dimension);
+    const columnConfig = config.columnConfigs.find((c) => c.name === dimension);
 
-    if (!resolution) {
-      return [`${BASE_DATA_SOURCE_NAME}.${memberKeyToSafeKey(dimension)}`];
+    if (!columnConfig) {
+      return [
+        addNamespace(BASE_DATA_SOURCE_NAME, memberKeyToSafeKey(dimension)),
+      ];
     } else {
-      return resolution.resolutionColumns.map(
-        (col) => `${memberKeyToSafeKey(dimension)}.${col}`
+      return columnConfig.resolutionColumns.map((col) =>
+        addNamespace(
+          memberKeyToSafeKey(dimension),
+          memberKeyToSafeKey(addNamespace(columnConfig.name, col))
+        )
       );
     }
   });

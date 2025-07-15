@@ -68,6 +68,24 @@ describe('get-aliased-columns-from-filters', () => {
         sql: undefined,
       });
     });
+
+    it('should use aliases', () => {
+      const key = 'test.x';
+      const tableSchema: TableSchema = {
+        ...TABLE_SCHEMA,
+        measures: [{ name: 'x', sql: 'x', type: 'number', alias: 'test x' }],
+      };
+      const result = getFilterMeasureProjection({
+        key,
+        tableSchema: tableSchema,
+        measures: ['test.a'],
+      });
+      expect(result).toEqual({
+        aliasKey: '"test x"',
+        foundMember: { name: 'x', sql: 'x', type: 'number', alias: 'test x' },
+        sql: 'test.x AS "test x"',
+      });
+    });
   });
 
   describe('getDimensionProjection', () => {
@@ -107,16 +125,26 @@ describe('get-aliased-columns-from-filters', () => {
 
     it('should use aliases', () => {
       const key = 'test.a';
+      const tableSchema: TableSchema = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          { name: 'a', sql: 'others', type: 'number', alias: 'test a' },
+        ],
+      };
 
       const result = getDimensionProjection({
         key,
-        tableSchema: TABLE_SCHEMA,
+        tableSchema: tableSchema,
         modifiers: [],
-        aliases: { 'test.a': 'test a' },
       });
       expect(result).toEqual({
         aliasKey: '"test a"',
-        foundMember: { name: 'a', sql: 'others', type: 'number' },
+        foundMember: {
+          name: 'a',
+          sql: 'others',
+          type: 'number',
+          alias: 'test a',
+        },
         sql: 'others AS "test a"',
       });
     });
