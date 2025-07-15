@@ -1,4 +1,4 @@
-import { TableWiseFiles } from 'meerkat-dbm/src/types';
+import { Table } from '@devrev/meerkat-dbm';
 import { useMemo, useState } from 'react';
 import { TEST_QUERIES } from '../constants';
 import { useDBM } from '../hooks/dbm-context';
@@ -17,8 +17,8 @@ export const QueryBenchmarking = () => {
 
   const preQuery = useMemo(
     () =>
-      async (tablesFileData: TableWiseFiles[]): Promise<void> => {
-        for (const table of tablesFileData) {
+      async (tables: Table[]): Promise<void> => {
+        for (const table of tables) {
           let filePaths: string[] = [];
 
           if (fileManagerType === 'native' && window.api) {

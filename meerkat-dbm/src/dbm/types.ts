@@ -1,7 +1,7 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { FileManagerType } from '../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../logger';
-import { TableWiseFiles } from '../types';
+import { Table } from '../types';
 import { InstanceManagerType } from './instance-manager';
 
 export interface DBMConstructorOptions {
@@ -66,9 +66,9 @@ export interface QueryOptions {
   /**
    * @description
    * A callback function which will be executed before the query is executed.
-   * @param tableWiseFiles - An array of tables with associated file names.
+   * @param tables - An array of tables with associated file names.
    */
-  preQuery?: (tableWiseFiles: TableWiseFiles[]) => Promise<void>;
+  preQuery?: (tables: Table[]) => Promise<void>;
 
   /**
    * @description
@@ -112,9 +112,8 @@ export interface QueryQueueItem {
 }
 
 export interface TableLock {
-  promiseQueue: {
-    resolve: () => void;
-    reject: () => void;
-  }[];
-  isLocked: boolean;
+  readersCount: number;
+  writer: boolean;
+  readersQueue: (() => void)[];
+  writersQueue: (() => void)[];
 }

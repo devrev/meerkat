@@ -128,6 +128,14 @@ export class DBMParallel extends TableLockManager {
         throw new Error('No runner found');
       }
 
+      /**
+       * Lock the tables
+       */
+      await this.lockTables(
+        tables.map((table) => table.name),
+        'read'
+      );
+
       const response =
         await runner.communication.sendRequest<BrowserRunnerExecQueryMessageResponse>(
           {
@@ -142,6 +150,14 @@ export class DBMParallel extends TableLockManager {
 
       const end = performance.now();
       this.logger.info(`Time to execute by DBM Parallel`, end - start);
+
+      /**
+       * Unlock the tables
+       */
+      this.unlockTables(
+        tables.map((table) => table.name),
+        'read'
+      );
 
       /**
        * The implementation is based on postMessage API, so we don't have the ability to throw an error from the runner

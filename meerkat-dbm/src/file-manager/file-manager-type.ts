@@ -1,7 +1,7 @@
 import { InstanceManagerType } from '../dbm/instance-manager';
 import { TableConfig } from '../dbm/types';
 import { DBMEvent, DBMLogger } from '../logger';
-import { Table, TableWiseFiles } from '../types';
+import { Table } from '../types';
 
 export interface FileManagerConstructorOptions {
   /**
@@ -128,7 +128,7 @@ export interface FileManagerType {
    * @param tables - An array of tables.
    * @returns Array of objects containing table names and associated files.
    */
-  getFilesNameForTables: (tables: TableConfig[]) => Promise<TableWiseFiles[]>;
+  getFilesNameForTables: (tables: TableConfig[]) => Promise<Table[]>;
 
   /**
    * @description

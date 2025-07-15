@@ -6,12 +6,12 @@ import {
   FileManagerType,
   getMainAppName,
   getRunnerAppName,
-  RunnerMemoryDBFileManager,
+  RunnerIndexedDBFileManager,
   WindowCommunication,
 } from '@devrev/meerkat-dbm';
 
 import log from 'loglevel';
-import { TableWiseFiles } from 'meerkat-dbm/src/types';
+import { Table } from 'meerkat-dbm/src/types';
 import { useEffect, useRef, useState } from 'react';
 import { InstanceManager } from './duck-db/instance-manager';
 
@@ -72,7 +72,7 @@ export function App() {
   }
 
   if (!fileManagerRef.current) {
-    fileManagerRef.current = new RunnerMemoryDBFileManager({
+    fileManagerRef.current = new RunnerIndexedDBFileManager({
       instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async () => [],
       logger: log,
@@ -82,7 +82,6 @@ export function App() {
           payload: event,
         });
       },
-      communication: communicationRef.current,
     });
   }
 
@@ -110,13 +109,13 @@ export function App() {
                 ...message.message.payload,
                 options: {
                   ...message.message.payload.options,
-                  preQuery: async (tableWiseFiles: TableWiseFiles[]) => {
+                  preQuery: async (tables: Table[]) => {
                     const preQueryMessage =
                       await communicationRef.current?.sendRequest<string[]>({
                         type: BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY,
                         payload: {
                           runnerId: uuid,
-                          tableWiseFiles: tableWiseFiles,
+                          tables: tables,
                         },
                       });
 

@@ -11,37 +11,38 @@ import {
   detectApplyContextParamsToBaseSQL,
   getCombinedTableSchema,
   getFilterParamsSQL,
-  getFinalBaseSQL
+  getFinalBaseSQL,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 
-
-const getQueryOutput = async (query: string, connection: AsyncDuckDBConnection) => {
+const getQueryOutput = async (
+  query: string,
+  connection: AsyncDuckDBConnection
+) => {
   const queryOutput = await connection.query(query);
   const parsedOutputQuery = queryOutput.toArray().map((row) => row.toJSON());
   return parsedOutputQuery;
-}
+};
 
-
-interface CubeQueryToSQLParams {
-  connection: AsyncDuckDBConnection,
-  query: Query,
-  tableSchemas: TableSchema[],
-  contextParams?: ContextParams,
+export interface CubeQueryToSQLParams {
+  connection: AsyncDuckDBConnection;
+  query: Query;
+  tableSchemas: TableSchema[];
+  contextParams?: ContextParams;
 }
 
 export const cubeQueryToSQL = async ({
   connection,
   query,
   tableSchemas,
-  contextParams
+  contextParams,
 }: CubeQueryToSQLParams) => {
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
       const baseFilterParamsSQL = await getFinalBaseSQL({
         query,
         tableSchema: schema,
-        getQueryOutput: (query) => getQueryOutput(query, connection)
+        getQueryOutput: (query) => getQueryOutput(query, connection),
       });
       return {
         ...schema,

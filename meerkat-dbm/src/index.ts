@@ -1,6 +1,7 @@
 export * from './dbm';
 export * from './file-manager';
 export * from './logger';
+export * from './types';
 export {
   convertArrowTableToJSON,
   convertSharedArrayBufferToUint8Array,
