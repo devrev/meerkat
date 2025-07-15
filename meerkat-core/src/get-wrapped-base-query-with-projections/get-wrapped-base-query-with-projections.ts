@@ -1,7 +1,9 @@
 import { getSelectReplacedSql } from '../cube-measure-transformer/cube-measure-transformer';
 import { Query, TableSchema } from '../types/cube-types';
 import { getAliasedColumnsFromFilters } from './get-aliased-columns-from-filters';
-import { getProjectionClause } from './get-projection-clause';
+import {
+  getProjectionClause
+} from './get-projection-clause';
 
 interface GetWrappedBaseQueryWithProjectionsParams {
   baseQuery: string;
