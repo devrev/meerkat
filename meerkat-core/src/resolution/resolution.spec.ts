@@ -1,6 +1,4 @@
 import {
-  constructDimensionsNameMap,
-  constructMeasuresNameMap,
   createBaseTableSchema,
   generateResolutionJoinPaths,
   generateResolutionSchemas,
@@ -37,10 +35,6 @@ describe('Create base table schema', () => {
         ],
       },
     ];
-    const columnNameMap = {
-      ...constructMeasuresNameMap(tableSchemas),
-      ...constructDimensionsNameMap(tableSchemas),
-    };
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [],
       tableSchemas: [],
@@ -50,7 +44,7 @@ describe('Create base table schema', () => {
 
     const baseTableSchema = createBaseTableSchema(
       sql,
-      columnNameMap,
+      tableSchemas,
       resolutionConfig,
       measures,
       dimensions
@@ -105,7 +99,6 @@ describe('Create base table schema', () => {
         ],
       },
     ];
-    const columnNameMap = constructDimensionsNameMap(tableSchemas);
     const resolutionConfig = {
       columnConfigs: [
         {
@@ -127,7 +120,7 @@ describe('Create base table schema', () => {
 
     const baseTableSchema = createBaseTableSchema(
       sql,
-      columnNameMap,
+      tableSchemas,
       resolutionConfig,
       [],
       dimensions
@@ -178,7 +171,6 @@ describe('Create base table schema', () => {
         ],
       },
     ];
-    const columnNameMap = constructDimensionsNameMap(tableSchemas);
     const resolutionConfig = {
       columnConfigs: [],
       tableSchemas: [],
@@ -188,7 +180,7 @@ describe('Create base table schema', () => {
     expect(() => {
       createBaseTableSchema(
         sql,
-        columnNameMap,
+        tableSchemas,
         resolutionConfig,
         [],
         dimensions
@@ -219,7 +211,6 @@ describe('Create base table schema', () => {
         ],
       },
     ];
-    const columnNameMap = constructDimensionsNameMap(tableSchemas);
     const resolutionConfig = {
       columnConfigs: [
         {
@@ -241,7 +232,7 @@ describe('Create base table schema', () => {
 
     const baseTableSchema = createBaseTableSchema(
       sql,
-      columnNameMap,
+      tableSchemas,
       resolutionConfig,
       [],
       dimensions
@@ -298,7 +289,6 @@ describe('Generate resolution schemas', () => {
         ],
       },
     ];
-    const columnNameMap = constructDimensionsNameMap(baseTableSchemas);
 
     const resolutionConfig = {
       columnConfigs: [
@@ -341,7 +331,10 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig, columnNameMap);
+    const schemas = generateResolutionSchemas(
+      resolutionConfig,
+      baseTableSchemas
+    );
 
     expect(schemas).toEqual([
       {
@@ -422,7 +415,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig, {});
+      generateResolutionSchemas(resolutionConfig, []);
     }).toThrow('Table schema not found for resolution_table1');
   });
 
@@ -459,7 +452,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig, {});
+      generateResolutionSchemas(resolutionConfig, []);
     }).toThrow('Dimension not found: display_id');
   });
 
@@ -494,7 +487,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig, {});
+    const schemas = generateResolutionSchemas(resolutionConfig, []);
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -528,7 +521,6 @@ describe('Generate resolution schemas', () => {
         ],
       },
     ];
-    const columnNameMap = constructDimensionsNameMap(baseTableSchemas);
 
     const resolutionConfig = {
       columnConfigs: [
@@ -562,7 +554,10 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig, columnNameMap);
+    const schemas = generateResolutionSchemas(
+      resolutionConfig,
+      baseTableSchemas
+    );
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -665,7 +660,7 @@ describe('Generate resolution join paths', () => {
       tableSchemas: [],
     };
 
-    const joinPaths = generateResolutionJoinPaths(resolutionConfig, {});
+    const joinPaths = generateResolutionJoinPaths(resolutionConfig, []);
 
     expect(joinPaths).toEqual([
       [
@@ -707,7 +702,6 @@ describe('Generate resolution join paths', () => {
         ],
       },
     ];
-    const columnNameMap = constructDimensionsNameMap(baseTableSchemas);
 
     const resolutionConfig = {
       columnConfigs: [
@@ -723,7 +717,7 @@ describe('Generate resolution join paths', () => {
 
     const joinPaths = generateResolutionJoinPaths(
       resolutionConfig,
-      columnNameMap
+      baseTableSchemas
     );
     expect(joinPaths).toEqual([
       [

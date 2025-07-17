@@ -2,27 +2,11 @@ import { getNamespacedKey, memberKeyToSafeKey } from '../member-formatters';
 import { constructAlias } from '../member-formatters/get-alias';
 import { JoinPath, Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
+import {
+  findInDimensionSchemas,
+  findInSchemas,
+} from '../utils/find-in-table-schema';
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
-
-export const constructDimensionsNameMap = (tableSchema: TableSchema[]) => {
-  const columnNameMap: Record<string, Dimension> = {};
-  tableSchema.forEach((table) => {
-    table.dimensions.forEach((dimension) => {
-      columnNameMap[getNamespacedKey(table.name, dimension.name)] = dimension;
-    });
-  });
-  return columnNameMap;
-};
-
-export const constructMeasuresNameMap = (tableSchema: TableSchema[]) => {
-  const columnNameMap: Record<string, Measure> = {};
-  tableSchema.forEach((table) => {
-    table.measures.forEach((measure) => {
-      columnNameMap[getNamespacedKey(table.name, measure.name)] = measure;
-    });
-  });
-  return columnNameMap;
-};
 
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
   return {
@@ -36,7 +20,7 @@ const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
 
 export const createBaseTableSchema = (
   baseSql: string,
-  columnsByName: Record<string, Measure | Dimension>,
+  tableSchemas: TableSchema[],
   resolutionConfig: ResolutionConfig,
   measures: Member[],
   dimensions?: Member[]
@@ -45,7 +29,7 @@ export const createBaseTableSchema = (
   sql: baseSql,
   measures: [],
   dimensions: [...measures, ...(dimensions || [])].map((member) => {
-    const schema = columnsByName[member];
+    const schema = findInSchemas(member, tableSchemas);
     if (schema) {
       return constructBaseDimension(member, schema);
     } else {
@@ -55,7 +39,7 @@ export const createBaseTableSchema = (
   joins: resolutionConfig.columnConfigs.map((config) => ({
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias(
       config.name,
-      columnsByName[config.name]?.alias,
+      findInSchemas(config.name, tableSchemas)?.alias,
       true
     )} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
   })),
@@ -63,12 +47,8 @@ export const createBaseTableSchema = (
 
 export const generateResolutionSchemas = (
   config: ResolutionConfig,
-  baseColumnsByName: Record<string, Measure | Dimension>
+  baseTableSchemas: TableSchema[]
 ) => {
-  const resolutionColumnsByName = constructDimensionsNameMap(
-    config.tableSchemas
-  );
-
   const resolutionSchemas: TableSchema[] = [];
   config.columnConfigs.forEach((colConfig) => {
     const tableSchema = config.tableSchemas.find(
@@ -81,7 +61,7 @@ export const generateResolutionSchemas = (
     const baseName = memberKeyToSafeKey(colConfig.name);
     const baseAlias = constructAlias(
       colConfig.name,
-      baseColumnsByName[colConfig.name]?.alias
+      findInSchemas(colConfig.name, baseTableSchemas)?.alias
     );
 
     // For each column that needs to be resolved, create a copy of the relevant table schema.
@@ -92,8 +72,10 @@ export const generateResolutionSchemas = (
       sql: tableSchema.sql,
       measures: [],
       dimensions: colConfig.resolutionColumns.map((col) => {
-        const dimension =
-          resolutionColumnsByName[getNamespacedKey(colConfig.source, col)];
+        const dimension = findInDimensionSchemas(
+          getNamespacedKey(colConfig.source, col),
+          config.tableSchemas
+        );
         if (!dimension) {
           throw new Error(`Dimension not found: ${col}`);
         }
@@ -142,7 +124,7 @@ export const generateResolvedDimensions = (
 
 export const generateResolutionJoinPaths = (
   resolutionConfig: ResolutionConfig,
-  baseColumnsByName: Record<string, Measure | Dimension>
+  baseTableSchemas: TableSchema[]
 ): JoinPath[] => {
   return resolutionConfig.columnConfigs.map((config) => [
     {
@@ -150,7 +132,7 @@ export const generateResolutionJoinPaths = (
       right: memberKeyToSafeKey(config.name),
       on: constructAlias(
         config.name,
-        baseColumnsByName[config.name]?.alias,
+        findInSchemas(config.name, baseTableSchemas)?.alias,
         true
       ),
     },
