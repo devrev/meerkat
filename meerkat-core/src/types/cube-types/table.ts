@@ -18,6 +18,7 @@ export type Measure = {
   name: string;
   sql: string;
   type: MeasureType;
+  alias?: string;
 };
 
 export type Dimension = {
@@ -25,8 +26,9 @@ export type Dimension = {
   sql: string;
   type: DimensionType;
   modifier?: {
-    shouldUnnestGroupBy?: boolean
-  }
+    shouldUnnestGroupBy?: boolean;
+  };
+  alias?: string;
 };
 
 export type Join = {

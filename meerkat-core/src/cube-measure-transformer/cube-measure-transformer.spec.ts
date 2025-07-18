@@ -7,7 +7,7 @@ import {
 } from './cube-measure-transformer';
 
 describe('cubeMeasureToSQLSelectString', () => {
-  let tableSchema: TableSchema;
+  let tableSchema: TableSchema, tableSchemaWithAliases: TableSchema;
   const cube = 'cube_test';
 
   beforeEach(() => {
@@ -27,6 +27,26 @@ describe('cubeMeasureToSQLSelectString', () => {
         },
       ],
     };
+
+    tableSchemaWithAliases = {
+      name: 'test_with_aliases',
+      sql: cube,
+      measures: [
+        {
+          name: 'measure1',
+          sql: 'COUNT(*)',
+          type: 'number',
+          alias: 'alias_measure1',
+        },
+        {
+          name: 'measure2',
+          sql: 'SUM(total)',
+          type: 'number',
+          alias: 'alias_measure2',
+        },
+      ],
+      dimensions: [],
+    };
   });
 
   it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
@@ -45,6 +65,17 @@ describe('cubeMeasureToSQLSelectString', () => {
     const measures: Member[] = ['*'];
     const result = cubeMeasureToSQLSelectString(measures, tableSchema);
     expect(result).toBe(`SELECT test.*`);
+  });
+
+  it('should use alias for measures when provided', () => {
+    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+    const result = cubeMeasureToSQLSelectString(
+      measures,
+      tableSchemaWithAliases
+    );
+    expect(result).toBe(
+      `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
+    );
   });
 
   it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
@@ -87,6 +118,20 @@ describe('cubeMeasureToSQLSelectString', () => {
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
+    );
+  });
+
+  it('should use aliases when provided', () => {
+    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+    const sqlToReplace = 'SELECT * FROM my_table';
+    const result = applyProjectionToSQLQuery(
+      [],
+      measures,
+      tableSchemaWithAliases,
+      sqlToReplace
+    );
+    expect(result).toBe(
+      `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`
     );
   });
 });

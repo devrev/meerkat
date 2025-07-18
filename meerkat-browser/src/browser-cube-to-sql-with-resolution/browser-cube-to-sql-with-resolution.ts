@@ -50,15 +50,17 @@ export const cubeQueryToSQLWithResolution = async ({
     query.dimensions
   );
 
-  const resolutionSchemas: TableSchema[] =
-    generateResolutionSchemas(resolutionConfig);
+  const resolutionSchemas: TableSchema[] = generateResolutionSchemas(
+    resolutionConfig,
+    tableSchemas
+  );
 
   const resolveParams: CubeQueryToSQLParams = {
     connection: connection,
     query: {
       measures: [],
       dimensions: generateResolvedDimensions(query, resolutionConfig),
-      joinPaths: generateResolutionJoinPaths(resolutionConfig),
+      joinPaths: generateResolutionJoinPaths(resolutionConfig, tableSchemas),
     },
     tableSchemas: [baseTable, ...resolutionSchemas],
   };

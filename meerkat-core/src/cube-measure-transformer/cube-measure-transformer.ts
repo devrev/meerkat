@@ -1,4 +1,5 @@
-import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
+import { getNamespacedKey } from '../member-formatters';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
@@ -18,7 +19,11 @@ export const cubeMeasureToSQLSelectString = (
     const [tableSchemaName, measureKeyWithoutTable] =
       splitIntoDataSourceAndFields(measure);
 
-    const aliasKey = memberKeyToSafeKey(measure);
+    const aliasKey = getAliasFromSchema({
+      name: measure,
+      tableSchema,
+      safe: true,
+    });
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
     );
@@ -47,8 +52,12 @@ export const cubeMeasureToSQLSelectString = (
     //Replace all the columnsUsedInMeasure with safeKey
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [_, column] = splitIntoDataSourceAndFields(measureKey);
-      const memberKey = `${tableSchemaName}.${column}`;
-      const columnKey = memberKeyToSafeKey(memberKey);
+      const memberKey = getNamespacedKey(tableSchemaName, column);
+      const columnKey = getAliasFromSchema({
+        name: memberKey,
+        tableSchema,
+        safe: true,
+      });
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
         columnKey
@@ -76,7 +85,11 @@ const addDimensionToSQLProjection = (
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    const aliasKey = memberKeyToSafeKey(dimension);
+    const aliasKey = getAliasFromSchema({
+      name: dimension,
+      tableSchema,
+      safe: true,
+    });
 
     if (!dimensionSchema) {
       continue;
