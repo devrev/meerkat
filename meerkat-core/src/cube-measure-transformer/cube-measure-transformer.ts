@@ -1,8 +1,4 @@
-import {
-  getAliasFromSchema,
-  getNamespacedKey,
-  shouldUseSafeAlias,
-} from '../member-formatters';
+import { getAliasFromSchema, getNamespacedKey } from '../member-formatters';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
@@ -25,9 +21,9 @@ export const cubeMeasureToSQLSelectString = (
     const aliasKey = getAliasFromSchema({
       name: measure,
       tableSchema,
-      safe: shouldUseSafeAlias({
+      aliasContext: {
         isAstIdentifier: false,
-      }),
+      },
     });
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
@@ -61,9 +57,9 @@ export const cubeMeasureToSQLSelectString = (
       const columnKey = getAliasFromSchema({
         name: memberKey,
         tableSchema,
-        safe: shouldUseSafeAlias({
+        aliasContext: {
           isAstIdentifier: false,
-        }),
+        },
       });
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
@@ -95,9 +91,9 @@ const addDimensionToSQLProjection = (
     const aliasKey = getAliasFromSchema({
       name: dimension,
       tableSchema,
-      safe: shouldUseSafeAlias({
+      aliasContext: {
         isAstIdentifier: false,
-      }),
+      },
     });
 
     if (!dimensionSchema) {

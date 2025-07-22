@@ -7,10 +7,7 @@ import {
   QueryFiltersWithInfoSingular,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { traverseAndFilter } from '../filter-params/filter-params-ast';
-import {
-  constructAlias,
-  shouldUseSafeAlias,
-} from '../member-formatters/get-alias';
+import { constructAlias } from '../member-formatters/get-alias';
 import {
   FilterType,
   MeerkatQueryFilter,
@@ -38,9 +35,9 @@ const formatFilters = (
           member: constructAlias({
             name: item.member,
             alias: item.memberInfo.alias,
-            safe: shouldUseSafeAlias({
+            aliasContext: {
               isAstIdentifier: true,
-            }),
+            },
           }),
         };
       }) as QueryFiltersWithInfo);

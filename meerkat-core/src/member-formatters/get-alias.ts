@@ -3,13 +3,15 @@ import { findInSchema } from '../utils/find-in-table-schema';
 import { memberKeyToSafeKey } from './member-key-to-safe-key';
 import { splitIntoDataSourceAndFields } from './split-into-data-source-and-fields';
 
-export const shouldUseSafeAlias = ({
-  isAstIdentifier,
-  isTableSchemaAlias,
-}: {
+export interface AliasContext {
   isAstIdentifier?: boolean;
   isTableSchemaAlias?: boolean;
-}): boolean => {
+}
+
+const shouldUseSafeAlias = ({
+  isAstIdentifier,
+  isTableSchemaAlias,
+}: AliasContext): boolean => {
   if (isAstIdentifier) {
     // Duckdb will automatically quote identifiers that contain special characters or spaces.
     // when converting the AST to SQL.
@@ -27,31 +29,31 @@ export const shouldUseSafeAlias = ({
 export const getAliasFromSchema = ({
   name,
   tableSchema,
-  safe,
+  aliasContext,
 }: {
   name: string;
   tableSchema: TableSchema;
-  safe: boolean;
+  aliasContext: AliasContext;
 }): string => {
   const [, field] = splitIntoDataSourceAndFields(name);
   return constructAlias({
     name,
     alias: findInSchema(field, tableSchema)?.alias,
-    safe,
+    aliasContext,
   });
 };
 
 export const constructAlias = ({
   name,
   alias,
-  safe,
+  aliasContext,
 }: {
   name: string;
   alias?: string;
-  safe: boolean;
+  aliasContext: AliasContext;
 }): string => {
   if (alias) {
-    if (safe) {
+    if (shouldUseSafeAlias(aliasContext)) {
       // Alias may contain special characters or spaces, so we need to wrap in quotes.
       return `"${alias}"`;
     }

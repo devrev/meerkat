@@ -1,7 +1,4 @@
-import {
-  getAliasFromSchema,
-  shouldUseSafeAlias,
-} from '../member-formatters/get-alias';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import { Member } from '../types/cube-types/query';
 import {
@@ -22,7 +19,7 @@ export const cubeDimensionToGroupByAST = (
         getAliasFromSchema({
           name: dimension,
           tableSchema,
-          safe: shouldUseSafeAlias({ isAstIdentifier: true }),
+          aliasContext: { isAstIdentifier: true },
         }),
       ],
     };

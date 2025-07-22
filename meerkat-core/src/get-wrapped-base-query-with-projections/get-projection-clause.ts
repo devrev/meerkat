@@ -1,8 +1,5 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
-import {
-  getAliasFromSchema,
-  shouldUseSafeAlias,
-} from '../member-formatters/get-alias';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Query, TableSchema } from '../types/cube-types';
 import {
@@ -58,7 +55,7 @@ export const getProjectionClause = (
         member: getAliasFromSchema({
           name: member,
           tableSchema,
-          safe: shouldUseSafeAlias({ isAstIdentifier: false }),
+          aliasContext: { isAstIdentifier: false },
         }),
         aliasedColumnSet,
         acc,
@@ -110,7 +107,7 @@ export const getProjectionClause = (
     const safeKey = getAliasFromSchema({
       name: column,
       tableSchema,
-      safe: true,
+      aliasContext: { isAstIdentifier: false },
     });
     columnsUsedInMeasuresInProjection += `${column} AS ${safeKey}`;
     if (index !== columnsUsedInMeasures.length - 1) {

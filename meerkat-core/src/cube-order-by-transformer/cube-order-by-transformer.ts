@@ -1,7 +1,4 @@
-import {
-  getAliasFromSchema,
-  shouldUseSafeAlias,
-} from '../member-formatters/get-alias';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import {
   ExpressionClass,
@@ -33,7 +30,7 @@ export const cubeOrderByToAST = (
           getAliasFromSchema({
             name: key,
             tableSchema,
-            safe: shouldUseSafeAlias({ isAstIdentifier: true }),
+            aliasContext: { isAstIdentifier: true },
           }),
         ],
       },

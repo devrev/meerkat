@@ -2,7 +2,6 @@ import {
   constructAlias,
   getNamespacedKey,
   memberKeyToSafeKey,
-  shouldUseSafeAlias,
 } from '../member-formatters';
 import { JoinPath, Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
@@ -18,14 +17,14 @@ const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
       name,
       alias: schema.alias,
-      safe: shouldUseSafeAlias({ isAstIdentifier: false }),
+      aliasContext: { isAstIdentifier: false },
     })}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
     alias: constructAlias({
       name,
       alias: schema.alias,
-      safe: shouldUseSafeAlias({ isTableSchemaAlias: true }),
+      aliasContext: { isTableSchemaAlias: true },
     }),
   };
 };
@@ -64,7 +63,7 @@ export const createBaseTableSchema = (
       sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
         name: config.name,
         alias: schemaByName[config.name]?.alias,
-        safe: shouldUseSafeAlias({ isAstIdentifier: false }),
+        aliasContext: { isAstIdentifier: false },
       })} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
     })),
   };
@@ -87,7 +86,7 @@ export const generateResolutionSchemas = (
     const baseAlias = constructAlias({
       name: colConfig.name,
       alias: findInSchemas(colConfig.name, baseTableSchemas)?.alias,
-      safe: shouldUseSafeAlias({ isTableSchemaAlias: true }),
+      aliasContext: { isTableSchemaAlias: true },
     });
 
     // For each column that needs to be resolved, create a copy of the relevant table schema.
@@ -114,7 +113,7 @@ export const generateResolutionSchemas = (
           alias: `${baseAlias} - ${constructAlias({
             name: col,
             alias: dimension.alias,
-            safe: shouldUseSafeAlias({ isTableSchemaAlias: true }),
+            aliasContext: { isTableSchemaAlias: true },
           })}`,
         };
       }),
@@ -163,7 +162,7 @@ export const generateResolutionJoinPaths = (
       on: constructAlias({
         name: config.name,
         alias: findInSchemas(config.name, baseTableSchemas)?.alias,
-        safe: shouldUseSafeAlias({ isAstIdentifier: false }),
+        aliasContext: { isAstIdentifier: false },
       }),
     },
   ]);
