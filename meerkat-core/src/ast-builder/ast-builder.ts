@@ -7,7 +7,10 @@ import {
   QueryFiltersWithInfoSingular,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { traverseAndFilter } from '../filter-params/filter-params-ast';
-import { constructAlias } from '../member-formatters/get-alias';
+import {
+  constructAlias,
+  shouldUseSafeAlias,
+} from '../member-formatters/get-alias';
 import {
   FilterType,
   MeerkatQueryFilter,
@@ -32,7 +35,13 @@ const formatFilters = (
     : (modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
         return {
           ...item,
-          member: constructAlias(item.member, item.memberInfo.alias),
+          member: constructAlias({
+            name: item.member,
+            alias: item.memberInfo.alias,
+            safe: shouldUseSafeAlias({
+              isAstIdentifier: true,
+            }),
+          }),
         };
       }) as QueryFiltersWithInfo);
 };

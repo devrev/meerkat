@@ -1,4 +1,7 @@
-import { getAliasFromSchema } from '../member-formatters/get-alias';
+import {
+  getAliasFromSchema,
+  shouldUseSafeAlias,
+} from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import { Member } from '../types/cube-types/query';
 import {
@@ -15,7 +18,13 @@ export const cubeDimensionToGroupByAST = (
       class: ExpressionClass.COLUMN_REF,
       type: ExpressionType.COLUMN_REF,
       alias: '',
-      column_names: [getAliasFromSchema({ name: dimension, tableSchema })],
+      column_names: [
+        getAliasFromSchema({
+          name: dimension,
+          tableSchema,
+          safe: shouldUseSafeAlias({ isAstIdentifier: true }),
+        }),
+      ],
     };
 
     return dimensionAST;

@@ -1,5 +1,9 @@
-import { getNamespacedKey, memberKeyToSafeKey } from '../member-formatters';
-import { constructAlias } from '../member-formatters/get-alias';
+import {
+  constructAlias,
+  getNamespacedKey,
+  memberKeyToSafeKey,
+  shouldUseSafeAlias,
+} from '../member-formatters';
 import { JoinPath, Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import {
@@ -11,10 +15,18 @@ import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
   return {
     name: memberKeyToSafeKey(name),
-    sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias(name, schema.alias, true)}`,
+    sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
+      name,
+      alias: schema.alias,
+      safe: shouldUseSafeAlias({ isAstIdentifier: false }),
+    })}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
-    alias: constructAlias(name, schema.alias),
+    alias: constructAlias({
+      name,
+      alias: schema.alias,
+      safe: shouldUseSafeAlias({ isTableSchemaAlias: true }),
+    }),
   };
 };
 
@@ -49,11 +61,11 @@ export const createBaseTableSchema = (
       }
     }),
     joins: resolutionConfig.columnConfigs.map((config) => ({
-      sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias(
-        config.name,
-        schemaByName[config.name]?.alias,
-        true
-      )} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
+      sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
+        name: config.name,
+        alias: schemaByName[config.name]?.alias,
+        safe: shouldUseSafeAlias({ isAstIdentifier: false }),
+      })} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
     })),
   };
 };
@@ -72,10 +84,11 @@ export const generateResolutionSchemas = (
     }
 
     const baseName = memberKeyToSafeKey(colConfig.name);
-    const baseAlias = constructAlias(
-      colConfig.name,
-      findInSchemas(colConfig.name, baseTableSchemas)?.alias
-    );
+    const baseAlias = constructAlias({
+      name: colConfig.name,
+      alias: findInSchemas(colConfig.name, baseTableSchemas)?.alias,
+      safe: shouldUseSafeAlias({ isTableSchemaAlias: true }),
+    });
 
     // For each column that needs to be resolved, create a copy of the relevant table schema.
     // We use the name of the column in the base query as the table schema name
@@ -98,7 +111,11 @@ export const generateResolutionSchemas = (
           name: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
           sql: `${baseName}.${col}`,
           type: dimension.type,
-          alias: `${baseAlias} - ${constructAlias(col, dimension.alias)}`,
+          alias: `${baseAlias} - ${constructAlias({
+            name: col,
+            alias: dimension.alias,
+            safe: shouldUseSafeAlias({ isTableSchemaAlias: true }),
+          })}`,
         };
       }),
     };
@@ -143,11 +160,11 @@ export const generateResolutionJoinPaths = (
     {
       left: BASE_DATA_SOURCE_NAME,
       right: memberKeyToSafeKey(config.name),
-      on: constructAlias(
-        config.name,
-        findInSchemas(config.name, baseTableSchemas)?.alias,
-        true
-      ),
+      on: constructAlias({
+        name: config.name,
+        alias: findInSchemas(config.name, baseTableSchemas)?.alias,
+        safe: shouldUseSafeAlias({ isAstIdentifier: false }),
+      }),
     },
   ]);
 };

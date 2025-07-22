@@ -1,4 +1,7 @@
-import { getAliasFromSchema } from '../member-formatters/get-alias';
+import {
+  getAliasFromSchema,
+  shouldUseSafeAlias,
+} from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import {
   ExpressionClass,
@@ -26,7 +29,13 @@ export const cubeOrderByToAST = (
         /**
          * We need to convert the key in the __ format as they are being projected in this format
          */
-        column_names: [getAliasFromSchema({ name: key, tableSchema })],
+        column_names: [
+          getAliasFromSchema({
+            name: key,
+            tableSchema,
+            safe: shouldUseSafeAlias({ isAstIdentifier: true }),
+          }),
+        ],
       },
     };
     orderArr.push(orderByAST);
