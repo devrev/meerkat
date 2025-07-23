@@ -58,4 +58,25 @@ describe('get-projection-clause', () => {
       expect(result).toEqual('others AS test__a, test.id AS test__id');
     });
   });
+
+  it('should apply aliases', () => {
+    const members = ['test.a', 'test.c'];
+    const aliasedColumnSet = new Set<string>();
+    const tableSchema: TableSchema = {
+      ...TABLE_SCHEMA,
+      dimensions: [
+        { name: 'a', sql: 'others', type: 'number', alias: 'test a' },
+        { name: 'c', sql: 'any', type: 'string', alias: 'test c' },
+      ],
+    };
+    const result = getProjectionClause(
+      {
+        dimensions: members,
+        measures: [],
+      },
+      tableSchema,
+      aliasedColumnSet
+    );
+    expect(result).toEqual('others AS "test a", any AS "test c"');
+  });
 });

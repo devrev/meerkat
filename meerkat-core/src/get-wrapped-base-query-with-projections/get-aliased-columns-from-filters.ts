@@ -1,4 +1,4 @@
-import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { MeerkatQueryFilter, Query, TableSchema } from '../types/cube-types';
 import {
@@ -40,7 +40,11 @@ export const getDimensionProjection = ({
     query,
   });
 
-  const aliasKey = memberKeyToSafeKey(key);
+  const aliasKey = getAliasFromSchema({
+    name: key,
+    tableSchema,
+    aliasContext: { isAstIdentifier: false },
+  });
   // Add the alias key to the set. So we have a reference to all the previously selected members.
   return { sql: `${modifiedSql} AS ${aliasKey}`, foundMember, aliasKey };
 };
@@ -67,7 +71,11 @@ export const getFilterMeasureProjection = ({
       aliasKey: undefined,
     };
   }
-  const aliasKey = memberKeyToSafeKey(key);
+  const aliasKey = getAliasFromSchema({
+    name: key,
+    tableSchema,
+    aliasContext: { isAstIdentifier: false },
+  });
   return { sql: `${key} AS ${aliasKey}`, foundMember, aliasKey };
 };
 
@@ -94,7 +102,11 @@ const getFilterProjections = ({
   }
   const isMeasure = findInMeasureSchema(memberWithoutTable, tableSchema);
   if (isMeasure) {
-    return getFilterMeasureProjection({ key: member, tableSchema, measures });
+    return getFilterMeasureProjection({
+      key: member,
+      tableSchema,
+      measures,
+    });
   }
   return {
     sql: undefined,

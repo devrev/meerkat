@@ -1,5 +1,5 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
-import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Query, TableSchema } from '../types/cube-types';
 import {
@@ -52,7 +52,11 @@ export const getProjectionClause = (
         query,
       });
       return memberClauseAggregator({
-        member: memberKeyToSafeKey(member),
+        member: getAliasFromSchema({
+          name: member,
+          tableSchema,
+          aliasContext: { isAstIdentifier: false },
+        }),
         aliasedColumnSet,
         acc,
         currentIndex,
@@ -100,7 +104,11 @@ export const getProjectionClause = (
 
   let columnsUsedInMeasuresInProjection = '';
   columnsUsedInMeasures.forEach((column, index) => {
-    const safeKey = memberKeyToSafeKey(column);
+    const safeKey = getAliasFromSchema({
+      name: column,
+      tableSchema,
+      aliasContext: { isAstIdentifier: false },
+    });
     columnsUsedInMeasuresInProjection += `${column} AS ${safeKey}`;
     if (index !== columnsUsedInMeasures.length - 1) {
       columnsUsedInMeasuresInProjection += ', ';
