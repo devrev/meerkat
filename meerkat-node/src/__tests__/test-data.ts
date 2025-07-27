@@ -22,7 +22,8 @@ INSERT INTO orders VALUES
 (9, '5', '2', '2022-05-05', 85, []),
 (10, '6', '3', '2022-06-01', 120, ['myntra', 'amazon']),
 (11, '6aa6', '3', '2024-06-01', 0, ['amazon']),
-(12, NULL, '3', '2024-07-01', 100, ['flipkart']);
+(12, NULL, '3', '2024-07-01', 100, ['flipkart']),
+(13, '7', '6', '2024-08-01', 100, ['swiggy''s']);
 `;
 
 export const TABLE_SCHEMA = {
@@ -117,6 +118,10 @@ export const TEST_DATA = [
         },
         {
           orders__customer_id: '3',
+          orders__total_order_amount: 100,
+        },
+        {
+          orders__customer_id: '7',
           orders__total_order_amount: 100,
         },
         {
@@ -292,6 +297,15 @@ export const TEST_DATA = [
           order_amount: 0.0,
           vendors: ['amazon'],
         },
+        {
+          order_id: 13,
+          customer_id: '7',
+          orders__customer_id: '7',
+          product_id: '6',
+          order_date: '2024-08-01',
+          order_amount: 100.0,
+          vendors: ["swiggy's"],
+        },
       ],
     },
   ],
@@ -376,6 +390,16 @@ export const TEST_DATA = [
           order_date: '2022-06-01',
           order_amount: 120,
           vendors: ['myntra', 'amazon'],
+        },
+        {
+          customer_id: '7',
+          order_amount: 100,
+          order_date: '2024-08-01T00:00:00.000Z',
+          order_id: 13,
+          orders__customer_id: '7',
+          orders__order_date: undefined,
+          product_id: '6',
+          vendors: ["swiggy's"],
         },
       ],
     },
@@ -468,6 +492,16 @@ export const TEST_DATA = [
           orders__order_date: undefined,
           product_id: '3',
           vendors: ['flipkart'],
+        },
+        {
+          customer_id: '7',
+          order_amount: 100,
+          order_date: '2024-08-01T00:00:00.000Z',
+          order_id: 13,
+          orders__order_amount: 100,
+          orders__order_date: undefined,
+          product_id: '6',
+          vendors: ["swiggy's"],
         },
       ],
     },
@@ -660,6 +694,15 @@ export const TEST_DATA = [
           orders__order_date: '2024-07-01T00:00:00.000Z',
           product_id: '3',
           vendors: ['flipkart'],
+        },
+        {
+          customer_id: '7',
+          order_amount: 100,
+          order_date: '2024-08-01T00:00:00.000Z',
+          order_id: 13,
+          orders__order_date: '2024-08-01T00:00:00.000Z',
+          product_id: '6',
+          vendors: ["swiggy's"],
         },
       ],
     },
@@ -991,7 +1034,7 @@ export const TEST_DATA = [
     },
     {
       testName: 'In with single quotes',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, vendors AS orders__vendors FROM (select * from orders) AS orders) AS orders WHERE ((orders__vendors && (ARRAY['myntra''s'])))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT *, vendors AS orders__vendors FROM (select * from orders) AS orders) AS orders WHERE ((orders__vendors && (ARRAY['swiggy''s'])))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -1000,14 +1043,25 @@ export const TEST_DATA = [
               {
                 member: 'orders.vendors',
                 operator: 'in',
-                values: ["myntra's"],
+                values: ["swiggy's"],
               },
             ],
           },
         ],
         dimensions: [],
       },
-      expectedOutput: [],
+      expectedOutput: [
+        {
+          customer_id: '7',
+          order_amount: 100,
+          order_date: '2024-08-01T00:00:00.000Z',
+          order_id: 13,
+          orders__order_date: undefined,
+          orders__vendors: ["swiggy's"],
+          product_id: '6',
+          vendors: ["swiggy's"],
+        },
+      ],
     },
   ],
   [
@@ -1067,6 +1121,17 @@ export const TEST_DATA = [
           orders__vendors: ['amazon'],
           product_id: '3',
           vendors: ['amazon'],
+        },
+        {
+          customer_id: '7',
+          order_amount: 100,
+          order_date: '2024-08-01T00:00:00.000Z',
+          order_id: 13,
+          orders__customer_id: '7',
+          orders__order_date: undefined,
+          orders__vendors: ["swiggy's"],
+          product_id: '6',
+          vendors: ["swiggy's"],
         },
       ],
     },
