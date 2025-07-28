@@ -1,6 +1,7 @@
 import { Dimension, Measure } from '../../types/cube-types/index';
 
 import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
+import { sanitizeStringValue } from '../../member-formatters/sanitize-value';
 import {
   ExpressionClass,
   ExpressionType,
@@ -115,7 +116,7 @@ export const valueBuilder = (
           type_info: null,
         },
         is_null: false,
-        value: value,
+        value: sanitizeStringValue(value),
       };
 
     case 'number': {
@@ -157,7 +158,7 @@ export const valueBuilder = (
           type_info: null,
         },
         is_null: false,
-        value: value,
+        value: sanitizeStringValue(value),
       };
   }
 };
