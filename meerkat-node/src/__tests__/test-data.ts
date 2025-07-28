@@ -1034,7 +1034,7 @@ export const TEST_DATA = [
     },
     {
       testName: 'In with single quotes',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, vendors AS orders__vendors FROM (select * from orders) AS orders) AS orders WHERE ((orders__vendors && (ARRAY['swiggy''s'])))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__vendors && (ARRAY['swiggy''s'])))`,
       cubeInput: {
         measures: ['*'],
         filters: [
