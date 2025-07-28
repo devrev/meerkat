@@ -44,7 +44,7 @@ describe('get final base sql', () => {
       getQueryOutput,
     });
     expect(result).toEqual(
-      'SELECT *, amount AS orders__amount, status AS orders__status FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
+      'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
     );
   });
   it('should not return measures in the projected base sql when filter param not passed', async () => {
@@ -62,7 +62,7 @@ describe('get final base sql', () => {
       getQueryOutput,
     });
     expect(result).toEqual(
-      'SELECT *, amount AS orders__amount, status AS orders__status FROM (select * from orders WHERE TRUE) AS orders'
+      'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE TRUE) AS orders'
     );
   });
 
@@ -110,7 +110,7 @@ describe('get final base sql', () => {
       getQueryOutput,
     });
     expect(result).toEqual(
-      'SELECT *, amount AS "order amount", status AS "order status" FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
+      'SELECT amount AS "order amount", status AS "order status", * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
     );
   });
 });

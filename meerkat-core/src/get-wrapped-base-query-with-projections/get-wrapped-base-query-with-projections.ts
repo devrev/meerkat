@@ -1,9 +1,7 @@
 import { getSelectReplacedSql } from '../cube-measure-transformer/cube-measure-transformer';
 import { Query, TableSchema } from '../types/cube-types';
 import { getAliasedColumnsFromFilters } from './get-aliased-columns-from-filters';
-import {
-  getProjectionClause
-} from './get-projection-clause';
+import { getProjectionClause } from './get-projection-clause';
 
 interface GetWrappedBaseQueryWithProjectionsParams {
   baseQuery: string;
@@ -32,19 +30,17 @@ export const getWrappedBaseQueryWithProjections = ({
 
   const aliasFromFilters = getAliasedColumnsFromFilters({
     aliasedColumnSet,
-    baseSql: 'SELECT *',
     // setting measures to empty array, since we don't want to project measures present in the filters in the base query
     tableSchema: tableSchema,
     query,
     meerkatFilters: query.filters,
   });
 
-  const formattedMemberProjection = memberProjections
-    ? `, ${memberProjections}`
-    : '';
-
-  const finalAliasedColumnsClause =
-    aliasFromFilters + formattedMemberProjection;
+  const parts = [aliasFromFilters, memberProjections].filter(
+    (part) => part !== ''
+  );
+  parts.push('*');
+  const finalAliasedColumnsClause = 'SELECT ' + parts.join(', ');
 
   const sqlWithFilterProjects = getSelectReplacedSql(
     newBaseSql,

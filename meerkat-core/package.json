@@ -1,6 +1,6 @@
 {
   "name": "@devrev/meerkat-core",
-  "version": "0.0.99",
+  "version": "0.0.100",
   "dependencies": {
     "tslib": "^2.3.0"
   },

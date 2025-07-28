@@ -116,7 +116,6 @@ const getFilterProjections = ({
 };
 
 export const getAliasedColumnsFromFilters = ({
-  baseSql,
   meerkatFilters,
   tableSchema,
   aliasedColumnSet,
@@ -124,32 +123,35 @@ export const getAliasedColumnsFromFilters = ({
 }: {
   meerkatFilters?: MeerkatQueryFilter[];
   tableSchema: TableSchema;
-  baseSql: string;
   aliasedColumnSet: Set<string>;
   query: Query;
 }) => {
-  let sql = baseSql;
+  const parts: string[] = [];
   const { measures } = query;
   meerkatFilters?.forEach((filter) => {
     if ('and' in filter) {
       // Traverse through the passed 'and' filters
-      sql += getAliasedColumnsFromFilters({
-        baseSql: '',
+      const sql = getAliasedColumnsFromFilters({
         meerkatFilters: filter.and,
         tableSchema,
         aliasedColumnSet,
         query,
       });
+      if (sql) {
+        parts.push(sql);
+      }
     }
     if ('or' in filter) {
       // Traverse through the passed 'or' filters
-      sql += getAliasedColumnsFromFilters({
-        baseSql: '',
+      const sql = getAliasedColumnsFromFilters({
         tableSchema,
         meerkatFilters: filter.or,
         aliasedColumnSet,
         query,
       });
+      if (sql) {
+        parts.push(sql);
+      }
     }
     if ('member' in filter) {
       const {
@@ -170,8 +172,11 @@ export const getAliasedColumnsFromFilters = ({
         aliasedColumnSet.add(aliasKey);
       }
       // Add the alias key to the set. So we have a reference to all the previously selected members.
-      sql += `, ${memberSql}`;
+      const sql = memberSql;
+      if (sql) {
+        parts.push(sql);
+      }
     }
   });
-  return sql;
+  return parts.join(', ');
 };

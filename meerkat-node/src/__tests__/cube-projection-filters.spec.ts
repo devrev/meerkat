@@ -75,7 +75,7 @@ describe('cube-to-sql', () => {
 
   it('Should construct the SQL query and apply filter on projections', async () => {
     const sql = await cubeQueryToSQL({ query: QUERY, tableSchemas: [SCHEMA] });
-    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT *, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension FROM (SELECT * FROM person) AS person) AS person WHERE ((person__ticket_prioritized != 'no')) GROUP BY person__other_dimension`;
+    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE ((person__ticket_prioritized != 'no')) GROUP BY person__other_dimension`;
     expect(sql).toBe(expectedSQL);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
@@ -115,7 +115,7 @@ describe('cube-to-sql', () => {
       },
       tableSchemas: [SCHEMA],
     });
-    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT *, id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension FROM (SELECT * FROM person) AS person) AS person WHERE (((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
+    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE (((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
     expect(sql).toBe(expectedSQL);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
@@ -160,7 +160,7 @@ describe('cube-to-sql', () => {
       },
       tableSchemas: [SCHEMA],
     });
-    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT *, id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension FROM (SELECT * FROM person) AS person) AS person WHERE ((person__id != '2') AND ((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
+    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE ((person__id != '2') AND ((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
     expect(sql).toBe(expectedSQL);
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);

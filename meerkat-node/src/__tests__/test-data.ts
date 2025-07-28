@@ -78,7 +78,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'GroupBySQLInnerQuery',
-      expectedSQL: `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__order_month FROM (SELECT *, DATE_TRUNC('month', order_date) AS orders__order_month FROM (select * from orders) AS orders) AS orders GROUP BY orders__order_month LIMIT 1`,
+      expectedSQL: `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__order_month FROM (SELECT DATE_TRUNC('month', order_date) AS orders__order_month, * FROM (select * from orders) AS orders) AS orders GROUP BY orders__order_month LIMIT 1`,
       cubeInput: {
         measures: ['orders.total_order_amount'],
         filters: [],
@@ -96,7 +96,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'GroupBy',
-      expectedSQL: `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders GROUP BY orders__customer_id ORDER BY orders__total_order_amount ASC, orders__customer_id ASC`,
+      expectedSQL: `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders GROUP BY orders__customer_id ORDER BY orders__total_order_amount ASC, orders__customer_id ASC`,
       cubeInput: {
         measures: ['orders.total_order_amount'],
         filters: [],
@@ -145,7 +145,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'Equals',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '1')`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '1')`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -180,7 +180,7 @@ export const TEST_DATA = [
     },
     {
       testName: 'Equals for multiple values',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = '1') AND (orders__customer_id = '2'))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = '1') AND (orders__customer_id = '2'))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -198,7 +198,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'NotEquals',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id != '1')`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id != '1')`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -298,7 +298,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'Contains',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id ~~* '%aa%')`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id ~~* '%aa%')`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -326,7 +326,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'NotContains',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id !~~ '%1%') AND (orders__customer_id !~~ '%2%') AND (orders__customer_id !~~ '%3%') AND (orders__customer_id !~~ '%4%') AND (orders__customer_id !~~ '%5%') AND (orders__customer_id !~~ '%aa%'))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id !~~ '%1%') AND (orders__customer_id !~~ '%2%') AND (orders__customer_id !~~ '%3%') AND (orders__customer_id !~~ '%4%') AND (orders__customer_id !~~ '%5%') AND (orders__customer_id !~~ '%aa%'))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -383,7 +383,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'GreaterThan',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount > 50)`,
+      expectedSQL: `SELECT orders.* FROM (SELECT orders.order_amount AS orders__order_amount, * FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount > 50)`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -475,7 +475,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'LessThan',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount < 50)`,
+      expectedSQL: `SELECT orders.* FROM (SELECT orders.order_amount AS orders__order_amount, * FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount < 50)`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -521,7 +521,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'InDateRange',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, order_date AS orders__order_date FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-03-31'))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT order_date AS orders__order_date, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-03-31'))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -567,7 +567,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'NotInDateRange',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, order_date AS orders__order_date FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_date < '2022-02-01') OR (orders__order_date > '2022-03-31'))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT order_date AS orders__order_date, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_date < '2022-02-01') OR (orders__order_date > '2022-03-31'))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -735,7 +735,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'And',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount, order_date AS orders__order_date FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount > 50) AND ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-06-01')))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT orders.order_amount AS orders__order_amount, order_date AS orders__order_date, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount > 50) AND ((orders__order_date >= '2022-02-01') AND (orders__order_date <= '2022-06-01')))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -823,7 +823,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'Set',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, orders.order_amount AS orders__order_amount, product_id AS orders__product_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount IS NOT NULL) AND (orders__product_id = '3'))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT orders.order_amount AS orders__order_amount, product_id AS orders__product_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__order_amount IS NOT NULL) AND (orders__product_id = '3'))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -905,7 +905,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'Not Set',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id, product_id AS orders__product_id FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id IS NULL) AND (orders__product_id = '3'))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, product_id AS orders__product_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id IS NULL) AND (orders__product_id = '3'))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -943,7 +943,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'In',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id, vendors AS orders__vendors FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id IN ('1', '2')) AND (orders__vendors && (ARRAY['myntra', 'amazon'])))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id IN ('1', '2')) AND (orders__vendors && (ARRAY['myntra', 'amazon'])))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -993,7 +993,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'Not In',
-      expectedSQL: `SELECT orders.* FROM (SELECT *, customer_id AS orders__customer_id, vendors AS orders__vendors FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id NOT IN ('1', '2')) AND (NOT (orders__vendors && (ARRAY['myntra', 'flipkart']))))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id NOT IN ('1', '2')) AND (NOT (orders__vendors && (ARRAY['myntra', 'flipkart']))))`,
       cubeInput: {
         measures: ['*'],
         filters: [
