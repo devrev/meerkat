@@ -34,9 +34,13 @@ export const cubeMeasureToSQLSelectString = (
     if (i > 0) {
       base += ', ';
     }
+
+    // Note that tableSchemaName is not necessarily the same as tableSchema.name
+    // since tableSchema might be the merged tableSchema.
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
-      tableSchema.name
+      tableSchemaName,
+      tableSchema
     );
 
     /**
