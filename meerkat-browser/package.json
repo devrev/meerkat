@@ -1,10 +1,10 @@
 {
   "name": "@devrev/meerkat-browser",
-  "version": "0.0.101",
+  "version": "0.0.102",
   "dependencies": {
     "tslib": "^2.3.0",
     "@devrev/meerkat-core": "*",
-    "@duckdb/duckdb-wasm": "1.28.1-dev258.0"
+    "@duckdb/duckdb-wasm": "1.29.1-dev266.0"
   },
   "scripts": {
     "release": "semantic-release"
