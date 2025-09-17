@@ -89,13 +89,19 @@ describe('filter-param-tests', () => {
           ],
         },
       ],
+      orderBy: [
+        {
+          member: 'orders.amount',
+          direction: 'desc',
+        },
+      ],
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(3);
-    expect(output[0].id).toBe(6);
+    expect(output[0].id).toBe(4);
   });
 
   it('Should apply true filter if no filters are present', async () => {
