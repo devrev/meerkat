@@ -89,6 +89,12 @@ describe('filter-param-tests', () => {
           ],
         },
       ],
+      orderBy: [
+        {
+          member: 'orders.amount',
+          direction: 'desc',
+        },
+      ],
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
