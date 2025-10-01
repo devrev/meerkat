@@ -22,6 +22,12 @@ export class InstanceManager implements InstanceManagerType {
     };
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+
+    // await db.open({
+    //   path: 'opfs://meerkat.db',
+    //   accessMode: DuckDBAccessMode.READ_ONLY,
+    // });
+
     URL.revokeObjectURL(worker_url);
     return db;
   }
