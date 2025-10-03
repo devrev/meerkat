@@ -1,6 +1,10 @@
 import { InstanceManagerType } from '@devrev/meerkat-dbm';
 import * as duckdb from '@duckdb/duckdb-wasm';
-import { AsyncDuckDB, LogEntryVariant } from '@duckdb/duckdb-wasm';
+import {
+  AsyncDuckDB,
+  DuckDBAccessMode,
+  LogEntryVariant,
+} from '@duckdb/duckdb-wasm';
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 
 export class InstanceManager implements InstanceManagerType {
@@ -23,10 +27,10 @@ export class InstanceManager implements InstanceManagerType {
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 
-    // await db.open({
-    //   path: 'opfs://meerkat.db',
-    //   accessMode: DuckDBAccessMode.READ_ONLY,
-    // });
+    await db.open({
+      path: 'opfs://meerkat.db',
+      accessMode: DuckDBAccessMode.READ_WRITE,
+    });
 
     URL.revokeObjectURL(worker_url);
     return db;
