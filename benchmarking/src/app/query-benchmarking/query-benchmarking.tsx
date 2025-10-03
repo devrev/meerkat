@@ -27,7 +27,10 @@ export const QueryBenchmarking = () => {
             filePaths = table.files.map((file) => file.fileName);
           }
 
-          await dbm.query(generateViewQuery(table.tableName, filePaths));
+          const useTable = fileManagerType === 'opfs';
+          await dbm.query(
+            generateViewQuery(table.tableName, filePaths, useTable)
+          );
         }
       },
     [fileManagerType, dbm]
@@ -48,7 +51,8 @@ export const QueryBenchmarking = () => {
           tables: [{ name: 'taxi' }, { name: 'taxi_json' }],
           options: {
             ...(fileManagerType !== 'parallel-indexdb' &&
-              fileManagerType !== 'parallel-memory' && {
+              fileManagerType !== 'parallel-memory' &&
+              fileManagerType !== 'opfs' && {
                 preQuery: preQuery,
               }),
           },
