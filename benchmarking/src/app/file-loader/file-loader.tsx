@@ -36,8 +36,10 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
         fileManagerType === 'memory' ||
         fileManagerType === 'opfs'
       ) {
-        await dbm.query(generateViewQuery('taxi', ['taxi.parquet']));
-        // await dbm.query(generateViewQuery('taxi_json', ['taxi_json.parquet']));
+        const useTable = fileManagerType === 'opfs';
+
+        await dbm.query(generateViewQuery('taxi', ['taxi.parquet'], useTable));
+        // await dbm.query(generateViewQuery('taxi_json', ['taxi_json.parquet'], useTable));
       }
 
       setIsFileLoader(true);
