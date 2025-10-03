@@ -7,8 +7,18 @@ import {
 } from '@duckdb/duckdb-wasm';
 const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
 
+export interface InstanceManagerOptions {
+  path?: string;
+}
+
 export class InstanceManager implements InstanceManagerType {
   private db: AsyncDuckDB | null = null;
+
+  private path?: string;
+
+  constructor(options: InstanceManagerOptions = {}) {
+    this.path = options.path;
+  }
 
   private async initDB() {
     const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
@@ -27,10 +37,13 @@ export class InstanceManager implements InstanceManagerType {
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
 
-    await db.open({
-      path: 'opfs://meerkat.db',
-      accessMode: DuckDBAccessMode.READ_WRITE,
-    });
+    // Open with configured path if provided
+    if (this.path) {
+      await db.open({
+        path: this.path,
+        accessMode: DuckDBAccessMode.READ_WRITE,
+      });
+    }
 
     URL.revokeObjectURL(worker_url);
     return db;

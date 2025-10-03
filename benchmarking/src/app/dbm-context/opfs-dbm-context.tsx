@@ -9,8 +9,9 @@ import { useAsyncDuckDB } from './use-async-duckdb';
 export const OPFSDBMProvider = ({ children }: { children: JSX.Element }) => {
   const fileManagerRef = React.useRef<FileManagerType | null>(null);
   const [dbm, setdbm] = useState<DBM | null>(null);
+
   const instanceManagerRef = React.useRef<InstanceManager>(
-    new InstanceManager()
+    new InstanceManager({ path: 'opfs://meerkat.db' })
   );
 
   const dbState = useAsyncDuckDB();
