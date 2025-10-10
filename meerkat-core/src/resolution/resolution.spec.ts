@@ -602,7 +602,8 @@ describe('Generate resolved dimensions', () => {
 
     const resolvedDimensions = generateResolvedDimensions(
       query,
-      resolutionConfig
+      resolutionConfig,
+      []
     );
 
     expect(resolvedDimensions).toEqual([
@@ -630,12 +631,55 @@ describe('Generate resolved dimensions', () => {
 
     const resolvedDimensions = generateResolvedDimensions(
       query,
-      resolutionConfig
+      resolutionConfig,
+      []
     );
 
     expect(resolvedDimensions).toEqual([
       '__base_query.base_table__count',
       '__base_query.base_table__column1',
+    ]);
+  });
+
+  it('only include projected columns', () => {
+    const query = {
+      measures: ['base_table.count', 'base_table.total'],
+      dimensions: ['base_table.column1', 'base_table.column2'],
+    };
+    const resolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'base_table.column1',
+          source: 'resolution_table',
+          joinColumn: 'id',
+          resolutionColumns: ['display_id'],
+        },
+        {
+          name: 'base_table.column2',
+          source: 'resolution_table',
+          joinColumn: 'id',
+          resolutionColumns: ['id', 'display_name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+    const projections = [
+      'base_table.count',
+      'base_table.column2',
+      'base_table.total',
+    ];
+
+    const resolvedDimensions = generateResolvedDimensions(
+      query,
+      resolutionConfig,
+      projections
+    );
+
+    expect(resolvedDimensions).toEqual([
+      '__base_query.base_table__count',
+      'base_table__column2.base_table__column2__id',
+      'base_table__column2.base_table__column2__display_name',
+      '__base_query.base_table__total',
     ]);
   });
 });

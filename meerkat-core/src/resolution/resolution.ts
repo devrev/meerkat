@@ -127,27 +127,39 @@ export const generateResolutionSchemas = (
 
 export const generateResolvedDimensions = (
   query: Query,
-  config: ResolutionConfig
+  config: ResolutionConfig,
+  columnProjections: string[]
 ): Member[] => {
-  const resolvedDimensions: Member[] = [
-    ...query.measures,
-    ...(query.dimensions || []),
-  ].flatMap((dimension) => {
-    const columnConfig = config.columnConfigs.find((c) => c.name === dimension);
+  // If column projections are provided, use those.
+  // Otherwise, use all measures and dimensions from the original query.
+  const aggregatedDimensions =
+    columnProjections && columnProjections.length > 0
+      ? columnProjections
+      : [...query.measures, ...(query.dimensions || [])];
 
-    if (!columnConfig) {
-      return [
-        getNamespacedKey(BASE_DATA_SOURCE_NAME, memberKeyToSafeKey(dimension)),
-      ];
-    } else {
-      return columnConfig.resolutionColumns.map((col) =>
-        getNamespacedKey(
-          memberKeyToSafeKey(dimension),
-          memberKeyToSafeKey(getNamespacedKey(columnConfig.name, col))
-        )
+  const resolvedDimensions: Member[] = aggregatedDimensions.flatMap(
+    (dimension) => {
+      const columnConfig = config.columnConfigs.find(
+        (c) => c.name === dimension
       );
+
+      if (!columnConfig) {
+        return [
+          getNamespacedKey(
+            BASE_DATA_SOURCE_NAME,
+            memberKeyToSafeKey(dimension)
+          ),
+        ];
+      } else {
+        return columnConfig.resolutionColumns.map((col) =>
+          getNamespacedKey(
+            memberKeyToSafeKey(dimension),
+            memberKeyToSafeKey(getNamespacedKey(columnConfig.name, col))
+          )
+        );
+      }
     }
-  });
+  );
   return resolvedDimensions;
 };
 
