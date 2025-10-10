@@ -147,6 +147,7 @@ describe('Resolution Tests', () => {
         columnConfigs: [],
         tableSchemas: [],
       },
+      columnProjections: [],
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -198,6 +199,7 @@ describe('Resolution Tests', () => {
           ],
           tableSchemas: [],
         },
+        columnProjections: [],
       })
     ).rejects.toThrow('Table schema not found for dim_part');
   });
@@ -239,6 +241,7 @@ describe('Resolution Tests', () => {
         ],
         tableSchemas: [DIM_PART_SCHEMA, DIM_WORK_SCHEMA],
       },
+      columnProjections: [],
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -282,6 +285,7 @@ describe('Resolution Tests', () => {
         ],
         tableSchemas: [DIM_PART_SCHEMA],
       },
+      columnProjections: [],
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -329,6 +333,7 @@ describe('Resolution Tests', () => {
         ],
         tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
       },
+      columnProjections: [],
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -342,6 +347,49 @@ describe('Resolution Tests', () => {
           ON __base_query."Part ID 1" = base_table__part_id_1.id 
           LEFT JOIN (SELECT base_table__part_id_2.display_id AS "Part ID 2 - Display ID", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_2) AS base_table__part_id_2  
           ON __base_query."Part ID 2" = base_table__part_id_2.id) 
+      AS MEERKAT_GENERATED_TABLE
+    `;
+    expect(sql.replace(/\s+/g, ' ').trim()).toBe(
+      expectedSQL.replace(/\s+/g, ' ').trim()
+    );
+  });
+
+  it('Resolution With Column Projections', async () => {
+    const query = {
+      measures: [],
+      dimensions: [
+        'base_table.part_id_1',
+        'base_table.random_column',
+        'base_table.work_id',
+        'base_table.part_id_2',
+      ],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA],
+      resolutionConfig: {
+        columnConfigs: [
+          {
+            name: 'base_table.part_id_1',
+            source: 'dim_part',
+            joinColumn: 'id',
+            resolutionColumns: ['display_id'],
+          },
+        ],
+        tableSchemas: [DIM_PART_SCHEMA, DIM_WORK_SCHEMA],
+      },
+      columnProjections: ['base_table.random_column', 'base_table.part_id_1'],
+    });
+    console.info(`SQL: `, sql);
+    const expectedSQL = `
+      SELECT  
+        "base_table__random_column",  
+        "base_table__part_id_1 - display_id"  
+      FROM 
+        (SELECT __base_query.base_table__random_column AS "base_table__random_column", * FROM (SELECT  base_table__part_id_1,  base_table__random_column,  base_table__work_id,  base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query 
+          LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1 - display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1  
+          ON __base_query.base_table__part_id_1 = base_table__part_id_1.id) 
       AS MEERKAT_GENERATED_TABLE
     `;
     expect(sql.replace(/\s+/g, ' ').trim()).toBe(
