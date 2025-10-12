@@ -19,7 +19,7 @@ export interface CubeQueryToSQLWithResolutionParams {
   query: Query;
   tableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
-  columnProjections: string[];
+  columnProjections?: string[];
   contextParams?: ContextParams;
 }
 

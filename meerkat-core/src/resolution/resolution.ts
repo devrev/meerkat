@@ -128,14 +128,13 @@ export const generateResolutionSchemas = (
 export const generateResolvedDimensions = (
   query: Query,
   config: ResolutionConfig,
-  columnProjections: string[]
+  columnProjections?: string[]
 ): Member[] => {
   // If column projections are provided, use those.
   // Otherwise, use all measures and dimensions from the original query.
-  const aggregatedDimensions =
-    columnProjections && columnProjections.length > 0
-      ? columnProjections
-      : [...query.measures, ...(query.dimensions || [])];
+  const aggregatedDimensions = columnProjections
+    ? columnProjections
+    : [...query.measures, ...(query.dimensions || [])];
 
   const resolvedDimensions: Member[] = aggregatedDimensions.flatMap(
     (dimension) => {

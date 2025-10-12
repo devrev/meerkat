@@ -602,8 +602,7 @@ describe('Generate resolved dimensions', () => {
 
     const resolvedDimensions = generateResolvedDimensions(
       query,
-      resolutionConfig,
-      []
+      resolutionConfig
     );
 
     expect(resolvedDimensions).toEqual([
@@ -631,8 +630,7 @@ describe('Generate resolved dimensions', () => {
 
     const resolvedDimensions = generateResolvedDimensions(
       query,
-      resolutionConfig,
-      []
+      resolutionConfig
     );
 
     expect(resolvedDimensions).toEqual([
