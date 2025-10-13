@@ -19,6 +19,7 @@ export interface CubeQueryToSQLWithResolutionParams {
   query: Query;
   tableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
+  columnProjections?: string[];
   contextParams?: ContextParams;
 }
 
@@ -27,6 +28,7 @@ export const cubeQueryToSQLWithResolution = async ({
   query,
   tableSchemas,
   resolutionConfig,
+  columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams) => {
   const baseSql = await cubeQueryToSQL({
@@ -59,7 +61,11 @@ export const cubeQueryToSQLWithResolution = async ({
     connection: connection,
     query: {
       measures: [],
-      dimensions: generateResolvedDimensions(query, resolutionConfig),
+      dimensions: generateResolvedDimensions(
+        query,
+        resolutionConfig,
+        columnProjections
+      ),
       joinPaths: generateResolutionJoinPaths(resolutionConfig, tableSchemas),
     },
     tableSchemas: [baseTable, ...resolutionSchemas],
