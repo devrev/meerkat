@@ -9,6 +9,7 @@ export const BROWSER_RUNNER_TYPE = {
   RUNNER_GET_FILE_BUFFERS: 'RUNNER_GET_FILE_BUFFERS',
   RUNNER_PRE_QUERY: 'RUNNER_PRE_QUERY',
   RUNNER_ON_EVENT: 'RUNNER_ON_EVENT',
+  CANCEL_QUERY: 'CANCEL_QUERY',
 } as const;
 
 export type BrowserRunnerMessageType =
@@ -21,6 +22,7 @@ export interface BrowserRunnerOnReadyMessage {
 export interface BrowserRunnerExecQueryMessage {
   type: typeof BROWSER_RUNNER_TYPE.EXEC_QUERY;
   payload: {
+    queryId: string;
     query: string;
     tables: TableConfig[];
     options?: Omit<QueryOptions, 'preQuery'>;
@@ -56,10 +58,18 @@ export interface BrowserRunnerOnEventMessage {
   payload: DBMEvent;
 }
 
+export interface BrowserRunnerCancelQueryMessage {
+  type: typeof BROWSER_RUNNER_TYPE.CANCEL_QUERY;
+  payload: {
+    queryId: string;
+  };
+}
+
 export type BrowserRunnerMessage =
   | BrowserRunnerOnReadyMessage
   | BrowserRunnerExecQueryMessage
   | BrowserRunnerDestroyMessage
   | BrowserRunnerGetFileBuffersMessage
   | BrowserRunnerPreQueryMessage
-  | BrowserRunnerOnEventMessage;
+  | BrowserRunnerOnEventMessage
+  | BrowserRunnerCancelQueryMessage;
