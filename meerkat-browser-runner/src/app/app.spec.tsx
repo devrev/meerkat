@@ -2,15 +2,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './app';
 
-// Mock implementations
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockDBM: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockWindowCommunication: any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockOnMessageCallback: ((message: any) => void) | null;
 
-// Mock the meerkat-dbm module
 vi.mock('@devrev/meerkat-dbm', () => ({
   BROWSER_RUNNER_TYPE: {
     EXEC_QUERY: 'EXEC_QUERY',

@@ -174,17 +174,11 @@ export class DBMParallel extends TableLockManager {
         throw new Error('No runner found');
       }
 
-      /**
-       * Track the query for abort signal handling
-       */
       this.activeQueries.set(queryId, {
         runnerId: runners[this.counter],
         signal: options?.signal,
       });
 
-      /**
-       * Set up abort handling - create a promise that rejects if signal is aborted
-       */
       const abortPromise = new Promise<never>((_, reject) => {
         this._signalListener(
           queryId,
@@ -202,9 +196,6 @@ export class DBMParallel extends TableLockManager {
         'read'
       );
 
-      /**
-       * Create the query execution promise
-       */
       const responsePromise =
         runner.communication.sendRequest<BrowserRunnerExecQueryMessageResponse>(
           {
@@ -222,9 +213,6 @@ export class DBMParallel extends TableLockManager {
           }
         );
 
-      /**
-       * Race between query execution and abort
-       */
       const response = await Promise.race([responsePromise, abortPromise]);
 
       const end = performance.now();

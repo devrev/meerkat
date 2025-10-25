@@ -105,9 +105,9 @@ export function App() {
       communicationRef.current?.onMessage((message) => {
         switch (message.message.type) {
           case BROWSER_RUNNER_TYPE.EXEC_QUERY: {
-            // Create an AbortController for this query
             const abortController = new AbortController();
             const queryId = message.message.payload.queryId;
+
             activeQueriesRef.current?.set(queryId, abortController);
 
             dbmRef.current
