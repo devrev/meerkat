@@ -30,6 +30,7 @@ const iFrameRunnerManager = {
 const runnerMock = {
   communication: {
     sendRequest: jest.fn(),
+    sendRequestWithoutResponse: jest.fn(),
   },
 };
 
@@ -71,14 +72,16 @@ describe('DBMParallel', () => {
     });
 
     expect(result).toEqual([{ data: 1 }]);
-    expect(runnerMock.communication.sendRequest).toHaveBeenCalledWith({
-      type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
-      payload: {
-        query: 'SELECT * FROM table',
-        tables: [],
-        options: undefined,
-      },
-    });
+    expect(runnerMock.communication.sendRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
+        payload: expect.objectContaining({
+          query: 'SELECT * FROM table',
+          tables: [],
+          queryId: expect.any(String),
+        }),
+      })
+    );
   });
 
   it('should handle query execution errors', async () => {
@@ -187,5 +190,221 @@ describe('DBMParallel', () => {
     // Now the query should be able to execute
     await queryPromise;
     expect(queryExecuted).toBe(true);
+  });
+
+  describe('Abort Signal', () => {
+    it('should abort a query when abort signal is triggered', async () => {
+      const abortController = new AbortController();
+
+      // Mock a long-running query that never resolves
+      runnerMock.communication.sendRequest.mockImplementation(
+        () =>
+          new Promise(() => {
+            // Never resolves - simulates a long-running query
+          })
+      );
+
+      const queryPromise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal },
+      });
+
+      // Give a small delay to ensure the query has started
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Abort the query
+      abortController.abort();
+
+      await expect(queryPromise).rejects.toThrow('Query aborted by user');
+
+      // Verify that cancel message was sent to the runner
+      expect(
+        runnerMock.communication.sendRequestWithoutResponse
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: BROWSER_RUNNER_TYPE.CANCEL_QUERY,
+          payload: expect.objectContaining({
+            queryId: expect.any(String),
+          }),
+        })
+      );
+    });
+
+    it('should not abort a query if signal is triggered after query completes', async () => {
+      const abortController = new AbortController();
+
+      runnerMock.communication.sendRequest.mockResolvedValue({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+
+      const result = await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal },
+      });
+
+      // Abort after query completes
+      abortController.abort();
+
+      expect(result).toEqual([{ data: 1 }]);
+      // Cancel message should not be sent since query already completed
+      expect(
+        runnerMock.communication.sendRequestWithoutResponse
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should clean up abort signal listener after query completes', async () => {
+      const abortController = new AbortController();
+      const removeEventListenerSpy = jest.spyOn(
+        abortController.signal,
+        'removeEventListener'
+      );
+
+      runnerMock.communication.sendRequest.mockResolvedValue({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+
+      await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal },
+      });
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'abort',
+        expect.any(Function)
+      );
+    });
+
+    it('should clean up abort signal listener after query is aborted', async () => {
+      const abortController = new AbortController();
+      const removeEventListenerSpy = jest.spyOn(
+        abortController.signal,
+        'removeEventListener'
+      );
+
+      // Mock a long-running query that never resolves
+      runnerMock.communication.sendRequest.mockImplementation(
+        () =>
+          new Promise(() => {
+            // Never resolves
+          })
+      );
+
+      const queryPromise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal },
+      });
+
+      // Give a small delay to ensure the query has started
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      abortController.abort();
+
+      await expect(queryPromise).rejects.toThrow('Query aborted by user');
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'abort',
+        expect.any(Function)
+      );
+    });
+
+    it('should handle multiple queries with independent abort signals', async () => {
+      const abortController1 = new AbortController();
+      const abortController2 = new AbortController();
+
+      // Mock queries that never resolve
+      runnerMock.communication.sendRequest.mockImplementation(
+        () =>
+          new Promise(() => {
+            // Never resolves
+          })
+      );
+
+      const query1Promise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table1',
+        tables: [],
+        options: { signal: abortController1.signal },
+      });
+
+      const query2Promise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table2',
+        tables: [],
+        options: { signal: abortController2.signal },
+      });
+
+      // Give a small delay to ensure both queries have started
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Abort only the first query
+      abortController1.abort();
+
+      await expect(query1Promise).rejects.toThrow('Query aborted by user');
+
+      // Second query should still be running
+      // Abort the second query as well to clean up
+      abortController2.abort();
+
+      await expect(query2Promise).rejects.toThrow('Query aborted by user');
+
+      // Verify that cancel messages were sent for both queries
+      expect(
+        runnerMock.communication.sendRequestWithoutResponse
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it('should execute query successfully without abort signal', async () => {
+      runnerMock.communication.sendRequest.mockResolvedValue({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+
+      const result = await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: {},
+      });
+
+      expect(result).toEqual([{ data: 1 }]);
+      expect(
+        runnerMock.communication.sendRequestWithoutResponse
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should abort query during execution', async () => {
+      const abortController = new AbortController();
+      let resolveQuery: ((value: any) => void) | undefined;
+
+      // Mock a query that we can control when it resolves
+      runnerMock.communication.sendRequest.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveQuery = resolve;
+          })
+      );
+
+      const queryPromise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal },
+      });
+
+      // Wait for query to start
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Abort the query before it completes
+      abortController.abort();
+
+      // The query should be aborted
+      await expect(queryPromise).rejects.toThrow('Query aborted by user');
+
+      // Clean up - resolve the mock query if it's still pending
+      if (resolveQuery) {
+        resolveQuery({
+          message: { isError: false, data: [{ data: 1 }] },
+        });
+      }
+    });
   });
 });

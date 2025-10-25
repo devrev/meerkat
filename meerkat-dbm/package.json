@@ -1,6 +1,6 @@
 {
   "name": "@devrev/meerkat-dbm",
-  "version": "0.1.34",
+  "version": "0.1.35",
   "dependencies": {
     "tslib": "^2.3.0",
     "@duckdb/duckdb-wasm": "1.29.1-dev266.0",
