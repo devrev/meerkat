@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../../file-manager/file-manager-type';
 import { DBMEvent, DBMLogger } from '../../logger';
 import {
@@ -28,6 +29,14 @@ export class DBMParallel extends TableLockManager {
   private counter = 0;
   private terminateDBTimeout: NodeJS.Timeout | null = null;
   private activeNumberOfQueries = 0;
+  private activeQueries: Map<
+    string,
+    {
+      runnerId: string;
+      signal?: AbortSignal;
+      abortHandler?: () => void;
+    }
+  > = new Map();
 
   constructor({
     fileManager,
@@ -88,6 +97,41 @@ export class DBMParallel extends TableLockManager {
     }, this.options.shutdownInactiveTime);
   }
 
+  private _signalListener(
+    queryId: string,
+    runnerId: string,
+    reject: (reason?: Error) => void,
+    signal?: AbortSignal
+  ): void {
+    if (!signal) return;
+
+    const signalHandler = async () => {
+      const runner = this.iFrameRunnerManager.iFrameManagers.get(runnerId);
+
+      if (runner) {
+        // Send cancel message to iframe
+        runner.communication.sendRequestWithoutResponse({
+          type: BROWSER_RUNNER_TYPE.CANCEL_QUERY,
+          payload: { queryId },
+        });
+      }
+
+      // Clean up tracking
+      this.activeQueries.delete(queryId);
+      signal.removeEventListener('abort', signalHandler);
+
+      reject(new Error('Query aborted by user'));
+    };
+
+    signal.addEventListener('abort', signalHandler);
+
+    // Store the handler for cleanup
+    const queryInfo = this.activeQueries.get(queryId);
+    if (queryInfo) {
+      queryInfo.abortHandler = signalHandler;
+    }
+  }
+
   public async queryWithTables({
     query,
     tables,
@@ -97,6 +141,8 @@ export class DBMParallel extends TableLockManager {
     tables: TableConfig[];
     options?: QueryOptions;
   }) {
+    const queryId = uuidv4();
+
     try {
       const start = performance.now();
       /**
@@ -128,6 +174,20 @@ export class DBMParallel extends TableLockManager {
         throw new Error('No runner found');
       }
 
+      this.activeQueries.set(queryId, {
+        runnerId: runners[this.counter],
+        signal: options?.signal,
+      });
+
+      const abortPromise = new Promise<never>((_, reject) => {
+        this._signalListener(
+          queryId,
+          runners[this.counter],
+          reject,
+          options?.signal
+        );
+      });
+
       /**
        * Lock the tables
        */
@@ -136,17 +196,24 @@ export class DBMParallel extends TableLockManager {
         'read'
       );
 
-      const response =
-        await runner.communication.sendRequest<BrowserRunnerExecQueryMessageResponse>(
+      const responsePromise =
+        runner.communication.sendRequest<BrowserRunnerExecQueryMessageResponse>(
           {
             type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
             payload: {
+              queryId,
               query,
               tables,
-              options,
+              options: {
+                ...options,
+                // Don't pass signal to iframe as it's not serializable
+                signal: undefined,
+              },
             },
           }
         );
+
+      const response = await Promise.race([responsePromise, abortPromise]);
 
       const end = performance.now();
       this.logger.info(`Time to execute by DBM Parallel`, end - start);
@@ -172,6 +239,15 @@ export class DBMParallel extends TableLockManager {
       this.logger.error('Error while executing query', error);
       throw error;
     } finally {
+      /**
+       * Clean up abort signal listener
+       */
+      const queryInfo = this.activeQueries.get(queryId);
+      if (queryInfo?.signal && queryInfo.abortHandler) {
+        queryInfo.signal.removeEventListener('abort', queryInfo.abortHandler);
+      }
+      this.activeQueries.delete(queryId);
+
       /**
        * Stop the runner if there are no active queries
        */

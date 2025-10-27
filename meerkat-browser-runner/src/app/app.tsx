@@ -53,6 +53,7 @@ export function App() {
   const instanceManagerRef = useRef<InstanceManager>();
   const fileManagerRef = useRef<FileManagerType>();
   const dbmRef = useRef<DBM>();
+  const activeQueriesRef = useRef<Map<string, AbortController>>(new Map());
 
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid') ?? '';
@@ -103,12 +104,19 @@ export function App() {
     if (!messageRefSet.current) {
       communicationRef.current?.onMessage((message) => {
         switch (message.message.type) {
-          case BROWSER_RUNNER_TYPE.EXEC_QUERY:
+          case BROWSER_RUNNER_TYPE.EXEC_QUERY: {
+            const abortController = new AbortController();
+            const queryId = message.message.payload.queryId;
+
+            activeQueriesRef.current?.set(queryId, abortController);
+
             dbmRef.current
               ?.queryWithTables({
-                ...message.message.payload,
+                query: message.message.payload.query,
+                tables: message.message.payload.tables,
                 options: {
                   ...message.message.payload.options,
+                  signal: abortController.signal,
                   preQuery: async (tables: Table[]) => {
                     const preQueryMessage =
                       await communicationRef.current?.sendRequest<string[]>({
@@ -140,8 +148,24 @@ export function App() {
                   isError: true,
                   error: error,
                 });
+              })
+              .finally(() => {
+                // Clean up the abort controller after query completes
+                activeQueriesRef.current?.delete(queryId);
               });
             break;
+          }
+          case BROWSER_RUNNER_TYPE.CANCEL_QUERY: {
+            const queryId = message.message.payload.queryId;
+            const abortController = activeQueriesRef.current?.get(queryId);
+
+            if (abortController) {
+              // Abort the query
+              abortController.abort();
+              activeQueriesRef.current?.delete(queryId);
+            }
+            break;
+          }
           default:
             break;
         }
