@@ -192,6 +192,35 @@ describe('DBMParallel', () => {
     expect(queryExecuted).toBe(true);
   });
 
+  it('should deduplicate tables by name before executing query', async () => {
+    runnerMock.communication.sendRequest.mockResolvedValue({
+      message: { isError: false, data: [{ data: 1 }] },
+    });
+
+    const duplicateTables = [
+      { name: 'table1' },
+      { name: 'table2' },
+      { name: 'table1' },
+      { name: 'table3' },
+      { name: 'table2' },
+    ];
+
+    await dbmParallel.queryWithTables({
+      query: 'SELECT * FROM table1 JOIN table2 JOIN table3',
+      tables: duplicateTables,
+    });
+
+    // Verify that only unique tables were sent to the runner
+    expect(runnerMock.communication.sendRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
+        payload: expect.objectContaining({
+          tables: [{ name: 'table1' }, { name: 'table2' }, { name: 'table3' }],
+        }),
+      })
+    );
+  });
+
   describe('Abort Signal', () => {
     it('should abort a query when abort signal is triggered', async () => {
       const abortController = new AbortController();
