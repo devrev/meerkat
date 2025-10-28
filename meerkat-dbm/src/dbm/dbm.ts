@@ -1,5 +1,6 @@
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { Table } from 'apache-arrow/table';
+import uniqBy from 'lodash/uniqBy';
 import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager';
 import { DBMEvent, DBMLogger } from '../logger';
@@ -336,7 +337,7 @@ export class DBM extends TableLockManager {
 
   public async queryWithTables({
     query,
-    tables,
+    tables: _tables,
     options,
   }: {
     query: string;
@@ -344,6 +345,9 @@ export class DBM extends TableLockManager {
     options?: QueryOptions;
   }) {
     const connectionId = uuidv4();
+
+    // Deduplicate tables by name
+    const tables = uniqBy(_tables, 'name');
 
     const promise = new Promise((resolve, reject) => {
       this._signalListener(connectionId, reject, options?.signal);
