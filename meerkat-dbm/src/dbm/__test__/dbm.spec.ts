@@ -240,6 +240,33 @@ describe('DBM', () => {
 
       expect(result3).toEqual(['SELECT * FROM table3']);
     });
+
+    it('should deduplicate tables by name before executing query', async () => {
+      const duplicateTables = [
+        { name: 'table1' },
+        { name: 'table2' },
+        { name: 'table1' },
+        { name: 'table3' },
+        { name: 'table2' },
+      ];
+
+      const mockMountFileBufferByTables = jest.spyOn(
+        fileManager,
+        'mountFileBufferByTables'
+      );
+
+      await dbm.queryWithTables({
+        query: 'SELECT * FROM table1 JOIN table2 JOIN table3',
+        tables: duplicateTables,
+      });
+
+      // Verify that only unique tables were passed to mountFileBufferByTables
+      expect(mockMountFileBufferByTables).toHaveBeenCalledWith([
+        { name: 'table1' },
+        { name: 'table2' },
+        { name: 'table3' },
+      ]);
+    });
   });
 
   describe('shutdown the db test', () => {
