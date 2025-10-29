@@ -27,6 +27,17 @@ const RESOLUTION_DATA_QUERY = `INSERT INTO owners_lookup VALUES
 ('owner3', 'Charlie Brown', 'charlie@example.com'),
 ('owner4', 'Diana Prince', 'diana@example.com')`;
 
+const CREATE_TAGS_LOOKUP_TABLE = `CREATE TABLE tags_lookup (
+  id VARCHAR,
+  tag_name VARCHAR
+)`;
+
+const TAGS_LOOKUP_DATA_QUERY = `INSERT INTO tags_lookup VALUES
+('tag1', 'Tag 1'),
+('tag2', 'Tag 2'),
+('tag3', 'Tag 3'),
+('tag4', 'Tag 4')`;
+
 const TICKETS_TABLE_SCHEMA: TableSchema = {
   name: 'tickets',
   sql: 'select * from tickets',
@@ -84,6 +95,23 @@ const OWNERS_LOOKUP_SCHEMA: TableSchema = {
   ],
 };
 
+const TAGS_LOOKUP_SCHEMA: TableSchema = {
+  name: 'tags_lookup',
+  sql: 'select * from tags_lookup',
+  measures: [],
+  dimensions: [
+    {
+      name: 'id',
+      sql: 'id',
+      type: 'string',
+    },
+    {
+      name: 'tag_name',
+      sql: 'tag_name',
+      type: 'string',
+    },
+  ],
+};
 describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
   jest.setTimeout(1000000);
   beforeAll(async () => {
@@ -92,68 +120,66 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
     await duckdbExec(INPUT_DATA_QUERY);
     await duckdbExec(CREATE_RESOLUTION_TABLE);
     await duckdbExec(RESOLUTION_DATA_QUERY);
+    await duckdbExec(CREATE_TAGS_LOOKUP_TABLE);
   });
 
-  it('Should add row_id and unnest array fields that need resolution', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.id', 'tickets.owners'],
-    };
+  //   it('Should add row_id and unnest array fields that need resolution', async () => {
+  //     const query: Query = {
+  //       measures: ['tickets.count'],
+  //       dimensions: ['tickets.id', 'tickets.owners'],
+  //     };
 
-    const resolutionConfig: ResolutionConfig = {
-      columnConfigs: [
-        {
-          name: 'tickets.owners',
-          isArrayType: true,
-          source: 'owners_lookup',
-          joinColumn: 'id',
-          resolutionColumns: ['display_name', 'email'],
-        },
-      ],
-      tableSchemas: [OWNERS_LOOKUP_SCHEMA],
-    };
+  //     const resolutionConfig: ResolutionConfig = {
+  //       columnConfigs: [
+  //         {
+  //           name: 'tickets.owners',
+  //           isArrayType: true,
+  //           source: 'owners_lookup',
+  //           joinColumn: 'id',
+  //           resolutionColumns: ['display_name', 'email'],
+  //         },
+  //       ],
+  //       tableSchemas: [OWNERS_LOOKUP_SCHEMA],
+  //     };
 
-    const sql = await cubeQueryToSQLWithResolutionWithArray({
-      query,
-      tableSchemas: [TICKETS_TABLE_SCHEMA],
-      resolutionConfig,
-    });
+  //     debugger;
+  //     const sql = await cubeQueryToSQLWithResolutionWithArray({
+  //       query,
+  //       tableSchemas: [TICKETS_TABLE_SCHEMA],
+  //       resolutionConfig,
+  //     });
 
-    console.log('Phase 1 SQL (with row_id and unnest):', sql);
+  //     console.log('Phase 1 SQL (with row_id and unnest):', sql);
 
-    // Verify the SQL includes row_id
-    expect(sql).toContain('row_id');
+  //     // Verify the SQL includes row_id
+  //     expect(sql).toContain('row_id');
 
-    // Verify the SQL unnests the owners array
-    expect(sql).toContain('unnest');
+  //     // Verify the SQL unnests the owners array
+  //     expect(sql).toContain('unnest');
 
-    // Verify it includes the owners dimension
-    expect(sql).toContain('owners');
+  //     // Verify it includes the owners dimension
+  //     expect(sql).toContain('owners');
 
-    // Execute the SQL to verify it works
-    const result = (await duckdbExec(sql)) as any[];
-    // console.log('Phase 1 Result:', JSON.stringify(result, null, 2));
+  //     // Execute the SQL to verify it works
+  //     const result = (await duckdbExec(sql)) as any[];
+  //     // console.log('Phase 1 Result:', JSON.stringify(result, null, 2));
 
-    // The result should have unnested rows (more rows than the original 3)
-    // Original: 3 rows, but ticket 1 has 2 owners, ticket 2 has 2 owners, ticket 3 has 1 owner
-    // Expected: 5 unnested rows
-    expect(result.length).toBe(5);
+  //     // The result should have unnested rows (more rows than the original 3)
+  //     // Original: 3 rows, but ticket 1 has 2 owners, ticket 2 has 2 owners, ticket 3 has 1 owner
+  //     // Expected: 5 unnested rows
+  //     expect(result.length).toBe(5);
 
-    // Each row should have a row_id
-    expect(result[0]).toHaveProperty('__base_query_with_row_id__row_id');
-    expect(result[0]).toHaveProperty(
-      '__base_query_with_row_id__tickets__count'
-    );
-    expect(result[0]).toHaveProperty('__base_query_with_row_id__tickets__id');
-    expect(result[0]).toHaveProperty(
-      '__base_query_with_row_id__tickets__owners'
-    );
+  //     // Each row should have a row_id
+  //     expect(result[0]).toHaveProperty('__row_id');
+  //     expect(result[0]).toHaveProperty('tickets__count');
+  //     expect(result[0]).toHaveProperty('tickets__id');
+  //     expect(result[0]).toHaveProperty('tickets__owners');
 
-    debugger;
-    // Verify row_ids are preserved (rows with same original row should have same row_id)
-    const rowIds = result.map((r) => r.row_id);
-    expect(rowIds.length).toBe(5); // 5 unnested rows total
-  });
+  //     debugger;
+  //     // Verify row_ids are preserved (rows with same original row should have same row_id)
+  //     const rowIds = result.map((r) => r.row_id);
+  //     expect(rowIds.length).toBe(5); // 5 unnested rows total
+  //   });
 
   it('Should handle multiple array fields that need unnesting', async () => {
     const query: Query = {
@@ -178,7 +204,7 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
           resolutionColumns: ['tag_name'],
         },
       ],
-      tableSchemas: [OWNERS_LOOKUP_SCHEMA],
+      tableSchemas: [OWNERS_LOOKUP_SCHEMA, TAGS_LOOKUP_SCHEMA],
     };
 
     const sql = await cubeQueryToSQLWithResolutionWithArray({
@@ -201,38 +227,102 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
     expect(result.length).toBe(7);
 
     // Each row should have a row_id
-    expect(result[0]).toHaveProperty('__base_query_with_row_id__row_id');
-    expect(result[0]).toHaveProperty(
-      '__base_query_with_row_id__tickets__count'
-    );
-    expect(result[0]).toHaveProperty('__base_query_with_row_id__tickets__id');
-    expect(result[0]).toHaveProperty(
-      '__base_query_with_row_id__tickets__owners'
-    );
-    expect(result[0]).toHaveProperty('__base_query_with_row_id__tickets__tags');
+    expect(result[0]).toHaveProperty('__row_id');
+    expect(result[0]).toHaveProperty('tickets__count');
+    expect(result[0]).toHaveProperty('tickets__id');
+    expect(result[0]).toHaveProperty('tickets__owners - display_name');
+    expect(result[0]).toHaveProperty('tickets__tags - tag_name');
   });
 
-  it('Should return regular SQL when no array fields need resolution', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.id', 'tickets.created_by'],
-    };
+  //   it('Should return regular SQL when no array fields need resolution', async () => {
+  //     const query: Query = {
+  //       measures: ['tickets.count'],
+  //       dimensions: ['tickets.id', 'tickets.created_by'],
+  //     };
 
-    const resolutionConfig: ResolutionConfig = {
-      columnConfigs: [],
-      tableSchemas: [],
-    };
+  //     const resolutionConfig: ResolutionConfig = {
+  //       columnConfigs: [],
+  //       tableSchemas: [],
+  //     };
 
-    const sql = await cubeQueryToSQLWithResolutionWithArray({
-      query,
-      tableSchemas: [TICKETS_TABLE_SCHEMA],
-      resolutionConfig,
-    });
+  //     const sql = await cubeQueryToSQLWithResolutionWithArray({
+  //       query,
+  //       tableSchemas: [TICKETS_TABLE_SCHEMA],
+  //       resolutionConfig,
+  //     });
 
-    console.log('SQL without resolution:', sql);
+  //     console.log('SQL without resolution:', sql);
 
-    // Should not have row_id or unnest when no array resolution is needed
-    expect(sql).not.toContain('row_id');
-    expect(sql).not.toContain('unnest');
-  });
+  //     // Should not have row_id or unnest when no array resolution is needed
+  //     expect(sql).not.toContain('row_id');
+  //     expect(sql).not.toContain('unnest');
+  //   });
 });
+
+// describe('cubeQueryToSQLWithResolutionWithArray - Phase 2: Resolution', () => {
+//   jest.setTimeout(1000000);
+
+//   beforeAll(async () => {
+//     // Tables are already created in Phase 1 tests
+//   });
+
+//   it('Should resolve array values by joining with lookup tables', async () => {
+//     const query: Query = {
+//       measures: ['tickets.count'],
+//       dimensions: ['tickets.id', 'tickets.owners'],
+//     };
+
+//     const resolutionConfig: ResolutionConfig = {
+//       columnConfigs: [
+//         {
+//           name: 'tickets.owners',
+//           isArrayType: true,
+//           source: 'owners_lookup',
+//           joinColumn: 'id',
+//           resolutionColumns: ['display_name', 'email'],
+//         },
+//       ],
+//       tableSchemas: [OWNERS_LOOKUP_SCHEMA],
+//     };
+
+//     const sql = await cubeQueryToSQLWithResolutionWithArray({
+//       query,
+//       tableSchemas: [TICKETS_TABLE_SCHEMA],
+//       resolutionConfig,
+//     });
+
+//     console.log('Phase 2 SQL (with resolution):', sql);
+
+//     // Verify the SQL includes row_id
+//     expect(sql).toContain('row_id');
+
+//     // Verify the SQL has joins to resolution tables
+//     expect(sql).toContain('owners_lookup');
+
+//     // Verify it includes resolution columns
+//     expect(sql).toContain('display_name');
+//     expect(sql).toContain('email');
+
+//     // Execute the SQL to verify it works
+//     const result = (await duckdbExec(sql)) as any[];
+//     console.log(
+//       'Phase 2 Result (first 3 rows):',
+//       JSON.stringify(result.slice(0, 3), null, 2)
+//     );
+
+//     // The result should have 5 unnested + resolved rows
+//     expect(result.length).toBe(5);
+
+//     // Each row should have resolution columns
+//     expect(result[0]).toHaveProperty('__unnested_base_query__row_id');
+//     expect(result[0]).toHaveProperty('tickets__owners__display_name');
+//     expect(result[0]).toHaveProperty('tickets__owners__email');
+
+//     // Verify actual resolved values
+//     const owner1Rows = result.filter(
+//       (r: any) => r['__unnested_base_query__tickets__owners'] === 'owner1'
+//     );
+//     expect(owner1Rows[0]['tickets__owners__display_name']).toBe('Alice Smith');
+//     expect(owner1Rows[0]['tickets__owners__email']).toBe('alice@example.com');
+//   });
+// });

@@ -9,10 +9,21 @@ import {
   findInDimensionSchemas,
   findInSchemas,
 } from '../utils/find-in-table-schema';
-import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
+import {
+  BASE_DATA_SOURCE_NAME,
+  ResolutionColumnConfig,
+  ResolutionConfig,
+} from './types';
 
-const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
-  return {
+const constructBaseDimension = (
+  name: string,
+  schema: Measure | Dimension,
+  resolutionColumnConfigs: ResolutionColumnConfig[]
+) => {
+  const shouldPerformUnnest = resolutionColumnConfigs.some(
+    (config) => config.name == name
+  );
+  const dimension: Dimension = {
     name: memberKeyToSafeKey(name),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
       name,
@@ -27,6 +38,12 @@ const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
       aliasContext: { isTableSchemaAlias: true },
     }),
   };
+  if (shouldPerformUnnest) {
+    dimension.modifier = {
+      shouldUnnestArray: true,
+    };
+  }
+  return dimension;
 };
 
 export const createBaseTableSchema = (
@@ -54,7 +71,11 @@ export const createBaseTableSchema = (
     dimensions: [...measures, ...(dimensions || [])].map((member) => {
       const schema = schemaByName[member];
       if (schema) {
-        return constructBaseDimension(member, schema);
+        return constructBaseDimension(
+          member,
+          schema,
+          resolutionConfig.columnConfigs
+        );
       } else {
         throw new Error(`Not found: ${member}`);
       }

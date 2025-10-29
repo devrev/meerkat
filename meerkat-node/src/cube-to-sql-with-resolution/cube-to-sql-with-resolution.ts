@@ -1,6 +1,7 @@
 import {
   ContextParams,
   createBaseTableSchema,
+  Dimension,
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
@@ -86,7 +87,49 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
   columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams) => {
-  debugger;
+  // Phase 1: Generate SQL with row_id and unnested arrays
+  const { sql: unnestBaseSql, baseTableSchema } = await getUnnestBaseSql({
+    query,
+    tableSchemas,
+    resolutionConfig,
+    columnProjections,
+    contextParams,
+  });
+
+  // Get array columns for Phase 2
+  const arrayColumns = getArrayTypeColumns(resolutionConfig);
+
+  if (arrayColumns.length === 0) {
+    // No resolution needed
+    return unnestBaseSql;
+  }
+
+  // // // Phase 2: Apply resolution (join with lookup tables)
+  const resolvedSql = await getResolvedSql({
+    unnestedSql: unnestBaseSql,
+    baseTableSchema,
+    query,
+    tableSchemas,
+    resolutionConfig,
+    contextParams,
+    columnProjections,
+  });
+
+  // TODO: Phase 3 - Re-aggregate to reverse the unnest
+
+  return resolvedSql;
+};
+
+export const getUnnestBaseSql = async ({
+  query,
+  tableSchemas,
+  resolutionConfig,
+  columnProjections,
+  contextParams,
+}: CubeQueryToSQLWithResolutionParams): Promise<{
+  sql: string;
+  baseTableSchema: TableSchema;
+}> => {
   if (resolutionConfig.columnConfigs.length === 0) {
     // If no resolution is needed, return the base SQL.
     const baseSql = await cubeQueryToSQL({
@@ -94,7 +137,11 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
       tableSchemas,
       contextParams,
     });
-    return baseSql;
+    // Return a dummy schema since we won't use it
+    return {
+      sql: baseSql,
+      baseTableSchema: { name: '', sql: '', measures: [], dimensions: [] },
+    };
   }
 
   // Phase 1: Setup and Unnest
@@ -107,7 +154,11 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
       tableSchemas,
       contextParams,
     });
-    return baseSql;
+    // Return a dummy schema since we won't use it
+    return {
+      sql: baseSql,
+      baseTableSchema: { name: '', sql: '', measures: [], dimensions: [] },
+    };
   }
 
   // Step 1: Add row_id to the first table schema and generate base SQL (without unnesting)
@@ -157,53 +208,22 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
 
   // Step 2: Create a new table schema from the base SQL with row_id
   // This will be used to apply unnesting
-  const baseTableName = '__base_query_with_row_id';
+  const baseTableName = '__base_query'; // Use standard name to work with helpers
 
-  // Create dimensions from the base SQL output (all measures become dimensions now)
-  const baseDimensions: TableSchema['dimensions'] = [
-    {
-      name: 'row_id',
-      sql: `${baseTableName}.__row_id`,
-      type: 'number',
-    },
-    ...query.measures.map((measure) => ({
-      name: measure.replace('.', '__'),
-      sql: `${baseTableName}.${measure.replace('.', '__')}`,
-      type: 'number' as const,
-    })),
-    ...(query.dimensions || []).map((dimension) => {
-      // Check if this dimension is an array that needs unnesting
-      const isArrayDimension = arrayColumns.some(
-        (col) => col.name === dimension
-      );
+  const baseTableSchema: TableSchema = createBaseTableSchema(
+    baseSqlWithRowId,
+    tableSchemas,
+    resolutionConfig,
+    query.measures,
+    query.dimensions
+  );
 
-      const originalSchema = tableSchemas.find((s) =>
-        dimension.startsWith(`${s.name}.`)
-      );
-      const dimName = dimension.split('.')[1];
-      const originalDimension = originalSchema?.dimensions.find(
-        (d) => d.name === dimName
-      );
-
-      return {
-        name: dimension.replace('.', '__'),
-        sql: `${baseTableName}.${dimension.replace('.', '__')}`,
-        type: originalDimension?.type || ('string' as const),
-        ...(isArrayDimension && {
-          modifier: {
-            shouldUnnestArray: true,
-          },
-        }),
-      };
-    }),
-  ];
-
-  const baseTableSchema: TableSchema = {
-    name: baseTableName,
-    sql: baseSqlWithRowId,
-    measures: [],
-    dimensions: baseDimensions,
-  };
+  baseTableSchema.dimensions.push({
+    name: 'row_id',
+    sql: '__row_id',
+    type: 'number',
+    alias: '__row_id',
+  } as Dimension);
 
   // Step 3: Create query with unnest modifiers applied
   const unnestQuery: Query = {
@@ -215,10 +235,6 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
         (d) => `${baseTableName}.${d.replace('.', '__')}`
       ),
     ],
-    filters: query.filters,
-    order: query.order,
-    limit: query.limit,
-    offset: query.offset,
   };
 
   // Generate the final SQL with unnesting applied
@@ -228,5 +244,83 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
     contextParams,
   });
 
-  return unnestedBaseSql;
+  return {
+    sql: unnestedBaseSql,
+    baseTableSchema,
+  };
+};
+
+/**
+ * Phase 2: Apply resolution (join with lookup tables)
+ *
+ * This function:
+ * 1. Uses the base table schema from Phase 1 (source of truth)
+ * 2. Generates resolution schemas for array fields
+ * 3. Sets up join paths between unnested data and resolution tables
+ * 4. Generates SQL with resolved values
+ *
+ * @param unnestedSql - SQL output from Phase 1 (with row_id and unnested arrays)
+ * @param baseTableSchema - Schema from Phase 1 that describes the unnested SQL
+ * @returns SQL with row_id, unnested arrays, and resolved values from lookup tables
+ */
+export const getResolvedSql = async ({
+  unnestedSql,
+  baseTableSchema,
+  query,
+  tableSchemas,
+  resolutionConfig,
+  contextParams,
+  columnProjections,
+}: {
+  unnestedSql: string;
+  baseTableSchema: TableSchema;
+  query: Query;
+  tableSchemas: TableSchema[];
+  resolutionConfig: ResolutionConfig;
+  contextParams?: ContextParams;
+  columnProjections?: string[];
+}): Promise<string> => {
+  // Step 1: Use the base table schema from Phase 1 as source of truth
+  // Update the SQL to point to the unnested SQL
+  const updatedBaseTableSchema: TableSchema = {
+    ...baseTableSchema,
+    sql: unnestedSql,
+  };
+
+  debugger;
+  // Step 2: Generate resolution schemas for array fields only
+  // Use the existing generateResolutionSchemas helper
+
+  const resolutionSchemas = generateResolutionSchemas(
+    resolutionConfig,
+    tableSchemas
+  );
+
+  // Step 3: Generate join paths using existing helper
+  // Note: Pass the base table schema (from Phase 1) to generate correct join paths
+  const joinPaths = generateResolutionJoinPaths(resolutionConfig, tableSchemas);
+
+  debugger;
+  query.dimensions?.push('row_id');
+  // Step 4: Generate resolved dimensions using existing helper
+  const resolvedDimensions = generateResolvedDimensions(
+    query,
+    resolutionConfig,
+    columnProjections
+  );
+
+  // Step 5: Create query and generate SQL
+  const resolutionQuery: Query = {
+    measures: [],
+    dimensions: resolvedDimensions,
+    joinPaths,
+  };
+
+  const resolvedSql = await cubeQueryToSQL({
+    query: resolutionQuery,
+    tableSchemas: [updatedBaseTableSchema, ...resolutionSchemas],
+    contextParams,
+  });
+
+  return resolvedSql;
 };
