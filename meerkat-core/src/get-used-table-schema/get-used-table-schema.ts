@@ -1,12 +1,6 @@
 import { traverseMeerkatQueryFilter } from '../filter-params/filter-params-ast';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
-import {
-  Member,
-  Query,
-  QueryFilter,
-  TableSchema,
-  isJoinNode,
-} from '../types/cube-types';
+import { Member, Query, QueryFilter, TableSchema } from '../types/cube-types';
 
 export const getUsedTableSchema = (
   tableSchema: TableSchema[],
@@ -51,18 +45,6 @@ export const getUsedTableSchema = (
   if (cubeQuery.order) {
     Object.keys(cubeQuery.order).forEach((orderKey) => {
       usedTables.add(getTableFromMember(orderKey));
-    });
-  }
-
-  // Add tables from joinPaths
-  if (cubeQuery.joinPaths && cubeQuery.joinPaths.length > 0) {
-    cubeQuery.joinPaths.forEach((joinPath) => {
-      joinPath.forEach((node) => {
-        usedTables.add(getTableFromMember(node.left));
-        if (isJoinNode(node)) {
-          usedTables.add(getTableFromMember(node.right));
-        }
-      });
     });
   }
 
