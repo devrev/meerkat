@@ -105,7 +105,7 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
   }
 
   // // // Phase 2: Apply resolution (join with lookup tables)
-  const resolvedSql = await getResolvedSql({
+  const { sql: resolvedSql, resolvedTableSchema } = await getResolvedSql({
     unnestedSql: unnestBaseSql,
     baseTableSchema,
     query,
@@ -115,9 +115,16 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
     columnProjections,
   });
 
-  // TODO: Phase 3 - Re-aggregate to reverse the unnest
+  // Phase 3: Re-aggregate to reverse the unnest
+  const aggregatedSql = await getAggregatedSql({
+    resolvedSql,
+    resolvedTableSchema,
+    query,
+    resolutionConfig,
+    contextParams,
+  });
 
-  return resolvedSql;
+  return aggregatedSql;
 };
 
 export const getUnnestBaseSql = async ({
@@ -279,7 +286,10 @@ export const getResolvedSql = async ({
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
   columnProjections?: string[];
-}): Promise<string> => {
+}): Promise<{
+  sql: string;
+  resolvedTableSchema: TableSchema;
+}> => {
   // Step 1: Use the base table schema from Phase 1 as source of truth
   // Update the SQL to point to the unnested SQL
   const updatedBaseTableSchema: TableSchema = {
@@ -322,5 +332,187 @@ export const getResolvedSql = async ({
     contextParams,
   });
 
-  return resolvedSql;
+  // Create a simple schema describing Phase 2's output columns
+  // cubeQueryToSQL outputs columns using their alias field, not table-prefixed names
+  const resolvedTableSchema: TableSchema = {
+    name: '__resolved_query',
+    sql: resolvedSql,
+    measures: [],
+    dimensions: [
+      // Row ID - comes from baseTableSchema with alias '__row_id'
+      {
+        name: 'row_id',
+        sql: '__resolved_query."__row_id"',
+        type: 'number',
+        alias: '__row_id',
+      },
+      // Original measures from base query - use their aliases
+      ...query.measures.map((measure) => {
+        const measureName = measure.replace('.', '__');
+        return {
+          name: measureName,
+          sql: `__resolved_query."${measureName}"`,
+          type: 'number' as const,
+          alias: measureName,
+        };
+      }),
+      // Non-array dimensions from base query - use their aliases
+      ...(query.dimensions || [])
+        .filter(
+          (dim) =>
+            !getArrayTypeColumns(resolutionConfig).some(
+              (ac) => ac.name === dim
+            ) && dim !== 'row_id'
+        )
+        .map((dimension) => {
+          const dimName = dimension.replace('.', '__');
+          return {
+            name: dimName,
+            sql: `__resolved_query."${dimName}"`,
+            type: 'string' as const,
+            alias: dimName,
+          };
+        }),
+      // Resolved array columns - these use the alias pattern "colname - rescolname"
+      ...getArrayTypeColumns(resolutionConfig).flatMap((arrayColumn) => {
+        return arrayColumn.resolutionColumns.map((resCol) => {
+          // Find the resolution dimension to get its alias
+          const resolutionDimName = `${arrayColumn.name.replace(
+            '.',
+            '__'
+          )}__${resCol}`;
+          const resolutionSchema = resolutionSchemas.find(
+            (s) => s.name === arrayColumn.name.replace('.', '__')
+          );
+          const resDim = resolutionSchema?.dimensions.find((d) =>
+            d.name.includes(resCol)
+          );
+
+          // The alias from the resolution schema already has the full format
+          const aliasName = resDim?.alias || resolutionDimName;
+
+          return {
+            name: resolutionDimName,
+            sql: `__resolved_query."${aliasName}"`,
+            type: 'string' as const,
+            alias: aliasName,
+          };
+        });
+      }),
+    ],
+  };
+
+  return {
+    sql: resolvedSql,
+    resolvedTableSchema,
+  };
+};
+
+/**
+ * Phase 3: Re-aggregate to reverse the unnest
+ *
+ * This function:
+ * 1. Wraps Phase 2 SQL as a new base table
+ * 2. Groups by row_id
+ * 3. Uses MAX for non-array columns (they're duplicated)
+ * 4. Uses ARRAY_AGG for resolved array columns
+ *
+ * @param resolvedSql - SQL output from Phase 2 (with resolved values)
+ * @param query - Original query
+ * @param resolutionConfig - Resolution configuration
+ * @param contextParams - Optional context parameters
+ * @returns Final SQL with arrays containing resolved values
+ */
+export const getAggregatedSql = async ({
+  resolvedSql,
+  resolvedTableSchema,
+  query,
+  resolutionConfig,
+  contextParams,
+}: {
+  resolvedSql: string;
+  resolvedTableSchema: TableSchema;
+  query: Query;
+  resolutionConfig: ResolutionConfig;
+  contextParams?: ContextParams;
+}): Promise<string> => {
+  // Step 1: Use the resolved table schema from Phase 2 as source of truth
+  // Update the SQL to point to the resolved SQL
+  const aggregationBaseTableSchema: TableSchema = {
+    ...resolvedTableSchema,
+    sql: resolvedSql,
+  };
+
+  // Step 2: Identify which columns need ARRAY_AGG vs MAX
+  const arrayColumns = getArrayTypeColumns(resolutionConfig);
+  const baseTableName = aggregationBaseTableSchema.name;
+
+  // Helper to check if a dimension is a resolved array column
+  const isResolvedArrayColumn = (dimName: string) => {
+    // Check if the dimension name matches a resolved column pattern
+    // e.g., "tickets__owners__display_name"
+    return arrayColumns.some((arrayCol) => {
+      const arrayColPrefix = arrayCol.name.replace('.', '__');
+      return (
+        dimName.includes(`${arrayColPrefix}__`) &&
+        !dimName.startsWith('__base_query__')
+      );
+    });
+  };
+
+  // Step 3: Create aggregation measures with proper aggregation functions
+  // Get row_id dimension for GROUP BY
+  const rowIdDimension = aggregationBaseTableSchema.dimensions.find(
+    (d) => d.name === 'row_id' || d.name.endsWith('__row_id')
+  );
+
+  // Create measures with MAX or ARRAY_AGG based on column type
+  const aggregationMeasures: TableSchema['measures'] = [];
+
+  aggregationBaseTableSchema.dimensions
+    .filter((dim) => dim.name !== rowIdDimension?.name)
+    .forEach((dim) => {
+      const isArrayColumn = isResolvedArrayColumn(dim.name);
+
+      // The dimension's sql field already has the correct reference (e.g., __resolved_query."__row_id")
+      // We just need to wrap it in the aggregation function
+      const columnRef =
+        dim.sql || `${baseTableName}."${dim.alias || dim.name}"`;
+
+      // Use ARRAY_AGG for resolved array columns, MAX for others
+      const aggregationFn = isArrayColumn
+        ? `ARRAY_AGG(DISTINCT ${columnRef})`
+        : `MAX(${columnRef})`;
+
+      aggregationMeasures.push({
+        name: dim.name,
+        sql: aggregationFn,
+        type: dim.type,
+        alias: dim.alias,
+      });
+    });
+
+  // Update the schema with aggregation measures
+  const schemaWithAggregation: TableSchema = {
+    ...aggregationBaseTableSchema,
+    measures: aggregationMeasures,
+    dimensions: rowIdDimension ? [rowIdDimension] : [],
+  };
+
+  // Step 4: Create the aggregation query
+  const aggregationQuery: Query = {
+    measures: aggregationMeasures.map((m) => `${baseTableName}.${m.name}`),
+    dimensions: rowIdDimension
+      ? [`${baseTableName}.${rowIdDimension.name}`]
+      : [],
+  };
+
+  // Step 5: Generate the final SQL
+  const aggregatedSql = await cubeQueryToSQL({
+    query: aggregationQuery,
+    tableSchemas: [schemaWithAggregation],
+    contextParams,
+  });
+
+  return aggregatedSql;
 };

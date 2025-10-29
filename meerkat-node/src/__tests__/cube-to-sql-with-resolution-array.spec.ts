@@ -326,3 +326,78 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
 //     expect(owner1Rows[0]['tickets__owners__email']).toBe('alice@example.com');
 //   });
 // });
+
+// describe('cubeQueryToSQLWithResolutionWithArray - Phase 3: Re-aggregation', () => {
+//   jest.setTimeout(1000000);
+
+//   beforeAll(async () => {
+//     // Tables are already created in Phase 1 tests
+//   });
+
+//   it('Should re-aggregate unnested rows back to original count with resolved arrays', async () => {
+//     const query: Query = {
+//       measures: ['tickets.count'],
+//       dimensions: ['tickets.id', 'tickets.owners'],
+//     };
+
+//     const resolutionConfig: ResolutionConfig = {
+//       columnConfigs: [
+//         {
+//           name: 'tickets.owners',
+//           isArrayType: true,
+//           source: 'owners_lookup',
+//           joinColumn: 'id',
+//           resolutionColumns: ['display_name', 'email'],
+//         },
+//       ],
+//       tableSchemas: [OWNERS_LOOKUP_SCHEMA],
+//     };
+
+//     const sql = await cubeQueryToSQLWithResolutionWithArray({
+//       query,
+//       tableSchemas: [TICKETS_TABLE_SCHEMA],
+//       resolutionConfig,
+//     });
+
+//     console.log('Phase 3 SQL (re-aggregated):', sql);
+
+//     // Verify the SQL includes aggregation functions
+//     expect(sql).toContain('GROUP BY');
+//     expect(sql).toContain('row_id');
+
+//     // Execute the SQL to verify it works
+//     const result = (await duckdbExec(sql)) as any[];
+//     console.log('Phase 3 Result:', JSON.stringify(result, null, 2));
+
+//     // Should have 3 rows (back to original count)
+//     expect(result.length).toBe(3);
+
+//     // Each row should have aggregated data
+//     expect(result[0]).toHaveProperty('__aggregation_base__row_id');
+//     expect(result[0]).toHaveProperty('__aggregation_base__tickets__count');
+//     expect(result[0]).toHaveProperty('__aggregation_base__tickets__id');
+
+//     // Should have arrays with resolved values
+//     expect(result[0]).toHaveProperty(
+//       '__aggregation_base__tickets__owners__display_name'
+//     );
+//     expect(result[0]).toHaveProperty(
+//       '__aggregation_base__tickets__owners__email'
+//     );
+
+//     // Verify the resolved arrays contain the correct values
+//     // Ticket 1 has owners: owner1, owner2
+//     const ticket1 = result.find(
+//       (r: any) => r['__aggregation_base__tickets__id'] === 1
+//     );
+//     expect(ticket1).toBeDefined();
+
+//     // The display names should be aggregated into an array
+//     const displayNames =
+//       ticket1['__aggregation_base__tickets__owners__display_name'];
+//     console.log('Ticket 1 display names:', displayNames);
+
+//     // Note: The actual format depends on how cubeQueryToSQL handles ARRAY_AGG
+//     // It should be an array containing the resolved values
+//   });
+// });
