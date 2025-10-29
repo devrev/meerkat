@@ -1,9 +1,10 @@
+import { MeerkatQueryFilter } from '../types/cube-types';
 import {
   applyFilterParamsToBaseSQL,
   detectAllFilterParamsFromSQL,
   getFilterByMemberKey,
+  traverseMeerkatQueryFilter,
 } from './filter-params-ast';
-
 describe('getFilterByMemberKey', () => {
   it('should return an empty array when filters are undefined', () => {
     const result = getFilterByMemberKey(undefined, 'memberKey');
@@ -176,5 +177,52 @@ describe('applyFilterParamsToBaseSQL function', () => {
 
     const expected = 'SELECT * FROM orders WHERE TRUE';
     expect(applyFilterParamsToBaseSQL(baseSQL, filterParamsSQL)).toBe(expected);
+  });
+});
+
+describe('traverseMeerkatQueryFilter function', () => {
+  it('should traverse the MeerkatQueryFilter JSON and call the callback for each leaf type', () => {
+    const filters: MeerkatQueryFilter[] = [
+      { member: 'memberKey', operator: 'equals', values: ['value1'] },
+      { member: 'differentMember', operator: 'equals', values: ['value1'] },
+      {
+        and: [
+          { member: 'memberKey', operator: 'equals', values: ['value1'] },
+          { member: 'differentMember', operator: 'equals', values: ['value1'] },
+        ],
+      },
+      { or: [{ member: 'memberKey', operator: 'equals', values: ['value1'] }] },
+    ];
+
+    const callbackFn = jest.fn();
+
+    traverseMeerkatQueryFilter(filters as MeerkatQueryFilter[], callbackFn);
+
+    expect(callbackFn).toHaveBeenCalledTimes(5);
+    expect(callbackFn).toHaveBeenCalledWith({
+      member: 'memberKey',
+      operator: 'equals',
+      values: ['value1'],
+    });
+    expect(callbackFn).toHaveBeenCalledWith({
+      member: 'differentMember',
+      operator: 'equals',
+      values: ['value1'],
+    });
+    expect(callbackFn).toHaveBeenCalledWith({
+      member: 'memberKey',
+      operator: 'equals',
+      values: ['value1'],
+    });
+    expect(callbackFn).toHaveBeenCalledWith({
+      member: 'differentMember',
+      operator: 'equals',
+      values: ['value1'],
+    });
+    expect(callbackFn).toHaveBeenCalledWith({
+      member: 'memberKey',
+      operator: 'equals',
+      values: ['value1'],
+    });
   });
 });

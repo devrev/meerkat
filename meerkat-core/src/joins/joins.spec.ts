@@ -518,5 +518,739 @@ describe('Table schema functions', () => {
       const result = getUsedTableSchema(tableSchema, cubeQuery);
       expect(result).toEqual(tableSchema);
     });
+
+    it('should return only single table if other tables are not getting used from schema', () => {
+      const tableSchemas: TableSchema[] = [
+        {
+          dimensions: [
+            {
+              name: 'rev_oid',
+              sql: 'dim_ticket.rev_oid',
+              type: 'string',
+            },
+            {
+              name: 'title',
+              sql: 'dim_ticket.title',
+              type: 'string',
+            },
+            {
+              name: 'last_internal_comment_date',
+              sql: 'dim_ticket.last_internal_comment_date',
+              type: 'time',
+            },
+            {
+              name: 'work_type',
+              sql: "'ticket'",
+              type: 'time',
+            },
+            {
+              name: 'is_spam',
+              sql: 'dim_ticket.is_spam',
+              type: 'boolean',
+            },
+            {
+              name: 'object_type',
+              sql: 'dim_ticket.object_type',
+              type: 'string',
+            },
+            {
+              name: 'modified_by_id',
+              sql: 'dim_ticket.modified_by_id',
+              type: 'string',
+            },
+            {
+              name: 'source_channel',
+              sql: 'dim_ticket.source_channel',
+              type: 'string',
+            },
+            {
+              modifier: {
+                shouldUnnestGroupBy: true,
+              },
+              name: 'channels',
+              sql: 'dim_ticket.channels',
+              type: 'number_array',
+            },
+            {
+              name: 'created_by_id',
+              sql: 'dim_ticket.created_by_id',
+              type: 'string',
+            },
+            {
+              name: 'created_date',
+              sql: 'dim_ticket.created_date',
+              type: 'time',
+            },
+            {
+              name: 'target_close_date',
+              sql: 'dim_ticket.target_close_date',
+              type: 'time',
+            },
+            {
+              name: 'applies_to_part_id',
+              sql: 'dim_ticket.applies_to_part_id',
+              type: 'string',
+            },
+            {
+              name: 'subtype',
+              sql: 'dim_ticket.subtype',
+              type: 'string',
+            },
+            {
+              name: 'actual_close_date',
+              sql: 'dim_ticket.actual_close_date',
+              type: 'time',
+            },
+            {
+              name: 'reported_by_id',
+              sql: 'dim_ticket.reported_by_id',
+              type: 'string',
+            },
+            {
+              modifier: {
+                shouldUnnestGroupBy: true,
+              },
+              name: 'reported_by_ids',
+              sql: 'dim_ticket.reported_by_ids',
+              type: 'string_array',
+            },
+            {
+              name: 'needs_response',
+              sql: 'dim_ticket.needs_response',
+              type: 'boolean',
+            },
+            {
+              name: 'group',
+              sql: 'dim_ticket.group',
+              type: 'string',
+            },
+            {
+              name: 'modified_date',
+              sql: 'dim_ticket.modified_date',
+              type: 'time',
+            },
+            {
+              modifier: {
+                shouldUnnestGroupBy: true,
+              },
+              name: 'owned_by_ids',
+              sql: 'dim_ticket.owned_by_ids',
+              type: 'string_array',
+            },
+            {
+              name: 'id',
+              sql: 'dim_ticket.id',
+              type: 'string',
+            },
+            {
+              name: 'sla_tracker_id',
+              sql: 'dim_ticket.sla_tracker_id',
+              type: 'string',
+            },
+            {
+              name: 'severity',
+              sql: 'dim_ticket.severity',
+              type: 'number',
+            },
+            {
+              name: 'stage_json',
+              sql: "json_extract_string(dim_ticket.stage_json, '$.stage_id')",
+              type: 'string',
+            },
+            {
+              name: 'sla_id',
+              sql: 'dim_ticket.sla_id',
+              type: 'string',
+            },
+            {
+              modifier: {
+                shouldUnnestGroupBy: true,
+              },
+              name: 'links_json',
+              sql: "list_distinct(CAST(json_extract_string(dim_ticket.links_json, '$[*].target_object_type') AS VARCHAR[]))",
+              type: 'string_array',
+            },
+            {
+              modifier: {
+                shouldUnnestGroupBy: true,
+              },
+              name: 'tags_json',
+              sql: "CAST(json_extract_string(dim_ticket.tags_json, '$[*].tag_id') AS VARCHAR[])",
+              type: 'string_array',
+            },
+            {
+              name: 'surveys_aggregation_json',
+              sql: "list_aggregate(CAST(json_extract_string(dim_ticket.surveys_aggregation_json, '$[*].minimum') AS integer[]), 'min')",
+              type: 'number',
+            },
+            {
+              name: 'sla_summary_target_time',
+              sql: "cast(json_extract_string(dim_ticket.sla_summary, '$.target_time') as timestamp)",
+              type: 'time',
+            },
+            {
+              name: 'staged_info',
+              sql: "cast(json_extract_string(dim_ticket.staged_info, '$.is_staged') as boolean)",
+              type: 'boolean',
+            },
+          ],
+          joins: [
+            {
+              sql: 'dim_ticket.sla_tracker_id = dim_sla_tracker.id',
+            },
+            {
+              sql: 'dim_ticket.id = dim_survey_response.object',
+            },
+            {
+              sql: 'dim_ticket.id = dim_link_issue_target.source_id',
+            },
+            {
+              sql: 'dim_ticket.id = dim_link_conversation_source.target_id',
+            },
+            {
+              sql: 'dim_ticket.rev_oid = dim_revo.id',
+            },
+            {
+              sql: 'dim_ticket.applies_to_part_id = dim_part.id',
+            },
+          ],
+          measures: [
+            {
+              name: 'id_count',
+              function: {
+                type: 'count',
+              },
+              sql: 'count(dim_ticket.id)',
+              type: 'string',
+            },
+            {
+              name: 'created_date_max',
+              function: {
+                type: 'max',
+              },
+              sql: 'max(dim_ticket.created_date)',
+              type: 'time',
+            },
+            {
+              name: 'actual_close_date_max',
+              function: {
+                type: 'max',
+              },
+              sql: 'max(dim_ticket.actual_close_date)',
+              type: 'time',
+            },
+            {
+              name: 'sla_tracker_id_count',
+              function: {
+                type: 'count',
+              },
+              sql: 'count(dim_ticket.sla_tracker_id)',
+              type: 'string',
+            },
+            {
+              name: 'resolution_time',
+              sql: "case WHEN actual_close_date > created_date THEN date_diff('minutes', created_date, actual_close_date) ELSE null END ",
+              type: 'number',
+            },
+            {
+              name: 'surveys_aggregation_json_measure',
+              function: {
+                type: 'median',
+              },
+              sql: "median(list_aggregate(CAST(json_extract_string(dim_ticket.surveys_aggregation_json, '$[*].minimum') AS integer[]), 'min'))",
+              type: 'number',
+            },
+            {
+              name: 'tnt__account_id',
+              sql: 'tnt__account_id',
+              type: 'string',
+            },
+            {
+              name: 'tnt__actual_effort_spent',
+              sql: 'tnt__actual_effort_spent',
+              type: 'number',
+            },
+            {
+              name: 'tnt__capability_part',
+              sql: 'tnt__capability_part',
+              type: 'string',
+            },
+            {
+              name: 'tnt__custom_id_field',
+              sql: 'tnt__custom_id_field',
+              type: 'string',
+            },
+            {
+              name: 'tnt__date_field',
+              sql: 'tnt__date_field',
+              type: 'time',
+            },
+            {
+              name: 'tnt__estimated_effort',
+              sql: 'tnt__estimated_effort',
+              type: 'number',
+            },
+            {
+              name: 'tnt__fruit',
+              sql: 'tnt__fruit',
+              type: 'string',
+            },
+            {
+              name: 'tnt__id_field',
+              sql: 'tnt__id_field',
+              type: 'string',
+            },
+            {
+              name: 'tnt__issue_score',
+              sql: 'tnt__issue_score',
+              type: 'number',
+            },
+            {
+              name: 'tnt__numeric_field',
+              sql: 'tnt__numeric_field',
+              type: 'number',
+            },
+            {
+              name: 'tnt__parent_part',
+              sql: 'tnt__parent_part',
+              type: 'string',
+            },
+            {
+              name: 'tnt__part_product',
+              sql: 'tnt__part_product',
+              type: 'string',
+            },
+            {
+              name: 'tnt__rank',
+              sql: 'tnt__rank',
+              type: 'number',
+            },
+            {
+              name: 'tnt__remaining_effort',
+              sql: 'tnt__remaining_effort',
+              type: 'number',
+            },
+            {
+              name: 'tnt__stray_user',
+              sql: 'tnt__stray_user',
+              type: 'string',
+            },
+            {
+              name: 'tnt__stray_users',
+              sql: 'tnt__stray_users',
+              type: 'string',
+            },
+            {
+              name: 'tnt__test',
+              sql: 'tnt__test',
+              type: 'number',
+            },
+            {
+              name: 'tnt__test_capability_part',
+              sql: 'tnt__test_capability_part',
+              type: 'string',
+            },
+            {
+              name: 'tnt__test_product_part',
+              sql: 'tnt__test_product_part',
+              type: 'string',
+            },
+            {
+              name: 'tnt__ticket_custom_part',
+              sql: 'tnt__ticket_custom_part',
+              type: 'string',
+            },
+            {
+              name: 'tnt__workspace_custom',
+              sql: 'tnt__workspace_custom',
+              type: 'string',
+            },
+            {
+              name: 'ctype_deal_registration__estimated_deal_value',
+              sql: 'ctype_deal_registration__estimated_deal_value',
+              type: 'number',
+            },
+            {
+              name: 'ctype_deal_registration__expected_close_date',
+              sql: 'ctype_deal_registration__expected_close_date',
+              type: 'time',
+            },
+            {
+              name: 'ctype_Events__event_end_date',
+              sql: 'ctype_Events__event_end_date',
+              type: 'time',
+            },
+            {
+              name: 'ctype_Events__event_owner',
+              sql: 'ctype_Events__event_owner',
+              type: 'string',
+            },
+            {
+              name: 'ctype_Events__event_start_date',
+              sql: 'ctype_Events__event_start_date',
+              type: 'time',
+            },
+            {
+              name: 'ctype_Events__events_test_ref',
+              sql: 'ctype_Events__events_test_ref',
+              type: 'string',
+            },
+            {
+              name: 'ctype_Events__external_budget',
+              sql: 'ctype_Events__external_budget',
+              type: 'number',
+            },
+            {
+              name: 'ctype_Events__internal_budget',
+              sql: 'ctype_Events__internal_budget',
+              type: 'number',
+            },
+            {
+              name: 'ctype_Events__pipeline_generated',
+              sql: 'ctype_Events__pipeline_generated',
+              type: 'number',
+            },
+            {
+              name: 'ctype_Events__total_budget',
+              sql: 'ctype_Events__total_budget',
+              type: 'number',
+            },
+            {
+              name: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__brand_id_cfid',
+              sql: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__brand_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__created_at_cfid',
+              sql: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__created_at_cfid',
+              type: 'time',
+            },
+            {
+              name: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__generated_timestamp_cfid',
+              sql: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__generated_timestamp_cfid',
+              type: 'time',
+            },
+            {
+              name: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__group_id_cfid',
+              sql: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__group_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__ticket_form_id_cfid',
+              sql: 'ctype_svxsdhkjcbdsgcbvsdjgchgdshckweds__ticket_form_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__brand_id_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__brand_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__created_at_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__created_at_cfid',
+              type: 'time',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__generated_timestamp_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__generated_timestamp_cfid',
+              type: 'time',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__group_id_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__group_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__ticket_form_id_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwhe33cnrsy2__ticket_form_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_helohelohelohelohelo__dfkdkl',
+              sql: 'ctype_helohelohelohelohelo__dfkdkl',
+              type: 'number',
+            },
+            {
+              name: 'ctype_defaults__customer_uat',
+              sql: 'ctype_defaults__customer_uat',
+              type: 'time',
+            },
+            {
+              name: 'ctype_defaults__uat_date',
+              sql: 'ctype_defaults__uat_date',
+              type: 'time',
+            },
+            {
+              name: 'ctype_event_request__approver',
+              sql: 'ctype_event_request__approver',
+              type: 'string',
+            },
+            {
+              name: 'ctype_event_request__budget',
+              sql: 'ctype_event_request__budget',
+              type: 'number',
+            },
+            {
+              name: 'ctype_event_request__event_date',
+              sql: 'ctype_event_request__event_date',
+              type: 'time',
+            },
+            {
+              name: 'ctype_event_request__event_owner',
+              sql: 'ctype_event_request__event_owner',
+              type: 'string',
+            },
+            {
+              name: 'ctype_event_request__requested_by',
+              sql: 'ctype_event_request__requested_by',
+              type: 'string',
+            },
+            {
+              name: 'ctype_event_request__target_pipeline',
+              sql: 'ctype_event_request__target_pipeline',
+              type: 'number',
+            },
+            {
+              name: 'ctype_mfz_subtype_check__user_field',
+              sql: 'ctype_mfz_subtype_check__user_field',
+              type: 'string',
+            },
+            {
+              name: 'ctype_mfz_subtype_check__workspace_field',
+              sql: 'ctype_mfz_subtype_check__workspace_field',
+              type: 'string',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__brand_id_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__brand_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__created_at_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__created_at_cfid',
+              type: 'time',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__generated_timestamp_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__generated_timestamp_cfid',
+              type: 'time',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__group_id_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__group_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__ticket_form_id_cfid',
+              sql: 'ctype_pjsy4zdfonxx66tjnxwgk4tjoxyx65djmnxyk5dtfzwvkzltoruy63q__ticket_form_id_cfid',
+              type: 'number',
+            },
+            {
+              name: 'ctype_review_subtype__date',
+              sql: 'ctype_review_subtype__date',
+              type: 'time',
+            },
+            {
+              name: 'ctype_review_subtype__reply_date',
+              sql: 'ctype_review_subtype__reply_date',
+              type: 'time',
+            },
+            {
+              name: 'ctype_review_subtype__upvote_count',
+              sql: 'ctype_review_subtype__upvote_count',
+              type: 'number',
+            },
+            {
+              name: 'ctype_jkjkjkjkjkjk__dggd',
+              sql: 'ctype_jkjkjkjkjkjk__dggd',
+              type: 'number',
+            },
+            {
+              name: 'id_count___function__count',
+              function: {
+                type: 'count',
+              },
+              sql: 'count(dim_ticket.id)',
+              type: 'string',
+            },
+          ],
+          name: 'dim_ticket',
+          sql: "SELECT count(dim_ticket__id) AS dim_ticket__id_count___function__count ,   dim_part__id,  dim_ticket__channels FROM (SELECT dim_ticket.created_date AS dim_ticket__created_date, 'ticket' AS dim_ticket__work_type, json_extract_string(dim_ticket.stage_json, '$.stage_id') AS dim_ticket__stage_json, array[unnest(dim_ticket.channels)] AS dim_ticket__channels, dim_ticket.id AS dim_ticket__id, * FROM (select * from devrev.dim_ticket) AS dim_ticket LEFT JOIN (SELECT dim_part.id AS dim_part__id, * FROM (select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_feature \n union  \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_product \n union \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_capability \n union \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_enhancement\n) AS dim_part) AS dim_part  ON dim_ticket.applies_to_part_id = dim_part.id) AS MEERKAT_GENERATED_TABLE WHERE ((((dim_ticket__created_date >= '2025-07-31T12:30:00.000Z') AND (dim_ticket__created_date <= '2025-10-29T13:29:59.999Z')) AND (dim_ticket__work_type IN ('ticket')) AND (dim_ticket__stage_json IN ('don:core:dvrv-us-1:devo/787:custom_stage/514', 'don:core:dvrv-us-1:devo/787:custom_stage/512', 'don:core:dvrv-us-1:devo/787:custom_stage/501', 'don:core:dvrv-us-1:devo/787:custom_stage/485', 'don:core:dvrv-us-1:devo/787:custom_stage/440', 'don:core:dvrv-us-1:devo/787:custom_stage/25', 'don:core:dvrv-us-1:devo/787:custom_stage/24', 'don:core:dvrv-us-1:devo/787:custom_stage/22', 'don:core:dvrv-us-1:devo/787:custom_stage/21', 'don:core:dvrv-us-1:devo/787:custom_stage/19', 'don:core:dvrv-us-1:devo/787:custom_stage/13', 'don:core:dvrv-us-1:devo/787:custom_stage/10', 'don:core:dvrv-us-1:devo/787:custom_stage/8', 'don:core:dvrv-us-1:devo/787:custom_stage/7', 'don:core:dvrv-us-1:devo/787:custom_stage/6', 'don:core:dvrv-us-1:devo/787:custom_stage/4')))) GROUP BY dim_part__id, dim_ticket__channels",
+        },
+        {
+          dimensions: [
+            {
+              name: 'dim_part__id',
+              sql: 'dim_part__id',
+              type: 'string',
+            },
+            {
+              name: 'id',
+              sql: 'dim_part.id',
+              type: 'string',
+            },
+            {
+              name: 'object_type',
+              sql: 'dim_part.object_type',
+              type: 'string',
+            },
+            {
+              name: 'created_by_id',
+              sql: 'dim_part.created_by_id',
+              type: 'string',
+            },
+            {
+              name: 'created_date',
+              sql: 'dim_part.created_date',
+              type: 'time',
+            },
+            {
+              name: 'modified_by_id',
+              sql: 'dim_part.modified_by_id',
+              type: 'string',
+            },
+            {
+              name: 'modified_date',
+              sql: 'dim_part.modified_date',
+              type: 'time',
+            },
+            {
+              name: 'part_category',
+              sql: 'dim_part.part_category',
+              type: 'number',
+            },
+            {
+              name: 'part_type',
+              sql: 'dim_part.part_type',
+              type: 'number',
+            },
+            {
+              modifier: {
+                shouldUnnestGroupBy: true,
+              },
+              name: 'owned_by_ids',
+              sql: 'dim_part.owned_by_ids',
+              type: 'string_array',
+            },
+            {
+              modifier: {
+                shouldUnnestGroupBy: true,
+              },
+              name: 'tags_json',
+              sql: "CAST(json_extract_string(dim_part.tags_json, '$[*].tag_id') AS VARCHAR[])",
+              type: 'string_array',
+            },
+            {
+              name: 'delivered_as',
+              sql: 'dim_part.delivered_as',
+              type: 'number',
+            },
+          ],
+          measures: [
+            {
+              name: 'unique_ids_count',
+              sql: 'COUNT(*)',
+              type: 'number',
+            },
+          ],
+          name: 'dim_part',
+          sql: "SELECT count(dim_ticket__id) AS dim_ticket__id_count___function__count ,   dim_part__id,  dim_ticket__channels FROM (SELECT dim_ticket.created_date AS dim_ticket__created_date, 'ticket' AS dim_ticket__work_type, json_extract_string(dim_ticket.stage_json, '$.stage_id') AS dim_ticket__stage_json, array[unnest(dim_ticket.channels)] AS dim_ticket__channels, dim_ticket.id AS dim_ticket__id, * FROM (select * from devrev.dim_ticket) AS dim_ticket LEFT JOIN (SELECT dim_part.id AS dim_part__id, * FROM (select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_feature \n union  \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_product \n union \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_capability \n union \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_enhancement\n) AS dim_part) AS dim_part  ON dim_ticket.applies_to_part_id = dim_part.id) AS MEERKAT_GENERATED_TABLE WHERE ((((dim_ticket__created_date >= '2025-07-31T12:30:00.000Z') AND (dim_ticket__created_date <= '2025-10-29T13:29:59.999Z')) AND (dim_ticket__work_type IN ('ticket')) AND (dim_ticket__stage_json IN ('don:core:dvrv-us-1:devo/787:custom_stage/514', 'don:core:dvrv-us-1:devo/787:custom_stage/512', 'don:core:dvrv-us-1:devo/787:custom_stage/501', 'don:core:dvrv-us-1:devo/787:custom_stage/485', 'don:core:dvrv-us-1:devo/787:custom_stage/440', 'don:core:dvrv-us-1:devo/787:custom_stage/25', 'don:core:dvrv-us-1:devo/787:custom_stage/24', 'don:core:dvrv-us-1:devo/787:custom_stage/22', 'don:core:dvrv-us-1:devo/787:custom_stage/21', 'don:core:dvrv-us-1:devo/787:custom_stage/19', 'don:core:dvrv-us-1:devo/787:custom_stage/13', 'don:core:dvrv-us-1:devo/787:custom_stage/10', 'don:core:dvrv-us-1:devo/787:custom_stage/8', 'don:core:dvrv-us-1:devo/787:custom_stage/7', 'don:core:dvrv-us-1:devo/787:custom_stage/6', 'don:core:dvrv-us-1:devo/787:custom_stage/4')))) GROUP BY dim_part__id, dim_ticket__channels",
+        },
+      ];
+      const cubeQuery: Query = {
+        dimensions: ['dim_part.dim_part__id'],
+        measures: ['dim_part.unique_ids_count'],
+        order: {
+          'dim_part.unique_ids_count': 'desc',
+        },
+        limit: 5,
+        offset: 0,
+        filters: [
+          {
+            and: [],
+          },
+        ],
+      };
+      const result = getCombinedTableSchema(tableSchemas, cubeQuery);
+      expect(result).toEqual({
+        dimensions: [
+          {
+            name: 'dim_part__id',
+            sql: 'dim_part__id',
+            type: 'string',
+          },
+          {
+            name: 'id',
+            sql: 'dim_part.id',
+            type: 'string',
+          },
+          {
+            name: 'object_type',
+            sql: 'dim_part.object_type',
+            type: 'string',
+          },
+          {
+            name: 'created_by_id',
+            sql: 'dim_part.created_by_id',
+            type: 'string',
+          },
+          {
+            name: 'created_date',
+            sql: 'dim_part.created_date',
+            type: 'time',
+          },
+          {
+            name: 'modified_by_id',
+            sql: 'dim_part.modified_by_id',
+            type: 'string',
+          },
+          {
+            name: 'modified_date',
+            sql: 'dim_part.modified_date',
+            type: 'time',
+          },
+          {
+            name: 'part_category',
+            sql: 'dim_part.part_category',
+            type: 'number',
+          },
+          {
+            name: 'part_type',
+            sql: 'dim_part.part_type',
+            type: 'number',
+          },
+          {
+            modifier: {
+              shouldUnnestGroupBy: true,
+            },
+            name: 'owned_by_ids',
+            sql: 'dim_part.owned_by_ids',
+            type: 'string_array',
+          },
+          {
+            modifier: {
+              shouldUnnestGroupBy: true,
+            },
+            name: 'tags_json',
+            sql: "CAST(json_extract_string(dim_part.tags_json, '$[*].tag_id') AS VARCHAR[])",
+            type: 'string_array',
+          },
+          {
+            name: 'delivered_as',
+            sql: 'dim_part.delivered_as',
+            type: 'number',
+          },
+        ],
+        measures: [
+          {
+            name: 'unique_ids_count',
+            sql: 'COUNT(*)',
+            type: 'number',
+          },
+        ],
+        name: 'dim_part',
+        sql: "SELECT count(dim_ticket__id) AS dim_ticket__id_count___function__count ,   dim_part__id,  dim_ticket__channels FROM (SELECT dim_ticket.created_date AS dim_ticket__created_date, 'ticket' AS dim_ticket__work_type, json_extract_string(dim_ticket.stage_json, '$.stage_id') AS dim_ticket__stage_json, array[unnest(dim_ticket.channels)] AS dim_ticket__channels, dim_ticket.id AS dim_ticket__id, * FROM (select * from devrev.dim_ticket) AS dim_ticket LEFT JOIN (SELECT dim_part.id AS dim_part__id, * FROM (select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_feature \n union  \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_product \n union \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_capability \n union \n select id, object_type, created_by_id, created_date, modified_by_id, modified_date, part_category, part_type, owned_by_ids, tags_json, delivered_as from devrev.dim_enhancement\n) AS dim_part) AS dim_part  ON dim_ticket.applies_to_part_id = dim_part.id) AS MEERKAT_GENERATED_TABLE WHERE ((((dim_ticket__created_date >= '2025-07-31T12:30:00.000Z') AND (dim_ticket__created_date <= '2025-10-29T13:29:59.999Z')) AND (dim_ticket__work_type IN ('ticket')) AND (dim_ticket__stage_json IN ('don:core:dvrv-us-1:devo/787:custom_stage/514', 'don:core:dvrv-us-1:devo/787:custom_stage/512', 'don:core:dvrv-us-1:devo/787:custom_stage/501', 'don:core:dvrv-us-1:devo/787:custom_stage/485', 'don:core:dvrv-us-1:devo/787:custom_stage/440', 'don:core:dvrv-us-1:devo/787:custom_stage/25', 'don:core:dvrv-us-1:devo/787:custom_stage/24', 'don:core:dvrv-us-1:devo/787:custom_stage/22', 'don:core:dvrv-us-1:devo/787:custom_stage/21', 'don:core:dvrv-us-1:devo/787:custom_stage/19', 'don:core:dvrv-us-1:devo/787:custom_stage/13', 'don:core:dvrv-us-1:devo/787:custom_stage/10', 'don:core:dvrv-us-1:devo/787:custom_stage/8', 'don:core:dvrv-us-1:devo/787:custom_stage/7', 'don:core:dvrv-us-1:devo/787:custom_stage/6', 'don:core:dvrv-us-1:devo/787:custom_stage/4')))) GROUP BY dim_part__id, dim_ticket__channels",
+      });
+    });
   });
 });

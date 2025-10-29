@@ -171,17 +171,18 @@ export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
   return false;
 };
 
-export const getCombinedTableSchema = async (
+export const getCombinedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ) => {
-  if (tableSchema.length === 1) {
-    return tableSchema[0];
-  }
   const newTableSchema: TableSchema[] = getUsedTableSchema(
     tableSchema,
     cubeQuery
   );
+
+  if (newTableSchema.length === 1) {
+    return newTableSchema[0];
+  }
 
   const tableSchemaSqlMap = newTableSchema.reduce(
     (acc: { [key: string]: string }, schema: TableSchema) => {
@@ -192,6 +193,7 @@ export const getCombinedTableSchema = async (
 
   const directedGraph = createDirectedGraph(newTableSchema, tableSchemaSqlMap);
   const hasLoop = checkLoopInJoinPath(cubeQuery.joinPaths || []);
+
   if (hasLoop) {
     throw new Error(
       `A loop was detected in the joins. ${JSON.stringify(

@@ -1,9 +1,10 @@
+import { traverseMeerkatQueryFilter } from '../filter-params/filter-params-ast';
 import {
-  isJoinNode,
-  MeerkatQueryFilter,
   Member,
   Query,
+  QueryFilter,
   TableSchema,
+  isJoinNode,
 } from '../types/cube-types';
 
 export const getUsedTableSchema = (
@@ -14,40 +15,12 @@ export const getUsedTableSchema = (
     return member.toString().split('.')[0];
   };
 
-  const getTablesFromFilter = (filter: MeerkatQueryFilter): Set<string> => {
-    const tables = new Set<string>();
-    if ('and' in filter) {
-      filter.and.forEach((filtr) => {
-        if ('or' in filtr) {
-          filtr.or.forEach((orFilter) => {
-            const orTables = getTablesFromFilter(orFilter);
-            orTables.forEach((table) => tables.add(table));
-          });
-        } else {
-          tables.add(getTableFromMember(filtr.member));
-        }
-      });
-    } else if ('or' in filter) {
-      filter.or.forEach((filtr) => {
-        const orTables = getTablesFromFilter(filtr);
-        orTables.forEach((table) => tables.add(table));
-      });
-    } else {
-      tables.add(getTableFromMember(filter.member));
-    }
-    return tables;
-  };
-
   // Get all tables mentioned in filters
   const usedTables = new Set<string>();
 
-  // Add tables from filters
-  if (cubeQuery.filters && cubeQuery.filters.length > 0) {
-    cubeQuery.filters.forEach((filter) => {
-      const filterTables = getTablesFromFilter(filter);
-      filterTables.forEach((table) => usedTables.add(table));
-    });
-  }
+  traverseMeerkatQueryFilter(cubeQuery.filters || [], (filter: QueryFilter) => {
+    usedTables.add(getTableFromMember(filter.member));
+  });
 
   // Add tables from measures
   if (cubeQuery.measures && cubeQuery.measures.length > 0) {
