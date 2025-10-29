@@ -313,7 +313,7 @@ describe('getUsedTableSchema', () => {
     ]);
   });
 
-  it('should filter tables based on joinPaths', () => {
+  it('should return all tables when joinPaths are present', () => {
     const query: Query = {
       measures: [],
       joinPaths: [
@@ -324,11 +324,13 @@ describe('getUsedTableSchema', () => {
       ],
     };
     const result = getUsedTableSchema(sampleTableSchema, query);
-    expect(result).toHaveLength(3);
+    expect(result).toHaveLength(5);
     expect(result.map((schema) => schema.name).sort()).toEqual([
       'table1',
       'table2',
       'table3',
+      'table4',
+      'table5',
     ]);
   });
   it('should filter tables based on a combination of measures, dimensions, order, and unique joinPaths', () => {
@@ -351,5 +353,61 @@ describe('getUsedTableSchema', () => {
       'table4',
       'table5',
     ]);
+  });
+
+  it('should return all tables when measures contains wildcard "*"', () => {
+    const query: Query = {
+      measures: ['*'],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(5);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+      'table3',
+      'table4',
+      'table5',
+    ]);
+  });
+
+  it('should filter tables when dimensions contain table-level wildcards', () => {
+    const query: Query = {
+      measures: [],
+      dimensions: ['table1.*', 'table2.*'],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(2);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table2',
+    ]);
+  });
+
+  it('should filter tables when dimensions contain mix of wildcards and specific dimensions', () => {
+    const query: Query = {
+      measures: [],
+      dimensions: ['table1.*', 'table3.dimension3'],
+    };
+    const result = getUsedTableSchema(sampleTableSchema, query);
+    expect(result).toHaveLength(2);
+    expect(result.map((schema) => schema.name).sort()).toEqual([
+      'table1',
+      'table3',
+    ]);
+  });
+
+  it('should return same table schemas when called multiple times with same joinPaths', () => {
+    const query: Query = {
+      measures: [],
+      joinPaths: [
+        [
+          { left: 'table1', right: 'table2', on: 'id' },
+          { left: 'table2', right: 'table3', on: 'id' },
+        ],
+      ],
+    };
+    const result1 = getUsedTableSchema(sampleTableSchema, query);
+
+    expect(result1).toEqual(sampleTableSchema);
   });
 });

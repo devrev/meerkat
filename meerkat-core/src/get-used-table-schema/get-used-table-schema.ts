@@ -1,4 +1,5 @@
 import { traverseMeerkatQueryFilter } from '../filter-params/filter-params-ast';
+import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import {
   Member,
   Query,
@@ -11,8 +12,12 @@ export const getUsedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ): TableSchema[] => {
+  if (cubeQuery.joinPaths?.length) {
+    return tableSchema;
+  }
+
   const getTableFromMember = (member: Member): string => {
-    return member.toString().split('.')[0];
+    return splitIntoDataSourceAndFields(member)[0];
   };
 
   // Get all tables mentioned in filters
@@ -25,7 +30,13 @@ export const getUsedTableSchema = (
   // Add tables from measures
   if (cubeQuery.measures && cubeQuery.measures.length > 0) {
     cubeQuery.measures.forEach((measure) => {
-      usedTables.add(getTableFromMember(measure));
+      if (measure === '*') {
+        tableSchema.forEach((schema) => {
+          usedTables.add(schema.name);
+        });
+      } else {
+        usedTables.add(getTableFromMember(measure));
+      }
     });
   }
 
