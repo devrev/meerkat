@@ -175,6 +175,10 @@ export const getCombinedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ) => {
+  if (tableSchema.length === 1) {
+    return tableSchema[0];
+  }
+
   const newTableSchema: TableSchema[] = getUsedTableSchema(
     tableSchema,
     cubeQuery

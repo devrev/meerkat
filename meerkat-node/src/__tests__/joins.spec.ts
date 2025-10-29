@@ -15,7 +15,7 @@ export const INPUT_CUSTOMERS_DATA = `
 INSERT INTO customers VALUES
 ('1', '3', 'John Doe', 'johndoe@gmail.com', '1234567890'),
 ('2', '2', 'Jane Doe', 'janedoe@gmail.com', '9876543210'),
-('3', '1', 'John Smith', 'johnsmith@gmail.com', '1234567892'); 
+('3', '1', 'John Smith', 'johnsmith@gmail.com', '1234567892');
 `;
 
 export const CUSTOMER_SCHEMA = {
@@ -396,7 +396,7 @@ describe('Joins Tests', () => {
     const parsedOutput = JSON.parse(JSON.stringify(output));
     console.info('parsedOutput', parsedOutput);
     expect(sql).toEqual(
-      'SELECT  orders__order_id FROM (SELECT orders.order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS MEERKAT_GENERATED_TABLE'
+      'SELECT  orders__order_id FROM (SELECT orders.order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders'
     );
     expect(parsedOutput).toHaveLength(11);
   });

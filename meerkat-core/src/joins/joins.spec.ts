@@ -208,7 +208,7 @@ describe('Table schema functions', () => {
       });
     });
 
-    it('should throw error when loop is detected in join paths', async () => {
+    it('should throw error when loop is detected in join paths', () => {
       const tableSchema = [
         {
           name: 'orders',
@@ -233,9 +233,9 @@ describe('Table schema functions', () => {
           ],
         ],
       };
-      await expect(
-        getCombinedTableSchema(tableSchema, cubeQuery)
-      ).rejects.toThrow(/A loop was detected in the joins/);
+      expect(() => getCombinedTableSchema(tableSchema, cubeQuery)).toThrow(
+        /A loop was detected in the joins/
+      );
     });
 
     it('should handle empty measures and dimensions', async () => {
