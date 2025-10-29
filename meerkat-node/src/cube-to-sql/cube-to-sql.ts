@@ -40,10 +40,7 @@ export const cubeQueryToSQL = async ({
     })
   );
 
-  const updatedTableSchema = await getCombinedTableSchema(
-    updatedTableSchemas,
-    query
-  );
+  const updatedTableSchema = getCombinedTableSchema(updatedTableSchemas, query);
 
   const ast = cubeToDuckdbAST(query, updatedTableSchema);
   if (!ast) {
