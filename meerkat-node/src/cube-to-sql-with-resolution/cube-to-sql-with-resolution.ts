@@ -92,7 +92,6 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
     query,
     tableSchemas,
     resolutionConfig,
-    columnProjections,
     contextParams,
   });
 
@@ -131,7 +130,6 @@ export const getUnnestBaseSql = async ({
   query,
   tableSchemas,
   resolutionConfig,
-  columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams): Promise<{
   sql: string;
@@ -310,7 +308,6 @@ export const getResolvedSql = async ({
   // Note: Pass the base table schema (from Phase 1) to generate correct join paths
   const joinPaths = generateResolutionJoinPaths(resolutionConfig, tableSchemas);
 
-  debugger;
   query.dimensions?.push('row_id');
   // Step 4: Generate resolved dimensions using existing helper
   const resolvedDimensions = generateResolvedDimensions(
@@ -360,9 +357,8 @@ export const getResolvedSql = async ({
       ...(query.dimensions || [])
         .filter(
           (dim) =>
-            !getArrayTypeColumns(resolutionConfig).some(
-              (ac) => ac.name === dim
-            ) && dim !== 'row_id'
+            !resolutionConfig.columnConfigs.some((ac) => ac.name === dim) &&
+            dim !== 'row_id'
         )
         .map((dimension) => {
           const dimName = dimension.replace('.', '__');
@@ -373,16 +369,16 @@ export const getResolvedSql = async ({
             alias: dimName,
           };
         }),
-      // Resolved array columns - these use the alias pattern "colname - rescolname"
-      ...getArrayTypeColumns(resolutionConfig).flatMap((arrayColumn) => {
-        return arrayColumn.resolutionColumns.map((resCol) => {
+      // ALL resolved columns (both array and scalar) - these use the alias pattern "colname - rescolname"
+      ...resolutionConfig.columnConfigs.flatMap((columnConfig) => {
+        return columnConfig.resolutionColumns.map((resCol) => {
           // Find the resolution dimension to get its alias
-          const resolutionDimName = `${arrayColumn.name.replace(
+          const resolutionDimName = `${columnConfig.name.replace(
             '.',
             '__'
           )}__${resCol}`;
           const resolutionSchema = resolutionSchemas.find(
-            (s) => s.name === arrayColumn.name.replace('.', '__')
+            (s) => s.name === columnConfig.name.replace('.', '__')
           );
           const resDim = resolutionSchema?.dimensions.find((d) =>
             d.name.includes(resCol)
@@ -514,5 +510,6 @@ export const getAggregatedSql = async ({
     contextParams,
   });
 
-  return aggregatedSql;
+  const rowIdExcludedSql = `select * exclude(__row_id) from (${aggregatedSql})`;
+  return rowIdExcludedSql;
 };

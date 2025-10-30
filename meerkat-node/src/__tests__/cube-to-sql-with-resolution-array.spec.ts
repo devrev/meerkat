@@ -31,7 +31,14 @@ const CREATE_TAGS_LOOKUP_TABLE = `CREATE TABLE tags_lookup (
   id VARCHAR,
   tag_name VARCHAR
 )`;
-
+const CREATE_CREATED_BY_LOOKUP_TABLE = `CREATE TABLE created_by_lookup (
+  id VARCHAR,
+  name VARCHAR
+)`;
+const CREATED_BY_LOOKUP_DATA_QUERY = `INSERT INTO created_by_lookup VALUES
+('user1', 'User 1'),
+('user2', 'User 2'),
+('user3', 'User 3')`;
 const TAGS_LOOKUP_DATA_QUERY = `INSERT INTO tags_lookup VALUES
 ('tag1', 'Tag 1'),
 ('tag2', 'Tag 2'),
@@ -112,6 +119,24 @@ const TAGS_LOOKUP_SCHEMA: TableSchema = {
     },
   ],
 };
+
+const CREATED_BY_LOOKUP_SCHEMA: TableSchema = {
+  name: 'created_by_lookup',
+  sql: 'select * from created_by_lookup',
+  measures: [],
+  dimensions: [
+    {
+      name: 'id',
+      sql: 'id',
+      type: 'string',
+    },
+    {
+      name: 'name',
+      sql: 'name',
+      type: 'string',
+    },
+  ],
+};
 describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
   jest.setTimeout(1000000);
   beforeAll(async () => {
@@ -121,6 +146,9 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
     await duckdbExec(CREATE_RESOLUTION_TABLE);
     await duckdbExec(RESOLUTION_DATA_QUERY);
     await duckdbExec(CREATE_TAGS_LOOKUP_TABLE);
+    await duckdbExec(TAGS_LOOKUP_DATA_QUERY);
+    await duckdbExec(CREATE_CREATED_BY_LOOKUP_TABLE);
+    await duckdbExec(CREATED_BY_LOOKUP_DATA_QUERY);
   });
 
   //   it('Should add row_id and unnest array fields that need resolution', async () => {
@@ -184,7 +212,12 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
   it('Should handle multiple array fields that need unnesting', async () => {
     const query: Query = {
       measures: ['tickets.count'],
-      dimensions: ['tickets.id', 'tickets.owners', 'tickets.tags'],
+      dimensions: [
+        'tickets.id',
+        'tickets.owners',
+        'tickets.tags',
+        'tickets.created_by',
+      ],
     };
 
     const resolutionConfig: ResolutionConfig = {
@@ -203,8 +236,19 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
           joinColumn: 'id',
           resolutionColumns: ['tag_name'],
         },
+        {
+          name: 'tickets.created_by',
+          isArrayType: false,
+          source: 'created_by_lookup',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
       ],
-      tableSchemas: [OWNERS_LOOKUP_SCHEMA, TAGS_LOOKUP_SCHEMA],
+      tableSchemas: [
+        OWNERS_LOOKUP_SCHEMA,
+        TAGS_LOOKUP_SCHEMA,
+        CREATED_BY_LOOKUP_SCHEMA,
+      ],
     };
 
     const sql = await cubeQueryToSQLWithResolutionWithArray({
