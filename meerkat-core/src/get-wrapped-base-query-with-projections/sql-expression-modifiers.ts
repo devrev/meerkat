@@ -14,7 +14,7 @@ export const arrayFieldUnNestModifier = ({
   return `array[unnest(${sqlExpression})]`;
 };
 
-export const arrayUnnestModifier = ({
+export const arrayFlattenModifier = ({
   sqlExpression,
 }: DimensionModifier): string => {
   return `unnest(${sqlExpression})`;
@@ -29,12 +29,11 @@ export const shouldUnnest = ({
   return !!(isArrayType && hasUnNestedGroupBy && query.measures.length > 0);
 };
 
-export const shouldUnnestArray = ({
+export const shouldFlattenArray = ({
   dimension,
-  query,
 }: DimensionModifier): boolean => {
   const isArrayType = isArrayTypeMember(dimension.type);
-  const hasUnNestedGroupBy = dimension.modifier?.shouldUnnestArray;
+  const hasUnNestedGroupBy = dimension.modifier?.shouldFlattenArray;
   return !!(isArrayType && hasUnNestedGroupBy);
 };
 
@@ -51,9 +50,9 @@ export const MODIFIERS: Modifier[] = [
     modifier: arrayFieldUnNestModifier,
   },
   {
-    name: 'shouldUnnestArray',
-    matcher: shouldUnnestArray,
-    modifier: arrayUnnestModifier,
+    name: 'shouldFlattenArray',
+    matcher: shouldFlattenArray,
+    modifier: arrayFlattenModifier,
   },
 ];
 

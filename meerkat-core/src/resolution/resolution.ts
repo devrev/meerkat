@@ -20,9 +20,6 @@ const constructBaseDimension = (
   schema: Measure | Dimension,
   resolutionColumnConfigs: ResolutionColumnConfig[]
 ) => {
-  const shouldPerformUnnest = resolutionColumnConfigs.some(
-    (config) => config.name == name
-  );
   const dimension: Dimension = {
     name: memberKeyToSafeKey(name),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
@@ -38,9 +35,12 @@ const constructBaseDimension = (
       aliasContext: { isTableSchemaAlias: true },
     }),
   };
-  if (shouldPerformUnnest) {
+  const shouldFlattenField = resolutionColumnConfigs.some(
+    (config) => config.name == name && config.isArrayType
+  );
+  if (shouldFlattenField) {
     dimension.modifier = {
-      shouldUnnestArray: true,
+      shouldFlattenArray: true,
     };
   }
   return dimension;
