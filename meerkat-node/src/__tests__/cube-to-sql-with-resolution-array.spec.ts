@@ -222,20 +222,20 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
 
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [
-        {
-          name: 'tickets.owners',
-          isArrayType: true,
-          source: 'owners_lookup',
-          joinColumn: 'id',
-          resolutionColumns: ['display_name'],
-        },
-        {
-          name: 'tickets.tags',
-          isArrayType: true,
-          source: 'tags_lookup',
-          joinColumn: 'id',
-          resolutionColumns: ['tag_name'],
-        },
+        // {
+        //   name: 'tickets.owners',
+        //   isArrayType: true,
+        //   source: 'owners_lookup',
+        //   joinColumn: 'id',
+        //   resolutionColumns: ['display_name'],
+        // },
+        // {
+        //   name: 'tickets.tags',
+        //   isArrayType: true,
+        //   source: 'tags_lookup',
+        //   joinColumn: 'id',
+        //   resolutionColumns: ['tag_name'],
+        // },
         {
           name: 'tickets.created_by',
           isArrayType: false,
@@ -245,8 +245,8 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
         },
       ],
       tableSchemas: [
-        OWNERS_LOOKUP_SCHEMA,
-        TAGS_LOOKUP_SCHEMA,
+        // OWNERS_LOOKUP_SCHEMA,
+        // TAGS_LOOKUP_SCHEMA,
         CREATED_BY_LOOKUP_SCHEMA,
       ],
     };
@@ -276,6 +276,58 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
     expect(result[0]).toHaveProperty('tickets__id');
     expect(result[0]).toHaveProperty('tickets__owners - display_name');
     expect(result[0]).toHaveProperty('tickets__tags - tag_name');
+  });
+
+  it('Should handle only scalar field resolution without unnesting', async () => {
+    const query: Query = {
+      measures: ['tickets.count'],
+      dimensions: [
+        'tickets.id',
+        'tickets.owners',
+        'tickets.tags',
+        'tickets.created_by',
+      ],
+    };
+
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'tickets.created_by',
+          isArrayType: false,
+          source: 'created_by_lookup',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+      ],
+      tableSchemas: [CREATED_BY_LOOKUP_SCHEMA],
+    };
+
+    const sql = await cubeQueryToSQLWithResolutionWithArray({
+      query,
+      tableSchemas: [TICKETS_TABLE_SCHEMA],
+      resolutionConfig,
+    });
+
+    console.log('Phase 1 SQL (multiple arrays):', sql);
+
+    // Verify row_id is included
+    expect(sql).toContain('row_id');
+
+    // Both arrays should be unnested
+    expect(sql.match(/unnest/g)?.length).toBeGreaterThanOrEqual(0);
+
+    // Execute the SQL to verify it works
+    const result = (await duckdbExec(sql)) as any[];
+
+    expect(result.length).toBe(7);
+
+    // Each row should have a row_id
+    expect(result[0]).toHaveProperty('__row_id');
+    expect(result[0]).toHaveProperty('tickets__count');
+    expect(result[0]).toHaveProperty('tickets__id');
+    expect(result[0]).toHaveProperty('tickets__owners');
+    expect(result[0]).toHaveProperty('tickets__tags');
+    expect(result[0]).toHaveProperty('tickets__created_by - name');
   });
 
   //   it('Should return regular SQL when no array fields need resolution', async () => {

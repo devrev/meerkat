@@ -95,13 +95,13 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
     contextParams,
   });
 
-  // Get array columns for Phase 2
-  const arrayColumns = getArrayTypeColumns(resolutionConfig);
+  // // Get array columns for Phase 2
+  // const arrayColumns = getArrayTypeColumns(resolutionConfig);
 
-  if (arrayColumns.length === 0) {
-    // No resolution needed
-    return unnestBaseSql;
-  }
+  // if (arrayColumns.length === 0) {
+  //   // No resolution needed
+  //   return unnestBaseSql;
+  // }
 
   // // // Phase 2: Apply resolution (join with lookup tables)
   const { sql: resolvedSql, resolvedTableSchema } = await getResolvedSql({
@@ -135,37 +135,6 @@ export const getUnnestBaseSql = async ({
   sql: string;
   baseTableSchema: TableSchema;
 }> => {
-  if (resolutionConfig.columnConfigs.length === 0) {
-    // If no resolution is needed, return the base SQL.
-    const baseSql = await cubeQueryToSQL({
-      query,
-      tableSchemas,
-      contextParams,
-    });
-    // Return a dummy schema since we won't use it
-    return {
-      sql: baseSql,
-      baseTableSchema: { name: '', sql: '', measures: [], dimensions: [] },
-    };
-  }
-
-  // Phase 1: Setup and Unnest
-  const arrayColumns = getArrayTypeColumns(resolutionConfig);
-
-  if (arrayColumns.length === 0) {
-    // No array columns to process, return base SQL
-    const baseSql = await cubeQueryToSQL({
-      query,
-      tableSchemas,
-      contextParams,
-    });
-    // Return a dummy schema since we won't use it
-    return {
-      sql: baseSql,
-      baseTableSchema: { name: '', sql: '', measures: [], dimensions: [] },
-    };
-  }
-
   // Step 1: Add row_id to the first table schema and generate base SQL (without unnesting)
   const modifiedTableSchemasWithRowId = tableSchemas.map((schema, index) => {
     // Add row_id to the first table only
