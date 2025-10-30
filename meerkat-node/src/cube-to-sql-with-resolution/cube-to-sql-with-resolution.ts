@@ -271,10 +271,10 @@ export const getResolvedSql = async ({
 
   query.dimensions?.push('row_id');
   // Step 4: Generate resolved dimensions using existing helper
+  // should not be using column projections here, it doesn't have row_id.
   const resolvedDimensions = generateResolvedDimensions(
     query,
-    resolutionConfig,
-    columnProjections
+    resolutionConfig
   );
 
   // Step 5: Create query and generate SQL
@@ -290,72 +290,46 @@ export const getResolvedSql = async ({
     contextParams,
   });
 
-  // Create a simple schema describing Phase 2's output columns
-  // cubeQueryToSQL outputs columns using their alias field, not table-prefixed names
+  // Create a schema describing Phase 2's output by combining:
+  // 1. Dimensions from updatedBaseTableSchema that were actually queried
+  // 2. Dimensions from resolutionSchemas (resolved columns)
+  // The key insight: cubeQueryToSQL outputs columns using their alias field
+
+  // Build list of dimension names that should be in output
+  const baseDimensionNames = new Set([
+    'row_id',
+    ...query.measures.map((m) => m.replace('.', '__')),
+    ...(query.dimensions || [])
+      .filter(
+        (d) => !resolutionConfig.columnConfigs.some((ac) => ac.name === d)
+      )
+      .map((d) => d.replace('.', '__')),
+  ]);
+
+  debugger;
   const resolvedTableSchema: TableSchema = {
     name: '__resolved_query',
     sql: resolvedSql,
     measures: [],
     dimensions: [
-      // Row ID - comes from baseTableSchema with alias '__row_id'
-      {
-        name: 'row_id',
-        sql: '__resolved_query."__row_id"',
-        type: 'number',
-        alias: '__row_id',
-      },
-      // Original measures from base query - use their aliases
-      ...query.measures.map((measure) => {
-        const measureName = measure.replace('.', '__');
-        return {
-          name: measureName,
-          sql: `__resolved_query."${measureName}"`,
-          type: 'number' as const,
-          alias: measureName,
-        };
-      }),
-      // Non-array dimensions from base query - use their aliases
-      ...(query.dimensions || [])
-        .filter(
-          (dim) =>
-            !resolutionConfig.columnConfigs.some((ac) => ac.name === dim) &&
-            dim !== 'row_id'
-        )
-        .map((dimension) => {
-          const dimName = dimension.replace('.', '__');
-          return {
-            name: dimName,
-            sql: `__resolved_query."${dimName}"`,
-            type: 'string' as const,
-            alias: dimName,
-          };
-        }),
-      // ALL resolved columns (both array and scalar) - these use the alias pattern "colname - rescolname"
-      ...resolutionConfig.columnConfigs.flatMap((columnConfig) => {
-        return columnConfig.resolutionColumns.map((resCol) => {
-          // Find the resolution dimension to get its alias
-          const resolutionDimName = `${columnConfig.name.replace(
-            '.',
-            '__'
-          )}__${resCol}`;
-          const resolutionSchema = resolutionSchemas.find(
-            (s) => s.name === columnConfig.name.replace('.', '__')
-          );
-          const resDim = resolutionSchema?.dimensions.find((d) =>
-            d.name.includes(resCol)
-          );
-
-          // The alias from the resolution schema already has the full format
-          const aliasName = resDim?.alias || resolutionDimName;
-
-          return {
-            name: resolutionDimName,
-            sql: `__resolved_query."${aliasName}"`,
-            type: 'string' as const,
-            alias: aliasName,
-          };
-        });
-      }),
+      // Dimensions from base table that were queried (row_id, measures, non-resolved dimensions)
+      ...updatedBaseTableSchema.dimensions
+        .filter((dim) => baseDimensionNames.has(dim.name))
+        .map((dim) => ({
+          name: dim.name,
+          sql: `__resolved_query."${dim.alias || dim.name}"`,
+          type: dim.type,
+          alias: dim.alias,
+        })),
+      // All dimensions from resolution schemas (resolved columns from JOINs)
+      ...resolutionSchemas.flatMap((resSchema) =>
+        resSchema.dimensions.map((dim) => ({
+          name: dim.name,
+          sql: `__resolved_query."${dim.alias || dim.name}"`,
+          type: dim.type,
+          alias: dim.alias,
+        }))
+      ),
     ],
   };
 

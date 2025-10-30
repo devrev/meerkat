@@ -57,21 +57,25 @@ const TICKETS_TABLE_SCHEMA: TableSchema = {
   ],
   dimensions: [
     {
+      alias: 'ID',
       name: 'id',
       sql: 'id',
       type: 'number',
     },
     {
+      alias: 'Created By',
       name: 'created_by',
       sql: 'created_by',
       type: 'string',
     },
     {
+      alias: 'Owners',
       name: 'owners',
       sql: 'owners',
       type: 'string_array',
     },
     {
+      alias: 'Tags',
       name: 'tags',
       sql: 'tags',
       type: 'string_array',
@@ -85,16 +89,19 @@ const OWNERS_LOOKUP_SCHEMA: TableSchema = {
   measures: [],
   dimensions: [
     {
+      alias: 'ID',
       name: 'id',
       sql: 'id',
       type: 'string',
     },
     {
+      alias: 'Display Name',
       name: 'display_name',
       sql: 'display_name',
       type: 'string',
     },
     {
+      alias: 'Email',
       name: 'email',
       sql: 'email',
       type: 'string',
@@ -108,11 +115,13 @@ const TAGS_LOOKUP_SCHEMA: TableSchema = {
   measures: [],
   dimensions: [
     {
+      alias: 'ID',
       name: 'id',
       sql: 'id',
       type: 'string',
     },
     {
+      alias: 'Tag Name',
       name: 'tag_name',
       sql: 'tag_name',
       type: 'string',
@@ -126,11 +135,13 @@ const CREATED_BY_LOOKUP_SCHEMA: TableSchema = {
   measures: [],
   dimensions: [
     {
+      alias: 'ID',
       name: 'id',
       sql: 'id',
       type: 'string',
     },
     {
+      alias: 'Name',
       name: 'name',
       sql: 'name',
       type: 'string',
