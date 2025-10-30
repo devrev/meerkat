@@ -4,6 +4,8 @@ export interface ResolutionColumnConfig {
   // Name of the column that needs resolution.
   // Should match a measure or dimension in the query.
   name: string;
+  // is array type
+  isArrayType: boolean;
   // Name of the data source to use for resolution.
   source: string;
   // Name of the column in the data source to join on.

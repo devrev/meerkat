@@ -27,6 +27,7 @@ export type Dimension = {
   type: DimensionType;
   modifier?: {
     shouldUnnestGroupBy?: boolean;
+    shouldFlattenArray?: boolean;
   };
   alias?: string;
 };
