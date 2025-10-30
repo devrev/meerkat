@@ -95,14 +95,6 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
     contextParams,
   });
 
-  // // Get array columns for Phase 2
-  // const arrayColumns = getArrayTypeColumns(resolutionConfig);
-
-  // if (arrayColumns.length === 0) {
-  //   // No resolution needed
-  //   return unnestBaseSql;
-  // }
-
   // // // Phase 2: Apply resolution (join with lookup tables)
   const { sql: resolvedSql, resolvedTableSchema } = await getResolvedSql({
     unnestedSql: unnestBaseSql,
