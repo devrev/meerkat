@@ -1,5 +1,5 @@
 import { Query, ResolutionConfig, TableSchema } from '@devrev/meerkat-core';
-import { cubeQueryToSQLWithResolutionWithArray } from '../cube-to-sql-with-resolution/cube-to-sql-with-resolution';
+import { cubeQueryToSQLWithResolution } from '../cube-to-sql-with-resolution/cube-to-sql-with-resolution';
 import { duckdbExec } from '../duckdb-exec';
 
 const CREATE_TEST_TABLE = `CREATE TABLE tickets (
@@ -262,10 +262,18 @@ describe('cubeQueryToSQLWithResolutionWithArray - Phase 1: Unnest', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolutionWithArray({
+    const columnProjections = [
+      'tickets.id',
+      'tickets.owners',
+      'tickets.tags',
+      'tickets.created_by',
+      'tickets.count',
+    ];
+    const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
+      columnProjections,
     });
 
     console.log('Phase 1 SQL (multiple arrays):', sql);

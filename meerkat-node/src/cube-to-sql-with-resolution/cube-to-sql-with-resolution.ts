@@ -39,6 +39,26 @@ export const cubeQueryToSQLWithResolution = async ({
     // If no resolution is needed, return the base SQL.
     return baseSql;
   }
+  if (resolutionConfig.columnConfigs.some((config) => config.isArrayType)) {
+    query.dimensions?.push(`${tableSchemas[0].name}.row_id`);
+    tableSchemas[0].dimensions.push({
+      name: 'row_id',
+      sql: 'row_number() OVER ()',
+      type: 'number' as const,
+      alias: '__row_id',
+    } as Dimension);
+    columnProjections = [
+      `${tableSchemas[0].name}.row_id`,
+      ...(columnProjections || []),
+    ];
+    return cubeQueryToSQLWithResolutionWithArray({
+      query,
+      tableSchemas,
+      resolutionConfig,
+      columnProjections,
+      contextParams,
+    });
+  }
 
   // Create a table schema for the base query.
   const baseTable: TableSchema = createBaseTableSchema(
@@ -87,7 +107,7 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
   columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams) => {
-  // Phase 1: Generate SQL with row_id and unnested arrays
+  // Generate SQL with row_id and unnested arrays
   const { sql: unnestBaseSql, baseTableSchema } = await getUnnestBaseSql({
     query,
     tableSchemas,
@@ -95,7 +115,7 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
     contextParams,
   });
 
-  // // // Phase 2: Apply resolution (join with lookup tables)
+  // Apply resolution (join with lookup tables)
   const { sql: resolvedSql, resolvedTableSchema } = await getResolvedSql({
     unnestedSql: unnestBaseSql,
     baseTableSchema,
@@ -127,54 +147,15 @@ export const getUnnestBaseSql = async ({
   sql: string;
   baseTableSchema: TableSchema;
 }> => {
-  // Step 1: Add row_id to the first table schema and generate base SQL (without unnesting)
-  const modifiedTableSchemasWithRowId = tableSchemas.map((schema, index) => {
-    // Add row_id to the first table only
-    if (index !== 0) {
-      return schema;
-    }
-
-    // Add row_id dimension (no unnest modifier yet)
-    // TODO: Will this cause a problem of adding row_id to the first schema ?
-    const newDimensions = [
-      {
-        name: 'row_id',
-        sql: 'row_number() OVER ()',
-        type: 'number' as const,
-        alias: '__row_id',
-      },
-      ...schema.dimensions,
-    ];
-
-    return {
-      ...schema,
-      dimensions: newDimensions,
-    };
-  });
-
-  // Use the first table for row_id reference
-  const firstTable = tableSchemas[0];
-
-  const queryWithRowId: Query = {
-    measures: query.measures,
-    dimensions: [`${firstTable.name}.row_id`, ...(query.dimensions || [])],
-    joinPaths: query.joinPaths,
-    filters: query.filters,
-    order: query.order,
-    limit: query.limit,
-    offset: query.offset,
-  };
-
   // Generate base SQL with row_id
   const baseSqlWithRowId = await cubeQueryToSQL({
-    query: queryWithRowId,
-    tableSchemas: modifiedTableSchemasWithRowId,
+    query: query,
+    tableSchemas: tableSchemas,
     contextParams,
   });
 
-  // Step 2: Create a new table schema from the base SQL with row_id
   // This will be used to apply unnesting
-  const baseTableName = '__base_query'; // Use standard name to work with helpers
+  const baseTableName = '__base_query';
 
   const baseTableSchema: TableSchema = createBaseTableSchema(
     baseSqlWithRowId,
@@ -184,18 +165,10 @@ export const getUnnestBaseSql = async ({
     query.dimensions
   );
 
-  baseTableSchema.dimensions.push({
-    name: 'row_id',
-    sql: '__row_id',
-    type: 'number',
-    alias: '__row_id',
-  } as Dimension);
-
-  // Step 3: Create query with unnest modifiers applied
+  // Create query with unnest modifiers applied
   const unnestQuery: Query = {
     measures: [],
     dimensions: [
-      `${baseTableName}.row_id`,
       ...query.measures.map((m) => `${baseTableName}.${m.replace('.', '__')}`),
       ...(query.dimensions || []).map(
         (d) => `${baseTableName}.${d.replace('.', '__')}`
@@ -249,35 +222,29 @@ export const getResolvedSql = async ({
   sql: string;
   resolvedTableSchema: TableSchema;
 }> => {
-  // Step 1: Use the base table schema from Phase 1 as source of truth
   // Update the SQL to point to the unnested SQL
   const updatedBaseTableSchema: TableSchema = {
     ...baseTableSchema,
     sql: unnestedSql,
   };
 
-  debugger;
-  // Step 2: Generate resolution schemas for array fields only
-  // Use the existing generateResolutionSchemas helper
-
+  // Generate resolution schemas for array fields only
   const resolutionSchemas = generateResolutionSchemas(
     resolutionConfig,
     tableSchemas
   );
 
-  // Step 3: Generate join paths using existing helper
-  // Note: Pass the base table schema (from Phase 1) to generate correct join paths
+  // Generate join paths using existing helper
   const joinPaths = generateResolutionJoinPaths(resolutionConfig, tableSchemas);
 
-  query.dimensions?.push('row_id');
-  // Step 4: Generate resolved dimensions using existing helper
-  // should not be using column projections here, it doesn't have row_id.
+  // Generate resolved dimensions
   const resolvedDimensions = generateResolvedDimensions(
     query,
-    resolutionConfig
+    resolutionConfig,
+    columnProjections
   );
 
-  // Step 5: Create query and generate SQL
+  // Create query and generate SQL
   const resolutionQuery: Query = {
     measures: [],
     dimensions: resolvedDimensions,
@@ -290,14 +257,8 @@ export const getResolvedSql = async ({
     contextParams,
   });
 
-  // Create a schema describing Phase 2's output by combining:
-  // 1. Dimensions from updatedBaseTableSchema that were actually queried
-  // 2. Dimensions from resolutionSchemas (resolved columns)
-  // The key insight: cubeQueryToSQL outputs columns using their alias field
-
   // Build list of dimension names that should be in output
   const baseDimensionNames = new Set([
-    'row_id',
     ...query.measures.map((m) => m.replace('.', '__')),
     ...(query.dimensions || [])
       .filter(
@@ -306,7 +267,6 @@ export const getResolvedSql = async ({
       .map((d) => d.replace('.', '__')),
   ]);
 
-  debugger;
   const resolvedTableSchema: TableSchema = {
     name: '__resolved_query',
     sql: resolvedSql,
