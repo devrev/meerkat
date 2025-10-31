@@ -35,14 +35,14 @@ const constructBaseDimension = (
       aliasContext: { isTableSchemaAlias: true },
     }),
   };
-  const shouldFlattenField = resolutionColumnConfigs.some(
-    (config) => config.name == name && config.isArrayType
-  );
-  if (shouldFlattenField) {
-    dimension.modifier = {
-      shouldFlattenArray: true,
-    };
-  }
+  // const shouldFlattenField = resolutionColumnConfigs.some(
+  //   (config) => config.name == name && config.isArrayType
+  // );
+  // if (shouldFlattenField) {
+  //   dimension.modifier = {
+  //     shouldFlattenArray: true,
+  //   };
+  // }
   return dimension;
 };
 
@@ -147,6 +147,7 @@ export const generateResolutionSchemas = (
 };
 
 export const generateResolvedDimensions = (
+  baseDataSourceName: string,
   query: Query,
   config: ResolutionConfig,
   columnProjections?: string[]
@@ -165,10 +166,7 @@ export const generateResolvedDimensions = (
 
       if (!columnConfig) {
         return [
-          getNamespacedKey(
-            BASE_DATA_SOURCE_NAME,
-            memberKeyToSafeKey(dimension)
-          ),
+          getNamespacedKey(baseDataSourceName, memberKeyToSafeKey(dimension)),
         ];
       } else {
         return columnConfig.resolutionColumns.map((col) =>
@@ -184,12 +182,13 @@ export const generateResolvedDimensions = (
 };
 
 export const generateResolutionJoinPaths = (
+  baseDataSourceName: string,
   resolutionConfig: ResolutionConfig,
   baseTableSchemas: TableSchema[]
 ): JoinPath[] => {
   return resolutionConfig.columnConfigs.map((config) => [
     {
-      left: BASE_DATA_SOURCE_NAME,
+      left: baseDataSourceName,
       right: memberKeyToSafeKey(config.name),
       on: constructAlias({
         name: config.name,

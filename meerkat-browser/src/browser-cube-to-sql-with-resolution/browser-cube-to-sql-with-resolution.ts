@@ -1,4 +1,5 @@
 import {
+  BASE_DATA_SOURCE_NAME,
   ContextParams,
   createBaseTableSchema,
   Dimension,
@@ -72,11 +73,16 @@ export const cubeQueryToSQLWithResolution = async ({
     query: {
       measures: [],
       dimensions: generateResolvedDimensions(
+        BASE_DATA_SOURCE_NAME,
         query,
         resolutionConfig,
         columnProjections
       ),
-      joinPaths: generateResolutionJoinPaths(resolutionConfig, tableSchemas),
+      joinPaths: generateResolutionJoinPaths(
+        BASE_DATA_SOURCE_NAME,
+        resolutionConfig,
+        tableSchemas
+      ),
     },
     tableSchemas: [baseTable, ...resolutionSchemas],
   };
@@ -281,12 +287,17 @@ export const getResolvedSql = async ({
 
   // Step 3: Generate join paths using existing helper
   // Note: Pass the base table schema (from Phase 1) to generate correct join paths
-  const joinPaths = generateResolutionJoinPaths(resolutionConfig, tableSchemas);
+  const joinPaths = generateResolutionJoinPaths(
+    BASE_DATA_SOURCE_NAME,
+    resolutionConfig,
+    tableSchemas
+  );
 
   query.dimensions?.push('row_id');
   // Step 4: Generate resolved dimensions using existing helper
   // should not be using column projections here, it doesn't have row_id.
   const resolvedDimensions = generateResolvedDimensions(
+    BASE_DATA_SOURCE_NAME,
     query,
     resolutionConfig
   );
