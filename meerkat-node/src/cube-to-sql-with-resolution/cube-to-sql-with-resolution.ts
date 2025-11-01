@@ -185,18 +185,11 @@ export const getUnnestBaseSql = async ({
   sql: string;
   baseTableSchema: TableSchema;
 }> => {
-  const BASE_TABLE_NAME = '__base_query';
-
-  debugger;
-  const emptyResolutionConfig: ResolutionConfig = {
-    columnConfigs: [],
-    tableSchemas: [],
-  };
   // Step 1: Create schema for the base SQL
   const baseTableSchema: TableSchema = createBaseTableSchema(
     baseSql,
     tableSchemas,
-    emptyResolutionConfig,
+    resolutionConfig,
     measures,
     dimensions
   );
@@ -222,24 +215,21 @@ export const getUnnestBaseSql = async ({
     dimensions: [
       ...baseTableSchema.dimensions,
       {
-        name: 'row_id',
+        name: memberKeyToSafeKey(`${tableSchemas[0].name}.row_id`),
         sql: 'row_number() OVER ()',
         type: 'number',
         alias: '__row_id',
       } as Dimension,
     ],
+    joins: baseTableSchema.joins,
   };
 
   // Query that projects all original columns plus row_id
   const queryWithRowId: Query = {
     measures: [],
     dimensions: [
-      ...dimensions.map((d) =>
-        getNamespacedKey(BASE_TABLE_NAME, memberKeyToSafeKey(d))
-      ),
-      getNamespacedKey(BASE_TABLE_NAME, 'row_id'),
-      ...measures.map((m) =>
-        getNamespacedKey(BASE_TABLE_NAME, memberKeyToSafeKey(m))
+      ...schemaWithRowId.dimensions.map((d) =>
+        getNamespacedKey(schemaWithRowId.name, d.name)
       ),
     ],
   };
@@ -264,7 +254,40 @@ export const getUnnestBaseSql = async ({
       alias: d.alias,
     })),
     measures: [],
+    joins: schemaWithRowId.joins,
   };
+  for (const join of unnestedBaseTableSchema.joins || []) {
+    const leftJoin = join.sql.split('=')[0];
+    const namespace = leftJoin.split('.')[0];
+    const name = leftJoin.split('.')[1];
+    const toFind = `${namespace}.${name}`.trim();
+    const dimensionToJoinOn = schemaWithRowId.dimensions.filter(
+      (d) => d.sql.trim() === toFind
+    );
+    if (dimensionToJoinOn.length === 0) {
+      throw new Error(`Dimension not found: ${namespace}.${name}`);
+    }
+    if (dimensionToJoinOn.length > 1) {
+      throw new Error(`Multiple dimensions found: ${namespace}.${name}`);
+    }
+    const rightJoin = join.sql.split('=')[1];
+    const rightJoinNamespace = rightJoin.split('.')[0].trim();
+    const rightJoinField = rightJoin.split('.')[1].trim();
+    join.sql = join.sql.replace(
+      leftJoin,
+      `${unnestedBaseTableSchema.name}.${
+        dimensionToJoinOn[0].alias || dimensionToJoinOn[0].name
+      }`
+    );
+    // TODO: Confirm if name also needs "" like this.
+    join.sql = `${unnestedBaseTableSchema.name}.${
+      dimensionToJoinOn[0].alias
+        ? `"${dimensionToJoinOn[0].alias}"`
+        : dimensionToJoinOn[0].name
+    }=${memberKeyToSafeKey(
+      getNamespacedKey(unnestedBaseTableSchema.name, rightJoinNamespace)
+    )}.${rightJoinField}`;
+  }
   return {
     sql: unnestedSql,
     baseTableSchema: unnestedBaseTableSchema,
@@ -305,14 +328,18 @@ export const getResolvedSql = async ({
   // Update the SQL to point to the unnested SQL
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
+  for (const columnConfig of resolutionConfig.columnConfigs) {
+    columnConfig.name = getNamespacedKey(
+      updatedBaseTableSchema.name,
+      memberKeyToSafeKey(columnConfig.name)
+    );
+    // columnConfig.name = memberKeyToSafeKey(columnConfig.name);
+  }
   // Generate resolution schemas for array fields
   const resolutionSchemas = generateResolutionSchemas(resolutionConfig, [
     updatedBaseTableSchema,
   ]);
 
-  for (const columnConfig of resolutionConfig.columnConfigs) {
-    columnConfig.name = memberKeyToSafeKey(columnConfig.name);
-  }
   // Generate join paths using existing helper
   const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
@@ -322,11 +349,13 @@ export const getResolvedSql = async ({
 
   const tempQuery: Query = {
     measures: [],
-    dimensions: baseTableSchema.dimensions.map((d) => d.name),
+    dimensions: baseTableSchema.dimensions.map((d) =>
+      getNamespacedKey(updatedBaseTableSchema.name, d.name)
+    ),
   };
 
   const updatedColumnProjections = columnProjections?.map((cp) =>
-    memberKeyToSafeKey(cp)
+    getNamespacedKey(updatedBaseTableSchema.name, memberKeyToSafeKey(cp))
   );
   // Generate resolved dimensions using columnProjections
   const resolvedDimensions = generateResolvedDimensions(
@@ -334,14 +363,6 @@ export const getResolvedSql = async ({
     tempQuery,
     resolutionConfig,
     updatedColumnProjections
-  );
-
-  const reconstructingBaseSchema: TableSchema = createBaseTableSchema(
-    unnestedSql,
-    [baseTableSchema],
-    resolutionConfig,
-    [],
-    resolvedDimensions
   );
   // Create query and generate SQL
   const resolutionQuery: Query = {
@@ -363,7 +384,8 @@ export const getResolvedSql = async ({
       .filter((dim) => {
         // Exclude columns that need resolution (they'll be replaced by resolved columns)
         return !resolutionConfig.columnConfigs.some(
-          (ac) => memberKeyToSafeKey(ac.name) === dim.name
+          (ac) =>
+            ac.name === getNamespacedKey(updatedBaseTableSchema.name, dim.name)
         );
       })
       .map((dim) => dim.name)

@@ -165,6 +165,19 @@ export const generateResolvedDimensions = (
       );
 
       if (!columnConfig) {
+        // TODO: See if this can be optimized
+        // In a first level join right now, we are just passing the dimension without namespacing it.
+        // But in a resolution level, we are already adding __unnest_query as the base name and using in
+        // other places like join paths as it depends on it to work.
+        // For generating join paths, we expect the table name to be exactly the name of memberToSafeKey(namespace, joinDimensionName)
+        // Hence, at second level, we are namespacing it everywhere, and we need this condition.
+        if (dimension.includes('.')) {
+          return [dimension];
+        } else {
+          return [
+            getNamespacedKey(baseDataSourceName, memberKeyToSafeKey(dimension)),
+          ];
+        }
         return [
           getNamespacedKey(baseDataSourceName, memberKeyToSafeKey(dimension)),
         ];
