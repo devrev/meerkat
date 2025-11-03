@@ -56,7 +56,6 @@ export function generateSqlQuery(
 
       // If visitedFrom is undefined, this is the first visit to the node
       visitedNodes.set(currentEdge.right, currentEdge);
-      debugger;
 
       query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
         currentEdge.right
@@ -73,7 +72,6 @@ export const createDirectedGraph = (
   tableSchema: TableSchema[],
   tableSchemaSqlMap: { [key: string]: string }
 ) => {
-  debugger;
   const directedGraph: {
     [key: string]: { [key: string]: { [key: string]: string } };
   } = {};

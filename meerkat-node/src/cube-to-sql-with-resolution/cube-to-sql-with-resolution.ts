@@ -5,9 +5,7 @@ import {
   createWrapperTableSchema,
   Dimension,
   generateResolutionJoinPaths,
-  generateResolutionJoinPathsFromBaseTable,
   generateResolutionSchemas,
-  generateResolutionSchemasFromBaseTable,
   generateResolvedDimensions,
   getArrayTypeResolutionColumnConfigs,
   getNamespacedKey,
@@ -15,10 +13,10 @@ import {
   memberKeyToSafeKey,
   Query,
   ResolutionConfig,
+  ROW_ID_DIMENSION_NAME,
   TableSchema,
   updateArrayFlattenModifierUsingResolutionConfig,
 } from '@devrev/meerkat-core';
-import { ROW_ID_DIMENSION_NAME } from 'meerkat-core/src/member-formatters/constants';
 import {
   cubeQueryToSQL,
   CubeQueryToSQLParams,
@@ -52,7 +50,6 @@ export const cubeQueryToSQLWithResolution = async ({
 
   // Step 2: Check if array-type resolution is needed
   if (resolutionConfig.columnConfigs.some((config) => config.isArrayType)) {
-    debugger;
     // Delegate to array handler, passing baseSql instead of query
     return cubeQueryToSQLWithResolutionWithArray({
       baseSql,
@@ -76,7 +73,7 @@ export const cubeQueryToSQLWithResolution = async ({
 
   const resolutionSchemas: TableSchema[] = generateResolutionSchemas(
     resolutionConfig,
-    tableSchemas
+    [baseTable]
   );
 
   const resolveParams: CubeQueryToSQLParams = {
@@ -91,7 +88,7 @@ export const cubeQueryToSQLWithResolution = async ({
       joinPaths: generateResolutionJoinPaths(
         BASE_DATA_SOURCE_NAME,
         resolutionConfig,
-        tableSchemas
+        [baseTable]
       ),
     },
     tableSchemas: [baseTable, ...resolutionSchemas],
@@ -130,10 +127,10 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
   );
 
   baseSchema.dimensions.push({
-    name: 'row_id',
+    name: ROW_ID_DIMENSION_NAME,
     sql: 'row_number() OVER ()',
     type: 'number',
-    alias: '__row_id',
+    alias: ROW_ID_DIMENSION_NAME,
   } as Dimension);
   columnProjections?.push(ROW_ID_DIMENSION_NAME);
 
@@ -233,15 +230,14 @@ export const getResolvedSql = async ({
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
   // Generate resolution schemas for array fields
-  const resolutionSchemas = generateResolutionSchemasFromBaseTable(
-    resolutionConfig,
-    updatedBaseTableSchema
-  );
+  const resolutionSchemas = generateResolutionSchemas(resolutionConfig, [
+    updatedBaseTableSchema,
+  ]);
 
-  const joinPaths = generateResolutionJoinPathsFromBaseTable(
+  const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
     resolutionConfig,
-    updatedBaseTableSchema
+    [updatedBaseTableSchema]
   );
 
   const tempQuery: Query = {
@@ -396,6 +392,6 @@ export const getAggregatedSql = async ({
     contextParams,
   });
 
-  const rowIdExcludedSql = `select * exclude(__row_id) from (${aggregatedSql})`;
+  const rowIdExcludedSql = `select * exclude(${ROW_ID_DIMENSION_NAME}) from (${aggregatedSql})`;
   return rowIdExcludedSql;
 };

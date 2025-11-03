@@ -2,13 +2,20 @@ import {
   BASE_DATA_SOURCE_NAME,
   ContextParams,
   createBaseTableSchema,
+  createWrapperTableSchema,
   Dimension,
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
+  getArrayTypeResolutionColumnConfigs,
+  getNamespacedKey,
+  Measure,
+  memberKeyToSafeKey,
   Query,
   ResolutionConfig,
+  ROW_ID_DIMENSION_NAME,
   TableSchema,
+  updateArrayFlattenModifierUsingResolutionConfig,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import {
@@ -42,16 +49,42 @@ export const cubeQueryToSQLWithResolution = async ({
   columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams) => {
+  const duplicateTableSchemas = tableSchemas.map((schema) => ({
+    name: schema.name,
+    sql: schema.sql,
+    dimensions: schema.dimensions.map((dim) => ({
+      ...dim,
+      modifier: dim.modifier ? { ...dim.modifier } : undefined,
+      alias: undefined,
+    })),
+    measures: schema.measures.map((measure) => ({ ...measure })),
+    joins: schema.joins?.map((join) => ({ ...join })),
+  }));
   const baseSql = await cubeQueryToSQL({
     connection,
     query,
-    tableSchemas,
+    tableSchemas: duplicateTableSchemas,
     contextParams,
   });
 
   if (resolutionConfig.columnConfigs.length === 0) {
     // If no resolution is needed, return the base SQL.
     return baseSql;
+  }
+
+  // Step 2: Check if array-type resolution is needed
+  if (resolutionConfig.columnConfigs.some((config) => config.isArrayType)) {
+    // Delegate to array handler, passing baseSql instead of query
+    return cubeQueryToSQLWithResolutionWithArray({
+      connection,
+      baseSql,
+      measures: query.measures,
+      dimensions: query.dimensions || [],
+      tableSchemas,
+      resolutionConfig,
+      columnProjections,
+      contextParams,
+    });
   }
 
   // Create a table schema for the base query.
@@ -69,7 +102,7 @@ export const cubeQueryToSQLWithResolution = async ({
   );
 
   const resolveParams: CubeQueryToSQLParams = {
-    connection: connection,
+    connection,
     query: {
       measures: [],
       dimensions: generateResolvedDimensions(
@@ -91,30 +124,60 @@ export const cubeQueryToSQLWithResolution = async ({
   return sql;
 };
 
+export interface CubeQueryToSQLWithResolutionWithArrayParams {
+  connection: AsyncDuckDBConnection;
+  baseSql: string;
+  measures: string[];
+  dimensions: string[];
+  tableSchemas: TableSchema[];
+  resolutionConfig: ResolutionConfig;
+  columnProjections?: string[];
+  contextParams?: ContextParams;
+}
+
 export const cubeQueryToSQLWithResolutionWithArray = async ({
   connection,
-  query,
+  baseSql,
+  measures,
+  dimensions,
   tableSchemas,
   resolutionConfig,
   columnProjections,
   contextParams,
-}: CubeQueryToSQLWithResolutionParams) => {
-  // Phase 1: Generate SQL with row_id and unnested arrays
-  const { sql: unnestBaseSql, baseTableSchema } = await getUnnestBaseSql({
-    connection,
-    query,
+}: CubeQueryToSQLWithResolutionWithArrayParams) => {
+  const baseSchema: TableSchema = createBaseTableSchema(
+    baseSql,
     tableSchemas,
+    resolutionConfig,
+    measures,
+    dimensions
+  );
+
+  baseSchema.dimensions.push({
+    name: ROW_ID_DIMENSION_NAME,
+    sql: 'row_number() OVER ()',
+    type: 'number',
+    alias: ROW_ID_DIMENSION_NAME,
+  } as Dimension);
+  columnProjections?.push(ROW_ID_DIMENSION_NAME);
+
+  // Doing this because we need to use the original name of the column in the base table schema.
+  resolutionConfig.columnConfigs.forEach((config) => {
+    config.name = memberKeyToSafeKey(config.name);
+  });
+
+  // Phase 1: Generate SQL with row_id and unnested arrays
+  const unnestTableSchema = await getUnnestTableSchema({
+    connection,
+    baseTableSchema: baseSchema,
     resolutionConfig,
     contextParams,
   });
 
-  // // // Phase 2: Apply resolution (join with lookup tables)
-  const { sql: resolvedSql, resolvedTableSchema } = await getResolvedSql({
+  // Phase 2: Apply resolution (join with lookup tables)
+  const resolvedTableSchema = await getResolvedSql({
     connection,
-    unnestedSql: unnestBaseSql,
-    baseTableSchema,
-    query,
-    tableSchemas,
+    baseTableSchema: unnestTableSchema,
     resolutionConfig,
     contextParams,
     columnProjections,
@@ -123,115 +186,57 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
   // Phase 3: Re-aggregate to reverse the unnest
   const aggregatedSql = await getAggregatedSql({
     connection,
-    resolvedSql,
     resolvedTableSchema,
-    query,
     resolutionConfig,
     contextParams,
   });
 
   return aggregatedSql;
 };
-
-export const getUnnestBaseSql = async ({
+/**
+ * Phase 1: Apply unnesting
+ *
+ * This function performs 1 step:
+ * 1. Create schema with unnest modifiers for array columns
+ * 2. Generate final unnested SQL
+ * @returns Table schema with unnest modifiers for array columns
+ */
+export const getUnnestTableSchema = async ({
   connection,
-  query,
-  tableSchemas,
+  baseTableSchema,
   resolutionConfig,
   contextParams,
-}: CubeQueryToSQLWithResolutionParams): Promise<{
-  sql: string;
+}: {
+  connection: AsyncDuckDBConnection;
   baseTableSchema: TableSchema;
-}> => {
-  // Step 1: Add row_id to the first table schema and generate base SQL (without unnesting)
-  const modifiedTableSchemasWithRowId = tableSchemas.map((schema, index) => {
-    // Add row_id to the first table only
-    if (index !== 0) {
-      return schema;
-    }
-
-    // Add row_id dimension (no unnest modifier yet)
-    // TODO: Will this cause a problem of adding row_id to the first schema ?
-    const newDimensions = [
-      {
-        name: 'row_id',
-        sql: 'row_number() OVER ()',
-        type: 'number' as const,
-        alias: '__row_id',
-      },
-      ...schema.dimensions,
-    ];
-
-    return {
-      ...schema,
-      dimensions: newDimensions,
-    };
-  });
-
-  // Use the first table for row_id reference
-  const firstTable = tableSchemas[0];
-
-  const queryWithRowId: Query = {
-    measures: query.measures,
-    dimensions: [`${firstTable.name}.row_id`, ...(query.dimensions || [])],
-    joinPaths: query.joinPaths,
-    filters: query.filters,
-    order: query.order,
-    limit: query.limit,
-    offset: query.offset,
-  };
-
-  // Generate base SQL with row_id
-  const baseSqlWithRowId = await cubeQueryToSQL({
-    connection,
-    query: queryWithRowId,
-    tableSchemas: modifiedTableSchemasWithRowId,
-    contextParams,
-  });
-
-  // Step 2: Create a new table schema from the base SQL with row_id
-  // This will be used to apply unnesting
-  const baseTableName = '__base_query'; // Use standard name to work with helpers
-
-  const baseTableSchema: TableSchema = createBaseTableSchema(
-    baseSqlWithRowId,
-    tableSchemas,
-    resolutionConfig,
-    query.measures,
-    query.dimensions
+  resolutionConfig: ResolutionConfig;
+  contextParams?: ContextParams;
+}): Promise<TableSchema> => {
+  updateArrayFlattenModifierUsingResolutionConfig(
+    baseTableSchema,
+    resolutionConfig
   );
 
-  baseTableSchema.dimensions.push({
-    name: 'row_id',
-    sql: '__row_id',
-    type: 'number',
-    alias: '__row_id',
-  } as Dimension);
-
-  // Step 3: Create query with unnest modifiers applied
-  const unnestQuery: Query = {
-    measures: [],
-    dimensions: [
-      `${baseTableName}.row_id`,
-      ...query.measures.map((m) => `${baseTableName}.${m.replace('.', '__')}`),
-      ...(query.dimensions || []).map(
-        (d) => `${baseTableName}.${d.replace('.', '__')}`
-      ),
-    ],
-  };
-
-  // Generate the final SQL with unnesting applied
-  const unnestedBaseSql = await cubeQueryToSQL({
+  const unnestedSql = await cubeQueryToSQL({
     connection,
-    query: unnestQuery,
+    query: {
+      measures: [],
+      dimensions: [
+        ...baseTableSchema.dimensions.map((d) =>
+          getNamespacedKey(baseTableSchema.name, d.name)
+        ),
+      ],
+    },
     tableSchemas: [baseTableSchema],
     contextParams,
   });
 
-  return {
-    sql: unnestedBaseSql,
-    baseTableSchema,
-  };
+  const unnestedBaseTableSchema: TableSchema = createWrapperTableSchema(
+    unnestedSql,
+    baseTableSchema
+  );
+
+  return unnestedBaseTableSchema;
 };
 
 /**
@@ -241,68 +246,53 @@ export const getUnnestBaseSql = async ({
  * 1. Uses the base table schema from Phase 1 (source of truth)
  * 2. Generates resolution schemas for array fields
  * 3. Sets up join paths between unnested data and resolution tables
- * 4. Generates SQL with resolved values
- *
- * @param unnestedSql - SQL output from Phase 1 (with row_id and unnested arrays)
- * @param baseTableSchema - Schema from Phase 1 that describes the unnested SQL
- * @returns SQL with row_id, unnested arrays, and resolved values from lookup tables
+ * @returns Table schema with resolved values from lookup tables
  */
 export const getResolvedSql = async ({
   connection,
-  unnestedSql,
   baseTableSchema,
-  query,
-  tableSchemas,
   resolutionConfig,
   contextParams,
   columnProjections,
 }: {
   connection: AsyncDuckDBConnection;
-  unnestedSql: string;
   baseTableSchema: TableSchema;
-  query: Query;
-  tableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
   columnProjections?: string[];
-}): Promise<{
-  sql: string;
-  resolvedTableSchema: TableSchema;
-}> => {
-  // Step 1: Use the base table schema from Phase 1 as source of truth
-  // Update the SQL to point to the unnested SQL
-  const updatedBaseTableSchema: TableSchema = {
-    ...baseTableSchema,
-    sql: unnestedSql,
+}): Promise<TableSchema> => {
+  const updatedBaseTableSchema: TableSchema = baseTableSchema;
+
+  // Generate resolution schemas for array fields
+  const resolutionSchemas = generateResolutionSchemas(resolutionConfig, [
+    updatedBaseTableSchema,
+  ]);
+
+  const joinPaths = generateResolutionJoinPaths(
+    updatedBaseTableSchema.name,
+    resolutionConfig,
+    [updatedBaseTableSchema]
+  );
+
+  const tempQuery: Query = {
+    measures: [],
+    dimensions: baseTableSchema.dimensions.map((d) =>
+      getNamespacedKey(updatedBaseTableSchema.name, d.name)
+    ),
   };
 
-  debugger;
-  // Step 2: Generate resolution schemas for array fields only
-  // Use the existing generateResolutionSchemas helper
-
-  const resolutionSchemas = generateResolutionSchemas(
-    resolutionConfig,
-    tableSchemas
+  const updatedColumnProjections = columnProjections?.map((cp) =>
+    memberKeyToSafeKey(cp)
   );
-
-  // Step 3: Generate join paths using existing helper
-  // Note: Pass the base table schema (from Phase 1) to generate correct join paths
-  const joinPaths = generateResolutionJoinPaths(
-    BASE_DATA_SOURCE_NAME,
-    resolutionConfig,
-    tableSchemas
-  );
-
-  query.dimensions?.push('row_id');
-  // Step 4: Generate resolved dimensions using existing helper
-  // should not be using column projections here, it doesn't have row_id.
+  // Generate resolved dimensions using columnProjections
   const resolvedDimensions = generateResolvedDimensions(
-    BASE_DATA_SOURCE_NAME,
-    query,
-    resolutionConfig
+    updatedBaseTableSchema.name,
+    tempQuery,
+    resolutionConfig,
+    updatedColumnProjections
   );
 
-  // Step 5: Create query and generate SQL
+  // Create query and generate SQL
   const resolutionQuery: Query = {
     measures: [],
     dimensions: resolvedDimensions,
@@ -316,53 +306,36 @@ export const getResolvedSql = async ({
     contextParams,
   });
 
-  // Create a schema describing Phase 2's output by combining:
-  // 1. Dimensions from updatedBaseTableSchema that were actually queried
-  // 2. Dimensions from resolutionSchemas (resolved columns)
-  // The key insight: cubeQueryToSQL outputs columns using their alias field
+  // Use the baseTableSchema which already has all the column info
+  const baseDimensionNames = new Set(
+    baseTableSchema.dimensions
+      .filter((dim) => {
+        // Exclude columns that need resolution (they'll be replaced by resolved columns)
+        return !resolutionConfig.columnConfigs.some(
+          (ac) => ac.name === dim.name
+        );
+      })
+      .map((dim) => dim.name)
+  );
 
-  // Build list of dimension names that should be in output
-  const baseDimensionNames = new Set([
-    'row_id',
-    ...query.measures.map((m) => m.replace('.', '__')),
-    ...(query.dimensions || [])
-      .filter(
-        (d) => !resolutionConfig.columnConfigs.some((ac) => ac.name === d)
-      )
-      .map((d) => d.replace('.', '__')),
-  ]);
-
-  debugger;
-  const resolvedTableSchema: TableSchema = {
-    name: '__resolved_query',
-    sql: resolvedSql,
-    measures: [],
-    dimensions: [
-      // Dimensions from base table that were queried (row_id, measures, non-resolved dimensions)
-      ...updatedBaseTableSchema.dimensions
-        .filter((dim) => baseDimensionNames.has(dim.name))
-        .map((dim) => ({
-          name: dim.name,
-          sql: `__resolved_query."${dim.alias || dim.name}"`,
-          type: dim.type,
-          alias: dim.alias,
-        })),
-      // All dimensions from resolution schemas (resolved columns from JOINs)
-      ...resolutionSchemas.flatMap((resSchema) =>
-        resSchema.dimensions.map((dim) => ({
-          name: dim.name,
-          sql: `__resolved_query."${dim.alias || dim.name}"`,
-          type: dim.type,
-          alias: dim.alias,
-        }))
-      ),
-    ],
-  };
-
-  return {
-    sql: resolvedSql,
-    resolvedTableSchema,
-  };
+  const resolvedTableSchema: TableSchema = createWrapperTableSchema(
+    resolvedSql,
+    updatedBaseTableSchema
+  );
+  resolvedTableSchema.dimensions = resolvedTableSchema.dimensions.filter(
+    (dim) => baseDimensionNames.has(dim.name)
+  );
+  resolvedTableSchema.dimensions.push(
+    ...resolutionSchemas.flatMap((resSchema) =>
+      resSchema.dimensions.map((dim) => ({
+        name: dim.name,
+        sql: `${resolvedTableSchema.name}."${dim.alias || dim.name}"`,
+        type: dim.type,
+        alias: dim.alias,
+      }))
+    )
+  );
+  return resolvedTableSchema;
 };
 
 /**
@@ -375,58 +348,42 @@ export const getResolvedSql = async ({
  * 4. Uses ARRAY_AGG for resolved array columns
  *
  * @param resolvedSql - SQL output from Phase 2 (with resolved values)
- * @param query - Original query
+ * @param resolvedTableSchema - Schema from Phase 2 (contains all column info)
  * @param resolutionConfig - Resolution configuration
  * @param contextParams - Optional context parameters
  * @returns Final SQL with arrays containing resolved values
  */
 export const getAggregatedSql = async ({
   connection,
-  resolvedSql,
   resolvedTableSchema,
-  query,
   resolutionConfig,
   contextParams,
 }: {
   connection: AsyncDuckDBConnection;
-  resolvedSql: string;
   resolvedTableSchema: TableSchema;
-  query: Query;
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
 }): Promise<string> => {
-  // Step 1: Use the resolved table schema from Phase 2 as source of truth
-  // Update the SQL to point to the resolved SQL
-  const aggregationBaseTableSchema: TableSchema = {
-    ...resolvedTableSchema,
-    sql: resolvedSql,
-  };
+  const aggregationBaseTableSchema: TableSchema = resolvedTableSchema;
 
   // Step 2: Identify which columns need ARRAY_AGG vs MAX
-  const arrayColumns = getArrayTypeColumns(resolutionConfig);
+  const arrayColumns = getArrayTypeResolutionColumnConfigs(resolutionConfig);
   const baseTableName = aggregationBaseTableSchema.name;
 
-  // Helper to check if a dimension is a resolved array column
   const isResolvedArrayColumn = (dimName: string) => {
-    // Check if the dimension name matches a resolved column pattern
-    // e.g., "tickets__owners__display_name"
     return arrayColumns.some((arrayCol) => {
-      const arrayColPrefix = arrayCol.name.replace('.', '__');
-      return (
-        dimName.includes(`${arrayColPrefix}__`) &&
-        !dimName.startsWith('__base_query__')
-      );
+      return dimName.includes(`${arrayCol.name}__`);
     });
   };
 
   // Step 3: Create aggregation measures with proper aggregation functions
   // Get row_id dimension for GROUP BY
   const rowIdDimension = aggregationBaseTableSchema.dimensions.find(
-    (d) => d.name === 'row_id' || d.name.endsWith('__row_id')
+    (d) => d.name === ROW_ID_DIMENSION_NAME
   );
 
   // Create measures with MAX or ARRAY_AGG based on column type
-  const aggregationMeasures: TableSchema['measures'] = [];
+  const aggregationMeasures: Measure[] = [];
 
   aggregationBaseTableSchema.dimensions
     .filter((dim) => dim.name !== rowIdDimension?.name)
@@ -458,22 +415,21 @@ export const getAggregatedSql = async ({
     dimensions: rowIdDimension ? [rowIdDimension] : [],
   };
 
-  // Step 4: Create the aggregation query
-  const aggregationQuery: Query = {
-    measures: aggregationMeasures.map((m) => `${baseTableName}.${m.name}`),
-    dimensions: rowIdDimension
-      ? [`${baseTableName}.${rowIdDimension.name}`]
-      : [],
-  };
-
   // Step 5: Generate the final SQL
   const aggregatedSql = await cubeQueryToSQL({
     connection,
-    query: aggregationQuery,
+    query: {
+      measures: aggregationMeasures.map((m) =>
+        getNamespacedKey(baseTableName, m.name)
+      ),
+      dimensions: rowIdDimension
+        ? [getNamespacedKey(baseTableName, rowIdDimension.name)]
+        : [],
+    },
     tableSchemas: [schemaWithAggregation],
     contextParams,
   });
 
-  const rowIdExcludedSql = `select * exclude(__row_id) from (${aggregatedSql})`;
+  const rowIdExcludedSql = `select * exclude(${ROW_ID_DIMENSION_NAME}) from (${aggregatedSql})`;
   return rowIdExcludedSql;
 };

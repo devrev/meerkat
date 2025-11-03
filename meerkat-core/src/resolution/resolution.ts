@@ -7,7 +7,6 @@ import { JoinPath, Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import {
   findInDimensionSchemas,
-  findInSchema,
   findInSchemas,
 } from '../utils/find-in-table-schema';
 import {
@@ -194,62 +193,6 @@ export const generateResolutionSchemas = (
   return resolutionSchemas;
 };
 
-export const generateResolutionSchemasFromBaseTable = (
-  config: ResolutionConfig,
-  baseTableSchema: TableSchema
-) => {
-  const resolutionSchemas: TableSchema[] = [];
-  config.columnConfigs.forEach((colConfig) => {
-    const tableSchema = config.tableSchemas.find(
-      (ts) => ts.name === colConfig.source
-    );
-    if (!tableSchema) {
-      throw new Error(`Table schema not found for ${colConfig.source}`);
-    }
-
-    const baseName = memberKeyToSafeKey(colConfig.name);
-    const baseAlias = constructAlias({
-      name: colConfig.name,
-      alias: findInSchema(colConfig.name, baseTableSchema)?.alias,
-      aliasContext: { isTableSchemaAlias: true },
-    });
-
-    // For each column that needs to be resolved, create a copy of the relevant table schema.
-    // We use the name of the column in the base query as the table schema name
-    // to avoid conflicts.
-    const resolutionSchema: TableSchema = {
-      name: baseName,
-      sql: tableSchema.sql,
-      measures: [],
-      dimensions: colConfig.resolutionColumns.map((col) => {
-        const dimension = findInDimensionSchemas(
-          getNamespacedKey(colConfig.source, col),
-          config.tableSchemas
-        );
-        if (!dimension) {
-          throw new Error(`Dimension not found: ${col}`);
-        }
-        return {
-          // Need to create a new name due to limitations with how
-          // CubeToSql handles duplicate dimension names between different sources.
-          name: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
-          sql: `${baseName}.${col}`,
-          type: dimension.type,
-          alias: `${baseAlias} - ${constructAlias({
-            name: col,
-            alias: dimension.alias,
-            aliasContext: { isTableSchemaAlias: true },
-          })}`,
-        };
-      }),
-    };
-
-    resolutionSchemas.push(resolutionSchema);
-  });
-
-  return resolutionSchemas;
-};
-
 export const generateResolvedDimensions = (
   baseDataSourceName: string,
   query: Query,
@@ -297,24 +240,6 @@ export const generateResolutionJoinPaths = (
       on: constructAlias({
         name: config.name,
         alias: findInSchemas(config.name, baseTableSchemas)?.alias,
-        aliasContext: { isAstIdentifier: false },
-      }),
-    },
-  ]);
-};
-
-export const generateResolutionJoinPathsFromBaseTable = (
-  baseDataSourceName: string,
-  resolutionConfig: ResolutionConfig,
-  baseTableSchema: TableSchema
-): JoinPath[] => {
-  return resolutionConfig.columnConfigs.map((config) => [
-    {
-      left: baseDataSourceName,
-      right: memberKeyToSafeKey(config.name),
-      on: constructAlias({
-        name: config.name,
-        alias: findInSchema(config.name, baseTableSchema)?.alias,
         aliasContext: { isAstIdentifier: false },
       }),
     },
