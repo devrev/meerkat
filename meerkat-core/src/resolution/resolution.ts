@@ -91,6 +91,53 @@ export const createBaseTableSchema = (
   };
 };
 
+export const createWrapperTableSchema = (
+  sql: string,
+  baseTableSchema: TableSchema
+) => {
+  return {
+    name: BASE_DATA_SOURCE_NAME,
+    sql: sql,
+    dimensions: baseTableSchema.dimensions.map((d) => ({
+      name: d.name,
+      sql: `${BASE_DATA_SOURCE_NAME}."${d.alias || d.name}"`,
+      type: d.type,
+      alias: d.alias,
+    })),
+    measures: baseTableSchema.measures.map((m) => ({
+      name: m.name,
+      sql: `${BASE_DATA_SOURCE_NAME}."${m.alias || m.name}"`,
+      type: m.type,
+      alias: m.alias,
+    })),
+    joins: baseTableSchema.joins,
+  };
+};
+
+export const updateArrayFlattenModifierUsingResolutionConfig = (
+  baseTableSchema: TableSchema,
+  resolutionConfig: ResolutionConfig
+) => {
+  const arrayColumns = getArrayTypeResolutionColumnConfigs(resolutionConfig);
+  for (const dimension of baseTableSchema.dimensions) {
+    if (
+      arrayColumns.some(
+        (ac: ResolutionColumnConfig) => ac.name === dimension.name
+      )
+    ) {
+      dimension.modifier = { shouldFlattenArray: true };
+    }
+  }
+};
+
+export const getArrayTypeResolutionColumnConfigs = (
+  resolutionConfig: ResolutionConfig
+) => {
+  return resolutionConfig.columnConfigs.filter(
+    (config) => config.isArrayType === true
+  );
+};
+
 export const generateResolutionSchemas = (
   config: ResolutionConfig,
   baseTableSchemas: TableSchema[]
