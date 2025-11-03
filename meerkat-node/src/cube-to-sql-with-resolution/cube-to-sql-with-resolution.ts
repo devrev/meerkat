@@ -4,7 +4,9 @@ import {
   createBaseTableSchema,
   Dimension,
   generateResolutionJoinPaths,
+  generateResolutionJoinPathsFromBaseTable,
   generateResolutionSchemas,
+  generateResolutionSchemasFromBaseTable,
   generateResolvedDimensions,
   getNamespacedKey,
   memberKeyToSafeKey,
@@ -245,11 +247,11 @@ export const getUnnestBaseSql = async ({
   // const projectedColumns = [...dimensions, 'row_id', ...measures];
 
   const unnestedBaseTableSchema: TableSchema = {
-    name: '__unnested_base_query',
+    name: '__base_query',
     sql: unnestedSql,
     dimensions: schemaWithRowId.dimensions.map((d) => ({
       name: d.name,
-      sql: `__unnested_base_query."${d.alias || d.name}"`,
+      sql: `__base_query."${d.alias || d.name}"`,
       type: d.type,
       alias: d.alias,
     })),
@@ -273,21 +275,24 @@ export const getUnnestBaseSql = async ({
     const rightJoin = join.sql.split('=')[1];
     const rightJoinNamespace = rightJoin.split('.')[0].trim();
     const rightJoinField = rightJoin.split('.')[1].trim();
-    join.sql = join.sql.replace(
-      leftJoin,
-      `${unnestedBaseTableSchema.name}.${
-        dimensionToJoinOn[0].alias || dimensionToJoinOn[0].name
-      }`
-    );
-    // TODO: Confirm if name also needs "" like this.
-    join.sql = `${unnestedBaseTableSchema.name}.${
-      dimensionToJoinOn[0].alias
-        ? `"${dimensionToJoinOn[0].alias}"`
-        : dimensionToJoinOn[0].name
-    }=${memberKeyToSafeKey(
-      getNamespacedKey(unnestedBaseTableSchema.name, rightJoinNamespace)
-    )}.${rightJoinField}`;
+    // join.sql = join.sql.replace(
+    //   leftJoin,
+    //   `${unnestedBaseTableSchema.name}.${
+    //     dimensionToJoinOn[0].alias || dimensionToJoinOn[0].name
+    //   }`
+    // );
+    // // TODO: Confirm if name also needs "" like this.
+    // join.sql = `${unnestedBaseTableSchema.name}.${
+    //   dimensionToJoinOn[0].alias
+    //     ? `"${dimensionToJoinOn[0].alias}"`
+    //     : dimensionToJoinOn[0].name
+    // }=${memberKeyToSafeKey(
+    //   getNamespacedKey(unnestedBaseTableSchema.name, rightJoinNamespace)
+    // )}.${rightJoinField}`;
   }
+  resolutionConfig.columnConfigs.forEach((config) => {
+    config.name = memberKeyToSafeKey(config.name);
+  });
   return {
     sql: unnestedSql,
     baseTableSchema: unnestedBaseTableSchema,
@@ -328,23 +333,24 @@ export const getResolvedSql = async ({
   // Update the SQL to point to the unnested SQL
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
-  for (const columnConfig of resolutionConfig.columnConfigs) {
-    columnConfig.name = getNamespacedKey(
-      updatedBaseTableSchema.name,
-      memberKeyToSafeKey(columnConfig.name)
-    );
-    // columnConfig.name = memberKeyToSafeKey(columnConfig.name);
-  }
+  // for (const columnConfig of resolutionConfig.columnConfigs) {
+  //   columnConfig.name = getNamespacedKey(
+  //     updatedBaseTableSchema.name,
+  //     memberKeyToSafeKey(columnConfig.name)
+  //   );
+  //   // columnConfig.name = memberKeyToSafeKey(columnConfig.name);
+  // }
   // Generate resolution schemas for array fields
-  const resolutionSchemas = generateResolutionSchemas(resolutionConfig, [
-    updatedBaseTableSchema,
-  ]);
+  const resolutionSchemas = generateResolutionSchemasFromBaseTable(
+    resolutionConfig,
+    updatedBaseTableSchema
+  );
 
   // Generate join paths using existing helper
-  const joinPaths = generateResolutionJoinPaths(
+  const joinPaths = generateResolutionJoinPathsFromBaseTable(
     updatedBaseTableSchema.name,
     resolutionConfig,
-    [updatedBaseTableSchema]
+    updatedBaseTableSchema
   );
 
   const tempQuery: Query = {
@@ -355,7 +361,7 @@ export const getResolvedSql = async ({
   };
 
   const updatedColumnProjections = columnProjections?.map((cp) =>
-    getNamespacedKey(updatedBaseTableSchema.name, memberKeyToSafeKey(cp))
+    memberKeyToSafeKey(cp)
   );
   // Generate resolved dimensions using columnProjections
   const resolvedDimensions = generateResolvedDimensions(
@@ -377,15 +383,13 @@ export const getResolvedSql = async ({
     contextParams,
   });
 
-  // Build list of dimension names that should be in output
   // Use the baseTableSchema which already has all the column info
   const baseDimensionNames = new Set(
     baseTableSchema.dimensions
       .filter((dim) => {
         // Exclude columns that need resolution (they'll be replaced by resolved columns)
         return !resolutionConfig.columnConfigs.some(
-          (ac) =>
-            ac.name === getNamespacedKey(updatedBaseTableSchema.name, dim.name)
+          (ac) => ac.name === dim.name
         );
       })
       .map((dim) => dim.name)
