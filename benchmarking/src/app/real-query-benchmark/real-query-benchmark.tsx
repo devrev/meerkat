@@ -79,6 +79,182 @@ export const RealQueryBenchmark = () => {
     setDataProgress('');
   };
 
+  const formatTime = (ms: number): string => {
+    // performance.now() returns milliseconds, verify units are correct
+    if (ms < 0.001) {
+      return `${(ms * 1000000).toFixed(2)} ns`;
+    } else if (ms < 1) {
+      return `${(ms * 1000).toFixed(2)} μs`;
+    } else if (ms < 1000) {
+      return `${ms.toFixed(2)} ms`;
+    } else {
+      return `${(ms / 1000).toFixed(2)} s`;
+    }
+  };
+
+  const generateSlackMessage = (
+    benchmarkResults: ScalabilityBenchmarkResult[],
+    environment: string
+  ): string => {
+    // Debug: log the structure
+    console.log('DEBUG: Sample result structure:', benchmarkResults[0]);
+    console.log('DEBUG: Total results:', benchmarkResults.length);
+
+    // Group results by optimization type
+    const groupMap = new Map<string, ScalabilityBenchmarkResult[]>();
+    benchmarkResults.forEach((result) => {
+      const key = result.optimizationType;
+      if (!groupMap.has(key)) {
+        groupMap.set(key, []);
+      }
+      const group = groupMap.get(key);
+      if (group) {
+        group.push(result);
+      }
+    });
+
+    const grouped = Array.from(groupMap.entries()).map(
+      ([optimizationType, items]) => {
+        const avgOfAverages =
+          items.reduce((sum, item) => sum + item.executionTime, 0) /
+          items.length;
+        return {
+          optimizationType,
+          items,
+          avgOfAverages,
+        };
+      }
+    );
+
+    // Sort all groups by performance
+    const sortedGroups = [...grouped].sort(
+      (a, b) => a.avgOfAverages - b.avgOfAverages
+    );
+
+    const BASELINE_NAME = 'Baseline (IN + Late Filter)';
+    const ANY_LATE_FILTER = 'ANY + Late Filter';
+    const ANY_PUSHDOWN = 'ANY + Filter Pushdown';
+
+    const baselineGroup = grouped.find(
+      (g) => g.optimizationType === BASELINE_NAME
+    );
+    const baselineAvg = baselineGroup?.avgOfAverages || 0;
+
+    let message = `*🚀 SQL Query Optimization Benchmark Results*\n\n`;
+    message += `*Environment:* ${environment}\n`;
+    message += `*Iterations per query:* ${ITERATIONS_PER_QUERY}\n`;
+    message += `*Test scales:* 5, 10, 100, 1000 filter values\n\n`;
+
+    // Create main comparison table
+    message += `*📊 Performance Comparison Table*\n`;
+    message += `\`\`\`\n`;
+    message += `╔═════╦══════════════════════════════════════╦════════════╦═══════════╦══════════╦══════════╦══════════╦══════════╗\n`;
+    message += `║ Rnk ║ Optimization Strategy                ║ Avg Time   ║ Improve % ║ 5 vals   ║ 10 vals  ║ 100 vals ║ 1000 vls ║\n`;
+    message += `╠═════╬══════════════════════════════════════╬════════════╬═══════════╬══════════╬══════════╬══════════╬══════════╣\n`;
+
+    sortedGroups.forEach((group, idx) => {
+      const rank = idx + 1;
+      const medal =
+        rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : ` ${rank}`;
+
+      const strategyName =
+        group.optimizationType.length > 36
+          ? group.optimizationType.substring(0, 33) + '...'
+          : group.optimizationType.padEnd(36);
+
+      const avgTimeStr = formatTime(group.avgOfAverages).padStart(10);
+
+      let improvementStr = '';
+      if (group.optimizationType === BASELINE_NAME) {
+        improvementStr = '(baseline)'.padStart(9);
+      } else {
+        const improvement =
+          baselineAvg > 0
+            ? ((baselineAvg - group.avgOfAverages) / baselineAvg) * 100
+            : 0;
+        const sign = improvement > 0 ? '+' : '';
+        improvementStr = `${sign}${improvement.toFixed(1)}%`.padStart(9);
+      }
+
+      // Get values for each scale
+      const val5 = group.items.find((item) => item.valueCount === 5);
+      const val10 = group.items.find((item) => item.valueCount === 10);
+      const val100 = group.items.find((item) => item.valueCount === 100);
+      const val1000 = group.items.find((item) => item.valueCount === 1000);
+
+      const val5Str = val5
+        ? formatTime(val5.executionTime).padStart(8)
+        : 'N/A'.padStart(8);
+      const val10Str = val10
+        ? formatTime(val10.executionTime).padStart(8)
+        : 'N/A'.padStart(8);
+      const val100Str = val100
+        ? formatTime(val100.executionTime).padStart(8)
+        : 'N/A'.padStart(8);
+      const val1000Str = val1000
+        ? formatTime(val1000.executionTime).padStart(8)
+        : 'N/A'.padStart(8);
+
+      message += `║ ${medal} ║ ${strategyName} ║ ${avgTimeStr} ║ ${improvementStr} ║ ${val5Str} ║ ${val10Str} ║ ${val100Str} ║ ${val1000Str} ║\n`;
+    });
+
+    message += `╚═════╩══════════════════════════════════════╩════════════╩═══════════╩══════════╩══════════╩══════════╩══════════╝\n`;
+    message += `\`\`\`\n\n`;
+
+    // Add focused ANY comparison
+    message += `*✨ ANY Operator Recommendation*\n`;
+    const anyLateFilterGroup = sortedGroups.find(
+      (g) => g.optimizationType === ANY_LATE_FILTER
+    );
+    const anyPushdownGroup = sortedGroups.find(
+      (g) => g.optimizationType === ANY_PUSHDOWN
+    );
+
+    if (anyLateFilterGroup && baselineAvg > 0) {
+      const anyLateImprovement =
+        ((baselineAvg - anyLateFilterGroup.avgOfAverages) / baselineAvg) * 100;
+      const anyPushdownImprovement = anyPushdownGroup
+        ? ((baselineAvg - anyPushdownGroup.avgOfAverages) / baselineAvg) * 100
+        : 0;
+
+      message += `\`\`\`\n`;
+      message += `Simple ANY (Late Filter):  ${formatTime(
+        anyLateFilterGroup.avgOfAverages
+      ).padStart(10)} avg  (+${anyLateImprovement.toFixed(1)}%)\n`;
+      if (anyPushdownGroup) {
+        message += `ANY + Filter Pushdown:     ${formatTime(
+          anyPushdownGroup.avgOfAverages
+        ).padStart(10)} avg  (+${anyPushdownImprovement.toFixed(1)}%)\n`;
+      }
+      message += `\`\`\`\n\n`;
+    }
+
+    message += `*💡 Recommendation*\n`;
+    const bestNonBaseline = sortedGroups.find(
+      (g) => g.optimizationType !== BASELINE_NAME
+    );
+
+    if (anyLateFilterGroup && baselineAvg > 0) {
+      const anyLateImprovement =
+        ((baselineAvg - anyLateFilterGroup.avgOfAverages) / baselineAvg) * 100;
+      const topImprovement = bestNonBaseline
+        ? ((baselineAvg - bestNonBaseline.avgOfAverages) / baselineAvg) * 100
+        : 0;
+
+      message += `> Switching from \`IN\` to \`ANY\` operator provides a *${anyLateImprovement.toFixed(
+        1
+      )}% performance improvement* with minimal code changes (just the filter syntax). This is the easiest optimization to implement and yields comparable results to more complex approaches. The best overall strategy (*${
+        bestNonBaseline?.optimizationType || 'N/A'
+      }*) achieves ${topImprovement.toFixed(
+        1
+      )}% improvement but requires additional refactoring.\n`;
+    } else {
+      message += `> Analysis in progress...\n`;
+    }
+
+    return message;
+  };
+
   const runBenchmark = async () => {
     if (!dbm) return;
 
@@ -238,6 +414,22 @@ export const RealQueryBenchmark = () => {
       'x'
     );
     console.log('\n═══════════════════════════════════════════════════════\n');
+
+    // Generate Slack-formatted output
+    console.log('\n\n📋 SLACK MESSAGE FORMAT (Copy-paste ready):');
+    console.log(
+      '═════════════════════════════════════════════════════════════\n'
+    );
+
+    const slackMessage = generateSlackMessage(
+      benchmarkResults,
+      environmentLabel
+    );
+    console.log(slackMessage);
+
+    console.log(
+      '\n═════════════════════════════════════════════════════════════\n'
+    );
   };
 
   const getBestResult = () => {
