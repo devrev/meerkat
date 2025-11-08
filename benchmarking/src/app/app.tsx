@@ -7,6 +7,7 @@ import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-con
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
 import { NativeAppFileLoader } from './file-loader/native-app-file-loader';
+import { InOperatorBenchmarking } from './in-operator-benchmarking/in-operator-benchmarking';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 
 export function App() {
@@ -14,6 +15,11 @@ export function App() {
     <Router>
       <nav>
         <ul>
+          <li>
+            <Link to="/in-operator-benchmark">
+              IN Operator Optimization Benchmark
+            </Link>
+          </li>
           <li>
             <Link to="/raw-dbm">Raw DuckDB</Link>
           </li>
@@ -35,6 +41,17 @@ export function App() {
         </ul>
       </nav>
       <Routes>
+        <Route
+          path="/in-operator-benchmark"
+          element={
+            <div>
+              <h1>IN Operator Optimization Benchmark</h1>
+              <RawDBMProvider>
+                <InOperatorBenchmarking />
+              </RawDBMProvider>
+            </div>
+          }
+        />
         <Route
           path="/raw-dbm"
           element={
