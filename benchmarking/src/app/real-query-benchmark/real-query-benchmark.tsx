@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  QueryBenchmarkResult,
-  REAL_QUERY_VARIANTS,
-} from '../constants-real-query-benchmark';
+  SCALABILITY_VARIANTS,
+  ScalabilityBenchmarkResult,
+} from '../constants-real-query-scalability';
 import { generateTestData } from '../generate-test-data';
 import { useDBM } from '../hooks/dbm-context';
 
@@ -10,7 +10,8 @@ const ITERATIONS_PER_QUERY = 5; // Run each query 5 times for reliable averages
 
 export const RealQueryBenchmark = () => {
   const { dbm, fileManagerType } = useDBM();
-  const [results, setResults] = useState<QueryBenchmarkResult[]>([]);
+  const [results, setResults] = useState<ScalabilityBenchmarkResult[]>([]);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [isRunning, setIsRunning] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [dataProgress, setDataProgress] = useState('');
@@ -22,6 +23,16 @@ export const RealQueryBenchmark = () => {
   const environmentLabel = isNodeEnvironment
     ? 'Node.js (Native)'
     : 'Browser (WASM)';
+
+  const toggleRow = (optimizationType: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(optimizationType)) {
+      newExpanded.delete(optimizationType);
+    } else {
+      newExpanded.add(optimizationType);
+    }
+    setExpandedRows(newExpanded);
+  };
 
   useEffect(() => {
     loadTestData();
@@ -74,24 +85,24 @@ export const RealQueryBenchmark = () => {
     setIsRunning(true);
     setResults([]);
     setCurrentQuery(0);
-    const benchmarkResults: QueryBenchmarkResult[] = [];
+    const benchmarkResults: ScalabilityBenchmarkResult[] = [];
     const startTime = performance.now();
 
     console.log('\n🚀 Starting Real-World Query Optimization Benchmark\n');
     console.log('Environment:', environmentLabel);
-    console.log('Testing', REAL_QUERY_VARIANTS.length, 'query variants...');
+    console.log('Testing', SCALABILITY_VARIANTS.length, 'query variants...');
     console.log(
       'Running each query',
       ITERATIONS_PER_QUERY,
       'times for reliable averages\n'
     );
 
-    for (let i = 0; i < REAL_QUERY_VARIANTS.length; i++) {
-      const variant = REAL_QUERY_VARIANTS[i];
+    for (let i = 0; i < SCALABILITY_VARIANTS.length; i++) {
+      const variant = SCALABILITY_VARIANTS[i];
       setCurrentQuery(i + 1);
 
       console.log(
-        `\n📊 Testing Variant ${i + 1}/${REAL_QUERY_VARIANTS.length}`
+        `\n📊 Testing Variant ${i + 1}/${SCALABILITY_VARIANTS.length}`
       );
       console.log(`Name: ${variant.name}`);
       console.log(
@@ -137,6 +148,8 @@ export const RealQueryBenchmark = () => {
       benchmarkResults.push({
         variantId: variant.id,
         variantName: variant.name,
+        optimizationType: variant.optimizationType,
+        valueCount: variant.valueCount,
         optimizations: variant.optimizations,
         executionTime: avgTime,
         minTime,
@@ -159,11 +172,18 @@ export const RealQueryBenchmark = () => {
       result.rank = index + 1;
     });
 
-    // Sort back by variant order for display
+    // Sort by optimization type, then by value count
     benchmarkResults.sort((a, b) => {
-      const aIndex = REAL_QUERY_VARIANTS.findIndex((v) => v.id === a.variantId);
-      const bIndex = REAL_QUERY_VARIANTS.findIndex((v) => v.id === b.variantId);
-      return aIndex - bIndex;
+      if (a.optimizationType !== b.optimizationType) {
+        const aIndex = SCALABILITY_VARIANTS.findIndex(
+          (v) => v.optimizationType === a.optimizationType
+        );
+        const bIndex = SCALABILITY_VARIANTS.findIndex(
+          (v) => v.optimizationType === b.optimizationType
+        );
+        return aIndex - bIndex;
+      }
+      return a.valueCount - b.valueCount;
     });
 
     const endTime = performance.now();
@@ -227,40 +247,24 @@ export const RealQueryBenchmark = () => {
     );
   };
 
-  const getRowStyle = (rank: number, improvement: number, index: number) => {
-    // Only highlight rows that are actually FASTER than baseline (positive improvement)
-    const baseStyle = {
-      background: index % 2 === 0 ? '#f9f9f9' : 'white',
-    };
-
-    if (improvement <= 0) {
-      // If slower than baseline, no special highlighting
-      return baseStyle;
-    }
-
-    // Only highlight if faster than baseline
-    if (rank === 1)
-      return {
-        ...baseStyle,
-        background: '#c8e6c9',
-        fontWeight: 'bold',
-        color: '#1b5e20',
-      };
-    if (rank === 2)
-      return {
-        ...baseStyle,
-        background: '#fff9c4',
-        fontWeight: 'bold',
-        color: '#f57f17',
-      };
-    if (rank === 3)
-      return {
-        ...baseStyle,
-        background: '#ffccbc',
-        fontWeight: 'bold',
-        color: '#bf360c',
-      };
-    return baseStyle;
+  // Group results by optimization type
+  const getGroupedResults = () => {
+    const grouped = new Map<string, ScalabilityBenchmarkResult[]>();
+    results.forEach((result) => {
+      if (!grouped.has(result.optimizationType)) {
+        grouped.set(result.optimizationType, []);
+      }
+      const group = grouped.get(result.optimizationType);
+      if (group) {
+        group.push(result);
+      }
+    });
+    return Array.from(grouped.entries()).map(([type, variants]) => ({
+      optimizationType: type,
+      variants: variants.sort((a, b) => a.valueCount - b.valueCount),
+      avgOfAverages:
+        variants.reduce((sum, v) => sum + v.executionTime, 0) / variants.length,
+    }));
   };
 
   const getOptimizationBadges = (optimizations: string[]) => {
@@ -329,8 +333,8 @@ export const RealQueryBenchmark = () => {
         Environment: {environmentLabel}
       </div>
       <p style={{ color: '#666', marginBottom: '20px', fontSize: '1.1em' }}>
-        Testing {REAL_QUERY_VARIANTS.length} different optimization strategies
-        on your production query pattern
+        Testing {SCALABILITY_VARIANTS.length} query variants across 9
+        optimization strategies at 4 different scales (5, 10, 100, 1000 values)
       </p>
 
       <div
@@ -430,7 +434,7 @@ export const RealQueryBenchmark = () => {
         }}
       >
         {isRunning
-          ? `Running... (${currentQuery}/${REAL_QUERY_VARIANTS.length})`
+          ? `Running... (${currentQuery}/${SCALABILITY_VARIANTS.length})`
           : loadingData
           ? 'Loading Data...'
           : 'Run Benchmark'}
@@ -453,7 +457,7 @@ export const RealQueryBenchmark = () => {
           </h3>
           <p>
             <strong>Query:</strong> {currentQuery} /{' '}
-            {REAL_QUERY_VARIANTS.length}
+            {SCALABILITY_VARIANTS.length}
           </p>
           <p>
             <strong>Iteration:</strong> {currentIteration} /{' '}
@@ -526,9 +530,8 @@ export const RealQueryBenchmark = () => {
             Query Optimization Results Matrix
           </h2>
           <p style={{ color: '#666', marginBottom: '15px' }}>
-            All query variants ranked by performance. Highlighted rows (Green,
-            Yellow, Orange) indicate the top 3 queries that are FASTER than
-            baseline.
+            Click on any optimization strategy to expand and see how it performs
+            at different scales (5, 10, 100, 1000 values).
           </p>
 
           <div style={{ overflowX: 'auto' }}>
@@ -548,30 +551,28 @@ export const RealQueryBenchmark = () => {
                       padding: '12px',
                       textAlign: 'center',
                       border: '1px solid #ddd',
-                      width: '60px',
+                      width: '40px',
                     }}
-                  >
-                    Rank
-                  </th>
+                  ></th>
                   <th
                     style={{
                       padding: '12px',
                       textAlign: 'left',
                       border: '1px solid #ddd',
-                      minWidth: '200px',
+                      minWidth: '300px',
                     }}
                   >
-                    Query Variant
+                    Optimization Strategy
                   </th>
                   <th
                     style={{
                       padding: '12px',
-                      textAlign: 'left',
+                      textAlign: 'center',
                       border: '1px solid #ddd',
-                      minWidth: '250px',
+                      width: '100px',
                     }}
                   >
-                    Optimizations Applied
+                    Values
                   </th>
                   <th
                     style={{
@@ -582,15 +583,6 @@ export const RealQueryBenchmark = () => {
                     }}
                   >
                     Avg Time (ms)
-                    <div
-                      style={{
-                        fontSize: '0.75em',
-                        fontWeight: 'normal',
-                        marginTop: '2px',
-                      }}
-                    >
-                      ({ITERATIONS_PER_QUERY} runs)
-                    </div>
                   </th>
                   <th
                     style={{
@@ -615,25 +607,6 @@ export const RealQueryBenchmark = () => {
                   <th
                     style={{
                       padding: '12px',
-                      textAlign: 'right',
-                      border: '1px solid #ddd',
-                      width: '120px',
-                    }}
-                  >
-                    vs Baseline
-                    <div
-                      style={{
-                        fontSize: '0.75em',
-                        fontWeight: 'normal',
-                        marginTop: '2px',
-                      }}
-                    >
-                      (+ faster / - slower)
-                    </div>
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
                       textAlign: 'center',
                       border: '1px solid #ddd',
                       width: '100px',
@@ -644,171 +617,198 @@ export const RealQueryBenchmark = () => {
                 </tr>
               </thead>
               <tbody>
-                {results.map((result, index) => {
-                  const variant = REAL_QUERY_VARIANTS.find(
-                    (v) => v.id === result.variantId
-                  );
-                  const baseline = results[0];
-                  const improvement =
-                    ((baseline.executionTime - result.executionTime) /
-                      baseline.executionTime) *
-                    100;
+                {getGroupedResults().map((group, groupIndex) => {
+                  const isExpanded = expandedRows.has(group.optimizationType);
+                  const firstVariant = group.variants[0];
 
                   return (
-                    <tr
-                      key={result.variantId}
-                      style={getRowStyle(result.rank, improvement, index)}
-                    >
-                      <td
+                    <React.Fragment key={group.optimizationType}>
+                      <tr
+                        onClick={() => toggleRow(group.optimizationType)}
                         style={{
-                          padding: '12px',
-                          textAlign: 'center',
-                          border: '1px solid #ddd',
-                          fontSize: '1.2em',
+                          background:
+                            groupIndex % 2 === 0 ? '#e3f2fd' : '#bbdefb',
+                          cursor: 'pointer',
                           fontWeight: 'bold',
+                          borderTop: '2px solid #2196f3',
                         }}
                       >
-                        {result.rank === 1 && '🥇'}
-                        {result.rank === 2 && '🥈'}
-                        {result.rank === 3 && '🥉'}
-                        {result.rank > 3 && result.rank}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px',
-                          border: '1px solid #ddd',
-                        }}
-                      >
-                        <strong>{result.variantName}</strong>
-                        {variant && (
+                        <td
+                          style={{
+                            padding: '15px 12px',
+                            textAlign: 'center',
+                            border: '1px solid #ddd',
+                          }}
+                        >
+                          {isExpanded ? '▼' : '▶'}
+                        </td>
+                        <td
+                          colSpan={2}
+                          style={{
+                            padding: '15px 12px',
+                            border: '1px solid #ddd',
+                          }}
+                        >
+                          {group.optimizationType}
                           <div
                             style={{
                               fontSize: '0.85em',
-                              color: '#666',
+                              fontWeight: 'normal',
                               marginTop: '5px',
                             }}
                           >
-                            {variant.description}
+                            {getOptimizationBadges(firstVariant.optimizations)}
                           </div>
-                        )}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px',
-                          border: '1px solid #ddd',
-                        }}
-                      >
-                        {getOptimizationBadges(result.optimizations)}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px',
-                          textAlign: 'right',
-                          border: '1px solid #ddd',
-                          fontWeight: 'bold',
-                          fontSize: '1.1em',
-                        }}
-                      >
-                        {result.executionTime.toFixed(2)}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px',
-                          textAlign: 'right',
-                          border: '1px solid #ddd',
-                          fontSize: '0.9em',
-                          color: '#666',
-                        }}
-                      >
-                        {result.minTime.toFixed(2)} /{' '}
-                        {result.maxTime.toFixed(2)}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px',
-                          textAlign: 'right',
-                          border: '1px solid #ddd',
-                          fontSize: '0.9em',
-                          color: '#666',
-                        }}
-                      >
-                        ±{result.stdDev.toFixed(2)}
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px',
-                          textAlign: 'right',
-                          border: '1px solid #ddd',
-                          color: improvement > 0 ? '#2e7d32' : '#d32f2f',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        {improvement > 0 && (
-                          <span role="img" aria-label="check">
-                            ✓{' '}
-                          </span>
-                        )}
-                        {improvement < 0 && (
-                          <span role="img" aria-label="cross">
-                            ✗{' '}
-                          </span>
-                        )}
-                        {improvement > 0 ? '+' : ''}
-                        {improvement.toFixed(1)}%
-                      </td>
-                      <td
-                        style={{
-                          padding: '12px',
-                          textAlign: 'center',
-                          border: '1px solid #ddd',
-                        }}
-                      >
-                        <details style={{ cursor: 'pointer' }}>
-                          <summary
-                            style={{
-                              padding: '6px 12px',
-                              background: '#2196f3',
-                              color: 'white',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontWeight: 'bold',
-                              fontSize: '0.9em',
-                              listStyle: 'none',
-                            }}
-                          >
-                            View SQL
-                          </summary>
+                        </td>
+                        <td
+                          style={{
+                            padding: '15px 12px',
+                            textAlign: 'right',
+                            border: '1px solid #ddd',
+                          }}
+                        >
+                          {group.avgOfAverages.toFixed(2)}
                           <div
-                            style={{
-                              position: 'absolute',
-                              zIndex: 1000,
-                              background: 'white',
-                              border: '2px solid #2196f3',
-                              borderRadius: '4px',
-                              padding: '15px',
-                              maxWidth: '600px',
-                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                              marginTop: '5px',
-                            }}
+                            style={{ fontSize: '0.75em', fontWeight: 'normal' }}
                           >
-                            <pre
+                            avg
+                          </div>
+                        </td>
+                        <td
+                          colSpan={3}
+                          style={{
+                            padding: '15px 12px',
+                            border: '1px solid #ddd',
+                            textAlign: 'center',
+                            fontSize: '0.9em',
+                          }}
+                        >
+                          Click to expand and see performance at different
+                          scales
+                        </td>
+                      </tr>
+
+                      {/* Child Rows - Different Value Counts */}
+                      {isExpanded &&
+                        group.variants.map((variant) => {
+                          const scalabilityVariant = SCALABILITY_VARIANTS.find(
+                            (v) => v.id === variant.variantId
+                          );
+
+                          return (
+                            <tr
+                              key={variant.variantId}
                               style={{
-                                background: '#f5f5f5',
-                                padding: '10px',
-                                borderRadius: '4px',
-                                overflow: 'auto',
-                                maxHeight: '400px',
-                                fontSize: '0.85em',
-                                margin: 0,
-                                whiteSpace: 'pre-wrap',
+                                background: 'white',
+                                borderLeft: '4px solid #2196f3',
                               }}
                             >
-                              {variant?.query}
-                            </pre>
-                          </div>
-                        </details>
-                      </td>
-                    </tr>
+                              <td
+                                style={{
+                                  padding: '10px',
+                                  border: '1px solid #ddd',
+                                }}
+                              ></td>
+                              <td
+                                colSpan={2}
+                                style={{
+                                  padding: '10px 12px 10px 30px',
+                                  border: '1px solid #ddd',
+                                  fontSize: '0.9em',
+                                }}
+                              >
+                                <span style={{ color: '#666' }}>└─ </span>
+                                with {variant.valueCount} filter values
+                              </td>
+                              <td
+                                style={{
+                                  padding: '10px',
+                                  textAlign: 'right',
+                                  border: '1px solid #ddd',
+                                  fontWeight: 'bold',
+                                }}
+                              >
+                                {variant.executionTime.toFixed(2)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: '10px',
+                                  textAlign: 'right',
+                                  border: '1px solid #ddd',
+                                  fontSize: '0.85em',
+                                  color: '#666',
+                                }}
+                              >
+                                {variant.minTime.toFixed(2)} /{' '}
+                                {variant.maxTime.toFixed(2)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: '10px',
+                                  textAlign: 'right',
+                                  border: '1px solid #ddd',
+                                  fontSize: '0.85em',
+                                  color: '#666',
+                                }}
+                              >
+                                ±{variant.stdDev.toFixed(2)}
+                              </td>
+                              <td
+                                style={{
+                                  padding: '10px',
+                                  textAlign: 'center',
+                                  border: '1px solid #ddd',
+                                }}
+                              >
+                                <details style={{ cursor: 'pointer' }}>
+                                  <summary
+                                    style={{
+                                      padding: '4px 8px',
+                                      background: '#2196f3',
+                                      color: 'white',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.8em',
+                                      listStyle: 'none',
+                                    }}
+                                  >
+                                    SQL
+                                  </summary>
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      zIndex: 1000,
+                                      background: 'white',
+                                      border: '2px solid #2196f3',
+                                      borderRadius: '4px',
+                                      padding: '15px',
+                                      maxWidth: '600px',
+                                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                      marginTop: '5px',
+                                      right: '20px',
+                                    }}
+                                  >
+                                    <pre
+                                      style={{
+                                        background: '#f5f5f5',
+                                        padding: '10px',
+                                        borderRadius: '4px',
+                                        overflow: 'auto',
+                                        maxHeight: '400px',
+                                        fontSize: '0.85em',
+                                        margin: 0,
+                                        whiteSpace: 'pre-wrap',
+                                      }}
+                                    >
+                                      {scalabilityVariant?.query}
+                                    </pre>
+                                  </div>
+                                </details>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -876,7 +876,7 @@ export const RealQueryBenchmark = () => {
                   }}
                 >
                   {
-                    REAL_QUERY_VARIANTS.find(
+                    SCALABILITY_VARIANTS.find(
                       (v) => v.id === bestResult.variantId
                     )?.query
                   }
