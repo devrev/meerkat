@@ -7,13 +7,18 @@ import { generateTestData } from '../generate-test-data';
 import { useDBM } from '../hooks/dbm-context';
 
 export const RealQueryBenchmark = () => {
-  const { dbm } = useDBM();
+  const { dbm, fileManagerType } = useDBM();
   const [results, setResults] = useState<QueryBenchmarkResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [dataProgress, setDataProgress] = useState('');
   const [currentQuery, setCurrentQuery] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
+
+  const isNodeEnvironment = fileManagerType === 'native';
+  const environmentLabel = isNodeEnvironment
+    ? 'Node.js (Native)'
+    : 'Browser (WASM)';
 
   useEffect(() => {
     loadTestData();
@@ -70,6 +75,7 @@ export const RealQueryBenchmark = () => {
     const startTime = performance.now();
 
     console.log('\n🚀 Starting Real-World Query Optimization Benchmark\n');
+    console.log('Environment:', environmentLabel);
     console.log('Testing', REAL_QUERY_VARIANTS.length, 'query variants...\n');
 
     for (let i = 0; i < REAL_QUERY_VARIANTS.length; i++) {
@@ -129,6 +135,7 @@ export const RealQueryBenchmark = () => {
     // Console summary
     console.log('\n\n═══════════════════════════════════════════════════════');
     console.log('📊 BENCHMARK RESULTS SUMMARY');
+    console.log('Environment:', environmentLabel);
     console.log('═══════════════════════════════════════════════════════\n');
 
     const sortedByPerformance = [...benchmarkResults].sort(
@@ -263,6 +270,23 @@ export const RealQueryBenchmark = () => {
         </span>{' '}
         Real-World Query Optimization Benchmark
       </h1>
+      <div
+        style={{
+          display: 'inline-block',
+          padding: '6px 12px',
+          background: isNodeEnvironment ? '#4caf50' : '#2196f3',
+          color: 'white',
+          borderRadius: '4px',
+          fontSize: '0.9em',
+          fontWeight: 'bold',
+          marginBottom: '10px',
+        }}
+      >
+        <span role="img" aria-label="environment">
+          {isNodeEnvironment ? '⚙️' : '🌐'}
+        </span>{' '}
+        Environment: {environmentLabel}
+      </div>
       <p style={{ color: '#666', marginBottom: '20px', fontSize: '1.1em' }}>
         Testing {REAL_QUERY_VARIANTS.length} different optimization strategies
         on your production query pattern
@@ -405,6 +429,9 @@ export const RealQueryBenchmark = () => {
               Benchmark Complete
             </h3>
             <p>
+              <strong>Environment:</strong> {environmentLabel}
+            </p>
+            <p>
               <strong>Total Time:</strong> {totalTime.toFixed(2)}ms
             </p>
             <p>
@@ -414,6 +441,28 @@ export const RealQueryBenchmark = () => {
               <strong>Best Time:</strong> {bestResult?.executionTime.toFixed(2)}
               ms
             </p>
+            {!isNodeEnvironment && (
+              <p
+                style={{ fontSize: '0.9em', color: '#666', marginTop: '10px' }}
+              >
+                <span role="img" aria-label="tip">
+                  💡
+                </span>{' '}
+                <strong>Tip:</strong> Run the same benchmark in the Node
+                environment to compare native vs WASM performance!
+              </p>
+            )}
+            {isNodeEnvironment && (
+              <p
+                style={{ fontSize: '0.9em', color: '#666', marginTop: '10px' }}
+              >
+                <span role="img" aria-label="tip">
+                  💡
+                </span>{' '}
+                <strong>Note:</strong> Native Node.js typically runs 2-3x faster
+                than Browser WASM for complex queries.
+              </p>
+            )}
           </div>
 
           <h2>

@@ -34,10 +34,28 @@ export function App() {
             <Link to="/native-dbm">Native Node DuckDB</Link>
           </li>
           <li>
-            <Link to="/filter-benchmark">🔥 IN vs ANY Benchmark</Link>
+            <Link to="/filter-benchmark">
+              <span role="img" aria-label="fire">
+                🔥
+              </span>{' '}
+              IN vs ANY Benchmark
+            </Link>
           </li>
           <li>
-            <Link to="/real-query-benchmark">🚀 Real Query Optimization</Link>
+            <Link to="/real-query-benchmark">
+              <span role="img" aria-label="rocket">
+                🚀
+              </span>{' '}
+              Real Query Optimization (Browser)
+            </Link>
+          </li>
+          <li>
+            <Link to="/real-query-benchmark-node">
+              <span role="img" aria-label="rocket">
+                🚀
+              </span>{' '}
+              Real Query Optimization (Node)
+            </Link>
           </li>
         </ul>
       </nav>
@@ -129,6 +147,16 @@ export function App() {
               <MemoryDBMProvider>
                 <RealQueryBenchmark />
               </MemoryDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/real-query-benchmark-node"
+          element={
+            <div>
+              <NativeDBMProvider>
+                <RealQueryBenchmark />
+              </NativeDBMProvider>
             </div>
           }
         />
