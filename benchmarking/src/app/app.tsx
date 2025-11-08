@@ -7,6 +7,7 @@ import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-con
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
 import { NativeAppFileLoader } from './file-loader/native-app-file-loader';
+import { FilterOperatorBenchmark } from './filter-operator-benchmark/filter-operator-benchmark';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 
 export function App() {
@@ -31,6 +32,9 @@ export function App() {
           </li>
           <li>
             <Link to="/native-dbm">Native Node DuckDB</Link>
+          </li>
+          <li>
+            <Link to="/filter-benchmark">🔥 IN vs ANY Benchmark</Link>
           </li>
         </ul>
       </nav>
@@ -111,6 +115,16 @@ export function App() {
                   <QueryBenchmarking />
                 </NativeAppFileLoader>
               </NativeDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/filter-benchmark"
+          element={
+            <div>
+              <MemoryDBMProvider>
+                <FilterOperatorBenchmark />
+              </MemoryDBMProvider>
             </div>
           }
         />
