@@ -14,7 +14,7 @@ app.use(express.json());
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 app.get('/api', async (req, res) => {
-  const sql = `SELECT json_serialize_sql('SELECT * FROM table_1 WHERE type = ANY(ARRAY[''issue'']::VARCHAR[])');`;
+  const sql = `SELECT json_serialize_sql('SELECT * FROM table_1 WHERE type != ALL(ARRAY[''issue'']::VARCHAR[])');`;
   const data = await nodeSQLToSerialization(sql);
   res.json({ message: data });
 });

@@ -1,6 +1,12 @@
 import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import {
+  AggregateHandling,
+  QueryNodeType,
+  ResultModifierType,
+  TableReferenceType,
+} from '../../types/duckdb-serialization-types';
+import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
@@ -20,6 +26,12 @@ const inDuckDbCondition = (
       value: valueBuilder(value, memberInfo),
     };
   });
+  const columnRef = {
+    class: ExpressionClass.COLUMN_REF,
+    type: ExpressionType.COLUMN_REF,
+    alias: '',
+    column_names: columnName.split(COLUMN_NAME_DELIMITER),
+  };
   switch (memberInfo.type) {
     case 'number_array':
     case 'string_array': {
@@ -30,12 +42,7 @@ const inDuckDbCondition = (
         function_name: '&&',
         schema: '',
         children: [
-          {
-            class: 'COLUMN_REF',
-            type: 'COLUMN_REF',
-            alias: '',
-            column_names: columnName.split(COLUMN_NAME_DELIMITER),
-          },
+          columnRef,
           {
             class: ExpressionClass.OPERATOR,
             type: ExpressionType.ARRAY_CONSTRUCTOR,
@@ -62,26 +69,26 @@ const inDuckDbCondition = (
         subquery_type: 'ANY',
         subquery: {
           node: {
-            type: 'SELECT_NODE',
+            type: QueryNodeType.SELECT_NODE,
             modifiers: [],
             cte_map: {
               map: [],
             },
             select_list: [
               {
-                class: 'FUNCTION',
-                type: 'FUNCTION',
+                class: ExpressionClass.FUNCTION,
+                type: ExpressionType.FUNCTION,
                 alias: '',
                 function_name: 'unnest',
                 schema: '',
                 children: [
                   {
-                    class: 'CAST',
-                    type: 'OPERATOR_CAST',
+                    class: ExpressionClass.CAST,
+                    type: ExpressionType.OPERATOR_CAST,
                     alias: '',
                     child: {
-                      class: 'OPERATOR',
-                      type: 'ARRAY_CONSTRUCTOR',
+                      class: ExpressionClass.OPERATOR,
+                      type: ExpressionType.ARRAY_CONSTRUCTOR,
                       alias: '',
                       children: sqlTreeValues,
                     },
@@ -102,7 +109,7 @@ const inDuckDbCondition = (
                 ],
                 filter: null,
                 order_bys: {
-                  type: 'ORDER_MODIFIER',
+                  type: ResultModifierType.ORDER_MODIFIER,
                   orders: [],
                 },
                 distinct: false,
@@ -112,26 +119,21 @@ const inDuckDbCondition = (
               },
             ],
             from_table: {
-              type: 'EMPTY',
+              type: TableReferenceType.EMPTY,
               alias: '',
               sample: null,
             },
             where_clause: null,
             group_expressions: [],
             group_sets: [],
-            aggregate_handling: 'STANDARD_HANDLING',
+            aggregate_handling: AggregateHandling.STANDARD_HANDLING,
             having: null,
             sample: null,
             qualify: null,
           },
         },
-        child: {
-          class: 'COLUMN_REF',
-          type: 'COLUMN_REF',
-          alias: '',
-          column_names: ['type'],
-        },
-        comparison_type: 'COMPARE_EQUAL',
+        child: columnRef,
+        comparison_type: ExpressionType.COMPARE_EQUAL,
       };
     }
   }

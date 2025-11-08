@@ -3,6 +3,13 @@ import { CubeToParseExpressionTransform } from '../factory';
 
 import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
+  AggregateHandling,
+  QueryNodeType,
+  ResultModifierType,
+  SubqueryType,
+  TableReferenceType,
+} from '../../types/duckdb-serialization-types';
+import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
@@ -22,8 +29,8 @@ const notInDuckDbCondition = (
     };
   });
   const columnRef = {
-    class: 'COLUMN_REF',
-    type: 'COLUMN_REF',
+    class: ExpressionClass.COLUMN_REF,
+    type: ExpressionType.COLUMN_REF,
     alias: '',
     column_names: columnName.split(COLUMN_NAME_DELIMITER),
   };
@@ -52,7 +59,7 @@ const notInDuckDbCondition = (
             ],
             filter: null,
             order_bys: {
-              type: 'ORDER_MODIFIER',
+              type: ResultModifierType.ORDER_MODIFIER,
               orders: [],
             },
             distinct: false,
@@ -66,9 +73,83 @@ const notInDuckDbCondition = (
     default: {
       return {
         class: ExpressionClass.OPERATOR,
-        type: ExpressionType.COMPARE_NOT_IN,
+        type: ExpressionType.OPERATOR_NOT,
         alias: '',
-        children: [columnRef, ...sqlTreeValues],
+        children: [
+          {
+            class: 'SUBQUERY',
+            type: ExpressionType.SUBQUERY,
+            alias: '',
+            subquery_type: SubqueryType.ANY,
+            subquery: {
+              node: {
+                type: QueryNodeType.SELECT_NODE,
+                modifiers: [],
+                cte_map: {
+                  map: [],
+                },
+                select_list: [
+                  {
+                    class: ExpressionClass.FUNCTION,
+                    type: ExpressionType.FUNCTION,
+                    alias: '',
+                    function_name: 'unnest',
+                    schema: '',
+                    children: [
+                      {
+                        class: ExpressionClass.CAST,
+                        type: ExpressionType.OPERATOR_CAST,
+                        alias: '',
+                        child: {
+                          class: ExpressionClass.OPERATOR,
+                          type: ExpressionType.ARRAY_CONSTRUCTOR,
+                          alias: '',
+                          children: sqlTreeValues,
+                        },
+                        cast_type: {
+                          id: 'LIST',
+                          type_info: {
+                            type: 'LIST_TYPE_INFO',
+                            alias: '',
+                            modifiers: [],
+                            child_type: {
+                              id: 'VARCHAR',
+                              type_info: null,
+                            },
+                          },
+                        },
+                        try_cast: false,
+                      },
+                    ],
+                    filter: null,
+                    order_bys: {
+                      type: ResultModifierType.ORDER_MODIFIER,
+                      orders: [],
+                    },
+                    distinct: false,
+                    is_operator: false,
+                    export_state: false,
+                    catalog: '',
+                  },
+                ],
+                from_table: {
+                  type: TableReferenceType.EMPTY,
+                  alias: '',
+                  sample: null,
+                },
+                where_clause: null,
+                group_expressions: [],
+                group_sets: [],
+                aggregate_handling: AggregateHandling.STANDARD_HANDLING,
+                having: null,
+                sample: null,
+                qualify: null,
+              },
+            },
+            child: columnRef,
+            comparison_type: ExpressionType.COMPARE_EQUAL,
+          },
+        ],
       };
     }
   }
