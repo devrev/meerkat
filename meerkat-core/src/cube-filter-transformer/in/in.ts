@@ -20,12 +20,6 @@ const inDuckDbCondition = (
       value: valueBuilder(value, memberInfo),
     };
   });
-  const columnRef = {
-    class: 'COLUMN_REF',
-    type: 'COLUMN_REF',
-    alias: '',
-    column_names: columnName.split(COLUMN_NAME_DELIMITER),
-  };
   switch (memberInfo.type) {
     case 'number_array':
     case 'string_array': {
@@ -36,7 +30,12 @@ const inDuckDbCondition = (
         function_name: '&&',
         schema: '',
         children: [
-          columnRef,
+          {
+            class: 'COLUMN_REF',
+            type: 'COLUMN_REF',
+            alias: '',
+            column_names: columnName.split(COLUMN_NAME_DELIMITER),
+          },
           {
             class: ExpressionClass.OPERATOR,
             type: ExpressionType.ARRAY_CONSTRUCTOR,
@@ -57,10 +56,82 @@ const inDuckDbCondition = (
     }
     default: {
       return {
-        class: ExpressionClass.OPERATOR,
-        type: ExpressionType.COMPARE_IN,
+        class: ExpressionClass.SUBQUERY,
+        type: ExpressionType.SUBQUERY,
         alias: '',
-        children: [columnRef, ...sqlTreeValues],
+        subquery_type: 'ANY',
+        subquery: {
+          node: {
+            type: 'SELECT_NODE',
+            modifiers: [],
+            cte_map: {
+              map: [],
+            },
+            select_list: [
+              {
+                class: 'FUNCTION',
+                type: 'FUNCTION',
+                alias: '',
+                function_name: 'unnest',
+                schema: '',
+                children: [
+                  {
+                    class: 'CAST',
+                    type: 'OPERATOR_CAST',
+                    alias: '',
+                    child: {
+                      class: 'OPERATOR',
+                      type: 'ARRAY_CONSTRUCTOR',
+                      alias: '',
+                      children: sqlTreeValues,
+                    },
+                    cast_type: {
+                      id: 'LIST',
+                      type_info: {
+                        type: 'LIST_TYPE_INFO',
+                        alias: '',
+                        modifiers: [],
+                        child_type: {
+                          id: 'VARCHAR',
+                          type_info: null,
+                        },
+                      },
+                    },
+                    try_cast: false,
+                  },
+                ],
+                filter: null,
+                order_bys: {
+                  type: 'ORDER_MODIFIER',
+                  orders: [],
+                },
+                distinct: false,
+                is_operator: false,
+                export_state: false,
+                catalog: '',
+              },
+            ],
+            from_table: {
+              type: 'EMPTY',
+              alias: '',
+              sample: null,
+            },
+            where_clause: null,
+            group_expressions: [],
+            group_sets: [],
+            aggregate_handling: 'STANDARD_HANDLING',
+            having: null,
+            sample: null,
+            qualify: null,
+          },
+        },
+        child: {
+          class: 'COLUMN_REF',
+          type: 'COLUMN_REF',
+          alias: '',
+          column_names: ['type'],
+        },
+        comparison_type: 'COMPARE_EQUAL',
       };
     }
   }
