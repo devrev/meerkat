@@ -8,7 +8,7 @@ import {
 import { generateTestData } from '../generate-test-data';
 import { useDBM } from '../hooks/dbm-context';
 
-const ITERATIONS_PER_QUERY = 3; // Run each query 3 times for faster results
+const ITERATIONS_PER_QUERY = 10; // Run each query 10 times for reliable median
 
 interface RealQueryBenchmarkProps {
   comparative?: boolean;
@@ -70,7 +70,20 @@ export const RealQueryBenchmark = ({
       if (i === 0) {
         await dbm.query(`
           CREATE OR REPLACE TABLE test_data AS 
-          SELECT * FROM (VALUES ${values}) AS t(id, engineering_pod, type, subtype, year, 
+          SELECT 
+            id::VARCHAR AS id,
+            engineering_pod::VARCHAR AS engineering_pod,
+            type::VARCHAR AS type,
+            subtype::VARCHAR AS subtype,
+            year::VARCHAR AS year,
+            state::VARCHAR AS state,
+            priority::VARCHAR AS priority,
+            created_date::DATE AS created_date,
+            trip_miles::DOUBLE AS trip_miles,
+            trip_duration::DOUBLE AS trip_duration,
+            base_num::VARCHAR AS base_num,
+            license_num::VARCHAR AS license_num
+          FROM (VALUES ${values}) AS t(id, engineering_pod, type, subtype, year, 
             state, priority, created_date, trip_miles, trip_duration, base_num, license_num)
         `);
       } else {
@@ -86,6 +99,16 @@ export const RealQueryBenchmark = ({
     console.log('Test data loaded successfully');
     setLoadingData(false);
     setDataProgress('');
+  };
+
+  const calculateMedian = (values: number[]): number => {
+    if (values.length === 0) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) {
+      return (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+    return sorted[middle];
   };
 
   const formatTime = (ms: number): string => {
@@ -124,13 +147,13 @@ export const RealQueryBenchmark = ({
 
     const grouped = Array.from(groupMap.entries()).map(
       ([optimizationType, items]) => {
-        const avgOfAverages =
+        const medianOfMedians =
           items.reduce((sum, item) => sum + item.executionTime, 0) /
           items.length;
         return {
           optimizationType,
           items,
-          avgOfAverages,
+          avgOfAverages: medianOfMedians, // Keep name for compatibility but it's now median
         };
       }
     );
@@ -147,18 +170,20 @@ export const RealQueryBenchmark = ({
     const baselineGroup = grouped.find(
       (g) => g.optimizationType === BASELINE_NAME
     );
-    const baselineAvg = baselineGroup?.avgOfAverages || 0;
+    const baselineMedian = baselineGroup?.avgOfAverages || 0;
 
     let message = `*🚀 SQL Query Optimization Benchmark Results*\n\n`;
     message += `*Environment:* ${environment}\n`;
     message += `*Iterations per query:* ${ITERATIONS_PER_QUERY}\n`;
+    message += `*Metric:* Median execution time (cold cache)\n`;
+    message += `*Cache clearing:* CHECKPOINT before each run\n`;
     message += `*Test scales:* 5, 10, 100, 1000 filter values\n\n`;
 
     // Create main comparison table
     message += `*📊 Performance Comparison Table*\n`;
     message += `\`\`\`\n`;
     message += `╔═════╦══════════════════════════════════════╦════════════╦═══════════╦══════════╦══════════╦══════════╦══════════╗\n`;
-    message += `║ Rnk ║ Optimization Strategy                ║ Avg Time   ║ Improve % ║ 5 vals   ║ 10 vals  ║ 100 vals ║ 1000 vls ║\n`;
+    message += `║ Rnk ║ Optimization Strategy                ║ Med Time   ║ Improve % ║ 5 vals   ║ 10 vals  ║ 100 vals ║ 1000 vls ║\n`;
     message += `╠═════╬══════════════════════════════════════╬════════════╬═══════════╬══════════╬══════════╬══════════╬══════════╣\n`;
 
     sortedGroups.forEach((group, idx) => {
@@ -171,15 +196,15 @@ export const RealQueryBenchmark = ({
           ? group.optimizationType.substring(0, 33) + '...'
           : group.optimizationType.padEnd(36);
 
-      const avgTimeStr = formatTime(group.avgOfAverages).padStart(10);
+      const medianTimeStr = formatTime(group.avgOfAverages).padStart(10);
 
       let improvementStr = '';
       if (group.optimizationType === BASELINE_NAME) {
         improvementStr = '(baseline)'.padStart(9);
       } else {
         const improvement =
-          baselineAvg > 0
-            ? ((baselineAvg - group.avgOfAverages) / baselineAvg) * 100
+          baselineMedian > 0
+            ? ((baselineMedian - group.avgOfAverages) / baselineMedian) * 100
             : 0;
         const sign = improvement > 0 ? '+' : '';
         improvementStr = `${sign}${improvement.toFixed(1)}%`.padStart(9);
@@ -204,7 +229,7 @@ export const RealQueryBenchmark = ({
         ? formatTime(val1000.executionTime).padStart(8)
         : 'N/A'.padStart(8);
 
-      message += `║ ${medal} ║ ${strategyName} ║ ${avgTimeStr} ║ ${improvementStr} ║ ${val5Str} ║ ${val10Str} ║ ${val100Str} ║ ${val1000Str} ║\n`;
+      message += `║ ${medal} ║ ${strategyName} ║ ${medianTimeStr} ║ ${improvementStr} ║ ${val5Str} ║ ${val10Str} ║ ${val100Str} ║ ${val1000Str} ║\n`;
     });
 
     message += `╚═════╩══════════════════════════════════════╩════════════╩═══════════╩══════════╩══════════╩══════════╩══════════╝\n`;
@@ -219,21 +244,23 @@ export const RealQueryBenchmark = ({
       (g) => g.optimizationType === ANY_PUSHDOWN
     );
 
-    if (anyLateFilterGroup && baselineAvg > 0) {
+    if (anyLateFilterGroup && baselineMedian > 0) {
       const anyLateImprovement =
-        ((baselineAvg - anyLateFilterGroup.avgOfAverages) / baselineAvg) * 100;
+        ((baselineMedian - anyLateFilterGroup.avgOfAverages) / baselineMedian) *
+        100;
       const anyPushdownImprovement = anyPushdownGroup
-        ? ((baselineAvg - anyPushdownGroup.avgOfAverages) / baselineAvg) * 100
+        ? ((baselineMedian - anyPushdownGroup.avgOfAverages) / baselineMedian) *
+          100
         : 0;
 
       message += `\`\`\`\n`;
       message += `Simple ANY (Late Filter):  ${formatTime(
         anyLateFilterGroup.avgOfAverages
-      ).padStart(10)} avg  (+${anyLateImprovement.toFixed(1)}%)\n`;
+      ).padStart(10)} median  (+${anyLateImprovement.toFixed(1)}%)\n`;
       if (anyPushdownGroup) {
         message += `ANY + Filter Pushdown:     ${formatTime(
           anyPushdownGroup.avgOfAverages
-        ).padStart(10)} avg  (+${anyPushdownImprovement.toFixed(1)}%)\n`;
+        ).padStart(10)} median  (+${anyPushdownImprovement.toFixed(1)}%)\n`;
       }
       message += `\`\`\`\n\n`;
     }
@@ -243,11 +270,13 @@ export const RealQueryBenchmark = ({
       (g) => g.optimizationType !== BASELINE_NAME
     );
 
-    if (anyLateFilterGroup && baselineAvg > 0) {
+    if (anyLateFilterGroup && baselineMedian > 0) {
       const anyLateImprovement =
-        ((baselineAvg - anyLateFilterGroup.avgOfAverages) / baselineAvg) * 100;
+        ((baselineMedian - anyLateFilterGroup.avgOfAverages) / baselineMedian) *
+        100;
       const topImprovement = bestNonBaseline
-        ? ((baselineAvg - bestNonBaseline.avgOfAverages) / baselineAvg) * 100
+        ? ((baselineMedian - bestNonBaseline.avgOfAverages) / baselineMedian) *
+          100
         : 0;
 
       message += `> Switching from \`IN\` to \`ANY\` operator provides a *${anyLateImprovement.toFixed(
@@ -279,7 +308,7 @@ export const RealQueryBenchmark = ({
     console.log(
       'Running each query',
       ITERATIONS_PER_QUERY,
-      'times for reliable averages\n'
+      'times for reliable median values (with cache clearing)\n'
     );
 
     for (let i = 0; i < VARIANTS.length; i++) {
@@ -297,6 +326,15 @@ export const RealQueryBenchmark = ({
       // Run query multiple times
       for (let iteration = 0; iteration < ITERATIONS_PER_QUERY; iteration++) {
         setCurrentIteration(iteration + 1);
+
+        // Clear cache before each run for fair benchmarking
+        try {
+          await dbm.query('CHECKPOINT');
+          // Small delay to ensure cache is cleared
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        } catch (error) {
+          console.warn('⚠️ Could not clear cache:', error);
+        }
 
         const iterationStart = performance.now();
 
@@ -318,12 +356,14 @@ export const RealQueryBenchmark = ({
       }
 
       // Calculate statistics
-      const avgTime = runTimes.reduce((a, b) => a + b, 0) / runTimes.length;
+      const medianTime = calculateMedian(runTimes);
       const minTime = Math.min(...runTimes);
       const maxTime = Math.max(...runTimes);
 
-      // Calculate standard deviation
-      const squaredDiffs = runTimes.map((time) => Math.pow(time - avgTime, 2));
+      // Calculate standard deviation (using median as center)
+      const squaredDiffs = runTimes.map((time) =>
+        Math.pow(time - medianTime, 2)
+      );
       const variance =
         squaredDiffs.reduce((a, b) => a + b, 0) / runTimes.length;
       const stdDev = Math.sqrt(variance);
@@ -334,7 +374,7 @@ export const RealQueryBenchmark = ({
         optimizationType: variant.optimizationType,
         valueCount: variant.valueCount,
         optimizations: variant.optimizations,
-        executionTime: avgTime,
+        executionTime: medianTime,
         minTime,
         maxTime,
         stdDev,
@@ -343,7 +383,7 @@ export const RealQueryBenchmark = ({
       });
 
       console.log(
-        `✅ Average: ${avgTime.toFixed(2)}ms (min: ${minTime.toFixed(
+        `✅ Median: ${medianTime.toFixed(2)}ms (min: ${minTime.toFixed(
           2
         )}ms, max: ${maxTime.toFixed(2)}ms, σ: ${stdDev.toFixed(2)}ms)`
       );
@@ -681,7 +721,10 @@ export const RealQueryBenchmark = ({
         </p>
         <p style={{ margin: '0 0 5px 0' }}>
           • <strong>Iterations:</strong> Each query runs {ITERATIONS_PER_QUERY}{' '}
-          times for reliable average measurements
+          times for reliable median measurements (cold cache)
+        </p>
+        <p style={{ margin: '0 0 5px 0' }}>
+          • <strong>Cache Clearing:</strong> CHECKPOINT executed before each run
         </p>
         <p
           style={{
@@ -770,8 +813,8 @@ export const RealQueryBenchmark = ({
             {ITERATIONS_PER_QUERY}
           </p>
           <p style={{ fontSize: '0.9em', color: '#666' }}>
-            Running each query {ITERATIONS_PER_QUERY} times for accurate
-            averages...
+            Running each query {ITERATIONS_PER_QUERY} times for accurate median
+            values (clearing cache between runs)...
           </p>
         </div>
       )}
@@ -828,6 +871,266 @@ export const RealQueryBenchmark = ({
               </p>
             )}
           </div>
+
+          {/* IN vs ANY Winner Summary Card - Only in comparative mode */}
+          {comparative &&
+            (() => {
+              // Get all value counts tested
+              const valueCounts = [
+                ...new Set(results.map((r) => r.valueCount)),
+              ].sort((a, b) => a - b);
+
+              // For each value count, determine winner
+              const winsByValueCount = valueCounts.map((count) => {
+                const resultsAtCount = results.filter(
+                  (r) => r.valueCount === count
+                );
+
+                // Get IN and ANY results
+                const inResults = resultsAtCount.filter(
+                  (r) =>
+                    r.optimizations.includes('IN Operator') ||
+                    (r.optimizationType.includes('IN') &&
+                      !r.optimizationType.includes('ANY'))
+                );
+                const anyResults = resultsAtCount.filter(
+                  (r) =>
+                    r.optimizations.includes('ANY Operator') ||
+                    r.optimizationType.includes('ANY')
+                );
+
+                if (inResults.length === 0 || anyResults.length === 0) {
+                  return {
+                    count,
+                    winner: 'N/A',
+                    inAvg: 0,
+                    anyAvg: 0,
+                    difference: 0,
+                  };
+                }
+
+                // Calculate average for each
+                const inAvg =
+                  inResults.reduce((sum, r) => sum + r.executionTime, 0) /
+                  inResults.length;
+                const anyAvg =
+                  anyResults.reduce((sum, r) => sum + r.executionTime, 0) /
+                  anyResults.length;
+
+                const difference = Math.abs(inAvg - anyAvg);
+                const percentDiff =
+                  (difference / Math.max(inAvg, anyAvg)) * 100;
+
+                // Determine winner (with 5% tie threshold)
+                let winner: 'IN' | 'ANY' | 'TIE';
+                if (percentDiff < 5) {
+                  winner = 'TIE';
+                } else if (inAvg < anyAvg) {
+                  winner = 'IN';
+                } else {
+                  winner = 'ANY';
+                }
+
+                return {
+                  count,
+                  winner,
+                  inAvg,
+                  anyAvg,
+                  difference: percentDiff,
+                };
+              });
+
+              const inWins = winsByValueCount.filter(
+                (w) => w.winner === 'IN'
+              ).length;
+              const anyWins = winsByValueCount.filter(
+                (w) => w.winner === 'ANY'
+              ).length;
+              const ties = winsByValueCount.filter(
+                (w) => w.winner === 'TIE'
+              ).length;
+
+              // Determine overall winner
+              const overallWinner =
+                inWins > anyWins ? 'IN' : anyWins > inWins ? 'ANY' : 'TIE';
+              const winnerColor =
+                overallWinner === 'IN'
+                  ? '#4caf50'
+                  : overallWinner === 'ANY'
+                  ? '#2196f3'
+                  : '#ff9800';
+
+              return (
+                <div
+                  style={{
+                    padding: '20px',
+                    background: '#fff',
+                    borderRadius: '8px',
+                    marginBottom: '20px',
+                    border: `3px solid ${winnerColor}`,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  <h2
+                    style={{
+                      marginTop: 0,
+                      marginBottom: '15px',
+                      color: winnerColor,
+                    }}
+                  >
+                    <span role="img" aria-label="trophy">
+                      🏆
+                    </span>{' '}
+                    IN vs ANY Winner Summary
+                  </h2>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '20px',
+                      marginBottom: '20px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: '200px',
+                        padding: '15px',
+                        background: '#4caf50',
+                        color: 'white',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: '2em', fontWeight: 'bold' }}>
+                        {inWins}
+                      </div>
+                      <div style={{ fontSize: '0.9em' }}>IN Operator Wins</div>
+                    </div>
+
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: '200px',
+                        padding: '15px',
+                        background: '#2196f3',
+                        color: 'white',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: '2em', fontWeight: 'bold' }}>
+                        {anyWins}
+                      </div>
+                      <div style={{ fontSize: '0.9em' }}>ANY Operator Wins</div>
+                    </div>
+
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: '200px',
+                        padding: '15px',
+                        background: '#ff9800',
+                        color: 'white',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: '2em', fontWeight: 'bold' }}>
+                        {ties}
+                      </div>
+                      <div style={{ fontSize: '0.9em' }}>
+                        Ties (&lt;5% diff)
+                      </div>
+                    </div>
+                  </div>
+
+                  <h3 style={{ marginBottom: '10px' }}>
+                    Breakdown by Value Count:
+                  </h3>
+                  <div
+                    style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}
+                  >
+                    {winsByValueCount.map(({ count, winner, difference }) => {
+                      const bgColor =
+                        winner === 'IN'
+                          ? '#e8f5e9'
+                          : winner === 'ANY'
+                          ? '#e3f2fd'
+                          : '#fff3e0';
+                      const borderColor =
+                        winner === 'IN'
+                          ? '#4caf50'
+                          : winner === 'ANY'
+                          ? '#2196f3'
+                          : '#ff9800';
+                      const textColor =
+                        winner === 'IN'
+                          ? '#2e7d32'
+                          : winner === 'ANY'
+                          ? '#1565c0'
+                          : '#e65100';
+
+                      return (
+                        <div
+                          key={count}
+                          style={{
+                            padding: '10px 15px',
+                            background: bgColor,
+                            border: `2px solid ${borderColor}`,
+                            borderRadius: '6px',
+                            minWidth: '120px',
+                            textAlign: 'center',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '1.2em',
+                              fontWeight: 'bold',
+                              color: textColor,
+                            }}
+                          >
+                            {winner}
+                          </div>
+                          <div style={{ fontSize: '0.85em', color: '#666' }}>
+                            at {count} values
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.75em',
+                              color: '#999',
+                              marginTop: '4px',
+                            }}
+                          >
+                            {difference.toFixed(1)}% diff
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: '20px',
+                      padding: '15px',
+                      background: winnerColor,
+                      color: 'white',
+                      borderRadius: '8px',
+                      fontSize: '1.1em',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {overallWinner === 'TIE'
+                      ? '🤝 Overall: IN and ANY are equally performant!'
+                      : `🏆 Overall Winner: ${overallWinner} Operator (${
+                          overallWinner === 'IN' ? inWins : anyWins
+                        } out of ${valueCounts.length} value counts)`}
+                  </div>
+                </div>
+              );
+            })()}
 
           <h2>
             <span role="img" aria-label="trophy">
@@ -898,7 +1201,7 @@ export const RealQueryBenchmark = ({
                       width: '140px',
                     }}
                   >
-                    Avg Time (ms)
+                    Median Time (ms)
                   </th>
                   <th
                     style={{
@@ -946,11 +1249,12 @@ export const RealQueryBenchmark = ({
                 {getGroupedResults().map((group, groupIndex) => {
                   const isExpanded = expandedRows.has(group.optimizationType);
                   const firstVariant = group.variants[0];
-                  const baselineAvg = getGroupedResults()[0].avgOfAverages;
+                  const baselineMedian = getGroupedResults()[0].avgOfAverages;
                   const groupImprovement =
                     groupIndex === 0
                       ? 0
-                      : ((baselineAvg - group.avgOfAverages) / baselineAvg) *
+                      : ((baselineMedian - group.avgOfAverages) /
+                          baselineMedian) *
                         100;
 
                   return (
