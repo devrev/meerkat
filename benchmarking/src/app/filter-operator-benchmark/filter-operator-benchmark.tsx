@@ -3,6 +3,10 @@ import {
   FILTER_BENCHMARK_QUERIES,
   getQueryPairs,
 } from '../constants-filter-benchmark';
+import {
+  OPTIMIZATION_PATTERNS,
+  getOptimizationPairs,
+} from '../constants-optimization-patterns';
 import { generateTestData } from '../generate-test-data';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
@@ -22,9 +26,20 @@ interface ComparisonResult {
   winner: 'IN' | 'ANY' | 'TIE';
 }
 
+interface OptimizationComparisonResult {
+  testName: string;
+  slowTime: number;
+  fastTime: number;
+  improvement: string;
+  timeSaved: number;
+}
+
 export const FilterOperatorBenchmark = () => {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [comparisons, setComparisons] = useState<ComparisonResult[]>([]);
+  const [optimizationComparisons, setOptimizationComparisons] = useState<
+    OptimizationComparisonResult[]
+  >([]);
   const [totalTime, setTotalTime] = useState<number>(0);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [currentQuery, setCurrentQuery] = useState<number>(0);
@@ -96,10 +111,16 @@ export const FilterOperatorBenchmark = () => {
     const start = performance.now();
     const benchmarkResults: BenchmarkResult[] = [];
 
+    // Combine all queries
+    const allQueries = [
+      ...FILTER_BENCHMARK_QUERIES.map((q) => ({ ...q, type: 'IN_vs_ANY' })),
+      ...OPTIMIZATION_PATTERNS.map((q) => ({ ...q, type: 'OPTIMIZATION' })),
+    ];
+
     // Run each query sequentially to get accurate timing
-    for (let i = 0; i < FILTER_BENCHMARK_QUERIES.length; i++) {
+    for (let i = 0; i < allQueries.length; i++) {
       setCurrentQuery(i + 1);
-      const query = FILTER_BENCHMARK_QUERIES[i];
+      const query = allQueries[i];
       const queryStart = performance.now();
 
       try {
@@ -296,6 +317,101 @@ export const FilterOperatorBenchmark = () => {
     }
     console.log('─'.repeat(100) + '\n');
 
+    // Test optimization patterns
+    console.log('\n' + '='.repeat(100));
+    console.log('⚡ OPTIMIZATION PATTERN COMPARISONS');
+    console.log('='.repeat(100) + '\n');
+
+    const optimizationPairs = getOptimizationPairs();
+    const optimizationTableData: Array<{
+      Pattern: string;
+      'Slow (ms)': string;
+      'Fast (ms)': string;
+      'Improvement (%)': string;
+      'Time Saved (ms)': string;
+    }> = [];
+    const optimizationComparisonResults: OptimizationComparisonResult[] = [];
+
+    optimizationPairs.forEach((pair) => {
+      const slowResult = benchmarkResults.find(
+        (r) => r.queryName === pair.slow.name
+      );
+      const fastResult = benchmarkResults.find(
+        (r) => r.queryName === pair.fast.name
+      );
+
+      if (slowResult && fastResult) {
+        const slowTime = slowResult.time;
+        const fastTime = fastResult.time;
+        const diff = slowTime - fastTime;
+        const percentDiff = ((diff / slowTime) * 100).toFixed(2);
+
+        optimizationTableData.push({
+          Pattern: pair.category,
+          'Slow (ms)': slowTime.toFixed(2),
+          'Fast (ms)': fastTime.toFixed(2),
+          'Improvement (%)': percentDiff,
+          'Time Saved (ms)': diff.toFixed(2),
+        });
+
+        // Add to UI comparison results
+        optimizationComparisonResults.push({
+          testName: pair.category,
+          slowTime,
+          fastTime,
+          improvement: `${percentDiff}% faster`,
+          timeSaved: diff,
+        });
+      }
+    });
+
+    setOptimizationComparisons(optimizationComparisonResults);
+
+    console.table(optimizationTableData);
+
+    // Summary of optimization impact
+    const totalSlowTime = optimizationTableData.reduce(
+      (sum, row) => sum + parseFloat(row['Slow (ms)']),
+      0
+    );
+    const totalFastTime = optimizationTableData.reduce(
+      (sum, row) => sum + parseFloat(row['Fast (ms)']),
+      0
+    );
+    const overallOptimization = (
+      ((totalSlowTime - totalFastTime) / totalSlowTime) *
+      100
+    ).toFixed(2);
+
+    console.log('\n🎯 OPTIMIZATION PATTERN SUMMARY:');
+    console.log('─'.repeat(100));
+    console.log(`Patterns Tested:            ${optimizationPairs.length}`);
+    console.log(`Total Slow Time:            ${totalSlowTime.toFixed(2)} ms`);
+    console.log(`Total Fast Time:            ${totalFastTime.toFixed(2)} ms`);
+    console.log(
+      `Total Time Saved:           ${(totalSlowTime - totalFastTime).toFixed(
+        2
+      )} ms`
+    );
+    console.log(`Overall Optimization:       ${overallOptimization}%`);
+    console.log('─'.repeat(100));
+
+    // Identify biggest wins
+    const sortedByImpact = [...optimizationTableData].sort(
+      (a, b) =>
+        parseFloat(b['Improvement (%)']) - parseFloat(a['Improvement (%)'])
+    );
+
+    console.log('\n🏆 TOP 3 OPTIMIZATION OPPORTUNITIES:');
+    sortedByImpact.slice(0, 3).forEach((row, index) => {
+      console.log(
+        `${index + 1}. ${row.Pattern}: ${
+          row['Improvement (%)']
+        }% improvement (${row['Time Saved (ms)']}ms saved)`
+      );
+    });
+    console.log('─'.repeat(100) + '\n');
+
     setIsRunning(false);
     setCurrentQuery(0);
   };
@@ -328,13 +444,19 @@ export const FilterOperatorBenchmark = () => {
             fontSize: '1.1em',
           }}
         >
-          📊 Extended Benchmark: 26 Test Scenarios
+          📊 Comprehensive Benchmark:{' '}
+          {FILTER_BENCHMARK_QUERIES.length + OPTIMIZATION_PATTERNS.length} Test
+          Scenarios
         </p>
         <p style={{ margin: '0 0 5px 0' }}>
-          • Value counts: 5, 10, 20, 30, 50, 100, 500, <strong>1000</strong>
+          • <strong>IN vs ANY:</strong> 5, 10, 20, 30, 50, 100, 500, 1000 values
         </p>
         <p style={{ margin: '0 0 5px 0' }}>
-          • Query types: Simple, Aggregation, Complex, Subquery
+          • <strong>Filter Optimization:</strong> Tests filter pushdown impact
+          on query performance
+        </p>
+        <p style={{ margin: '0 0 5px 0' }}>
+          • Query types: Simple, Aggregation, Complex, Subquery, CTE
         </p>
         <p style={{ margin: '0', fontWeight: 'bold', color: '#1976d2' }}>
           💡 Check browser console (F12) for detailed performance tables and
@@ -387,13 +509,14 @@ export const FilterOperatorBenchmark = () => {
           >
             <h3>✓ Benchmark Complete</h3>
             <p>
-              <strong>Total Time:</strong>{' '}
+              <strong>Total Benchmark Time:</strong>{' '}
               <span id="total_time">{totalTime.toFixed(2)}ms</span>
             </p>
             <p>
               <strong>Queries Executed:</strong>{' '}
-              {FILTER_BENCHMARK_QUERIES.length} ({comparisons.length}{' '}
-              comparisons)
+              {FILTER_BENCHMARK_QUERIES.length + OPTIMIZATION_PATTERNS.length}(
+              {comparisons.length} IN/ANY comparisons +{' '}
+              {getOptimizationPairs().length} pattern comparisons)
             </p>
             <p
               style={{
@@ -406,7 +529,7 @@ export const FilterOperatorBenchmark = () => {
             </p>
           </div>
 
-          <h2>📊 Comparison Results</h2>
+          <h2>📊 IN vs ANY Comparison Results</h2>
           <table
             style={{
               width: '100%',
@@ -521,7 +644,134 @@ export const FilterOperatorBenchmark = () => {
             </tbody>
           </table>
 
-          <h2>📋 Detailed Results</h2>
+          {optimizationComparisons.length > 0 && (
+            <>
+              <h2 style={{ marginTop: '40px' }}>
+                ⚡ Filter Optimization Results
+              </h2>
+              <p style={{ color: '#666', marginBottom: '15px' }}>
+                Comparing query patterns with and without filter optimization
+              </p>
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  marginBottom: '30px',
+                  background: 'white',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              >
+                <thead>
+                  <tr style={{ background: '#ff9800', color: 'white' }}>
+                    <th
+                      style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        border: '1px solid #ddd',
+                      }}
+                    >
+                      Optimization Pattern
+                    </th>
+                    <th
+                      style={{
+                        padding: '12px',
+                        textAlign: 'right',
+                        border: '1px solid #ddd',
+                      }}
+                    >
+                      Without Optimization (ms)
+                    </th>
+                    <th
+                      style={{
+                        padding: '12px',
+                        textAlign: 'right',
+                        border: '1px solid #ddd',
+                      }}
+                    >
+                      With Optimization (ms)
+                    </th>
+                    <th
+                      style={{
+                        padding: '12px',
+                        textAlign: 'right',
+                        border: '1px solid #ddd',
+                      }}
+                    >
+                      Time Saved (ms)
+                    </th>
+                    <th
+                      style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        border: '1px solid #ddd',
+                      }}
+                    >
+                      Improvement
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {optimizationComparisons.map((comp, index) => (
+                    <tr
+                      key={index}
+                      style={{
+                        background: index % 2 === 0 ? '#f9f9f9' : 'white',
+                        borderBottom: '1px solid #ddd',
+                      }}
+                    >
+                      <td style={{ padding: '12px', border: '1px solid #ddd' }}>
+                        {comp.testName}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          textAlign: 'right',
+                          border: '1px solid #ddd',
+                        }}
+                      >
+                        {comp.slowTime.toFixed(2)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          textAlign: 'right',
+                          border: '1px solid #ddd',
+                          color: '#2ecc71',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        {comp.fastTime.toFixed(2)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          textAlign: 'right',
+                          border: '1px solid #ddd',
+                          color: '#2ecc71',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        {comp.timeSaved.toFixed(2)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          textAlign: 'center',
+                          border: '1px solid #ddd',
+                          color: '#2ecc71',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        {comp.improvement}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+
+          <h2>📋 Detailed Query Results</h2>
           <div style={{ marginBottom: '20px' }}>
             {results.map((result, index) => (
               <details
