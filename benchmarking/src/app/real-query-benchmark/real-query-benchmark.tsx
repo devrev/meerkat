@@ -6,6 +6,8 @@ import {
 import { generateTestData } from '../generate-test-data';
 import { useDBM } from '../hooks/dbm-context';
 
+const ITERATIONS_PER_QUERY = 5; // Run each query 5 times for reliable averages
+
 export const RealQueryBenchmark = () => {
   const { dbm, fileManagerType } = useDBM();
   const [results, setResults] = useState<QueryBenchmarkResult[]>([]);
@@ -13,6 +15,7 @@ export const RealQueryBenchmark = () => {
   const [loadingData, setLoadingData] = useState(false);
   const [dataProgress, setDataProgress] = useState('');
   const [currentQuery, setCurrentQuery] = useState(0);
+  const [currentIteration, setCurrentIteration] = useState(0);
   const [totalTime, setTotalTime] = useState(0);
 
   const isNodeEnvironment = fileManagerType === 'native';
@@ -76,7 +79,12 @@ export const RealQueryBenchmark = () => {
 
     console.log('\n🚀 Starting Real-World Query Optimization Benchmark\n');
     console.log('Environment:', environmentLabel);
-    console.log('Testing', REAL_QUERY_VARIANTS.length, 'query variants...\n');
+    console.log('Testing', REAL_QUERY_VARIANTS.length, 'query variants...');
+    console.log(
+      'Running each query',
+      ITERATIONS_PER_QUERY,
+      'times for reliable averages\n'
+    );
 
     for (let i = 0; i < REAL_QUERY_VARIANTS.length; i++) {
       const variant = REAL_QUERY_VARIANTS[i];
@@ -90,26 +98,59 @@ export const RealQueryBenchmark = () => {
         `Optimizations: ${variant.optimizations.join(', ') || 'None'}`
       );
 
-      const variantStart = performance.now();
+      const runTimes: number[] = [];
 
-      try {
-        await dbm.query(variant.query);
-      } catch (error) {
-        console.error(`❌ Error executing variant ${variant.id}:`, error);
+      // Run query multiple times
+      for (let iteration = 0; iteration < ITERATIONS_PER_QUERY; iteration++) {
+        setCurrentIteration(iteration + 1);
+
+        const iterationStart = performance.now();
+
+        try {
+          await dbm.query(variant.query);
+        } catch (error) {
+          console.error(`❌ Error executing variant ${variant.id}:`, error);
+        }
+
+        const iterationEnd = performance.now();
+        const iterationTime = iterationEnd - iterationStart;
+        runTimes.push(iterationTime);
+
+        console.log(
+          `  Run ${
+            iteration + 1
+          }/${ITERATIONS_PER_QUERY}: ${iterationTime.toFixed(2)}ms`
+        );
       }
 
-      const variantEnd = performance.now();
-      const executionTime = variantEnd - variantStart;
+      // Calculate statistics
+      const avgTime = runTimes.reduce((a, b) => a + b, 0) / runTimes.length;
+      const minTime = Math.min(...runTimes);
+      const maxTime = Math.max(...runTimes);
+
+      // Calculate standard deviation
+      const squaredDiffs = runTimes.map((time) => Math.pow(time - avgTime, 2));
+      const variance =
+        squaredDiffs.reduce((a, b) => a + b, 0) / runTimes.length;
+      const stdDev = Math.sqrt(variance);
 
       benchmarkResults.push({
         variantId: variant.id,
         variantName: variant.name,
         optimizations: variant.optimizations,
-        executionTime,
+        executionTime: avgTime,
+        minTime,
+        maxTime,
+        stdDev,
+        allRuns: runTimes,
         rank: 0, // Will be calculated after all results are in
       });
 
-      console.log(`✅ Completed in ${executionTime.toFixed(2)}ms`);
+      console.log(
+        `✅ Average: ${avgTime.toFixed(2)}ms (min: ${minTime.toFixed(
+          2
+        )}ms, max: ${maxTime.toFixed(2)}ms, σ: ${stdDev.toFixed(2)}ms)`
+      );
     }
 
     // Calculate rankings
@@ -327,6 +368,10 @@ export const RealQueryBenchmark = () => {
         <p style={{ margin: '0 0 5px 0' }}>
           • <strong>Dataset:</strong> 100,000 synthetic rows
         </p>
+        <p style={{ margin: '0 0 5px 0' }}>
+          • <strong>Iterations:</strong> Each query runs {ITERATIONS_PER_QUERY}{' '}
+          times for reliable average measurements
+        </p>
         <p
           style={{
             margin: '10px 0 0 0',
@@ -407,7 +452,16 @@ export const RealQueryBenchmark = () => {
             Running Benchmark
           </h3>
           <p>
-            Testing Query: {currentQuery} / {REAL_QUERY_VARIANTS.length}
+            <strong>Query:</strong> {currentQuery} /{' '}
+            {REAL_QUERY_VARIANTS.length}
+          </p>
+          <p>
+            <strong>Iteration:</strong> {currentIteration} /{' '}
+            {ITERATIONS_PER_QUERY}
+          </p>
+          <p style={{ fontSize: '0.9em', color: '#666' }}>
+            Running each query {ITERATIONS_PER_QUERY} times for accurate
+            averages...
           </p>
         </div>
       )}
@@ -524,17 +578,46 @@ export const RealQueryBenchmark = () => {
                       padding: '12px',
                       textAlign: 'right',
                       border: '1px solid #ddd',
-                      width: '150px',
+                      width: '140px',
                     }}
                   >
-                    Execution Time (ms)
+                    Avg Time (ms)
+                    <div
+                      style={{
+                        fontSize: '0.75em',
+                        fontWeight: 'normal',
+                        marginTop: '2px',
+                      }}
+                    >
+                      ({ITERATIONS_PER_QUERY} runs)
+                    </div>
                   </th>
                   <th
                     style={{
                       padding: '12px',
                       textAlign: 'right',
                       border: '1px solid #ddd',
-                      width: '150px',
+                      width: '120px',
+                    }}
+                  >
+                    Min / Max
+                  </th>
+                  <th
+                    style={{
+                      padding: '12px',
+                      textAlign: 'right',
+                      border: '1px solid #ddd',
+                      width: '100px',
+                    }}
+                  >
+                    Std Dev
+                  </th>
+                  <th
+                    style={{
+                      padding: '12px',
+                      textAlign: 'right',
+                      border: '1px solid #ddd',
+                      width: '120px',
                     }}
                   >
                     vs Baseline
@@ -556,7 +639,7 @@ export const RealQueryBenchmark = () => {
                       width: '100px',
                     }}
                   >
-                    Speedup
+                    View SQL
                   </th>
                 </tr>
               </thead>
@@ -570,7 +653,6 @@ export const RealQueryBenchmark = () => {
                     ((baseline.executionTime - result.executionTime) /
                       baseline.executionTime) *
                     100;
-                  const speedup = baseline.executionTime / result.executionTime;
 
                   return (
                     <tr
@@ -634,6 +716,29 @@ export const RealQueryBenchmark = () => {
                           padding: '12px',
                           textAlign: 'right',
                           border: '1px solid #ddd',
+                          fontSize: '0.9em',
+                          color: '#666',
+                        }}
+                      >
+                        {result.minTime.toFixed(2)} /{' '}
+                        {result.maxTime.toFixed(2)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          textAlign: 'right',
+                          border: '1px solid #ddd',
+                          fontSize: '0.9em',
+                          color: '#666',
+                        }}
+                      >
+                        ±{result.stdDev.toFixed(2)}
+                      </td>
+                      <td
+                        style={{
+                          padding: '12px',
+                          textAlign: 'right',
+                          border: '1px solid #ddd',
                           color: improvement > 0 ? '#2e7d32' : '#d32f2f',
                           fontWeight: 'bold',
                         }}
@@ -656,10 +761,52 @@ export const RealQueryBenchmark = () => {
                           padding: '12px',
                           textAlign: 'center',
                           border: '1px solid #ddd',
-                          fontWeight: 'bold',
                         }}
                       >
-                        {speedup.toFixed(2)}x
+                        <details style={{ cursor: 'pointer' }}>
+                          <summary
+                            style={{
+                              padding: '6px 12px',
+                              background: '#2196f3',
+                              color: 'white',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              fontSize: '0.9em',
+                              listStyle: 'none',
+                            }}
+                          >
+                            View SQL
+                          </summary>
+                          <div
+                            style={{
+                              position: 'absolute',
+                              zIndex: 1000,
+                              background: 'white',
+                              border: '2px solid #2196f3',
+                              borderRadius: '4px',
+                              padding: '15px',
+                              maxWidth: '600px',
+                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                              marginTop: '5px',
+                            }}
+                          >
+                            <pre
+                              style={{
+                                background: '#f5f5f5',
+                                padding: '10px',
+                                borderRadius: '4px',
+                                overflow: 'auto',
+                                maxHeight: '400px',
+                                fontSize: '0.85em',
+                                margin: 0,
+                                whiteSpace: 'pre-wrap',
+                              }}
+                            >
+                              {variant?.query}
+                            </pre>
+                          </div>
+                        </details>
                       </td>
                     </tr>
                   );

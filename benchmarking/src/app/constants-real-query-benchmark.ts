@@ -365,7 +365,11 @@ export interface QueryBenchmarkResult {
   variantId: string;
   variantName: string;
   optimizations: string[];
-  executionTime: number;
+  executionTime: number; // Average time
+  minTime: number;
+  maxTime: number;
+  stdDev: number;
+  allRuns: number[];
   rank: number;
 }
 
