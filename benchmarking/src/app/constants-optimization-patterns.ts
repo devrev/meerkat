@@ -28,7 +28,9 @@ const filterPushdownPattern: OptimizationPattern[] = [
         SELECT engineering_pod, type, year
         FROM test_data
       ) AS filtered
-      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+        ', '
+      )})
         AND type = 'issue'
         AND year = '2025'
     `,
@@ -42,7 +44,9 @@ const filterPushdownPattern: OptimizationPattern[] = [
       FROM (
         SELECT engineering_pod, type, year
         FROM test_data
-        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
           AND type = 'issue'
           AND year = '2025'
       ) AS filtered
@@ -63,7 +67,9 @@ const filterPushdownPattern: OptimizationPattern[] = [
         SELECT engineering_pod, type, year, trip_miles
         FROM test_data
       ) AS data
-      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+        ', '
+      )})
         AND type = 'issue'
       GROUP BY year
     `,
@@ -80,7 +86,9 @@ const filterPushdownPattern: OptimizationPattern[] = [
       FROM (
         SELECT engineering_pod, type, year, trip_miles
         FROM test_data
-        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
           AND type = 'issue'
       ) AS data
       GROUP BY year
@@ -98,7 +106,9 @@ const filterPushdownPattern: OptimizationPattern[] = [
         SELECT engineering_pod, type, subtype, year, state
         FROM test_data
       ) AS data
-      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+        ', '
+      )})
         AND type = 'issue'
         AND subtype = 'pse'
         AND year = '2025'
@@ -114,7 +124,9 @@ const filterPushdownPattern: OptimizationPattern[] = [
       FROM (
         SELECT engineering_pod, type, subtype, year, state
         FROM test_data
-        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
           AND type = 'issue'
           AND subtype = 'pse'
           AND year = '2025'
@@ -138,7 +150,9 @@ const columnPruningPattern: OptimizationPattern[] = [
       FROM (
         SELECT *
         FROM test_data
-        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
       ) AS data
       WHERE type = 'issue'
     `,
@@ -152,7 +166,9 @@ const columnPruningPattern: OptimizationPattern[] = [
       FROM (
         SELECT engineering_pod, type
         FROM test_data
-        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
       ) AS data
       WHERE type = 'issue'
     `,
@@ -176,7 +192,9 @@ const redundantFilterPattern: OptimizationPattern[] = [
         WHERE type = 'issue' AND subtype = 'pse'
       ) AS inner_data
       WHERE type = 'issue' AND subtype = 'pse'
-        AND engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        AND engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
     `,
   },
   {
@@ -190,7 +208,9 @@ const redundantFilterPattern: OptimizationPattern[] = [
         FROM test_data
         WHERE type = 'issue' 
           AND subtype = 'pse'
-          AND engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+          AND engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+            ', '
+          )})
       ) AS inner_data
     `,
   },
@@ -250,7 +270,9 @@ const aggregationOrderPattern: OptimizationPattern[] = [
         COUNT(*) as count,
         AVG(trip_miles) as avg_miles
       FROM test_data
-      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+        ', '
+      )})
         AND type = 'issue'
       GROUP BY year
     `,
@@ -265,7 +287,9 @@ const aggregationOrderPattern: OptimizationPattern[] = [
         COUNT(CASE WHEN type = 'issue' THEN 1 END) as count,
         AVG(CASE WHEN type = 'issue' THEN trip_miles END) as avg_miles
       FROM test_data
-      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+      WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+        ', '
+      )})
       GROUP BY year
     `,
   },
@@ -289,7 +313,9 @@ const cteVsSubqueryPattern: OptimizationPattern[] = [
           FROM test_data
           WHERE type = 'issue'
         ) AS level1
-        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
       ) AS level2
       WHERE year = '2025'
     `,
@@ -307,7 +333,9 @@ const cteVsSubqueryPattern: OptimizationPattern[] = [
       level2 AS (
         SELECT engineering_pod, type, year
         FROM level1
-        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(', ')})
+        WHERE engineering_pod IN (${POD_VALUES_30.map((v) => `'${v}'`).join(
+          ', '
+        )})
       )
       SELECT COUNT(*) as count
       FROM level2
@@ -380,13 +408,13 @@ const orVsInPattern: OptimizationPattern[] = [
 export const OPTIMIZATION_PATTERNS: OptimizationPattern[] = [
   ...filterPushdownPattern,
   // Uncomment below to test other patterns:
-  // ...columnPruningPattern,
-  // ...redundantFilterPattern,
-  // ...subqueryVsJoinPattern,
-  // ...aggregationOrderPattern,
-  // ...cteVsSubqueryPattern,
-  // ...distinctVsGroupByPattern,
-  // ...orVsInPattern,
+  ...columnPruningPattern,
+  ...redundantFilterPattern,
+  ...subqueryVsJoinPattern,
+  ...aggregationOrderPattern,
+  ...cteVsSubqueryPattern,
+  ...distinctVsGroupByPattern,
+  ...orVsInPattern,
 ];
 
 // Helper to get pattern pairs for comparison
@@ -413,4 +441,3 @@ export const getOptimizationPairs = (): Array<{
 
   return pairs;
 };
-

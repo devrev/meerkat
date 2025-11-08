@@ -7,8 +7,8 @@ import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-con
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
 import { NativeAppFileLoader } from './file-loader/native-app-file-loader';
-import { FilterOperatorBenchmark } from './filter-operator-benchmark/filter-operator-benchmark';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
+import { RealQueryBenchmark } from './real-query-benchmark/real-query-benchmark';
 
 export function App() {
   return (
@@ -35,6 +35,9 @@ export function App() {
           </li>
           <li>
             <Link to="/filter-benchmark">🔥 IN vs ANY Benchmark</Link>
+          </li>
+          <li>
+            <Link to="/real-query-benchmark">🚀 Real Query Optimization</Link>
           </li>
         </ul>
       </nav>
@@ -118,12 +121,13 @@ export function App() {
             </div>
           }
         />
+
         <Route
-          path="/filter-benchmark"
+          path="/real-query-benchmark"
           element={
             <div>
               <MemoryDBMProvider>
-                <FilterOperatorBenchmark />
+                <RealQueryBenchmark />
               </MemoryDBMProvider>
             </div>
           }
