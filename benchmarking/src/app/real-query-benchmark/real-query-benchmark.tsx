@@ -1,15 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import {
+  COMPARATIVE_VARIANTS,
   SCALABILITY_VARIANTS,
   ScalabilityBenchmarkResult,
+  getComparativeAnalysis,
 } from '../constants-real-query-scalability';
 import { generateTestData } from '../generate-test-data';
 import { useDBM } from '../hooks/dbm-context';
 
-const ITERATIONS_PER_QUERY = 5; // Run each query 5 times for reliable averages
+const ITERATIONS_PER_QUERY = 3; // Run each query 3 times for faster results
 
-export const RealQueryBenchmark = () => {
+interface RealQueryBenchmarkProps {
+  comparative?: boolean;
+}
+
+export const RealQueryBenchmark = ({
+  comparative = false,
+}: RealQueryBenchmarkProps) => {
   const { dbm, fileManagerType } = useDBM();
+  const VARIANTS = comparative ? COMPARATIVE_VARIANTS : SCALABILITY_VARIANTS;
   const [results, setResults] = useState<ScalabilityBenchmarkResult[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [isRunning, setIsRunning] = useState(false);
@@ -60,7 +69,7 @@ export const RealQueryBenchmark = () => {
 
       if (i === 0) {
         await dbm.query(`
-          CREATE TABLE test_data AS 
+          CREATE OR REPLACE TABLE test_data AS 
           SELECT * FROM (VALUES ${values}) AS t(id, engineering_pod, type, subtype, year, 
             state, priority, created_date, trip_miles, trip_duration, base_num, license_num)
         `);
@@ -266,20 +275,18 @@ export const RealQueryBenchmark = () => {
 
     console.log('\n🚀 Starting Real-World Query Optimization Benchmark\n');
     console.log('Environment:', environmentLabel);
-    console.log('Testing', SCALABILITY_VARIANTS.length, 'query variants...');
+    console.log('Testing', VARIANTS.length, 'query variants...');
     console.log(
       'Running each query',
       ITERATIONS_PER_QUERY,
       'times for reliable averages\n'
     );
 
-    for (let i = 0; i < SCALABILITY_VARIANTS.length; i++) {
-      const variant = SCALABILITY_VARIANTS[i];
+    for (let i = 0; i < VARIANTS.length; i++) {
+      const variant = VARIANTS[i];
       setCurrentQuery(i + 1);
 
-      console.log(
-        `\n📊 Testing Variant ${i + 1}/${SCALABILITY_VARIANTS.length}`
-      );
+      console.log(`\n📊 Testing Variant ${i + 1}/${VARIANTS.length}`);
       console.log(`Name: ${variant.name}`);
       console.log(
         `Optimizations: ${variant.optimizations.join(', ') || 'None'}`
@@ -351,10 +358,10 @@ export const RealQueryBenchmark = () => {
     // Sort by optimization type, then by value count
     benchmarkResults.sort((a, b) => {
       if (a.optimizationType !== b.optimizationType) {
-        const aIndex = SCALABILITY_VARIANTS.findIndex(
+        const aIndex = VARIANTS.findIndex(
           (v) => v.optimizationType === a.optimizationType
         );
-        const bIndex = SCALABILITY_VARIANTS.findIndex(
+        const bIndex = VARIANTS.findIndex(
           (v) => v.optimizationType === b.optimizationType
         );
         return aIndex - bIndex;
@@ -632,8 +639,9 @@ export const RealQueryBenchmark = () => {
         Environment: {environmentLabel}
       </div>
       <p style={{ color: '#666', marginBottom: '20px', fontSize: '1.1em' }}>
-        Testing {SCALABILITY_VARIANTS.length} query variants across 9
-        optimization strategies at 4 different scales (5, 10, 100, 1000 values)
+        {comparative
+          ? `Testing ${VARIANTS.length} query variants: IN vs ANY comparison across 9 query scenarios at 5 key value counts (1, 5, 20, 100, 1000) - Estimated time: 3-5 minutes`
+          : `Testing ${VARIANTS.length} query variants across 9 optimization strategies at 4 different scales (5, 10, 100, 1000 values)`}
       </p>
 
       <div
@@ -733,7 +741,7 @@ export const RealQueryBenchmark = () => {
         }}
       >
         {isRunning
-          ? `Running... (${currentQuery}/${SCALABILITY_VARIANTS.length})`
+          ? `Running... (${currentQuery}/${VARIANTS.length})`
           : loadingData
           ? 'Loading Data...'
           : 'Run Benchmark'}
@@ -755,8 +763,7 @@ export const RealQueryBenchmark = () => {
             Running Benchmark
           </h3>
           <p>
-            <strong>Query:</strong> {currentQuery} /{' '}
-            {SCALABILITY_VARIANTS.length}
+            <strong>Query:</strong> {currentQuery} / {VARIANTS.length}
           </p>
           <p>
             <strong>Iteration:</strong> {currentIteration} /{' '}
@@ -902,6 +909,16 @@ export const RealQueryBenchmark = () => {
                     }}
                   >
                     Min / Max
+                    <div
+                      style={{
+                        fontSize: '0.7em',
+                        fontWeight: 'normal',
+                        color: '#ccc',
+                        marginTop: '2px',
+                      }}
+                    >
+                      (click Compare)
+                    </div>
                   </th>
                   <th
                     style={{
@@ -1016,7 +1033,7 @@ export const RealQueryBenchmark = () => {
                       {/* Child Rows - Different Value Counts */}
                       {isExpanded &&
                         group.variants.map((variant) => {
-                          const scalabilityVariant = SCALABILITY_VARIANTS.find(
+                          const scalabilityVariant = VARIANTS.find(
                             (v) => v.id === variant.variantId
                           );
                           const ranksAtScale = getRanksWithinScale(
@@ -1065,6 +1082,44 @@ export const RealQueryBenchmark = () => {
                                 <span style={{ color: '#666' }}>└─ </span>
                                 with {variant.valueCount} values
                                 {getImprovementBadge(improvement, 'small')}
+                                <div
+                                  style={{
+                                    fontSize: '0.75em',
+                                    color: '#999',
+                                    marginTop: '4px',
+                                  }}
+                                >
+                                  {(() => {
+                                    // Get all strategies at this value count
+                                    const allAtScale = results.filter(
+                                      (r) => r.valueCount === variant.valueCount
+                                    );
+                                    const sorted = [...allAtScale].sort(
+                                      (a, b) =>
+                                        a.executionTime - b.executionTime
+                                    );
+                                    const fastest = sorted[0];
+                                    const position =
+                                      sorted.findIndex(
+                                        (r) => r.variantId === variant.variantId
+                                      ) + 1;
+
+                                    if (position === 1) {
+                                      return `⚡ Fastest at ${variant.valueCount} values`;
+                                    } else {
+                                      const diff =
+                                        ((variant.executionTime -
+                                          fastest.executionTime) /
+                                          fastest.executionTime) *
+                                        100;
+                                      return `${position}/${sorted.length} at ${
+                                        variant.valueCount
+                                      } values (+${diff.toFixed(
+                                        1
+                                      )}% vs fastest)`;
+                                    }
+                                  })()}
+                                </div>
                               </td>
                               <td
                                 style={{
@@ -1096,8 +1151,125 @@ export const RealQueryBenchmark = () => {
                                   color: '#666',
                                 }}
                               >
-                                {variant.minTime.toFixed(2)} /{' '}
-                                {variant.maxTime.toFixed(2)}
+                                <div>
+                                  {variant.minTime.toFixed(2)} /{' '}
+                                  {variant.maxTime.toFixed(2)}
+                                </div>
+                                <details
+                                  style={{
+                                    cursor: 'pointer',
+                                    marginTop: '4px',
+                                  }}
+                                >
+                                  <summary
+                                    style={{
+                                      fontSize: '0.8em',
+                                      color: '#2196f3',
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    Compare
+                                  </summary>
+                                  <div
+                                    style={{
+                                      position: 'absolute',
+                                      zIndex: 1000,
+                                      background: 'white',
+                                      border: '2px solid #2196f3',
+                                      borderRadius: '4px',
+                                      padding: '10px',
+                                      minWidth: '300px',
+                                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                      marginTop: '5px',
+                                      right: '100px',
+                                      fontSize: '0.85em',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontWeight: 'bold',
+                                        marginBottom: '8px',
+                                        borderBottom: '1px solid #ddd',
+                                        paddingBottom: '5px',
+                                      }}
+                                    >
+                                      All Strategies at {variant.valueCount}{' '}
+                                      values
+                                    </div>
+                                    {(() => {
+                                      const allAtScale = results.filter(
+                                        (r) =>
+                                          r.valueCount === variant.valueCount
+                                      );
+                                      const sorted = [...allAtScale].sort(
+                                        (a, b) =>
+                                          a.executionTime - b.executionTime
+                                      );
+
+                                      return sorted
+                                        .slice(0, 5)
+                                        .map((r, idx) => {
+                                          const isCurrent =
+                                            r.variantId === variant.variantId;
+                                          return (
+                                            <div
+                                              key={r.variantId}
+                                              style={{
+                                                padding: '4px',
+                                                background: isCurrent
+                                                  ? '#e3f2fd'
+                                                  : 'transparent',
+                                                borderLeft: isCurrent
+                                                  ? '3px solid #2196f3'
+                                                  : 'none',
+                                                marginBottom: '3px',
+                                              }}
+                                            >
+                                              <div
+                                                style={{
+                                                  display: 'flex',
+                                                  justifyContent:
+                                                    'space-between',
+                                                  alignItems: 'center',
+                                                }}
+                                              >
+                                                <span>
+                                                  {idx + 1}.{' '}
+                                                  {r.optimizationType}
+                                                  {isCurrent && (
+                                                    <strong> (this)</strong>
+                                                  )}
+                                                </span>
+                                                <span
+                                                  style={{ fontWeight: 'bold' }}
+                                                >
+                                                  {r.executionTime.toFixed(2)}ms
+                                                </span>
+                                              </div>
+                                            </div>
+                                          );
+                                        });
+                                    })()}
+                                    {results.filter(
+                                      (r) => r.valueCount === variant.valueCount
+                                    ).length > 5 && (
+                                      <div
+                                        style={{
+                                          fontSize: '0.8em',
+                                          color: '#666',
+                                          marginTop: '5px',
+                                        }}
+                                      >
+                                        ... and{' '}
+                                        {results.filter(
+                                          (r) =>
+                                            r.valueCount === variant.valueCount
+                                        ).length - 5}{' '}
+                                        more
+                                      </div>
+                                    )}
+                                  </div>
+                                </details>
                               </td>
                               <td
                                 style={{
@@ -1172,6 +1344,223 @@ export const RealQueryBenchmark = () => {
             </table>
           </div>
 
+          {/* Comparative Analysis Section - Only in comparative mode */}
+          {comparative && results.length > 0 && (
+            <div
+              style={{
+                padding: '20px',
+                background: '#fff3e0',
+                borderRadius: '8px',
+                marginTop: '20px',
+                border: '2px solid #ff9800',
+              }}
+            >
+              <h2>
+                <span role="img" aria-label="bar chart">
+                  📊
+                </span>{' '}
+                IN vs ANY Comparative Analysis
+              </h2>
+              <p style={{ marginBottom: '15px', color: '#666' }}>
+                Detailed performance comparison showing when IN outperforms ANY
+                and vice versa across different query complexities and value
+                counts.
+              </p>
+
+              {(() => {
+                const analysis = getComparativeAnalysis(results);
+
+                // Group by scenario
+                const byScenario = new Map<string, typeof analysis>();
+                analysis.forEach((item) => {
+                  if (!byScenario.has(item.scenario)) {
+                    byScenario.set(item.scenario, []);
+                  }
+                  byScenario.get(item.scenario)?.push(item);
+                });
+
+                return Array.from(byScenario.entries()).map(
+                  ([scenario, items]) => {
+                    const inWins = items.filter(
+                      (i) => i.winner === 'IN'
+                    ).length;
+                    const anyWins = items.filter(
+                      (i) => i.winner === 'ANY'
+                    ).length;
+                    const ties = items.filter((i) => i.winner === 'TIE').length;
+
+                    return (
+                      <div key={scenario} style={{ marginBottom: '20px' }}>
+                        <h3
+                          style={{
+                            borderBottom: '2px solid #ff9800',
+                            paddingBottom: '8px',
+                          }}
+                        >
+                          {scenario}
+                        </h3>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '15px',
+                            marginBottom: '10px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              padding: '4px 12px',
+                              background: '#4caf50',
+                              color: 'white',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            IN Wins: {inWins}
+                          </span>
+                          <span
+                            style={{
+                              padding: '4px 12px',
+                              background: '#2196f3',
+                              color: 'white',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            ANY Wins: {anyWins}
+                          </span>
+                          <span
+                            style={{
+                              padding: '4px 12px',
+                              background: '#9e9e9e',
+                              color: 'white',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            Ties: {ties}
+                          </span>
+                        </div>
+
+                        <table
+                          style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            fontSize: '0.9em',
+                          }}
+                        >
+                          <thead style={{ background: '#f5f5f5' }}>
+                            <tr>
+                              <th
+                                style={{
+                                  padding: '8px',
+                                  border: '1px solid #ddd',
+                                }}
+                              >
+                                Values
+                              </th>
+                              <th
+                                style={{
+                                  padding: '8px',
+                                  border: '1px solid #ddd',
+                                }}
+                              >
+                                IN Time (ms)
+                              </th>
+                              <th
+                                style={{
+                                  padding: '8px',
+                                  border: '1px solid #ddd',
+                                }}
+                              >
+                                ANY Time (ms)
+                              </th>
+                              <th
+                                style={{
+                                  padding: '8px',
+                                  border: '1px solid #ddd',
+                                }}
+                              >
+                                Winner
+                              </th>
+                              <th
+                                style={{
+                                  padding: '8px',
+                                  border: '1px solid #ddd',
+                                }}
+                              >
+                                Advantage
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((item) => {
+                              const winnerColor =
+                                item.winner === 'IN'
+                                  ? '#4caf50'
+                                  : item.winner === 'ANY'
+                                  ? '#2196f3'
+                                  : '#9e9e9e';
+
+                              return (
+                                <tr key={item.valueCount}>
+                                  <td
+                                    style={{
+                                      padding: '8px',
+                                      border: '1px solid #ddd',
+                                      textAlign: 'center',
+                                    }}
+                                  >
+                                    {item.valueCount}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '8px',
+                                      border: '1px solid #ddd',
+                                      textAlign: 'right',
+                                    }}
+                                  >
+                                    {item.inTime.toFixed(2)}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '8px',
+                                      border: '1px solid #ddd',
+                                      textAlign: 'right',
+                                    }}
+                                  >
+                                    {item.anyTime.toFixed(2)}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '8px',
+                                      border: '1px solid #ddd',
+                                      textAlign: 'center',
+                                      background: winnerColor,
+                                      color: 'white',
+                                      fontWeight: 'bold',
+                                    }}
+                                  >
+                                    {item.winner}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '8px',
+                                      border: '1px solid #ddd',
+                                      textAlign: 'right',
+                                    }}
+                                  >
+                                    {item.advantage.toFixed(1)}%
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  }
+                );
+              })()}
+            </div>
+          )}
+
           {bestResult && (
             <div
               style={{
@@ -1232,11 +1621,7 @@ export const RealQueryBenchmark = () => {
                     lineHeight: '1.5',
                   }}
                 >
-                  {
-                    SCALABILITY_VARIANTS.find(
-                      (v) => v.id === bestResult.variantId
-                    )?.query
-                  }
+                  {VARIANTS.find((v) => v.id === bestResult.variantId)?.query}
                 </pre>
               </details>
             </div>

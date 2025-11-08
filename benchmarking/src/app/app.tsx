@@ -57,6 +57,22 @@ export function App() {
               Real Query Optimization (Node)
             </Link>
           </li>
+          <li>
+            <Link to="/comparative-benchmark">
+              <span role="img" aria-label="magnifying glass">
+                🔍
+              </span>{' '}
+              IN vs ANY Comparative Analysis (Browser)
+            </Link>
+          </li>
+          <li>
+            <Link to="/comparative-benchmark-node">
+              <span role="img" aria-label="magnifying glass">
+                🔍
+              </span>{' '}
+              IN vs ANY Comparative Analysis (Node)
+            </Link>
+          </li>
         </ul>
       </nav>
       <Routes>
@@ -156,6 +172,26 @@ export function App() {
             <div>
               <NativeDBMProvider>
                 <RealQueryBenchmark />
+              </NativeDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/comparative-benchmark"
+          element={
+            <div>
+              <MemoryDBMProvider>
+                <RealQueryBenchmark comparative={true} />
+              </MemoryDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/comparative-benchmark-node"
+          element={
+            <div>
+              <NativeDBMProvider>
+                <RealQueryBenchmark comparative={true} />
               </NativeDBMProvider>
             </div>
           }
