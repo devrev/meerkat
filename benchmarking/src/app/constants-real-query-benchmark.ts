@@ -66,7 +66,7 @@ const getBaseInnerQuery = (includeFilters: boolean) => {
       AND engineering_pod IN (${POD_VALUES_29.map((v) => `'${v}'`).join(', ')})
     `;
   }
-  
+
   return `${baseQuery}
     WHERE subtype IN ('pse')
       AND (state = 'open' OR state = 'in_progress')
@@ -92,10 +92,12 @@ const getBaseInnerQueryWithANY = (includeFilters: boolean) => {
       AND (state = 'open' OR state = 'in_progress')
       AND type = ANY(['issue']::VARCHAR[])
       AND CAST(year AS STRING) = ANY(['2025']::VARCHAR[])
-      AND engineering_pod = ANY([${POD_VALUES_29.map((v) => `'${v}'`).join(', ')}]::VARCHAR[])
+      AND engineering_pod = ANY([${POD_VALUES_29.map((v) => `'${v}'`).join(
+        ', '
+      )}]::VARCHAR[])
     `;
   }
-  
+
   return `${baseQuery}
     WHERE subtype = ANY(['pse']::VARCHAR[])
       AND (state = 'open' OR state = 'in_progress')
@@ -126,7 +128,9 @@ export const REAL_QUERY_VARIANTS: QueryVariant[] = [
         dim_type IN ('issue')
         AND dim_subtype IN ('pse')
         AND dim_year IN ('2025')
-        AND dim_engineering_pod IN (${POD_VALUES_29.map((v) => `'${v}'`).join(', ')})
+        AND dim_engineering_pod IN (${POD_VALUES_29.map((v) => `'${v}'`).join(
+          ', '
+        )})
       )
     `,
   },
@@ -176,7 +180,9 @@ export const REAL_QUERY_VARIANTS: QueryVariant[] = [
         dim_type = ANY(['issue']::VARCHAR[])
         AND dim_subtype = ANY(['pse']::VARCHAR[])
         AND dim_year = ANY(['2025']::VARCHAR[])
-        AND dim_engineering_pod = ANY([${POD_VALUES_29.map((v) => `'${v}'`).join(', ')}]::VARCHAR[])
+        AND dim_engineering_pod = ANY([${POD_VALUES_29.map(
+          (v) => `'${v}'`
+        ).join(', ')}]::VARCHAR[])
       )
     `,
   },
@@ -228,7 +234,9 @@ export const REAL_QUERY_VARIANTS: QueryVariant[] = [
         dim_type IN ('issue')
         AND dim_subtype IN ('pse')
         AND dim_year IN ('2025')
-        AND dim_engineering_pod IN (${POD_VALUES_29.map((v) => `'${v}'`).join(', ')})
+        AND dim_engineering_pod IN (${POD_VALUES_29.map((v) => `'${v}'`).join(
+          ', '
+        )})
       )
     `,
   },
@@ -282,7 +290,9 @@ export const REAL_QUERY_VARIANTS: QueryVariant[] = [
         dim_type = ANY(['issue']::VARCHAR[])
         AND dim_subtype = ANY(['pse']::VARCHAR[])
         AND dim_year = ANY(['2025']::VARCHAR[])
-        AND dim_engineering_pod = ANY([${POD_VALUES_29.map((v) => `'${v}'`).join(', ')}]::VARCHAR[])
+        AND dim_engineering_pod = ANY([${POD_VALUES_29.map(
+          (v) => `'${v}'`
+        ).join(', ')}]::VARCHAR[])
       )
     `,
   },
@@ -291,7 +301,8 @@ export const REAL_QUERY_VARIANTS: QueryVariant[] = [
   {
     id: 'cte_any_pushdown',
     name: 'CTE + ANY + Filter Pushdown',
-    description: 'Using CTE with ANY operator and early filters (expected best)',
+    description:
+      'Using CTE with ANY operator and early filters (expected best)',
     optimizations: ['CTE', 'ANY Operator', 'Filter Pushdown'],
     query: `
       WITH base_data AS (
@@ -372,4 +383,3 @@ export interface QueryBenchmarkResult {
   allRuns: number[];
   rank: number;
 }
-
