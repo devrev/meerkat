@@ -259,12 +259,119 @@ export const RealQueryBenchmark = () => {
         group.push(result);
       }
     });
-    return Array.from(grouped.entries()).map(([type, variants]) => ({
+
+    // Create groups with rankings
+    const groups = Array.from(grouped.entries()).map(([type, variants]) => ({
       optimizationType: type,
       variants: variants.sort((a, b) => a.valueCount - b.valueCount),
       avgOfAverages:
         variants.reduce((sum, v) => sum + v.executionTime, 0) / variants.length,
+      rank: 0, // Will be assigned below
     }));
+
+    // Rank groups by average performance
+    const sortedGroups = [...groups].sort(
+      (a, b) => a.avgOfAverages - b.avgOfAverages
+    );
+    sortedGroups.forEach((group, index) => {
+      const originalGroup = groups.find(
+        (g) => g.optimizationType === group.optimizationType
+      );
+      if (originalGroup) {
+        originalGroup.rank = index + 1;
+      }
+    });
+
+    return groups;
+  };
+
+  // Get ranks within each scale (value count)
+  const getRanksWithinScale = (valueCount: number) => {
+    const variantsAtScale = results.filter((r) => r.valueCount === valueCount);
+    const sorted = [...variantsAtScale].sort(
+      (a, b) => a.executionTime - b.executionTime
+    );
+    const ranks = new Map<string, number>();
+    sorted.forEach((variant, index) => {
+      ranks.set(variant.variantId, index + 1);
+    });
+    return ranks;
+  };
+
+  // Get baseline for comparison (first optimization type's results)
+  const getBaselineByScale = () => {
+    const baselineType = getGroupedResults()[0]?.optimizationType;
+    if (!baselineType) return new Map<number, number>();
+
+    const baselineResults = results.filter(
+      (r) => r.optimizationType === baselineType
+    );
+    const baselineMap = new Map<number, number>();
+    baselineResults.forEach((r) => {
+      baselineMap.set(r.valueCount, r.executionTime);
+    });
+    return baselineMap;
+  };
+
+  const getRankBadge = (rank: number, size: 'small' | 'large' = 'large') => {
+    const fontSize = size === 'small' ? '0.9em' : '1.2em';
+    if (rank === 1)
+      return (
+        <span style={{ fontSize }} role="img" aria-label="1st place gold medal">
+          🥇
+        </span>
+      );
+    if (rank === 2)
+      return (
+        <span
+          style={{ fontSize }}
+          role="img"
+          aria-label="2nd place silver medal"
+        >
+          🥈
+        </span>
+      );
+    if (rank === 3)
+      return (
+        <span
+          style={{ fontSize }}
+          role="img"
+          aria-label="3rd place bronze medal"
+        >
+          🥉
+        </span>
+      );
+    return (
+      <span
+        style={{ fontSize: size === 'small' ? '0.8em' : '1em', color: '#666' }}
+      >
+        #{rank}
+      </span>
+    );
+  };
+
+  const getImprovementBadge = (
+    improvement: number,
+    size: 'small' | 'large' = 'large'
+  ) => {
+    if (improvement === 0) return null;
+
+    const fontSize = size === 'small' ? '0.75em' : '0.85em';
+    const color = improvement > 0 ? '#2e7d32' : '#d32f2f';
+    const icon = improvement > 0 ? '↑' : '↓';
+
+    return (
+      <span
+        style={{
+          fontSize,
+          color,
+          fontWeight: 'bold',
+          marginLeft: '8px',
+        }}
+      >
+        {icon} {Math.abs(improvement).toFixed(1)}%
+      </span>
+    );
   };
 
   const getOptimizationBadges = (optimizations: string[]) => {
@@ -557,9 +664,19 @@ export const RealQueryBenchmark = () => {
                   <th
                     style={{
                       padding: '12px',
+                      textAlign: 'center',
+                      border: '1px solid #ddd',
+                      width: '70px',
+                    }}
+                  >
+                    Rank
+                  </th>
+                  <th
+                    style={{
+                      padding: '12px',
                       textAlign: 'left',
                       border: '1px solid #ddd',
-                      minWidth: '300px',
+                      minWidth: '280px',
                     }}
                   >
                     Optimization Strategy
@@ -620,6 +737,12 @@ export const RealQueryBenchmark = () => {
                 {getGroupedResults().map((group, groupIndex) => {
                   const isExpanded = expandedRows.has(group.optimizationType);
                   const firstVariant = group.variants[0];
+                  const baselineAvg = getGroupedResults()[0].avgOfAverages;
+                  const groupImprovement =
+                    groupIndex === 0
+                      ? 0
+                      : ((baselineAvg - group.avgOfAverages) / baselineAvg) *
+                        100;
 
                   return (
                     <React.Fragment key={group.optimizationType}>
@@ -643,13 +766,22 @@ export const RealQueryBenchmark = () => {
                           {isExpanded ? '▼' : '▶'}
                         </td>
                         <td
-                          colSpan={2}
+                          style={{
+                            padding: '15px 12px',
+                            textAlign: 'center',
+                            border: '1px solid #ddd',
+                          }}
+                        >
+                          {getRankBadge(group.rank)}
+                        </td>
+                        <td
                           style={{
                             padding: '15px 12px',
                             border: '1px solid #ddd',
                           }}
                         >
                           {group.optimizationType}
+                          {getImprovementBadge(groupImprovement)}
                           <div
                             style={{
                               fontSize: '0.85em',
@@ -661,6 +793,7 @@ export const RealQueryBenchmark = () => {
                           </div>
                         </td>
                         <td
+                          colSpan={2}
                           style={{
                             padding: '15px 12px',
                             textAlign: 'right',
@@ -671,7 +804,7 @@ export const RealQueryBenchmark = () => {
                           <div
                             style={{ fontSize: '0.75em', fontWeight: 'normal' }}
                           >
-                            avg
+                            avg across all scales
                           </div>
                         </td>
                         <td
@@ -694,6 +827,18 @@ export const RealQueryBenchmark = () => {
                           const scalabilityVariant = SCALABILITY_VARIANTS.find(
                             (v) => v.id === variant.variantId
                           );
+                          const ranksAtScale = getRanksWithinScale(
+                            variant.valueCount
+                          );
+                          const rank = ranksAtScale.get(variant.variantId) || 0;
+                          const baselineAtScale = getBaselineByScale().get(
+                            variant.valueCount
+                          );
+                          const improvement = baselineAtScale
+                            ? ((baselineAtScale - variant.executionTime) /
+                                baselineAtScale) *
+                              100
+                            : 0;
 
                           return (
                             <tr
@@ -710,7 +855,15 @@ export const RealQueryBenchmark = () => {
                                 }}
                               ></td>
                               <td
-                                colSpan={2}
+                                style={{
+                                  padding: '10px',
+                                  textAlign: 'center',
+                                  border: '1px solid #ddd',
+                                }}
+                              >
+                                {getRankBadge(rank, 'small')}
+                              </td>
+                              <td
                                 style={{
                                   padding: '10px 12px 10px 30px',
                                   border: '1px solid #ddd',
@@ -718,7 +871,19 @@ export const RealQueryBenchmark = () => {
                                 }}
                               >
                                 <span style={{ color: '#666' }}>└─ </span>
-                                with {variant.valueCount} filter values
+                                with {variant.valueCount} values
+                                {getImprovementBadge(improvement, 'small')}
+                              </td>
+                              <td
+                                style={{
+                                  padding: '10px',
+                                  textAlign: 'center',
+                                  border: '1px solid #ddd',
+                                  fontSize: '0.8em',
+                                  color: '#666',
+                                }}
+                              >
+                                {variant.valueCount}
                               </td>
                               <td
                                 style={{
