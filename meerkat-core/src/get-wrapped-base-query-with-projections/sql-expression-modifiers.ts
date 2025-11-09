@@ -17,7 +17,10 @@ export const arrayFieldUnNestModifier = ({
 export const arrayFlattenModifier = ({
   sqlExpression,
 }: DimensionModifier): string => {
-  return `unnest(${sqlExpression})`;
+  // Ensure NULL or empty arrays produce at least one row with NULL value
+  // This prevents rows from being dropped when arrays are NULL or empty
+  // COALESCE handles NULL, and len() = 0 check handles empty arrays []
+  return `unnest(CASE WHEN ${sqlExpression} IS NULL OR len(COALESCE(${sqlExpression}, [])) = 0 THEN [NULL] ELSE ${sqlExpression} END)`;
 };
 
 export const shouldUnnest = ({
