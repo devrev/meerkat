@@ -25,6 +25,24 @@ export const InOperatorBenchmarking = () => {
 
   const filterSizes = [0, 5, 10, 100, 1000, 100000];
 
+  // Helper function to convert query results to array format
+  const resultToArray = (result: unknown): unknown[] => {
+    if (
+      result &&
+      typeof result === 'object' &&
+      'toArray' in result &&
+      typeof (result as { toArray: () => unknown[] }).toArray === 'function'
+    ) {
+      return (result as { toArray: () => unknown[] }).toArray();
+    }
+    // Native Node returns array directly
+    if (Array.isArray(result)) {
+      return result;
+    }
+    // Fallback
+    return [];
+  };
+
   const generateFilterValues = (size: number): string[] => {
     const values: string[] = [];
     for (let i = 0; i < size; i++) {
@@ -429,6 +447,26 @@ export const InOperatorBenchmarking = () => {
     `;
   };
 
+  const executeQuery = async (query: string) => {
+    // For Native Node compatibility, check if query has multiple statements
+    // and execute them separately if needed
+    const statements = query
+      .split(';')
+      .map((q) => q.trim())
+      .filter((q) => q.length > 0);
+
+    if (statements.length === 1) {
+      return await dbm.query(query);
+    }
+
+    // Multiple statements - execute all but return result of the main SELECT
+    let result;
+    for (const stmt of statements) {
+      result = await dbm.query(stmt);
+    }
+    return result;
+  };
+
   const runBenchmark = async (
     queryType: string,
     queryGenerator: (vals: string[]) => string,
@@ -439,7 +477,7 @@ export const InOperatorBenchmarking = () => {
 
     try {
       const start = performance.now();
-      await dbm.query(query);
+      await executeQuery(query);
       const end = performance.now();
 
       return {
@@ -494,8 +532,9 @@ export const InOperatorBenchmarking = () => {
         const innerQuery = innerQueryMatch[1];
         const countQuery = `SELECT COUNT(*) as count FROM (${innerQuery}) as validation_inner`;
         try {
-          const countResult = await dbm.query(countQuery);
-          rowCount = countResult.toArray()[0]?.count || 0;
+          const countResult = await executeQuery(countQuery);
+          const countArray = resultToArray(countResult) as { count: number }[];
+          rowCount = countArray[0]?.count || 0;
         } catch {
           // If count extraction fails, skip it
           rowCount = -1;
@@ -503,8 +542,10 @@ export const InOperatorBenchmarking = () => {
       }
 
       try {
-        const result = await dbm.query(valueQuery);
-        const resultArray = result.toArray();
+        const result = await executeQuery(valueQuery);
+        const resultArray = resultToArray(result) as {
+          dim_pse_ageing__avg_ageing: number;
+        }[];
         const avgValue = resultArray[0]?.dim_pse_ageing__avg_ageing || 0;
         results.push({ name: query.name, avgValue, rowCount });
         setProgress(
@@ -557,8 +598,16 @@ export const InOperatorBenchmarking = () => {
     setProgress('Initializing database and creating synthetic data...');
 
     try {
-      // Create synthetic data
-      await dbm.query(createSyntheticDataQuery());
+      // Create synthetic data - split into separate queries for Native Node compatibility
+      const fullQuery = createSyntheticDataQuery();
+      const queries = fullQuery
+        .split(';')
+        .map((q) => q.trim())
+        .filter((q) => q.length > 0);
+
+      for (const query of queries) {
+        await dbm.query(query);
+      }
 
       // Validate queries return same results
       await validateQueryResults();

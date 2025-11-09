@@ -17,7 +17,12 @@ export function App() {
         <ul>
           <li>
             <Link to="/in-operator-benchmark">
-              IN Operator Optimization Benchmark
+              IN Operator Optimization Benchmark (Browser)
+            </Link>
+          </li>
+          <li>
+            <Link to="/in-operator-benchmark-native">
+              IN Operator Optimization Benchmark (Native Node)
             </Link>
           </li>
           <li>
@@ -45,10 +50,21 @@ export function App() {
           path="/in-operator-benchmark"
           element={
             <div>
-              <h1>IN Operator Optimization Benchmark</h1>
+              <h1>IN Operator Optimization Benchmark (Browser)</h1>
               <RawDBMProvider>
                 <InOperatorBenchmarking />
               </RawDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/in-operator-benchmark-native"
+          element={
+            <div>
+              <h1>IN Operator Optimization Benchmark (Native Node)</h1>
+              <NativeDBMProvider>
+                <InOperatorBenchmarking />
+              </NativeDBMProvider>
             </div>
           }
         />
