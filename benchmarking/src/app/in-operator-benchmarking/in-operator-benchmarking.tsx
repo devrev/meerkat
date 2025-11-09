@@ -379,6 +379,56 @@ export const InOperatorBenchmarking = () => {
     `;
   };
 
+  const generateQuery7_CTEWithValues = (filterValues: string[]) => {
+    if (filterValues.length === 0) {
+      return generateQuery1_OriginalIN(filterValues);
+    }
+
+    return `
+      WITH pods(pod) AS (
+        VALUES
+          ${filterValues.map((v) => `('${v}')`).join(',\n          ')}
+      )
+      SELECT Avg(Datediff('day', created_date, CURRENT_DATE)) AS dim_pse_ageing__avg_ageing
+      FROM (
+        SELECT type AS dim_pse_ageing__type,
+               subtype AS dim_pse_ageing__subtype,
+               Cast(year AS STRING) AS dim_pse_ageing__year,
+               engineering_pod AS dim_pse_ageing__engineering_pod,
+               *
+        FROM (
+          SELECT 'issue' AS type,
+                 di.id,
+                 di.state,
+                 Unnest(di.owned_by_ids) AS owner,
+                 di.stage_json,
+                 di.priority,
+                 di.subtype,
+                 di.created_date,
+                 Monthname(di.created_date) AS month_name,
+                 Year(di.created_date) AS year,
+                 ctype_pse__engineering_pod AS engineering_pod,
+                 Json_extract_string(di.custom_fields, '$.ctype__pse_pod') AS pse_pod,
+                 Json_extract_string(di.custom_fields, '$.ctype__severity') AS severity,
+                 Json_extract_string(di.custom_fields, '$.ctype__merchant_category') AS merchant_category,
+                 Json_extract_string(di.custom_fields, '$.ctype__reported_team') AS reported_team,
+                 Json_extract_string(di.custom_fields, '$.ctype__account_type') AS account_type,
+                 Json_extract_string(di.custom_fields, '$.ctype__cause_code') AS cause_code,
+                 Json_extract_string(di.custom_fields, '$.ctype__escalated_to_dev') AS escalated_to_dev,
+                 Json_extract_string(di.custom_fields, '$.ctype__invalid_reason') AS invalid_reason,
+                 Json_extract_string(di.custom_fields, '$.ctype__issue_category') AS issue_category,
+                 dst.status AS sla_status
+          FROM dim_issue di
+          LEFT JOIN dim_sla_tracker dst ON di.id = dst.applies_to_id
+          WHERE di.subtype IN ('pse')
+            AND (di.state = 'open' OR di.state = 'in_progress')
+        ) AS dim_pse_ageing
+      ) AS dim_pse_ageing
+      JOIN pods p ON p.pod = dim_pse_ageing__engineering_pod
+      WHERE (((dim_pse_ageing__type IN ('issue')) AND (dim_pse_ageing__subtype IN ('pse')) AND (dim_pse_ageing__year IN ('2025'))))
+    `;
+  };
+
   const runBenchmark = async (
     queryType: string,
     queryGenerator: (vals: string[]) => string,
@@ -422,7 +472,7 @@ export const InOperatorBenchmarking = () => {
 
       const allResults: BenchmarkResult[] = [];
       let completedTests = 0;
-      const totalTests = filterSizes.length * 6; // 6 query types
+      const totalTests = filterSizes.length * 7; // 7 query types
 
       // Run benchmarks for each filter size and query type
       for (const size of filterSizes) {
@@ -496,6 +546,18 @@ export const InOperatorBenchmarking = () => {
           size
         );
         allResults.push(result6);
+        setResults([...allResults]);
+
+        // CTE with VALUES
+        setProgress(
+          `Testing CTE with VALUES with ${size} filters... (${++completedTests}/${totalTests})`
+        );
+        const result7 = await runBenchmark(
+          '7. CTE with VALUES',
+          generateQuery7_CTEWithValues,
+          size
+        );
+        allResults.push(result7);
         setResults([...allResults]);
       }
 
@@ -883,6 +945,10 @@ export const InOperatorBenchmarking = () => {
           <li>
             <strong>CTE with Filter:</strong> Uses Common Table Expressions to
             structure the query with filter values CTE and INNER JOIN
+          </li>
+          <li>
+            <strong>CTE with VALUES:</strong> Uses SQL standard VALUES clause in
+            CTE with JOIN for filtering
           </li>
         </ol>
       </div>
