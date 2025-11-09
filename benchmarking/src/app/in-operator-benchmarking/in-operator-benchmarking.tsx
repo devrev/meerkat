@@ -818,7 +818,7 @@ export const InOperatorBenchmarking = () => {
 
       {aggregatedResults.length > 0 && (
         <div style={{ marginTop: '20px' }}>
-          <h3>Results Summary (Ranked by p50 Median Time)</h3>
+          <h3>Results Summary (Ranked by p50, Compared vs Original IN Baseline)</h3>
           <table
             style={{
               width: '100%',
@@ -880,20 +880,74 @@ export const InOperatorBenchmarking = () => {
                     textAlign: 'right',
                   }}
                 >
-                  vs Best p50
+                  vs Baseline p50
+                </th>
+                <th
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    textAlign: 'right',
+                  }}
+                >
+                  vs Baseline p75
+                </th>
+                <th
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    textAlign: 'right',
+                  }}
+                >
+                  vs Baseline p90
                 </th>
               </tr>
             </thead>
             <tbody>
               {aggregatedResults.map((result, index) => {
-                const percentDiff =
-                  index === 0
-                    ? '0%'
-                    : `+${Math.round(
-                        ((result.p50 - aggregatedResults[0].p50) /
-                          aggregatedResults[0].p50) *
-                          100
-                      )}%`;
+                // Find the baseline query (Original IN)
+                const baseline = aggregatedResults.find((r) =>
+                  r.queryType.includes('Original IN')
+                );
+
+                const formatPercentDiff = (
+                  value: number,
+                  baselineValue: number
+                ) => {
+                  if (!baseline || baselineValue === 0)
+                    return { text: 'N/A', color: '#999' };
+                  const diff = ((value - baselineValue) / baselineValue) * 100;
+                  const sign = diff > 0 ? '+' : '';
+                  const text = `${sign}${Math.round(diff)}%`;
+                  
+                  // Green for improvements (negative %), red for regressions (positive %)
+                  let color = '#333';
+                  let backgroundColor = 'transparent';
+                  let fontWeight = 'normal';
+                  
+                  if (diff < -10) {
+                    color = '#0d6832';
+                    backgroundColor = '#d4edda';
+                    fontWeight = '600';
+                  } else if (diff < 0) {
+                    color = '#155724';
+                    backgroundColor = '#e8f5e9';
+                  } else if (diff === 0) {
+                    color = '#666';
+                  } else if (diff > 50) {
+                    color = '#721c24';
+                    backgroundColor = '#f8d7da';
+                    fontWeight = '600';
+                  } else if (diff > 0) {
+                    color = '#856404';
+                    backgroundColor = '#fff3cd';
+                  }
+                  
+                  return { text, color, backgroundColor, fontWeight };
+                };
+
+                const p50Diff = formatPercentDiff(result.p50, baseline?.p50 || 0);
+                const p75Diff = formatPercentDiff(result.p75, baseline?.p75 || 0);
+                const p90Diff = formatPercentDiff(result.p90, baseline?.p90 || 0);
 
                 return (
                   <tr
@@ -946,9 +1000,36 @@ export const InOperatorBenchmarking = () => {
                         padding: '10px',
                         border: '1px solid #ddd',
                         textAlign: 'right',
+                        color: p50Diff.color,
+                        backgroundColor: p50Diff.backgroundColor,
+                        fontWeight: p50Diff.fontWeight,
                       }}
                     >
-                      {percentDiff}
+                      {p50Diff.text}
+                    </td>
+                    <td
+                      style={{
+                        padding: '10px',
+                        border: '1px solid #ddd',
+                        textAlign: 'right',
+                        color: p75Diff.color,
+                        backgroundColor: p75Diff.backgroundColor,
+                        fontWeight: p75Diff.fontWeight,
+                      }}
+                    >
+                      {p75Diff.text}
+                    </td>
+                    <td
+                      style={{
+                        padding: '10px',
+                        border: '1px solid #ddd',
+                        textAlign: 'right',
+                        color: p90Diff.color,
+                        backgroundColor: p90Diff.backgroundColor,
+                        fontWeight: p90Diff.fontWeight,
+                      }}
+                    >
+                      {p90Diff.text}
                     </td>
                   </tr>
                 );
