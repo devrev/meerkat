@@ -17,8 +17,17 @@ interface AggregatedResult {
   p90: number;
 }
 
+interface QueryValidationResult {
+  queryName: string;
+  avgValue: number;
+  rowCount: number;
+}
+
 export const InOperatorBenchmarking = () => {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
+  const [validationResults, setValidationResults] = useState<
+    QueryValidationResult[]
+  >([]);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState('');
   const { dbm, fileManagerType } = useDBM();
@@ -590,6 +599,15 @@ export const InOperatorBenchmarking = () => {
       .map((r) => r.rowCount);
     const mostCommonRowCount = rowCounts.length > 0 ? rowCounts[0] : 'N/A';
 
+    // Save validation results to state
+    setValidationResults(
+      results.map((r) => ({
+        queryName: r.name,
+        avgValue: r.avgValue,
+        rowCount: r.rowCount,
+      }))
+    );
+
     setProgress(
       `✓ All queries validated! All return avg=${firstAvg.toFixed(
         2
@@ -601,6 +619,7 @@ export const InOperatorBenchmarking = () => {
   const runAllBenchmarks = async () => {
     setIsRunning(true);
     setResults([]);
+    setValidationResults([]);
     setProgress('Initializing database and creating synthetic data...');
 
     try {
@@ -813,6 +832,98 @@ export const InOperatorBenchmarking = () => {
           }}
         >
           {progress}
+        </div>
+      )}
+
+      {validationResults.length > 0 && (
+        <div style={{ marginTop: '20px', marginBottom: '30px' }}>
+          <h3>Query Result Validation</h3>
+          <p style={{ color: '#666', marginBottom: '10px' }}>
+            Verifying all query variants return the same aggregated value:
+          </p>
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              marginBottom: '20px',
+            }}
+          >
+            <thead>
+              <tr style={{ backgroundColor: '#f0f0f0' }}>
+                <th
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    textAlign: 'left',
+                  }}
+                >
+                  Query Type
+                </th>
+                <th
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    textAlign: 'right',
+                  }}
+                >
+                  AVG(ageing)
+                </th>
+                <th
+                  style={{
+                    padding: '10px',
+                    border: '1px solid #ddd',
+                    textAlign: 'right',
+                  }}
+                >
+                  Underlying Rows
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {validationResults.map((result) => (
+                <tr key={result.queryName}>
+                  <td style={{ padding: '10px', border: '1px solid #ddd' }}>
+                    {result.queryName}
+                  </td>
+                  <td
+                    style={{
+                      padding: '10px',
+                      border: '1px solid #ddd',
+                      textAlign: 'right',
+                      fontFamily: 'monospace',
+                      fontWeight: '600',
+                    }}
+                  >
+                    {result.avgValue.toFixed(6)}
+                  </td>
+                  <td
+                    style={{
+                      padding: '10px',
+                      border: '1px solid #ddd',
+                      textAlign: 'right',
+                      color: '#666',
+                    }}
+                  >
+                    {result.rowCount > 0
+                      ? result.rowCount.toLocaleString()
+                      : 'N/A'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div
+            style={{
+              padding: '10px',
+              backgroundColor: '#d4edda',
+              color: '#155724',
+              borderRadius: '4px',
+              fontSize: '14px',
+            }}
+          >
+            ✓ All queries return identical aggregated values (verified within
+            0.01 tolerance)
+          </div>
         </div>
       )}
 
