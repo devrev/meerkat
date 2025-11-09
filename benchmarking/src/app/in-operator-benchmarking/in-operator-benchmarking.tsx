@@ -459,6 +459,98 @@ export const InOperatorBenchmarking = () => {
     }
   };
 
+  const validateQueryResults = async () => {
+    setProgress('Validating that all queries return the same results...');
+
+    const testSize = 10; // Use a small size for validation
+    const filterValues = generateFilterValues(testSize);
+
+    const queries = [
+      { name: '1. Original IN', fn: generateQuery1_OriginalIN },
+      { name: '2. JOIN with Temp Table', fn: generateQuery2_JoinWithTemp },
+      { name: '3. ANY Operator', fn: generateQuery3_ANYOperator },
+      { name: '4. EXISTS Subquery', fn: generateQuery4_ExistsSubquery },
+      { name: '5. list_contains', fn: generateQuery5_ListContains },
+      { name: '6. CTE with Filter', fn: generateQuery6_CTEWithFilter },
+      { name: '7. CTE with VALUES', fn: generateQuery7_CTEWithValues },
+    ];
+
+    const results: { name: string; avgValue: number; rowCount: number }[] = [];
+
+    for (const query of queries) {
+      const originalQuery = query.fn(filterValues);
+
+      // Get the aggregated value from the original query
+      const valueQuery = originalQuery;
+
+      // Also get the count of underlying rows before aggregation by wrapping the inner query
+      // Extract the part before aggregation - remove the outer SELECT AVG and wrap with COUNT
+      const innerQueryMatch = originalQuery.match(
+        /FROM\s+\(([\s\S]+)\)\s+(?:AS|JOIN)/i
+      );
+      let rowCount = 0;
+
+      if (innerQueryMatch) {
+        const innerQuery = innerQueryMatch[1];
+        const countQuery = `SELECT COUNT(*) as count FROM (${innerQuery}) as validation_inner`;
+        try {
+          const countResult = await dbm.query(countQuery);
+          rowCount = countResult.toArray()[0]?.count || 0;
+        } catch {
+          // If count extraction fails, skip it
+          rowCount = -1;
+        }
+      }
+
+      try {
+        const result = await dbm.query(valueQuery);
+        const resultArray = result.toArray();
+        const avgValue = resultArray[0]?.dim_pse_ageing__avg_ageing || 0;
+        results.push({ name: query.name, avgValue, rowCount });
+        setProgress(
+          `Validated ${query.name}: avg=${avgValue.toFixed(
+            2
+          )}, rows=${rowCount}`
+        );
+      } catch (error) {
+        setProgress(
+          `Error validating ${query.name}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+        throw error;
+      }
+    }
+
+    // Check if all avg values are the same (within floating point tolerance)
+    const firstAvg = results[0]?.avgValue;
+    const tolerance = 0.01; // Allow small floating point differences
+
+    const allAvgsSame = results.every(
+      (r) => Math.abs(r.avgValue - firstAvg) < tolerance
+    );
+
+    if (!allAvgsSame) {
+      const mismatchDetails = results
+        .map((r) => `${r.name}: avg=${r.avgValue.toFixed(2)}`)
+        .join('; ');
+      throw new Error(`Query result mismatch! ${mismatchDetails}`);
+    }
+
+    // Find the most common row count (for informational purposes)
+    const rowCounts = results
+      .filter((r) => r.rowCount > 0)
+      .map((r) => r.rowCount);
+    const mostCommonRowCount = rowCounts.length > 0 ? rowCounts[0] : 'N/A';
+
+    setProgress(
+      `✓ All queries validated! All return avg=${firstAvg.toFixed(
+        2
+      )} (underlying rows: ~${mostCommonRowCount})`
+    );
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // Show message for 2 seconds
+  };
+
   const runAllBenchmarks = async () => {
     setIsRunning(true);
     setResults([]);
@@ -467,6 +559,9 @@ export const InOperatorBenchmarking = () => {
     try {
       // Create synthetic data
       await dbm.query(createSyntheticDataQuery());
+
+      // Validate queries return same results
+      await validateQueryResults();
 
       setProgress('Running benchmarks...');
 
