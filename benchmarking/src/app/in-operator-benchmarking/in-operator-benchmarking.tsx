@@ -818,7 +818,9 @@ export const InOperatorBenchmarking = () => {
 
       {aggregatedResults.length > 0 && (
         <div style={{ marginTop: '20px' }}>
-          <h3>Results Summary (Ranked by p50, Compared vs Original IN Baseline)</h3>
+          <h3>
+            Results Summary (Ranked by p50, Compared vs Original IN Baseline)
+          </h3>
           <table
             style={{
               width: '100%',
@@ -918,12 +920,12 @@ export const InOperatorBenchmarking = () => {
                   const diff = ((value - baselineValue) / baselineValue) * 100;
                   const sign = diff > 0 ? '+' : '';
                   const text = `${sign}${Math.round(diff)}%`;
-                  
+
                   // Green for improvements (negative %), red for regressions (positive %)
                   let color = '#333';
                   let backgroundColor = 'transparent';
                   let fontWeight = 'normal';
-                  
+
                   if (diff < -10) {
                     color = '#0d6832';
                     backgroundColor = '#d4edda';
@@ -941,13 +943,22 @@ export const InOperatorBenchmarking = () => {
                     color = '#856404';
                     backgroundColor = '#fff3cd';
                   }
-                  
+
                   return { text, color, backgroundColor, fontWeight };
                 };
 
-                const p50Diff = formatPercentDiff(result.p50, baseline?.p50 || 0);
-                const p75Diff = formatPercentDiff(result.p75, baseline?.p75 || 0);
-                const p90Diff = formatPercentDiff(result.p90, baseline?.p90 || 0);
+                const p50Diff = formatPercentDiff(
+                  result.p50,
+                  baseline?.p50 || 0
+                );
+                const p75Diff = formatPercentDiff(
+                  result.p75,
+                  baseline?.p75 || 0
+                );
+                const p90Diff = formatPercentDiff(
+                  result.p90,
+                  baseline?.p90 || 0
+                );
 
                 return (
                   <tr
