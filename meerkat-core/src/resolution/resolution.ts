@@ -16,7 +16,7 @@ import {
 } from './types';
 
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
-  const dimension: Dimension = {
+  return {
     name: memberKeyToSafeKey(name),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
       name,
@@ -31,7 +31,6 @@ const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
       aliasContext: { isTableSchemaAlias: true },
     }),
   };
-  return dimension;
 };
 
 export const createBaseTableSchema = (

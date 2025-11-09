@@ -224,7 +224,7 @@ export const getResolvedTableSchema = async ({
 }): Promise<TableSchema> => {
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
-  // Generate resolution schemas for array fields
+  // Generate resolution schemas for fields that need resolution
   const resolutionSchemas = generateResolutionSchemas(resolutionConfig, [
     updatedBaseTableSchema,
   ]);
@@ -311,12 +311,10 @@ export const getResolvedTableSchema = async ({
  * Re-aggregate to reverse the unnest
  *
  * This function:
- * 1. Wraps Phase 2 SQL as a new base table
- * 2. Groups by row_id
- * 3. Uses MAX for non-array columns (they're duplicated)
- * 4. Uses ARRAY_AGG for resolved array columns
+ * 1. Groups by row_id
+ * 2. Uses MAX for non-array columns (they're duplicated)
+ * 3. Uses ARRAY_AGG for resolved array columns
  *
- * @param resolvedSql - SQL output from Phase 2 (with resolved values)
  * @param resolvedTableSchema - Schema from Phase 2 (contains all column info)
  * @param resolutionConfig - Resolution configuration
  * @param contextParams - Optional context parameters
@@ -333,7 +331,7 @@ export const getAggregatedSql = async ({
 }): Promise<string> => {
   const aggregationBaseTableSchema: TableSchema = resolvedTableSchema;
 
-  // Step 2: Identify which columns need ARRAY_AGG vs MAX
+  // Identify which columns need ARRAY_AGG vs MAX
   const arrayColumns = getArrayTypeResolutionColumnConfigs(resolutionConfig);
   const baseTableName = aggregationBaseTableSchema.name;
 
@@ -343,7 +341,7 @@ export const getAggregatedSql = async ({
     });
   };
 
-  // Step 3: Create aggregation measures with proper aggregation functions
+  // Create aggregation measures with proper aggregation functions
   // Get row_id dimension for GROUP BY
   const rowIdDimension = aggregationBaseTableSchema.dimensions.find(
     (d) => d.name === ROW_ID_DIMENSION_NAME
@@ -383,7 +381,7 @@ export const getAggregatedSql = async ({
     dimensions: rowIdDimension ? [rowIdDimension] : [],
   };
 
-  // Step 5: Generate the final SQL
+  // Generate the final SQL
   const aggregatedSql = await cubeQueryToSQL({
     query: {
       measures: aggregationMeasures.map((m) =>

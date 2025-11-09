@@ -50,7 +50,7 @@ export const findInDimensionSchemas = (
 export const findInSchemas = (name: string, tableSchemas: TableSchema[]) => {
   /*
    ** Finds the dimension or measure in the provided table schemas.
-   ** Assumes the provided name is namespaced as `tableName.columnName`.
+   ** Handles both namespaced (`tableName.columnName`) and non-namespaced names.
    */
   if (!name.includes('.')) {
     if (tableSchemas.length > 1) {
