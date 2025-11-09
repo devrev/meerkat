@@ -21,7 +21,7 @@ export const InOperatorBenchmarking = () => {
   const [results, setResults] = useState<BenchmarkResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState('');
-  const { dbm } = useDBM();
+  const { dbm, fileManagerType } = useDBM();
 
   const filterSizes = [0, 5, 10, 100, 1000, 100000];
 
@@ -448,8 +448,14 @@ export const InOperatorBenchmarking = () => {
   };
 
   const executeQuery = async (query: string) => {
-    // For Native Node compatibility, check if query has multiple statements
-    // and execute them separately if needed
+    // For Native Node, check if query has multiple statements
+    // and execute them separately. Browser WASM can handle multi-statement queries.
+    if (fileManagerType !== 'native') {
+      // Browser WASM - execute as-is
+      return await dbm.query(query);
+    }
+
+    // Native Node - split multi-statement queries
     const statements = query
       .split(';')
       .map((q) => q.trim())
@@ -598,15 +604,22 @@ export const InOperatorBenchmarking = () => {
     setProgress('Initializing database and creating synthetic data...');
 
     try {
-      // Create synthetic data - split into separate queries for Native Node compatibility
+      // Create synthetic data
       const fullQuery = createSyntheticDataQuery();
-      const queries = fullQuery
-        .split(';')
-        .map((q) => q.trim())
-        .filter((q) => q.length > 0);
 
-      for (const query of queries) {
-        await dbm.query(query);
+      if (fileManagerType === 'native') {
+        // Native Node - split into separate queries
+        const queries = fullQuery
+          .split(';')
+          .map((q) => q.trim())
+          .filter((q) => q.length > 0);
+
+        for (const query of queries) {
+          await dbm.query(query);
+        }
+      } else {
+        // Browser WASM - can execute multi-statement query
+        await dbm.query(fullQuery);
       }
 
       // Validate queries return same results
