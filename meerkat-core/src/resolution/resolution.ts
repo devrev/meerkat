@@ -15,11 +15,7 @@ import {
   ResolutionConfig,
 } from './types';
 
-const constructBaseDimension = (
-  name: string,
-  schema: Measure | Dimension,
-  resolutionColumnConfigs: ResolutionColumnConfig[]
-) => {
+const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
   const dimension: Dimension = {
     name: memberKeyToSafeKey(name),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
@@ -35,14 +31,6 @@ const constructBaseDimension = (
       aliasContext: { isTableSchemaAlias: true },
     }),
   };
-  // const shouldFlattenField = resolutionColumnConfigs.some(
-  //   (config) => config.name == name && config.isArrayType
-  // );
-  // if (shouldFlattenField) {
-  //   dimension.modifier = {
-  //     shouldFlattenArray: true,
-  //   };
-  // }
   return dimension;
 };
 
@@ -71,11 +59,7 @@ export const createBaseTableSchema = (
     dimensions: [...measures, ...(dimensions || [])].map((member) => {
       const schema = schemaByName[member];
       if (schema) {
-        return constructBaseDimension(
-          member,
-          schema,
-          resolutionConfig.columnConfigs
-        );
+        return constructBaseDimension(member, schema);
       } else {
         throw new Error(`Not found: ${member}`);
       }
