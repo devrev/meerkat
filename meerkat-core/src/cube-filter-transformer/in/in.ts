@@ -64,16 +64,12 @@ const inDuckDbCondition = (
       };
     }
     default: {
-      // Optimized approach: Use string_split with delimiter
-      // This provides 91% size reduction by avoiding N VALUE_CONSTANT nodes
-      // Use special delimiter sequence unlikely to appear in data
+      /**
+       * Doing the string split optimization here because as the number of nodes in the AST increase,
+       * the time take to parse the AST increases, thereby increasing the time to generate the SQL.
+       */
       const DELIMITER = '§§'; // Section sign - uncommon in normal data
-      const sanitizedValues = values.map((v) => {
-        const strVal = String(v);
-        // Escape delimiter if it appears in the value
-        return strVal.replace(/§§/g, '§§§§');
-      });
-      const joinedValues = sanitizedValues.join(DELIMITER);
+      const joinedValues = values.join(DELIMITER);
 
       return {
         class: ExpressionClass.SUBQUERY,
