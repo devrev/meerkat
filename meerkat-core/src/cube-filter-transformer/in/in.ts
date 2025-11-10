@@ -63,7 +63,8 @@ const inDuckDbCondition = (
         catalog: '',
       };
     }
-    default: {
+    case 'string':
+    case 'number': {
       /**
        * Doing the string split optimization here because as the number of nodes in the AST increase,
        * the time take to parse the AST increases, thereby increasing the time to generate the SQL.
@@ -82,39 +83,118 @@ const inDuckDbCondition = (
             modifiers: [],
             cte_map: { map: [] },
             select_list: [
-              {
-                class: ExpressionClass.FUNCTION,
-                type: ExpressionType.FUNCTION,
-                alias: '',
-                function_name: 'unnest',
-                schema: '',
-                children: [
-                  {
+              // For numeric types, we need to CAST the string result to the appropriate type
+              memberInfo.type === 'number'
+                ? {
+                    class: ExpressionClass.CAST,
+                    type: ExpressionType.OPERATOR_CAST,
+                    alias: '',
+                    child: {
+                      class: ExpressionClass.FUNCTION,
+                      type: ExpressionType.FUNCTION,
+                      alias: '',
+                      function_name: 'unnest',
+                      schema: '',
+                      children: [
+                        {
+                          class: ExpressionClass.FUNCTION,
+                          type: ExpressionType.FUNCTION,
+                          alias: '',
+                          function_name: 'string_split',
+                          schema: '',
+                          children: [
+                            {
+                              class: ExpressionClass.CONSTANT,
+                              type: ExpressionType.VALUE_CONSTANT,
+                              alias: '',
+                              value: {
+                                type: { id: 'VARCHAR', type_info: null },
+                                is_null: false,
+                                value: joinedValues,
+                              },
+                            },
+                            {
+                              class: ExpressionClass.CONSTANT,
+                              type: ExpressionType.VALUE_CONSTANT,
+                              alias: '',
+                              value: {
+                                type: { id: 'VARCHAR', type_info: null },
+                                is_null: false,
+                                value: DELIMITER,
+                              },
+                            },
+                          ],
+                          filter: null,
+                          order_bys: {
+                            type: ResultModifierType.ORDER_MODIFIER,
+                            orders: [],
+                          },
+                          distinct: false,
+                          is_operator: false,
+                          export_state: false,
+                          catalog: '',
+                        },
+                      ],
+                      filter: null,
+                      order_bys: {
+                        type: ResultModifierType.ORDER_MODIFIER,
+                        orders: [],
+                      },
+                      distinct: false,
+                      is_operator: false,
+                      export_state: false,
+                      catalog: '',
+                    },
+                    cast_type: {
+                      id: 'DOUBLE',
+                      type_info: null,
+                    },
+                    try_cast: false,
+                  }
+                : {
                     class: ExpressionClass.FUNCTION,
                     type: ExpressionType.FUNCTION,
                     alias: '',
-                    function_name: 'string_split',
+                    function_name: 'unnest',
                     schema: '',
                     children: [
                       {
-                        class: ExpressionClass.CONSTANT,
-                        type: ExpressionType.VALUE_CONSTANT,
+                        class: ExpressionClass.FUNCTION,
+                        type: ExpressionType.FUNCTION,
                         alias: '',
-                        value: {
-                          type: { id: 'VARCHAR', type_info: null },
-                          is_null: false,
-                          value: joinedValues,
+                        function_name: 'string_split',
+                        schema: '',
+                        children: [
+                          {
+                            class: ExpressionClass.CONSTANT,
+                            type: ExpressionType.VALUE_CONSTANT,
+                            alias: '',
+                            value: {
+                              type: { id: 'VARCHAR', type_info: null },
+                              is_null: false,
+                              value: joinedValues,
+                            },
+                          },
+                          {
+                            class: ExpressionClass.CONSTANT,
+                            type: ExpressionType.VALUE_CONSTANT,
+                            alias: '',
+                            value: {
+                              type: { id: 'VARCHAR', type_info: null },
+                              is_null: false,
+                              value: DELIMITER,
+                            },
+                          },
+                        ],
+                        filter: null,
+                        order_bys: {
+                          type: ResultModifierType.ORDER_MODIFIER,
+                          orders: [],
                         },
-                      },
-                      {
-                        class: ExpressionClass.CONSTANT,
-                        type: ExpressionType.VALUE_CONSTANT,
-                        alias: '',
-                        value: {
-                          type: { id: 'VARCHAR', type_info: null },
-                          is_null: false,
-                          value: DELIMITER,
-                        },
+                        distinct: false,
+                        is_operator: false,
+                        export_state: false,
+                        catalog: '',
                       },
                     ],
                     filter: null,
@@ -127,17 +207,6 @@ const inDuckDbCondition = (
                     export_state: false,
                     catalog: '',
                   },
-                ],
-                filter: null,
-                order_bys: {
-                  type: ResultModifierType.ORDER_MODIFIER,
-                  orders: [],
-                },
-                distinct: false,
-                is_operator: false,
-                export_state: false,
-                catalog: '',
-              },
             ],
             from_table: {
               type: TableReferenceType.EMPTY,
@@ -155,6 +224,24 @@ const inDuckDbCondition = (
         },
         child: columnRef,
         comparison_type: ExpressionType.COMPARE_EQUAL,
+      };
+    }
+    default: {
+      // For other types, use the standard COMPARE_IN approach
+      const sqlTreeValues = values.map((value) => {
+        return {
+          class: ExpressionClass.CONSTANT,
+          type: ExpressionType.VALUE_CONSTANT,
+          alias: '',
+          value: valueBuilder(value, memberInfo),
+        };
+      });
+
+      return {
+        class: ExpressionClass.OPERATOR,
+        type: ExpressionType.COMPARE_IN,
+        alias: '',
+        children: [columnRef, ...sqlTreeValues],
       };
     }
   }
