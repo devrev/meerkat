@@ -72,6 +72,17 @@ const inDuckDbCondition = (
        * Doing the string split optimization here because as the number of nodes in the AST increase,
        * the time take to parse the AST increases, thereby increasing the time to generate the SQL.
        */
+
+      // Validate that no values contain the delimiter to prevent incorrect splitting
+      const hasDelimiter = values.some((v) =>
+        String(v).includes(STRING_ARRAY_DELIMITER)
+      );
+      if (hasDelimiter) {
+        throw new Error(
+          `Filter values cannot contain the reserved delimiter '${STRING_ARRAY_DELIMITER}'`
+        );
+      }
+
       const joinedValues = values.join(STRING_ARRAY_DELIMITER);
 
       return {
@@ -251,7 +262,7 @@ const inDuckDbCondition = (
 
 export const inTransform: CubeToParseExpressionTransform = (query) => {
   const { member, values, memberInfo } = query;
-  if (!values) {
+  if (!values || values.length === 0) {
     throw new Error('In filter must have at least one value');
   }
   return inDuckDbCondition(member, values, memberInfo);

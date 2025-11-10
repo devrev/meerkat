@@ -221,4 +221,50 @@ describe('Not In transforms Tests', () => {
       type: 'OPERATOR_NOT',
     });
   });
+
+  it('Should throw error if values array is empty', () => {
+    expect(() =>
+      notInTransform({
+        member: 'country',
+        operator: 'notIn',
+        values: [],
+        memberInfo: {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string',
+        },
+      })
+    ).toThrow('Not in filter must have at least one value');
+  });
+
+  it('Should throw error if values contain the reserved delimiter', () => {
+    expect(() =>
+      notInTransform({
+        member: 'country',
+        operator: 'notIn',
+        values: ['US', 'has§§delimiter', 'Mexico'],
+        memberInfo: {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string',
+        },
+      })
+    ).toThrow("Filter values cannot contain the reserved delimiter '§§'");
+  });
+
+  it('Should throw error if numeric values contain the reserved delimiter', () => {
+    // This could happen if someone passes a string representation of a number
+    expect(() =>
+      notInTransform({
+        member: 'order_id',
+        operator: 'notIn',
+        values: ['123§§456', '789'],
+        memberInfo: {
+          name: 'order_id',
+          sql: 'table.order_id',
+          type: 'number',
+        },
+      })
+    ).toThrow("Filter values cannot contain the reserved delimiter '§§'");
+  });
 });
