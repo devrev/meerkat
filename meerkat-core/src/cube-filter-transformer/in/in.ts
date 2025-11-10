@@ -122,7 +122,7 @@ const inDuckDbCondition = (
                               value: {
                                 type: { id: 'VARCHAR', type_info: null },
                                 is_null: false,
-                                value: DELIMITER,
+                                value: STRING_ARRAY_DELIMITER,
                               },
                             },
                           ],
@@ -184,7 +184,7 @@ const inDuckDbCondition = (
                             value: {
                               type: { id: 'VARCHAR', type_info: null },
                               is_null: false,
-                              value: DELIMITER,
+                              value: STRING_ARRAY_DELIMITER,
                             },
                           },
                         ],

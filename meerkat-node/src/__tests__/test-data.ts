@@ -1110,6 +1110,73 @@ export const TEST_DATA = [
         },
       ],
     },
+    {
+      testName:
+        'Multiple In filters combined (customer_id, product_id, order_id)',
+      // Tests all three optimized filters working together
+      // customer_id (string), product_id (string), order_id (number with CAST)
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, product_id AS orders__product_id, order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§')))) AND (orders__product_id = ANY(SELECT unnest(string_split('1§§2', '§§')))) AND (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§§2§§3§§4', '§§')) AS DOUBLE))))`,
+      cubeInput: {
+        measures: ['*'],
+        filters: [
+          {
+            and: [
+              {
+                member: 'orders.customer_id',
+                operator: 'in',
+                values: ['1', '2'],
+              },
+              {
+                member: 'orders.product_id',
+                operator: 'in',
+                values: ['1', '2'],
+              },
+              {
+                member: 'orders.order_id',
+                operator: 'in',
+                values: [1, 2, 3, 4],
+              },
+            ],
+          },
+        ],
+        dimensions: [],
+      },
+      expectedOutput: [
+        {
+          order_id: 4,
+          customer_id: '2',
+          product_id: '1',
+          order_date: '2022-03-01',
+          order_amount: 75.0,
+          orders__customer_id: '2',
+          orders__product_id: '1',
+          orders__order_id: 4,
+          vendors: ['flipkart'],
+        },
+        {
+          order_id: 2,
+          customer_id: '1',
+          product_id: '2',
+          order_date: '2022-01-02',
+          order_amount: 80.0,
+          orders__customer_id: '1',
+          orders__product_id: '2',
+          orders__order_id: 2,
+          vendors: ['myntra'],
+        },
+        {
+          order_id: 1,
+          customer_id: '1',
+          product_id: '1',
+          order_date: '2022-01-01',
+          order_amount: 50.0,
+          orders__customer_id: '1',
+          orders__product_id: '1',
+          orders__order_id: 1,
+          vendors: ['myntra', 'amazon', 'flipkart'],
+        },
+      ],
+    },
   ],
   [
     {
@@ -1297,6 +1364,84 @@ export const TEST_DATA = [
           product_id: '6',
           order_date: '2024-08-01T00:00:00.000Z',
           order_amount: 100.0,
+          orders__order_id: 13,
+          orders__order_date: undefined,
+          vendors: ["swiggy's"],
+        },
+      ],
+    },
+    {
+      testName:
+        'Multiple NotIn filters combined (customer_id, product_id, order_id)',
+      // Tests all three optimized NOT IN filters working together
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, product_id AS orders__product_id, order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE ((NOT (orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§'))))) AND (NOT (orders__product_id = ANY(SELECT unnest(string_split('1§§2', '§§'))))) AND (NOT (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§§2', '§§')) AS DOUBLE)))))`,
+      cubeInput: {
+        measures: ['*'],
+        filters: [
+          {
+            and: [
+              {
+                member: 'orders.customer_id',
+                operator: 'notIn',
+                values: ['1', '2'],
+              },
+              {
+                member: 'orders.product_id',
+                operator: 'notIn',
+                values: ['1', '2'],
+              },
+              {
+                member: 'orders.order_id',
+                operator: 'notIn',
+                values: [1, 2],
+              },
+            ],
+          },
+        ],
+        dimensions: [],
+      },
+      expectedOutput: [
+        {
+          order_id: 7,
+          customer_id: '4',
+          product_id: '3',
+          order_date: '2022-05-01',
+          order_amount: 90.0,
+          orders__customer_id: '4',
+          orders__product_id: '3',
+          orders__order_id: 7,
+          vendors: ['myntra', 'flipkart'],
+        },
+        {
+          order_id: 10,
+          customer_id: '6',
+          product_id: '3',
+          order_date: '2022-06-01',
+          order_amount: 120.0,
+          orders__customer_id: '6',
+          orders__product_id: '3',
+          orders__order_id: 10,
+          vendors: ['myntra', 'amazon'],
+        },
+        {
+          order_id: 11,
+          customer_id: '6aa6',
+          product_id: '3',
+          order_date: '2024-06-01',
+          order_amount: 0.0,
+          orders__customer_id: '6aa6',
+          orders__product_id: '3',
+          orders__order_id: 11,
+          vendors: ['amazon'],
+        },
+        {
+          order_id: 13,
+          customer_id: '7',
+          product_id: '6',
+          order_date: '2024-08-01T00:00:00.000Z',
+          order_amount: 100.0,
+          orders__customer_id: '7',
+          orders__product_id: '6',
           orders__order_id: 13,
           orders__order_date: undefined,
           vendors: ["swiggy's"],
