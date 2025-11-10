@@ -242,21 +242,22 @@ describe('Resolution Tests', () => {
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
-      SELECT  
+      select * exclude(__row_id) from (SELECT  
         "base_table__part_id_1 - display_id",  
         "base_table__random_column",  
         "base_table__work_id - display_id",  
         "base_table__work_id - title",  
-        "base_table__part_id_2 - display_id" 
+        "base_table__part_id_2 - display_id",
+        "__row_id"
       FROM 
-        (SELECT __base_query.base_table__random_column AS "base_table__random_column", * FROM (SELECT  base_table__part_id_1,  base_table__random_column,  base_table__work_id,  base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query 
+        (SELECT __base_query.base_table__random_column AS "base_table__random_column", row_number() OVER () AS "__row_id", * FROM (SELECT  base_table__part_id_1,  base_table__random_column,  base_table__work_id,  base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query 
           LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1 - display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1  
           ON __base_query.base_table__part_id_1 = base_table__part_id_1.id 
           LEFT JOIN (SELECT base_table__work_id.display_id AS "base_table__work_id - display_id", base_table__work_id.title AS "base_table__work_id - title", * FROM (select id, display_id, title from system.dim_issue) AS base_table__work_id) AS base_table__work_id  
           ON __base_query.base_table__work_id = base_table__work_id.id 
           LEFT JOIN (SELECT base_table__part_id_2.display_id AS "base_table__part_id_2 - display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_2) AS base_table__part_id_2  
           ON __base_query.base_table__part_id_2 = base_table__part_id_2.id) 
-      AS MEERKAT_GENERATED_TABLE
+      AS MEERKAT_GENERATED_TABLE) order by __row_id
     `;
     expect(sql.replace(/\s+/g, ' ').trim()).toBe(
       expectedSQL.replace(/\s+/g, ' ').trim()
@@ -285,14 +286,15 @@ describe('Resolution Tests', () => {
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
-      SELECT 
+      select * exclude(__row_id) from (SELECT 
         "base_table__count", 
-        "base_table__part_id_1 - display_id" 
+        "base_table__part_id_1 - display_id",
+        "__row_id"
       FROM 
-        (SELECT __base_query.base_table__count AS "base_table__count", * FROM (SELECT count(*) AS base_table__count , base_table__part_id_1 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, * FROM (select * from base_table) AS base_table) AS base_table GROUP BY base_table__part_id_1) AS __base_query 
+        (SELECT __base_query.base_table__count AS "base_table__count", row_number() OVER () AS "__row_id", * FROM (SELECT count(*) AS base_table__count , base_table__part_id_1 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, * FROM (select * from base_table) AS base_table) AS base_table GROUP BY base_table__part_id_1) AS __base_query 
           LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1 - display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1 
           ON __base_query.base_table__part_id_1 = base_table__part_id_1.id) 
-      AS MEERKAT_GENERATED_TABLE
+      AS MEERKAT_GENERATED_TABLE) order by __row_id
     `;
     expect(sql.replace(/\s+/g, ' ').trim()).toBe(
       expectedSQL.replace(/\s+/g, ' ').trim()
@@ -332,17 +334,18 @@ describe('Resolution Tests', () => {
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
-      SELECT  
+      select * exclude(__row_id) from (SELECT  
         "Part ID 1 - Display ID",  
         "Random Column",  
-        "Part ID 2 - Display ID" 
+        "Part ID 2 - Display ID",
+        "__row_id"
       FROM 
-        (SELECT __base_query."Random Column" AS "Random Column", * FROM (SELECT  "Part ID 1",  "Random Column",  "Part ID 2" FROM (SELECT base_table.part_id_1 AS "Part ID 1", base_table.random_column AS "Random Column", base_table.part_id_2 AS "Part ID 2", * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query 
+        (SELECT __base_query."Random Column" AS "Random Column", row_number() OVER () AS "__row_id", * FROM (SELECT  "Part ID 1",  "Random Column",  "Part ID 2" FROM (SELECT base_table.part_id_1 AS "Part ID 1", base_table.random_column AS "Random Column", base_table.part_id_2 AS "Part ID 2", * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query 
           LEFT JOIN (SELECT base_table__part_id_1.display_id AS "Part ID 1 - Display ID", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1  
           ON __base_query."Part ID 1" = base_table__part_id_1.id 
           LEFT JOIN (SELECT base_table__part_id_2.display_id AS "Part ID 2 - Display ID", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_2) AS base_table__part_id_2  
           ON __base_query."Part ID 2" = base_table__part_id_2.id) 
-      AS MEERKAT_GENERATED_TABLE
+      AS MEERKAT_GENERATED_TABLE) order by __row_id
     `;
     expect(sql.replace(/\s+/g, ' ').trim()).toBe(
       expectedSQL.replace(/\s+/g, ' ').trim()
@@ -378,14 +381,15 @@ describe('Resolution Tests', () => {
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
-      SELECT  
+      select * exclude(__row_id) from (SELECT  
         "base_table__random_column",  
-        "base_table__part_id_1 - display_id"  
+        "base_table__part_id_1 - display_id",
+        "__row_id"
       FROM 
-        (SELECT __base_query.base_table__random_column AS "base_table__random_column", * FROM (SELECT  base_table__part_id_1,  base_table__random_column,  base_table__work_id,  base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query 
+        (SELECT __base_query.base_table__random_column AS "base_table__random_column", row_number() OVER () AS "__row_id", * FROM (SELECT  base_table__part_id_1,  base_table__random_column,  base_table__work_id,  base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query 
           LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1 - display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1  
           ON __base_query.base_table__part_id_1 = base_table__part_id_1.id) 
-      AS MEERKAT_GENERATED_TABLE
+      AS MEERKAT_GENERATED_TABLE) order by __row_id
     `;
     expect(sql.replace(/\s+/g, ' ').trim()).toBe(
       expectedSQL.replace(/\s+/g, ' ').trim()
