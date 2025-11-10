@@ -518,11 +518,11 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     console.log('SQL (no ORDER BY):', sql);
 
     // Should contain row_id even without ORDER BY (for consistency)
-    expect(sql).not.toContain('__row_id');
+    expect(sql).toContain('__row_id');
     // Should contain row_number() OVER () without ORDER BY inside
-    expect(sql).not.toContain('row_number() OVER (');
+    expect(sql).toContain('row_number() OVER ()');
     // Should still order by row_id at the end
-    expect(sql).not.toContain('order by __row_id');
+    expect(sql).toContain('order by __row_id');
 
     // Execute the SQL to verify it works
     const result = (await duckdbExec(sql)) as any[];

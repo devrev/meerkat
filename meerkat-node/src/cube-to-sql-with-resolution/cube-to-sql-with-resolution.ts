@@ -45,7 +45,7 @@ export const cubeQueryToSQLWithResolution = async ({
     contextParams,
   });
 
-  if (resolutionConfig.columnConfigs.length === 0 || !query.order) {
+  if (resolutionConfig.columnConfigs.length === 0 && !query.order) {
     return baseSql;
   }
 
