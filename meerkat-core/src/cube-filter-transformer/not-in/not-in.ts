@@ -1,7 +1,10 @@
 import { Dimension, Measure } from '../../types/cube-types/table';
 import { CubeToParseExpressionTransform } from '../factory';
 
-import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
+import {
+  COLUMN_NAME_DELIMITER,
+  STRING_ARRAY_DELIMITER,
+} from '../../member-formatters/constants';
 import {
   AggregateHandling,
   QueryNodeType,
@@ -77,8 +80,7 @@ const notInDuckDbCondition = (
        * Doing the string split optimization here because as the number of nodes in the AST increase,
        * the time take to parse the AST increases, thereby increasing the time to generate the SQL.
        */
-      const DELIMITER = '§§'; // Section sign - uncommon in normal data
-      const joinedValues = values.join(DELIMITER);
+      const joinedValues = values.join(STRING_ARRAY_DELIMITER);
 
       return {
         class: ExpressionClass.OPERATOR,
