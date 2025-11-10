@@ -91,6 +91,5 @@ export const cubeQueryToSQL = async ({
     replaceBaseTableName
   );
 
-  console.log({ finalQuery });
   return finalQuery;
 };
