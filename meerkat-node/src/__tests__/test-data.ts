@@ -986,7 +986,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'In',
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id IN ('1', '2')) AND (orders__vendors && (ARRAY['myntra', 'amazon'])))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§')))) AND (orders__vendors && (ARRAY['myntra', 'amazon'])))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -1067,7 +1067,7 @@ export const TEST_DATA = [
   [
     {
       testName: 'Not In',
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id NOT IN ('1', '2')) AND (NOT (orders__vendors && (ARRAY['myntra', 'flipkart']))))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((NOT (orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§'))))) AND (NOT (orders__vendors && (ARRAY['myntra', 'flipkart']))))`,
       cubeInput: {
         measures: ['*'],
         filters: [

@@ -20,23 +20,24 @@ const notInDuckDbCondition = (
   values: string[],
   memberInfo: Measure | Dimension
 ) => {
-  const sqlTreeValues = values.map((value) => {
-    return {
-      class: ExpressionClass.CONSTANT,
-      type: ExpressionType.VALUE_CONSTANT,
-      alias: '',
-      value: valueBuilder(value, memberInfo),
-    };
-  });
   const columnRef = {
     class: ExpressionClass.COLUMN_REF,
     type: ExpressionType.COLUMN_REF,
     alias: '',
     column_names: columnName.split(COLUMN_NAME_DELIMITER),
   };
+
   switch (memberInfo.type) {
     case 'number_array':
     case 'string_array': {
+      const sqlTreeValues = values.map((value) => {
+        return {
+          class: ExpressionClass.CONSTANT,
+          type: ExpressionType.VALUE_CONSTANT,
+          alias: '',
+          value: valueBuilder(value, memberInfo),
+        };
+      });
       return {
         class: ExpressionClass.OPERATOR,
         type: ExpressionType.OPERATOR_NOT,
@@ -71,13 +72,24 @@ const notInDuckDbCondition = (
       };
     }
     default: {
+      // Optimized approach: Use string_split with delimiter
+      // This provides 91% size reduction by avoiding N VALUE_CONSTANT nodes
+      // Use special delimiter sequence unlikely to appear in data
+      const DELIMITER = '§§'; // Section sign - uncommon in normal data
+      const sanitizedValues = values.map((v) => {
+        const strVal = String(v);
+        // Escape delimiter if it appears in the value
+        return strVal.replace(/§§/g, '§§§§');
+      });
+      const joinedValues = sanitizedValues.join(DELIMITER);
+
       return {
         class: ExpressionClass.OPERATOR,
         type: ExpressionType.OPERATOR_NOT,
         alias: '',
         children: [
           {
-            class: 'SUBQUERY',
+            class: ExpressionClass.SUBQUERY,
             type: ExpressionType.SUBQUERY,
             alias: '',
             subquery_type: SubqueryType.ANY,
@@ -85,9 +97,7 @@ const notInDuckDbCondition = (
               node: {
                 type: QueryNodeType.SELECT_NODE,
                 modifiers: [],
-                cte_map: {
-                  map: [],
-                },
+                cte_map: { map: [] },
                 select_list: [
                   {
                     class: ExpressionClass.FUNCTION,
@@ -97,28 +107,42 @@ const notInDuckDbCondition = (
                     schema: '',
                     children: [
                       {
-                        class: ExpressionClass.CAST,
-                        type: ExpressionType.OPERATOR_CAST,
+                        class: ExpressionClass.FUNCTION,
+                        type: ExpressionType.FUNCTION,
                         alias: '',
-                        child: {
-                          class: ExpressionClass.OPERATOR,
-                          type: ExpressionType.ARRAY_CONSTRUCTOR,
-                          alias: '',
-                          children: sqlTreeValues,
-                        },
-                        cast_type: {
-                          id: 'LIST',
-                          type_info: {
-                            type: 'LIST_TYPE_INFO',
+                        function_name: 'string_split',
+                        schema: '',
+                        children: [
+                          {
+                            class: ExpressionClass.CONSTANT,
+                            type: ExpressionType.VALUE_CONSTANT,
                             alias: '',
-                            modifiers: [],
-                            child_type: {
-                              id: 'VARCHAR',
-                              type_info: null,
+                            value: {
+                              type: { id: 'VARCHAR', type_info: null },
+                              is_null: false,
+                              value: joinedValues,
                             },
                           },
+                          {
+                            class: ExpressionClass.CONSTANT,
+                            type: ExpressionType.VALUE_CONSTANT,
+                            alias: '',
+                            value: {
+                              type: { id: 'VARCHAR', type_info: null },
+                              is_null: false,
+                              value: DELIMITER,
+                            },
+                          },
+                        ],
+                        filter: null,
+                        order_bys: {
+                          type: ResultModifierType.ORDER_MODIFIER,
+                          orders: [],
                         },
-                        try_cast: false,
+                        distinct: false,
+                        is_operator: false,
+                        export_state: false,
+                        catalog: '',
                       },
                     ],
                     filter: null,

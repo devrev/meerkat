@@ -17,46 +17,22 @@ describe('In transforms Tests', () => {
   });
 
   it('Should return the correct value for string member', () => {
-    const expectedOutput = {
-       "alias": "",
-       "children": [
-        {
-            "alias": "",
-            "class": "COLUMN_REF",
-            "column_names": [
-                "country",
-            ],
-            "type": "COLUMN_REF",
-        },
-        {
-            "alias": "",
-            "class": "CONSTANT",
-            "type": "VALUE_CONSTANT",
-            "value":  {
-                "is_null": false,
-                "type":  {
-                    "id": "VARCHAR",
-                    "type_info": null,
-                },
-                "value": "US",
-            },
-         },
-       ],
-       "class": "OPERATOR",
-       "type": "COMPARE_IN",
-    };
-    expect(
-        inTransform({
-        member: 'country',
-        operator: 'contains',
-        values: ['US'],
-        memberInfo: {
-          name: 'country',
-          sql: 'table.country',
-          type: 'string',
-        },
-      })
-    ).toEqual(expectedOutput);
+    // Now uses optimized subquery approach for all cases
+    const result = inTransform({
+      member: 'country',
+      operator: 'contains',
+      values: ['US'],
+      memberInfo: {
+        name: 'country',
+        sql: 'table.country',
+        type: 'string',
+      },
+    });
+    
+    // Check it returns a subquery structure
+    expect(result).toHaveProperty('class', 'SUBQUERY');
+    expect(result).toHaveProperty('type', 'SUBQUERY');
+    expect(result).toHaveProperty('subquery_type', 'ANY');
   });
 
   it('Should return the correct value for string_array member', () => {

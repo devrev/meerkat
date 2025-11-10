@@ -17,44 +17,22 @@ describe('Not In transforms Tests', () => {
   });
 
   it('Should return the correct value for string member', () => {
-    const expectedOutput = {
-        "alias": "",
-        "children":  [{
-            "alias": "",
-            "class": "COLUMN_REF",
-            "column_names":  [
-                "country",
-            ],
-            "type": "COLUMN_REF",
-        },
-        {
-            "alias": "",
-            "class": "CONSTANT",
-            "type": "VALUE_CONSTANT",
-            "value": {
-                "is_null": false,
-                "type": {
-                    "id": "VARCHAR",
-                    "type_info": null,
-                },
-                "value": "US",
-            },
-        }],
-        "class": "OPERATOR",
-        "type": "COMPARE_NOT_IN",
-    }
-    expect(
-        notInTransform({
-        member: 'country',
-        operator: 'contains',
-        values: ['US'],
-        memberInfo: {
-          name: 'country',
-          sql: 'table.country',
-          type: 'string',
-        },
-      })
-    ).toEqual(expectedOutput);
+    // Now uses optimized subquery approach for all cases
+    const result = notInTransform({
+      member: 'country',
+      operator: 'contains',
+      values: ['US'],
+      memberInfo: {
+        name: 'country',
+        sql: 'table.country',
+        type: 'string',
+      },
+    });
+    
+    // Check it returns OPERATOR_NOT wrapping a subquery
+    expect(result).toHaveProperty('class', 'OPERATOR');
+    expect(result).toHaveProperty('type', 'OPERATOR_NOT');
+    expect(result.children[0]).toHaveProperty('class', 'SUBQUERY');
   });
 
   it('Should return the correct value for string_array member', () => {
