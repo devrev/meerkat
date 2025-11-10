@@ -1,10 +1,13 @@
 import {
   createBaseTableSchema,
+  createWrapperTableSchema,
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
+  getArrayTypeResolutionColumnConfigs,
+  updateArrayFlattenModifierUsingResolutionConfig,
 } from './resolution';
-import { ResolutionConfig } from './types';
+import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
 describe('Create base table schema', () => {
   it('dimensions and measures are converted to dimensions', () => {
@@ -18,19 +21,19 @@ describe('Create base table schema', () => {
           {
             name: 'count',
             sql: 'COUNT(*)',
-            type: 'number',
+            type: 'number' as const,
           },
         ],
         dimensions: [
           {
             name: 'column1',
             sql: 'base_table.column1',
-            type: 'string',
+            type: 'string' as const,
           },
           {
             name: 'column2',
             sql: 'base_table.column2',
-            type: 'string',
+            type: 'string' as const,
           },
         ],
       },
@@ -89,12 +92,12 @@ describe('Create base table schema', () => {
           {
             name: 'column1',
             sql: 'base_table.column1',
-            type: 'string',
+            type: 'string' as const,
           },
           {
             name: 'column2',
             sql: 'base_table.column2',
-            type: 'string',
+            type: 'string' as const,
           },
         ],
       },
@@ -104,6 +107,7 @@ describe('Create base table schema', () => {
         {
           name: 'base_table.column1',
           source: 'resolution_table',
+          isArrayType: false,
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
@@ -166,7 +170,7 @@ describe('Create base table schema', () => {
           {
             name: 'column1',
             sql: 'base_table.column1',
-            type: 'string',
+            type: 'string' as const,
           },
         ],
       },
@@ -199,13 +203,13 @@ describe('Create base table schema', () => {
           {
             name: 'column1',
             sql: 'base_table.column1',
-            type: 'string',
+            type: 'string' as const,
             alias: 'Column 1',
           },
           {
             name: 'column2',
             sql: 'base_table.column2',
-            type: 'string',
+            type: 'string' as const,
             alias: 'Column 2',
           },
         ],
@@ -215,12 +219,14 @@ describe('Create base table schema', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          isArrayType: false,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
+          isArrayType: false,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_name'],
@@ -279,12 +285,12 @@ describe('Generate resolution schemas', () => {
           {
             name: 'column1',
             sql: 'base_table.column1',
-            type: 'string',
+            type: 'string' as const,
           },
           {
             name: 'column2',
             sql: 'base_table.column2',
-            type: 'string',
+            type: 'string' as const,
           },
         ],
       },
@@ -314,17 +320,17 @@ describe('Generate resolution schemas', () => {
             {
               name: 'id',
               sql: 'resolution_table.id',
-              type: 'string',
+              type: 'string' as const,
             },
             {
               name: 'display_id',
               sql: 'resolution_table.display_id',
-              type: 'string',
+              type: 'string' as const,
             },
             {
               name: 'display_name',
               sql: 'resolution_table.display_name',
-              type: 'string',
+              type: 'string' as const,
             },
           ],
         },
@@ -397,17 +403,17 @@ describe('Generate resolution schemas', () => {
             {
               name: 'id',
               sql: 'resolution_table.id',
-              type: 'string',
+              type: 'string' as const,
             },
             {
               name: 'display_id',
               sql: 'resolution_table.display_id',
-              type: 'string',
+              type: 'string' as const,
             },
             {
               name: 'display_name',
               sql: 'resolution_table.display_name',
-              type: 'string',
+              type: 'string' as const,
             },
           ],
         },
@@ -437,14 +443,14 @@ describe('Generate resolution schemas', () => {
             {
               name: 'display_id',
               sql: 'resolution_table.display_id',
-              type: 'string',
+              type: 'string' as const,
             },
           ],
           dimensions: [
             {
               name: 'id',
               sql: 'resolution_table.id',
-              type: 'string',
+              type: 'string' as const,
             },
           ],
         },
@@ -475,12 +481,12 @@ describe('Generate resolution schemas', () => {
             {
               name: 'id',
               sql: 'resolution_table.id',
-              type: 'string',
+              type: 'string' as const,
             },
             {
               name: 'display_id',
               sql: 'resolution_table.display_id',
-              type: 'string',
+              type: 'string' as const,
             },
           ],
         },
@@ -515,7 +521,7 @@ describe('Generate resolution schemas', () => {
           {
             name: 'column1',
             sql: 'base_table.column1',
-            type: 'string',
+            type: 'string' as const,
             alias: 'Column 1',
           },
         ],
@@ -540,13 +546,13 @@ describe('Generate resolution schemas', () => {
             {
               name: 'id',
               sql: 'resolution_table.id',
-              type: 'string',
+              type: 'string' as const,
               alias: 'ID',
             },
             {
               name: 'display_id',
               sql: 'resolution_table.display_id',
-              type: 'string',
+              type: 'string' as const,
               alias: 'Display ID',
             },
           ],
@@ -601,6 +607,7 @@ describe('Generate resolved dimensions', () => {
     };
 
     const resolvedDimensions = generateResolvedDimensions(
+      BASE_DATA_SOURCE_NAME,
       query,
       resolutionConfig
     );
@@ -629,6 +636,7 @@ describe('Generate resolved dimensions', () => {
     };
 
     const resolvedDimensions = generateResolvedDimensions(
+      BASE_DATA_SOURCE_NAME,
       query,
       resolutionConfig
     );
@@ -668,6 +676,7 @@ describe('Generate resolved dimensions', () => {
     ];
 
     const resolvedDimensions = generateResolvedDimensions(
+      BASE_DATA_SOURCE_NAME,
       query,
       resolutionConfig,
       projections
@@ -702,7 +711,11 @@ describe('Generate resolution join paths', () => {
       tableSchemas: [],
     };
 
-    const joinPaths = generateResolutionJoinPaths(resolutionConfig, []);
+    const joinPaths = generateResolutionJoinPaths(
+      BASE_DATA_SOURCE_NAME,
+      resolutionConfig,
+      []
+    );
 
     expect(joinPaths).toEqual([
       [
@@ -732,13 +745,13 @@ describe('Generate resolution join paths', () => {
           {
             name: 'column1',
             sql: 'base_table.column1',
-            type: 'string',
+            type: 'string' as const,
             alias: 'Column 1',
           },
           {
             name: 'column2',
             sql: 'base_table.column2',
-            type: 'string',
+            type: 'string' as const,
             alias: 'Column 2',
           },
         ],
@@ -758,6 +771,7 @@ describe('Generate resolution join paths', () => {
     };
 
     const joinPaths = generateResolutionJoinPaths(
+      BASE_DATA_SOURCE_NAME,
       resolutionConfig,
       baseTableSchemas
     );
@@ -770,5 +784,369 @@ describe('Generate resolution join paths', () => {
         },
       ],
     ]);
+  });
+});
+
+describe('createWrapperTableSchema', () => {
+  it('should create wrapper schema with correct structure', () => {
+    const sql = 'SELECT * FROM base_table';
+    const baseTableSchema = {
+      name: 'original_table',
+      sql: 'original sql',
+      dimensions: [
+        {
+          name: 'column1',
+          sql: 'original_table.column1',
+          type: 'string' as const,
+          alias: 'Column 1',
+        },
+        {
+          name: 'column2',
+          sql: 'original_table.column2',
+          type: 'number' as const,
+          alias: 'Column 2',
+        },
+      ],
+      measures: [
+        {
+          name: 'count',
+          sql: 'COUNT(*)',
+          type: 'number' as const,
+          alias: 'Count',
+        },
+      ],
+      joins: [
+        {
+          sql: 'some_join_condition',
+        },
+      ],
+    } as any;
+
+    const result = createWrapperTableSchema(sql, baseTableSchema);
+
+    expect(result).toEqual({
+      name: '__base_query',
+      sql: 'SELECT * FROM base_table',
+      dimensions: [
+        {
+          name: 'column1',
+          sql: '__base_query."Column 1"',
+          type: 'string',
+          alias: 'Column 1',
+        },
+        {
+          name: 'column2',
+          sql: '__base_query."Column 2"',
+          type: 'number',
+          alias: 'Column 2',
+        },
+      ],
+      measures: [
+        {
+          name: 'count',
+          sql: '__base_query."Count"',
+          type: 'number',
+          alias: 'Count',
+        },
+      ],
+      joins: [
+        {
+          sql: 'some_join_condition',
+        },
+      ],
+    });
+  });
+
+  it('should handle dimensions without aliases', () => {
+    const sql = 'SELECT column1 FROM base_table';
+    const baseTableSchema = {
+      name: 'original_table',
+      sql: 'original sql',
+      dimensions: [
+        {
+          name: 'column1',
+          sql: 'original_table.column1',
+          type: 'string' as const,
+        },
+      ],
+      measures: [],
+      joins: [],
+    } as any;
+
+    const result = createWrapperTableSchema(sql, baseTableSchema);
+
+    expect(result.dimensions[0].sql).toBe('__base_query."column1"');
+  });
+
+  it('should handle empty dimensions and measures', () => {
+    const sql = 'SELECT * FROM base_table';
+    const baseTableSchema = {
+      name: 'original_table',
+      sql: 'original sql',
+      dimensions: [],
+      measures: [],
+      joins: [],
+    } as any;
+
+    const result = createWrapperTableSchema(sql, baseTableSchema);
+
+    expect(result).toEqual({
+      name: '__base_query',
+      sql: 'SELECT * FROM base_table',
+      dimensions: [],
+      measures: [],
+      joins: [],
+    });
+  });
+});
+
+describe('getArrayTypeResolutionColumnConfigs', () => {
+  it('should filter and return only array type column configs', () => {
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'table.array_column',
+          isArrayType: true,
+          source: 'lookup_table',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+        {
+          name: 'table.scalar_column',
+          isArrayType: false,
+          source: 'lookup_table',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+        {
+          name: 'table.another_array',
+          isArrayType: true,
+          source: 'lookup_table2',
+          joinColumn: 'id',
+          resolutionColumns: ['value'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    const result = getArrayTypeResolutionColumnConfigs(resolutionConfig);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe('table.array_column');
+    expect(result[1].name).toBe('table.another_array');
+    expect(result.every((config) => config.isArrayType === true)).toBe(true);
+  });
+
+  it('should return empty array when no array type configs exist', () => {
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'table.scalar_column1',
+          isArrayType: false,
+          source: 'lookup_table',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+        {
+          name: 'table.scalar_column2',
+          isArrayType: false,
+          source: 'lookup_table',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    const result = getArrayTypeResolutionColumnConfigs(resolutionConfig);
+
+    expect(result).toEqual([]);
+  });
+
+  it('should return empty array when columnConfigs is empty', () => {
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [],
+      tableSchemas: [],
+    };
+
+    const result = getArrayTypeResolutionColumnConfigs(resolutionConfig);
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe('updateArrayFlattenModifierUsingResolutionConfig', () => {
+  it('should add shouldFlattenArray modifier to array columns', () => {
+    const baseTableSchema = {
+      name: 'base_table',
+      sql: 'SELECT * FROM base_table',
+      dimensions: [
+        {
+          name: 'array_column',
+          sql: 'base_table.array_column',
+          type: 'string_array' as const,
+        },
+        {
+          name: 'scalar_column',
+          sql: 'base_table.scalar_column',
+          type: 'string' as const,
+        },
+      ],
+      measures: [],
+    } as any;
+
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'array_column',
+          isArrayType: true,
+          source: 'lookup_table',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    updateArrayFlattenModifierUsingResolutionConfig(
+      baseTableSchema,
+      resolutionConfig
+    );
+
+    expect(baseTableSchema.dimensions[0].modifier).toEqual({
+      shouldFlattenArray: true,
+    });
+    expect(baseTableSchema.dimensions[1].modifier).toBeUndefined();
+  });
+
+  it('should handle multiple array columns', () => {
+    const baseTableSchema = {
+      name: 'base_table',
+      sql: 'SELECT * FROM base_table',
+      dimensions: [
+        {
+          name: 'array_column1',
+          sql: 'base_table.array_column1',
+          type: 'string_array' as const,
+        },
+        {
+          name: 'array_column2',
+          sql: 'base_table.array_column2',
+          type: 'string_array' as const,
+        },
+        {
+          name: 'scalar_column',
+          sql: 'base_table.scalar_column',
+          type: 'string' as const,
+        },
+      ],
+      measures: [],
+    } as any;
+
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'array_column1',
+          isArrayType: true,
+          source: 'lookup_table1',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+        {
+          name: 'array_column2',
+          isArrayType: true,
+          source: 'lookup_table2',
+          joinColumn: 'id',
+          resolutionColumns: ['value'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    updateArrayFlattenModifierUsingResolutionConfig(
+      baseTableSchema,
+      resolutionConfig
+    );
+
+    expect(baseTableSchema.dimensions[0].modifier).toEqual({
+      shouldFlattenArray: true,
+    });
+    expect(baseTableSchema.dimensions[1].modifier).toEqual({
+      shouldFlattenArray: true,
+    });
+    expect(baseTableSchema.dimensions[2].modifier).toBeUndefined();
+  });
+
+  it('should not modify dimensions when no array columns in config', () => {
+    const baseTableSchema = {
+      name: 'base_table',
+      sql: 'SELECT * FROM base_table',
+      dimensions: [
+        {
+          name: 'column1',
+          sql: 'base_table.column1',
+          type: 'string',
+        },
+        {
+          name: 'column2',
+          sql: 'base_table.column2',
+          type: 'number',
+        },
+      ],
+      measures: [],
+    } as any;
+
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'column1',
+          isArrayType: false,
+          source: 'lookup_table',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    updateArrayFlattenModifierUsingResolutionConfig(
+      baseTableSchema,
+      resolutionConfig
+    );
+
+    expect(baseTableSchema.dimensions[0].modifier).toBeUndefined();
+    expect(baseTableSchema.dimensions[1].modifier).toBeUndefined();
+  });
+
+  it('should handle empty dimensions array', () => {
+    const baseTableSchema = {
+      name: 'base_table',
+      sql: 'SELECT * FROM base_table',
+      dimensions: [],
+      measures: [],
+    } as any;
+
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'array_column',
+          isArrayType: true,
+          source: 'lookup_table',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    // Should not throw error
+    expect(() => {
+      updateArrayFlattenModifierUsingResolutionConfig(
+        baseTableSchema,
+        resolutionConfig
+      );
+    }).not.toThrow();
+
+    expect(baseTableSchema.dimensions).toEqual([]);
   });
 });
