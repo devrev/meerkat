@@ -228,3 +228,18 @@ export const generateResolutionJoinPaths = (
     },
   ]);
 };
+
+/**
+ * Wraps SQL to order by row_id and then exclude it from results.
+ * This maintains the ordering from the base query while removing the internal row_id column.
+ *
+ * @param sql - The SQL query that includes a __row_id column
+ * @param rowIdColumnName - The name of the row_id column (defaults to '__row_id')
+ * @returns SQL query ordered by row_id with the row_id column excluded
+ */
+export const wrapWithRowIdOrderingAndExclusion = (
+  sql: string,
+  rowIdColumnName: string
+): string => {
+  return `select * exclude(${rowIdColumnName}) from (${sql}) order by ${rowIdColumnName}`;
+};

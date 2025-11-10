@@ -16,6 +16,7 @@ import {
   ROW_ID_DIMENSION_NAME,
   TableSchema,
   updateArrayFlattenModifierUsingResolutionConfig,
+  wrapWithRowIdOrderingAndExclusion,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import {
@@ -78,6 +79,14 @@ export const cubeQueryToSQLWithResolution = async ({
       query.dimensions
     );
 
+    // Add row_id dimension to preserve ordering from base SQL
+    baseTable.dimensions.push({
+      name: ROW_ID_DIMENSION_NAME,
+      sql: 'row_number() OVER ()',
+      type: 'number',
+      alias: ROW_ID_DIMENSION_NAME,
+    } as Dimension);
+
     const resolutionSchemas: TableSchema[] = generateResolutionSchemas(
       resolutionConfig,
       tableSchemas
@@ -87,12 +96,16 @@ export const cubeQueryToSQLWithResolution = async ({
       connection,
       query: {
         measures: [],
-        dimensions: generateResolvedDimensions(
-          BASE_DATA_SOURCE_NAME,
-          query,
-          resolutionConfig,
-          columnProjections
-        ),
+        dimensions: [
+          ...generateResolvedDimensions(
+            BASE_DATA_SOURCE_NAME,
+            query,
+            resolutionConfig,
+            columnProjections
+          ),
+          // Include row_id in dimensions to preserve it through the query
+          getNamespacedKey(BASE_DATA_SOURCE_NAME, ROW_ID_DIMENSION_NAME),
+        ],
         joinPaths: generateResolutionJoinPaths(
           BASE_DATA_SOURCE_NAME,
           resolutionConfig,
@@ -103,7 +116,8 @@ export const cubeQueryToSQLWithResolution = async ({
     };
     const sql = await cubeQueryToSQL(resolveParams);
 
-    return sql;
+    // Order by row_id to maintain base SQL ordering, then exclude it
+    return wrapWithRowIdOrderingAndExclusion(sql, ROW_ID_DIMENSION_NAME);
   }
 };
 
@@ -415,6 +429,9 @@ export const getAggregatedSql = async ({
     contextParams,
   });
 
-  const rowIdExcludedSql = `select * exclude(${ROW_ID_DIMENSION_NAME}) from (${aggregatedSql})`;
-  return rowIdExcludedSql;
+  // Order by row_id to maintain consistent ordering before excluding it
+  return wrapWithRowIdOrderingAndExclusion(
+    aggregatedSql,
+    ROW_ID_DIMENSION_NAME
+  );
 };
