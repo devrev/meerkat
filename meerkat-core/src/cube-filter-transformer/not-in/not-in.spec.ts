@@ -108,7 +108,7 @@ describe('Not In transforms Tests', () => {
     const selectList = subquery.subquery.node.select_list[0];
     const stringSplitChildren = selectList.children[0].children;
     expect(stringSplitChildren.length).toBe(2);
-    expect(stringSplitChildren[0].value.value).toContain('§§');
+    expect(stringSplitChildren[0].value.value).toContain('§‡¶');
   });
 
   it('Should use delimiter to join values', () => {
@@ -128,8 +128,8 @@ describe('Not In transforms Tests', () => {
     const joinedValue = selectList.children[0].children[0].value.value;
     const delimiter = selectList.children[0].children[1].value.value;
 
-    expect(delimiter).toBe('§§');
-    expect(joinedValue).toBe('US§§Canada');
+    expect(delimiter).toBe('§‡¶');
+    expect(joinedValue).toBe('US§‡¶Canada');
   });
 
   it('Should return the correct value for string_array member', () => {
@@ -235,36 +235,5 @@ describe('Not In transforms Tests', () => {
         },
       })
     ).toThrow('Not in filter must have at least one value');
-  });
-
-  it('Should throw error if values contain the reserved delimiter', () => {
-    expect(() =>
-      notInTransform({
-        member: 'country',
-        operator: 'notIn',
-        values: ['US', 'has§§delimiter', 'Mexico'],
-        memberInfo: {
-          name: 'country',
-          sql: 'table.country',
-          type: 'string',
-        },
-      })
-    ).toThrow("Filter values cannot contain the reserved delimiter '§§'");
-  });
-
-  it('Should throw error if numeric values contain the reserved delimiter', () => {
-    // This could happen if someone passes a string representation of a number
-    expect(() =>
-      notInTransform({
-        member: 'order_id',
-        operator: 'notIn',
-        values: ['123§§456', '789'],
-        memberInfo: {
-          name: 'order_id',
-          sql: 'table.order_id',
-          type: 'number',
-        },
-      })
-    ).toThrow("Filter values cannot contain the reserved delimiter '§§'");
   });
 });

@@ -988,7 +988,7 @@ export const TEST_DATA = [
       testName: 'In',
       // customer_id is string type -> uses optimized string_split
       // vendors is string_array type -> uses ARRAY overlap &&
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§')))) AND (orders__vendors && (ARRAY['myntra', 'amazon'])))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = ANY(SELECT unnest(string_split('1§‡¶2', '§‡¶')))) AND (orders__vendors && (ARRAY['myntra', 'amazon'])))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -1037,7 +1037,7 @@ export const TEST_DATA = [
     {
       testName: 'In with numeric type (optimized with CAST)',
       // order_id is number type -> uses optimized string_split with CAST to DOUBLE
-      expectedSQL: `SELECT orders.* FROM (SELECT order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§§2§§3', '§§')) AS DOUBLE)))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§‡¶2§‡¶3', '§‡¶')) AS DOUBLE)))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -1115,7 +1115,7 @@ export const TEST_DATA = [
         'Multiple In filters combined (customer_id, product_id, order_id)',
       // Tests all three optimized filters working together
       // customer_id (string), product_id (string), order_id (number with CAST)
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, product_id AS orders__product_id, order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§')))) AND (orders__product_id = ANY(SELECT unnest(string_split('1§§2', '§§')))) AND (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§§2§§3§§4', '§§')) AS DOUBLE))))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, product_id AS orders__product_id, order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id = ANY(SELECT unnest(string_split('1§‡¶2', '§‡¶')))) AND (orders__product_id = ANY(SELECT unnest(string_split('1§‡¶2', '§‡¶')))) AND (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§‡¶2§‡¶3§‡¶4', '§‡¶')) AS DOUBLE))))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -1183,7 +1183,7 @@ export const TEST_DATA = [
       testName: 'Not In',
       // customer_id is string type -> uses optimized string_split with NOT
       // vendors is string_array type -> uses NOT with ARRAY overlap &&
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((NOT (orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§'))))) AND (NOT (orders__vendors && (ARRAY['myntra', 'flipkart']))))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, vendors AS orders__vendors, * FROM (select * from orders) AS orders) AS orders WHERE ((NOT (orders__customer_id = ANY(SELECT unnest(string_split('1§‡¶2', '§‡¶'))))) AND (NOT (orders__vendors && (ARRAY['myntra', 'flipkart']))))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -1254,7 +1254,7 @@ export const TEST_DATA = [
     {
       testName: 'Not In with numeric type (optimized with CAST)',
       // order_id is number type -> uses optimized string_split with CAST and NOT
-      expectedSQL: `SELECT orders.* FROM (SELECT order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE (NOT (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§§2', '§§')) AS DOUBLE))))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE (NOT (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§‡¶2', '§‡¶')) AS DOUBLE))))`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -1374,7 +1374,7 @@ export const TEST_DATA = [
       testName:
         'Multiple NotIn filters combined (customer_id, product_id, order_id)',
       // Tests all three optimized NOT IN filters working together
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, product_id AS orders__product_id, order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE ((NOT (orders__customer_id = ANY(SELECT unnest(string_split('1§§2', '§§'))))) AND (NOT (orders__product_id = ANY(SELECT unnest(string_split('1§§2', '§§'))))) AND (NOT (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§§2', '§§')) AS DOUBLE)))))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, product_id AS orders__product_id, order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE ((NOT (orders__customer_id = ANY(SELECT unnest(string_split('1§‡¶2', '§‡¶'))))) AND (NOT (orders__product_id = ANY(SELECT unnest(string_split('1§‡¶2', '§‡¶'))))) AND (NOT (orders__order_id = ANY(SELECT CAST(unnest(string_split('1§‡¶2', '§‡¶')) AS DOUBLE)))))`,
       cubeInput: {
         measures: ['*'],
         filters: [
