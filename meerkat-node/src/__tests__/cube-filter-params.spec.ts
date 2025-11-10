@@ -58,7 +58,7 @@ describe('filter-param-tests', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL({query, tableSchemas: [SCHEMA]});
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
@@ -89,12 +89,7 @@ describe('filter-param-tests', () => {
           ],
         },
       ],
-      orderBy: [
-        {
-          member: 'orders.amount',
-          direction: 'desc',
-        },
-      ],
+      order: { id: 'asc' },
       dimensions: [],
     };
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
@@ -161,9 +156,9 @@ describe('filter-param-tests', () => {
             {
               member: 'orders.status',
               operator: 'set',
-            }
+            },
           ],
-        }, 
+        },
       ],
       dimensions: [],
     };

@@ -6,14 +6,39 @@ import {
   MeerkatQueryFilter,
   Query,
   QueryFilter,
-  TableSchema
+  TableSchema,
 } from '../types/cube-types';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
+
+/*
+ ** This function traverse the MeerkatQueryFilter JSON, and calls the callback for each leaf type.
+ ** This way we need no rewrite the traversal logic again and again.
+ */
+export const traverseMeerkatQueryFilter = (
+  filters: MeerkatQueryFilter[],
+  callback: (value: QueryFilter) => void
+) => {
+  filters.forEach((filter: MeerkatQueryFilter) => {
+    if ('member' in filter) {
+      callback(filter);
+      return;
+    }
+    if ('and' in filter) {
+      filter.and.forEach((subFilter: MeerkatQueryFilter) =>
+        traverseMeerkatQueryFilter([subFilter], callback)
+      );
+    }
+    if ('or' in filter) {
+      filter.or.forEach((subFilter: MeerkatQueryFilter) =>
+        traverseMeerkatQueryFilter([subFilter], callback)
+      );
+    }
+  });
+};
 
 /**
  * Get the query filter with only where filterKey matches
  */
-
 export const traverseAndFilter = (
   filter: MeerkatQueryFilter,
   callback: (value: QueryFilter) => boolean
@@ -42,14 +67,15 @@ export const traverseAndFilter = (
   return null;
 };
 
-
 export const getFilterByMemberKey = (
   filters: MeerkatQueryFilter[] | undefined,
   memberKey: string
 ): MeerkatQueryFilter[] => {
   if (!filters) return [];
   return filters
-    .map((filter) => traverseAndFilter(filter, (value) =>  value.member === memberKey))
+    .map((filter) =>
+      traverseAndFilter(filter, (value) => value.member === memberKey)
+    )
     .filter(Boolean) as MeerkatQueryFilter[];
 };
 
@@ -82,8 +108,6 @@ export const detectAllFilterParamsFromSQL = (
   return matches;
 };
 
-
-
 export const getFilterParamsAST = (
   query: Query,
   tableSchema: TableSchema,
@@ -95,13 +119,13 @@ export const getFilterParamsAST = (
 }[] => {
   const filterParamKeys = detectAllFilterParamsFromSQL(tableSchema.sql);
   const filterParamsAST = [];
-  
+
   for (const filterParamKey of filterParamKeys) {
     const filters = getFilterByMemberKey(
       query.filters,
       filterParamKey.memberKey
     );
-   
+
     if (filters && filters.length > 0) {
       filterParamsAST.push({
         memberKey: filterParamKey.memberKey,
@@ -110,7 +134,7 @@ export const getFilterParamsAST = (
           { filters, measures: [], dimensions: [] },
           tableSchema,
           {
-            filterType
+            filterType,
           }
         ),
       });
@@ -124,9 +148,12 @@ type FilterParamsSQL = {
   memberKey: string;
   sql: string;
   matchKey: string;
-}
+};
 
-const replaceWhereClauseWithFiltersParamsSQL = (baseSQL: string, filterParamsSQL: FilterParamsSQL[]) => {
+const replaceWhereClauseWithFiltersParamsSQL = (
+  baseSQL: string,
+  filterParamsSQL: FilterParamsSQL[]
+) => {
   let finalSQL = baseSQL;
 
   for (const filterParam of filterParamsSQL) {
@@ -139,14 +166,17 @@ const replaceWhereClauseWithFiltersParamsSQL = (baseSQL: string, filterParamsSQL
      */
     finalSQL = finalSQL.replace(filterParam.matchKey, whereClause);
   }
-  return finalSQL
-}
+  return finalSQL;
+};
 
 export const applyFilterParamsToBaseSQL = (
   baseSQL: string,
   filterParamsSQL: FilterParamsSQL[]
 ) => {
-  let finalSQL = replaceWhereClauseWithFiltersParamsSQL(baseSQL, filterParamsSQL);
+  let finalSQL = replaceWhereClauseWithFiltersParamsSQL(
+    baseSQL,
+    filterParamsSQL
+  );
   for (const filterParam of filterParamsSQL) {
     /**
      * Get SQL expression after WHERE clause

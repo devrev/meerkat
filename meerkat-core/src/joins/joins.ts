@@ -1,3 +1,4 @@
+import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
 import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
 
 export type Graph = {
@@ -170,7 +171,7 @@ export const checkLoopInJoinPath = (joinPath: JoinPath[]) => {
   return false;
 };
 
-export const getCombinedTableSchema = async (
+export const getCombinedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ) => {
@@ -178,15 +179,25 @@ export const getCombinedTableSchema = async (
     return tableSchema[0];
   }
 
-  const tableSchemaSqlMap = tableSchema.reduce(
+  const newTableSchema: TableSchema[] = getUsedTableSchema(
+    tableSchema,
+    cubeQuery
+  );
+
+  if (newTableSchema.length === 1) {
+    return newTableSchema[0];
+  }
+
+  const tableSchemaSqlMap = newTableSchema.reduce(
     (acc: { [key: string]: string }, schema: TableSchema) => {
       return { ...acc, [schema.name]: schema.sql };
     },
     {}
   );
 
-  const directedGraph = createDirectedGraph(tableSchema, tableSchemaSqlMap);
+  const directedGraph = createDirectedGraph(newTableSchema, tableSchemaSqlMap);
   const hasLoop = checkLoopInJoinPath(cubeQuery.joinPaths || []);
+
   if (hasLoop) {
     throw new Error(
       `A loop was detected in the joins. ${JSON.stringify(
@@ -201,7 +212,7 @@ export const getCombinedTableSchema = async (
     directedGraph
   );
 
-  const combinedTableSchema = tableSchema.reduce(
+  const combinedTableSchema = newTableSchema.reduce(
     (acc: TableSchema, schema: TableSchema) => {
       return {
         name: 'MEERKAT_GENERATED_TABLE',

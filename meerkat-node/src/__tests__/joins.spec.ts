@@ -15,7 +15,7 @@ export const INPUT_CUSTOMERS_DATA = `
 INSERT INTO customers VALUES
 ('1', '3', 'John Doe', 'johndoe@gmail.com', '1234567890'),
 ('2', '2', 'Jane Doe', 'janedoe@gmail.com', '9876543210'),
-('3', '1', 'John Smith', 'johnsmith@gmail.com', '1234567892'); 
+('3', '1', 'John Smith', 'johnsmith@gmail.com', '1234567892');
 `;
 
 export const CUSTOMER_SCHEMA = {
