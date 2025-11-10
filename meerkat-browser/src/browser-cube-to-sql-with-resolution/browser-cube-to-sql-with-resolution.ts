@@ -49,6 +49,10 @@ export const cubeQueryToSQLWithResolution = async ({
     contextParams,
   });
 
+  if (resolutionConfig.columnConfigs.length === 0 && !query.order) {
+    return baseSql;
+  }
+
   if (resolutionConfig.columnConfigs.some((config) => config.isArrayType)) {
     // This is to ensure that, only the column projection columns
     // are being resolved and other definitions are ignored.
