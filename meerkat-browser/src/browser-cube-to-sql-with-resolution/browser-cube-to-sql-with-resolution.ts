@@ -7,6 +7,7 @@ import {
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
+  generateRowNumberSql,
   getArrayTypeResolutionColumnConfigs,
   getNamespacedKey,
   Measure,
@@ -48,11 +49,6 @@ export const cubeQueryToSQLWithResolution = async ({
     contextParams,
   });
 
-  if (resolutionConfig.columnConfigs.length === 0) {
-    // If no resolution is needed, return the base SQL.
-    return baseSql;
-  }
-
   if (resolutionConfig.columnConfigs.some((config) => config.isArrayType)) {
     // This is to ensure that, only the column projection columns
     // are being resolved and other definitions are ignored.
@@ -64,6 +60,7 @@ export const cubeQueryToSQLWithResolution = async ({
     return cubeQueryToSQLWithResolutionWithArray({
       connection,
       baseSql,
+      query,
       tableSchemas,
       resolutionConfig,
       columnProjections,
@@ -82,7 +79,11 @@ export const cubeQueryToSQLWithResolution = async ({
     // Add row_id dimension to preserve ordering from base SQL
     baseTable.dimensions.push({
       name: ROW_ID_DIMENSION_NAME,
-      sql: 'row_number() OVER ()',
+      sql: generateRowNumberSql(
+        query,
+        baseTable.dimensions,
+        BASE_DATA_SOURCE_NAME
+      ),
       type: 'number',
       alias: ROW_ID_DIMENSION_NAME,
     } as Dimension);
@@ -124,6 +125,7 @@ export const cubeQueryToSQLWithResolution = async ({
 export const cubeQueryToSQLWithResolutionWithArray = async ({
   connection,
   baseSql,
+  query,
   tableSchemas,
   resolutionConfig,
   columnProjections,
@@ -131,6 +133,7 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
 }: {
   connection: AsyncDuckDBConnection;
   baseSql: string;
+  query: Query;
   tableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
   columnProjections?: string[];
@@ -146,7 +149,11 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
 
   baseSchema.dimensions.push({
     name: ROW_ID_DIMENSION_NAME,
-    sql: 'row_number() OVER ()',
+    sql: generateRowNumberSql(
+      query,
+      baseSchema.dimensions,
+      BASE_DATA_SOURCE_NAME
+    ),
     type: 'number',
     alias: ROW_ID_DIMENSION_NAME,
   } as Dimension);

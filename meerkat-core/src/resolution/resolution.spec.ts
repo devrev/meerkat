@@ -4,6 +4,7 @@ import {
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
+  generateRowNumberSql,
   getArrayTypeResolutionColumnConfigs,
   updateArrayFlattenModifierUsingResolutionConfig,
 } from './resolution';
@@ -1148,5 +1149,181 @@ describe('updateArrayFlattenModifierUsingResolutionConfig', () => {
     }).not.toThrow();
 
     expect(baseTableSchema.dimensions).toEqual([]);
+  });
+});
+
+describe('generateRowNumberSql', () => {
+  it('should generate row_number with ORDER BY for single column', () => {
+    const query = {
+      order: { 'table.id': 'asc' },
+    };
+    const dimensions = [
+      {
+        name: 'table__id',
+        alias: 'ID',
+      },
+      {
+        name: 'table__name',
+        alias: 'Name',
+      },
+    ];
+
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      BASE_DATA_SOURCE_NAME
+    );
+
+    expect(result).toBe('row_number() OVER (ORDER BY __base_query."ID" ASC)');
+  });
+
+  it('should generate row_number with ORDER BY for multiple columns', () => {
+    const query = {
+      order: { 'table.id': 'asc', 'table.name': 'desc' },
+    };
+    const dimensions = [
+      {
+        name: 'table__id',
+        alias: 'ID',
+      },
+      {
+        name: 'table__name',
+        alias: 'Name',
+      },
+    ];
+
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      BASE_DATA_SOURCE_NAME
+    );
+
+    expect(result).toBe(
+      'row_number() OVER (ORDER BY __base_query."ID" ASC, __base_query."Name" DESC)'
+    );
+  });
+
+  it('should generate row_number without ORDER BY when query has no order', () => {
+    const query = {};
+    const dimensions = [
+      {
+        name: 'table__id',
+        alias: 'ID',
+      },
+    ];
+
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      BASE_DATA_SOURCE_NAME
+    );
+
+    expect(result).toBe('row_number() OVER ()');
+  });
+
+  it('should generate row_number without ORDER BY when order is empty', () => {
+    const query = {
+      order: {},
+    };
+    const dimensions = [
+      {
+        name: 'table__id',
+        alias: 'ID',
+      },
+    ];
+
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      BASE_DATA_SOURCE_NAME
+    );
+
+    expect(result).toBe('row_number() OVER ()');
+  });
+
+  it('should use dimension name when alias is not present', () => {
+    const query = {
+      order: { 'table.id': 'asc' },
+    };
+    const dimensions = [
+      {
+        name: 'table__id',
+      },
+    ];
+
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      BASE_DATA_SOURCE_NAME
+    );
+
+    expect(result).toBe(
+      'row_number() OVER (ORDER BY __base_query."table__id" ASC)'
+    );
+  });
+
+  it('should handle dimension not found by using safe member name', () => {
+    const query = {
+      order: { 'table.unknown_column': 'desc' },
+    };
+    const dimensions = [
+      {
+        name: 'table__id',
+        alias: 'ID',
+      },
+    ];
+
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      BASE_DATA_SOURCE_NAME
+    );
+
+    expect(result).toBe(
+      'row_number() OVER (ORDER BY __base_query."table__unknown_column" DESC)'
+    );
+  });
+
+  it('should handle mixed case order directions', () => {
+    const query = {
+      order: { 'table.id': 'asc', 'table.name': 'desc' },
+    };
+    const dimensions = [
+      {
+        name: 'table__id',
+        alias: 'ID',
+      },
+      {
+        name: 'table__name',
+        alias: 'Name',
+      },
+    ];
+
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      BASE_DATA_SOURCE_NAME
+    );
+
+    expect(result).toBe(
+      'row_number() OVER (ORDER BY __base_query."ID" ASC, __base_query."Name" DESC)'
+    );
+  });
+
+  it('should use custom base table name', () => {
+    const query = {
+      order: { 'table.id': 'asc' },
+    };
+    const dimensions = [
+      {
+        name: 'table__id',
+        alias: 'ID',
+      },
+    ];
+    const customBaseTableName = 'custom_table';
+
+    const result = generateRowNumberSql(query, dimensions, customBaseTableName);
+
+    expect(result).toBe('row_number() OVER (ORDER BY custom_table."ID" ASC)');
   });
 });

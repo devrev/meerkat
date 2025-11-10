@@ -7,6 +7,7 @@ import {
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
+  generateRowNumberSql,
   getArrayTypeResolutionColumnConfigs,
   getNamespacedKey,
   Measure,
@@ -59,6 +60,7 @@ export const cubeQueryToSQLWithResolution = async ({
     );
     return cubeQueryToSQLWithResolutionWithArray({
       baseSql,
+      query,
       tableSchemas,
       resolutionConfig,
       columnProjections,
@@ -77,7 +79,11 @@ export const cubeQueryToSQLWithResolution = async ({
     // Add row_id dimension to preserve ordering from base SQL
     baseTable.dimensions.push({
       name: ROW_ID_DIMENSION_NAME,
-      sql: 'row_number() OVER ()',
+      sql: generateRowNumberSql(
+        query,
+        baseTable.dimensions,
+        BASE_DATA_SOURCE_NAME
+      ),
       type: 'number',
       alias: ROW_ID_DIMENSION_NAME,
     } as Dimension);
@@ -117,12 +123,14 @@ export const cubeQueryToSQLWithResolution = async ({
 
 export const cubeQueryToSQLWithResolutionWithArray = async ({
   baseSql,
+  query,
   tableSchemas,
   resolutionConfig,
   columnProjections,
   contextParams,
 }: {
   baseSql: string;
+  query: Query;
   tableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
   columnProjections?: string[];
@@ -138,7 +146,11 @@ export const cubeQueryToSQLWithResolutionWithArray = async ({
 
   baseSchema.dimensions.push({
     name: ROW_ID_DIMENSION_NAME,
-    sql: 'row_number() OVER ()',
+    sql: generateRowNumberSql(
+      query,
+      baseSchema.dimensions,
+      BASE_DATA_SOURCE_NAME
+    ),
     type: 'number',
     alias: ROW_ID_DIMENSION_NAME,
   } as Dimension);
