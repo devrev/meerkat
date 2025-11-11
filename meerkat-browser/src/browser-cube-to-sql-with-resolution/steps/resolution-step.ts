@@ -33,7 +33,7 @@ export const getResolvedTableSchema = async ({
   baseTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
-  columnProjections?: string[];
+  columnProjections: string[];
 }): Promise<TableSchema> => {
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
@@ -105,19 +105,31 @@ export const getResolvedTableSchema = async ({
     }
   });
 
-  // Maintain the same order as baseTableSchema.dimensions
+  // Maintain the same order as columnProjections
   // Replace dimensions that need resolution with their resolved counterparts
-  resolvedTableSchema.dimensions = baseTableSchema.dimensions.flatMap((dim) => {
-    const resolvedDims = resolutionDimensionsByColumnName.get(dim.name);
-    if (resolvedDims) {
-      // Replace with resolved dimensions
-      return resolvedDims;
-    } else {
-      // Keep the original dimension with correct SQL reference
-      return [dim];
+  resolvedTableSchema.dimensions = (updatedColumnProjections || []).flatMap(
+    (projectionName) => {
+      // Check if this column has resolved dimensions
+      const resolvedDims = resolutionDimensionsByColumnName.get(projectionName);
+      if (resolvedDims) {
+        // Use resolved dimensions
+        return resolvedDims;
+      }
+
+      // Otherwise, find the original dimension from baseTableSchema
+      const originalDim = baseTableSchema.dimensions.find(
+        (d) => d.name === projectionName
+      );
+      if (originalDim) {
+        return [originalDim];
+      }
+
+      // If not found, throw an error
+      throw new Error(
+        `Column projection '${projectionName}' not found in base table schema dimensions`
+      );
     }
-  });
+  );
 
   return resolvedTableSchema;
 };
-

@@ -49,15 +49,7 @@ export const cubeQueryToSQLWithResolution = async ({
     return baseSql;
   }
 
-  // If column projections are provided, filter the query to only include the columns that are being projected.
-  if (columnProjections) {
-    query.dimensions = query.dimensions?.filter((dimension) => {
-      return columnProjections?.includes(dimension);
-    });
-    query.measures = query.measures?.filter((measure) => {
-      return columnProjections?.includes(measure);
-    });
-  } else {
+  if (!columnProjections) {
     columnProjections = [...(query.dimensions || []), ...query.measures];
   }
   // This is to ensure that, only the column projection columns
@@ -92,15 +84,15 @@ const getCubeQueryToSQLWithResolution = async ({
   query: Query;
   tableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
-  columnProjections?: string[];
+  columnProjections: string[];
   contextParams?: ContextParams;
 }): Promise<string> => {
   const baseSchema: TableSchema = createBaseTableSchema(
     baseSql,
     tableSchemas,
     resolutionConfig,
-    [],
-    columnProjections
+    query.measures,
+    query.dimensions
   );
 
   baseSchema.dimensions.push({
@@ -113,7 +105,7 @@ const getCubeQueryToSQLWithResolution = async ({
     type: 'number',
     alias: ROW_ID_DIMENSION_NAME,
   } as Dimension);
-  columnProjections?.push(ROW_ID_DIMENSION_NAME);
+  columnProjections.push(ROW_ID_DIMENSION_NAME);
 
   // Doing this because we need to use the original name of the column in the base table schema.
   resolutionConfig.columnConfigs.forEach((config) => {
