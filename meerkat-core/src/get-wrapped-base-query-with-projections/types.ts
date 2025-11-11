@@ -12,4 +12,3 @@ export type Modifier = {
   matcher: (modifier: DimensionModifier) => boolean;
   modifier: (modifier: DimensionModifier) => string;
 };
-
