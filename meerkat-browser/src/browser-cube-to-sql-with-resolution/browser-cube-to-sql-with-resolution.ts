@@ -7,6 +7,7 @@ import {
   Query,
   ResolutionConfig,
   TableSchema,
+  transformOrderForResolution,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import {
@@ -60,6 +61,7 @@ export const cubeQueryToSQLWithResolution = async ({
   const resolveParams: CubeQueryToSQLParams = {
     connection: connection,
     query: {
+      order: transformOrderForResolution(query.order, resolutionConfig),
       measures: [],
       dimensions: generateResolvedDimensions(
         query,

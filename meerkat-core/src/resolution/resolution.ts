@@ -162,6 +162,44 @@ export const generateResolvedDimensions = (
   return resolvedDimensions;
 };
 
+/**
+ * Transform an input order object (using original query member keys)
+ * to the keys expected by the resolution stage.
+ *
+ * Rules:
+ * - If a member is configured for resolution, map it to the first resolved column.
+ *   Example: orders.customer_id -> orders__customer_id.orders__customer_id__display_id
+ * - Otherwise, map to the base query namespace using the safe key:
+ *   table.column -> __base_query.table__column
+ * - Measures are treated like base dimensions (they are projected as dimensions in the base schema)
+ */
+export const transformOrderForResolution = (
+  order: { [key: string]: 'asc' | 'desc' } | undefined,
+  config: ResolutionConfig
+): { [key: string]: 'asc' | 'desc' } | undefined => {
+  if (!order || Object.keys(order).length === 0) {
+    return order;
+  }
+  const mapped: { [key: string]: 'asc' | 'desc' } = {};
+  for (const [key, dir] of Object.entries(order)) {
+    const colConfig = config.columnConfigs.find((c) => c.name === key);
+    if (colConfig && colConfig.resolutionColumns.length > 0) {
+      const baseSafe = memberKeyToSafeKey(key);
+      const firstRes = colConfig.resolutionColumns[0];
+      const resolvedMember = getNamespacedKey(
+        baseSafe,
+        memberKeyToSafeKey(getNamespacedKey(colConfig.name, firstRes))
+      );
+      mapped[resolvedMember] = dir;
+    } else {
+      // Unresolved (dimension or measure) -> base namespace safe key
+      mapped[getNamespacedKey(BASE_DATA_SOURCE_NAME, memberKeyToSafeKey(key))] =
+        dir;
+    }
+  }
+  return mapped;
+};
+
 export const generateResolutionJoinPaths = (
   resolutionConfig: ResolutionConfig,
   baseTableSchemas: TableSchema[]

@@ -7,6 +7,7 @@ import {
   Query,
   ResolutionConfig,
   TableSchema,
+  transformOrderForResolution,
 } from '@devrev/meerkat-core';
 import {
   cubeQueryToSQL,
@@ -55,6 +56,7 @@ export const cubeQueryToSQLWithResolution = async ({
 
   const resolveParams: CubeQueryToSQLParams = {
     query: {
+      order: transformOrderForResolution(query.order, resolutionConfig),
       measures: [],
       dimensions: generateResolvedDimensions(
         query,
