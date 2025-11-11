@@ -174,30 +174,41 @@ export const generateResolvedDimensions = (
  * - Measures are treated like base dimensions (they are projected as dimensions in the base schema)
  */
 export const transformOrderForResolution = (
-  order: { [key: string]: 'asc' | 'desc' } | undefined,
+  order: Query['order'] | undefined,
   config: ResolutionConfig
-): { [key: string]: 'asc' | 'desc' } | undefined => {
-  if (!order || Object.keys(order).length === 0) {
-    return order;
-  }
-  const mapped: { [key: string]: 'asc' | 'desc' } = {};
-  for (const [key, dir] of Object.entries(order)) {
-    const colConfig = config.columnConfigs.find((c) => c.name === key);
+): Query['order'] | undefined => {
+  if (!order || Object.keys(order).length === 0) return order;
+
+  const configMap = new Map(config.columnConfigs.map((c) => [c.name, c]));
+
+  const newEntries = Object.entries(order).map(([key, dir]) => {
+    const colConfig = configMap.get(key);
+
     if (colConfig && colConfig.resolutionColumns.length > 0) {
-      const baseSafe = memberKeyToSafeKey(key);
-      const firstRes = colConfig.resolutionColumns[0];
-      const resolvedMember = getNamespacedKey(
-        baseSafe,
-        memberKeyToSafeKey(getNamespacedKey(colConfig.name, firstRes))
+      // Case 1: Resolved Column
+      const baseSafeKey = memberKeyToSafeKey(key);
+      const firstResolvedColumn = colConfig.resolutionColumns[0];
+      const namespacedResCol = getNamespacedKey(
+        colConfig.name,
+        firstResolvedColumn
       );
-      mapped[resolvedMember] = dir;
+      const safeNamespacedResCol = memberKeyToSafeKey(namespacedResCol);
+      const finalResolvedKey = getNamespacedKey(
+        baseSafeKey,
+        safeNamespacedResCol
+      );
+
+      return [finalResolvedKey, dir];
     } else {
-      // Unresolved (dimension or measure) -> base namespace safe key
-      mapped[getNamespacedKey(BASE_DATA_SOURCE_NAME, memberKeyToSafeKey(key))] =
-        dir;
+      // Case 2: Unresolved Dimension or Measure
+      const safeKey = memberKeyToSafeKey(key);
+      const baseQueryKey = getNamespacedKey(BASE_DATA_SOURCE_NAME, safeKey);
+
+      return [baseQueryKey, dir];
     }
-  }
-  return mapped;
+  });
+
+  return Object.fromEntries(newEntries);
 };
 
 export const generateResolutionJoinPaths = (
