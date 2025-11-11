@@ -6,7 +6,7 @@ import {
   generateResolvedDimensions,
   generateRowNumberSql,
   getArrayTypeResolutionColumnConfigs,
-  updateArrayFlattenModifierUsingResolutionConfig,
+  withArrayFlattenModifier,
 } from './resolution';
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
@@ -976,7 +976,7 @@ describe('getArrayTypeResolutionColumnConfigs', () => {
   });
 });
 
-describe('updateArrayFlattenModifierUsingResolutionConfig', () => {
+describe('withArrayFlattenModifier', () => {
   it('should add shouldFlattenArray modifier to array columns', () => {
     const baseTableSchema = {
       name: 'base_table',
@@ -1009,15 +1009,14 @@ describe('updateArrayFlattenModifierUsingResolutionConfig', () => {
       tableSchemas: [],
     };
 
-    updateArrayFlattenModifierUsingResolutionConfig(
-      baseTableSchema,
-      resolutionConfig
-    );
+    const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
 
-    expect(baseTableSchema.dimensions[0].modifier).toEqual({
+    expect(result.dimensions[0].modifier).toEqual({
       shouldFlattenArray: true,
     });
-    expect(baseTableSchema.dimensions[1].modifier).toBeUndefined();
+    expect(result.dimensions[1].modifier).toBeUndefined();
+    // Verify immutability
+    expect(baseTableSchema.dimensions[0].modifier).toBeUndefined();
   });
 
   it('should handle multiple array columns', () => {
@@ -1064,18 +1063,17 @@ describe('updateArrayFlattenModifierUsingResolutionConfig', () => {
       tableSchemas: [],
     };
 
-    updateArrayFlattenModifierUsingResolutionConfig(
-      baseTableSchema,
-      resolutionConfig
-    );
+    const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
 
-    expect(baseTableSchema.dimensions[0].modifier).toEqual({
+    expect(result.dimensions[0].modifier).toEqual({
       shouldFlattenArray: true,
     });
-    expect(baseTableSchema.dimensions[1].modifier).toEqual({
+    expect(result.dimensions[1].modifier).toEqual({
       shouldFlattenArray: true,
     });
-    expect(baseTableSchema.dimensions[2].modifier).toBeUndefined();
+    expect(result.dimensions[2].modifier).toBeUndefined();
+    // Verify immutability
+    expect(baseTableSchema.dimensions[0].modifier).toBeUndefined();
   });
 
   it('should not modify dimensions when no array columns in config', () => {
@@ -1110,13 +1108,10 @@ describe('updateArrayFlattenModifierUsingResolutionConfig', () => {
       tableSchemas: [],
     };
 
-    updateArrayFlattenModifierUsingResolutionConfig(
-      baseTableSchema,
-      resolutionConfig
-    );
+    const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
 
-    expect(baseTableSchema.dimensions[0].modifier).toBeUndefined();
-    expect(baseTableSchema.dimensions[1].modifier).toBeUndefined();
+    expect(result.dimensions[0].modifier).toBeUndefined();
+    expect(result.dimensions[1].modifier).toBeUndefined();
   });
 
   it('should handle empty dimensions array', () => {
@@ -1142,13 +1137,11 @@ describe('updateArrayFlattenModifierUsingResolutionConfig', () => {
 
     // Should not throw error
     expect(() => {
-      updateArrayFlattenModifierUsingResolutionConfig(
-        baseTableSchema,
-        resolutionConfig
-      );
+      withArrayFlattenModifier(baseTableSchema, resolutionConfig);
     }).not.toThrow();
 
-    expect(baseTableSchema.dimensions).toEqual([]);
+    const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
+    expect(result.dimensions).toEqual([]);
   });
 });
 

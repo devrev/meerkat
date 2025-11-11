@@ -96,20 +96,29 @@ export const createWrapperTableSchema = (
   };
 };
 
-export const updateArrayFlattenModifierUsingResolutionConfig = (
+export const withArrayFlattenModifier = (
   baseTableSchema: TableSchema,
   resolutionConfig: ResolutionConfig
-) => {
+): TableSchema => {
   const arrayColumns = getArrayTypeResolutionColumnConfigs(resolutionConfig);
-  for (const dimension of baseTableSchema.dimensions) {
-    if (
-      arrayColumns.some(
+
+  return {
+    ...baseTableSchema,
+    dimensions: baseTableSchema.dimensions.map((dimension) => {
+      const shouldFlatten = arrayColumns.some(
         (ac: ResolutionColumnConfig) => ac.name === dimension.name
-      )
-    ) {
-      dimension.modifier = { shouldFlattenArray: true };
-    }
-  }
+      );
+
+      if (shouldFlatten) {
+        return {
+          ...dimension,
+          modifier: { shouldFlattenArray: true },
+        };
+      }
+
+      return dimension;
+    }),
+  };
 };
 
 export const getArrayTypeResolutionColumnConfigs = (

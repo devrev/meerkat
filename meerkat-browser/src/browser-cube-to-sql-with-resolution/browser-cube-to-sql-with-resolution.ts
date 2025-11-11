@@ -11,12 +11,13 @@ import {
   getArrayTypeResolutionColumnConfigs,
   getNamespacedKey,
   Measure,
+  MEERKAT_OUTPUT_DELIMITER,
   memberKeyToSafeKey,
   Query,
   ResolutionConfig,
   ROW_ID_DIMENSION_NAME,
   TableSchema,
-  updateArrayFlattenModifierUsingResolutionConfig,
+  withArrayFlattenModifier,
   wrapWithRowIdOrderingAndExclusion,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
@@ -53,6 +54,7 @@ export const cubeQueryToSQLWithResolution = async ({
     return baseSql;
   }
 
+  // Check if any columns to be resolved are array types
   if (resolutionConfig.columnConfigs.some((config) => config.isArrayType)) {
     // This is to ensure that, only the column projection columns
     // are being resolved and other definitions are ignored.
@@ -81,7 +83,7 @@ export const cubeQueryToSQLWithResolution = async ({
     );
 
     // Add row_id dimension to preserve ordering from base SQL
-    baseTable.dimensions.push({
+    const rowIdDimension: Dimension = {
       name: ROW_ID_DIMENSION_NAME,
       sql: generateRowNumberSql(
         query,
@@ -90,7 +92,8 @@ export const cubeQueryToSQLWithResolution = async ({
       ),
       type: 'number',
       alias: ROW_ID_DIMENSION_NAME,
-    } as Dimension);
+    };
+    baseTable.dimensions.push(rowIdDimension);
 
     const resolutionSchemas: TableSchema[] = generateResolutionSchemas(
       resolutionConfig,
@@ -214,7 +217,7 @@ export const getUnnestTableSchema = async ({
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
 }): Promise<TableSchema> => {
-  updateArrayFlattenModifierUsingResolutionConfig(
+  const updatedBaseTableSchema = withArrayFlattenModifier(
     baseTableSchema,
     resolutionConfig
   );
@@ -224,12 +227,12 @@ export const getUnnestTableSchema = async ({
     query: {
       measures: [],
       dimensions: [
-        ...baseTableSchema.dimensions.map((d) =>
-          getNamespacedKey(baseTableSchema.name, d.name)
+        ...updatedBaseTableSchema.dimensions.map((d) =>
+          getNamespacedKey(updatedBaseTableSchema.name, d.name)
         ),
       ],
     },
-    tableSchemas: [baseTableSchema],
+    tableSchemas: [updatedBaseTableSchema],
     contextParams,
   });
 
@@ -381,7 +384,7 @@ export const getAggregatedSql = async ({
 
   const isResolvedArrayColumn = (dimName: string) => {
     return arrayColumns.some((arrayCol) => {
-      return dimName.includes(`${arrayCol.name}__`);
+      return dimName.includes(`${arrayCol.name}${MEERKAT_OUTPUT_DELIMITER}`);
     });
   };
 
@@ -391,6 +394,9 @@ export const getAggregatedSql = async ({
     (d) => d.name === ROW_ID_DIMENSION_NAME
   );
 
+  if (!rowIdDimension) {
+    throw new Error('Row id dimension not found');
+  }
   // Create measures with MAX or ARRAY_AGG based on column type
   const aggregationMeasures: Measure[] = [];
 
@@ -422,7 +428,7 @@ export const getAggregatedSql = async ({
   const schemaWithAggregation: TableSchema = {
     ...aggregationBaseTableSchema,
     measures: aggregationMeasures,
-    dimensions: rowIdDimension ? [rowIdDimension] : [],
+    dimensions: [rowIdDimension],
   };
 
   // Generate the final SQL

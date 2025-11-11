@@ -4,7 +4,8 @@ export interface ResolutionColumnConfig {
   // Name of the column that needs resolution.
   // Should match a measure or dimension in the query.
   name: string;
-  // is array type
+  // Indicates if this column is an array type that needs special handling (UNNEST/ARRAY_AGG).
+  // This is essential metadata for the multi-phase resolution process.
   isArrayType?: boolean;
   // Name of the data source to use for resolution.
   source: string;
