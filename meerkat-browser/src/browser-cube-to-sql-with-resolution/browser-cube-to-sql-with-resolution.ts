@@ -3,23 +3,15 @@ import {
   ContextParams,
   createBaseTableSchema,
   Dimension,
-  generateResolutionJoinPaths,
-  generateResolutionSchemas,
-  generateResolvedDimensions,
   generateRowNumberSql,
-  getNamespacedKey,
   memberKeyToSafeKey,
   Query,
   ResolutionConfig,
   ROW_ID_DIMENSION_NAME,
   TableSchema,
-  wrapWithRowIdOrderingAndExclusion,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import {
-  cubeQueryToSQL,
-  CubeQueryToSQLParams,
-} from '../browser-cube-to-sql/browser-cube-to-sql';
+import { cubeQueryToSQL } from '../browser-cube-to-sql/browser-cube-to-sql';
 import { getAggregatedSql } from './steps/aggregation-step';
 import { getResolvedTableSchema } from './steps/resolution-step';
 import { getUnnestTableSchema } from './steps/unnest-step';
@@ -48,86 +40,45 @@ export const cubeQueryToSQLWithResolution = async ({
     contextParams,
   });
 
-  if (resolutionConfig.columnConfigs.length === 0) {
+  // We have columnProjections check here to ensure that, we are using the same
+  // order in the final query
+  if (
+    resolutionConfig.columnConfigs.length === 0 &&
+    columnProjections?.length === 0
+  ) {
     return baseSql;
   }
 
-  // Check if any columns to be resolved are array types
-  if (resolutionConfig.columnConfigs.some((config) => config.isArrayType)) {
-    // This is to ensure that, only the column projection columns
-    // are being resolved and other definitions are ignored.
-    resolutionConfig.columnConfigs = resolutionConfig.columnConfigs.filter(
-      (config) => {
-        return columnProjections?.includes(config.name);
-      }
-    );
-    return cubeQueryToSQLWithResolutionWithArray({
-      connection,
-      baseSql,
-      query,
-      tableSchemas,
-      resolutionConfig,
-      columnProjections,
-      contextParams,
+  // If column projections are provided, filter the query to only include the columns that are being projected.
+  if (columnProjections) {
+    query.dimensions = query.dimensions?.filter((dimension) => {
+      return columnProjections?.includes(dimension);
+    });
+    query.measures = query.measures?.filter((measure) => {
+      return columnProjections?.includes(measure);
     });
   } else {
-    // Create a table schema for the base query.
-    const baseTable: TableSchema = createBaseTableSchema(
-      baseSql,
-      tableSchemas,
-      resolutionConfig,
-      query.measures,
-      query.dimensions
-    );
-
-    // Add row_id dimension to preserve ordering from base SQL
-    const rowIdDimension: Dimension = {
-      name: ROW_ID_DIMENSION_NAME,
-      sql: generateRowNumberSql(
-        query,
-        baseTable.dimensions,
-        BASE_DATA_SOURCE_NAME
-      ),
-      type: 'number',
-      alias: ROW_ID_DIMENSION_NAME,
-    };
-    baseTable.dimensions.push(rowIdDimension);
-
-    const resolutionSchemas: TableSchema[] = generateResolutionSchemas(
-      resolutionConfig,
-      tableSchemas
-    );
-
-    const resolveParams: CubeQueryToSQLParams = {
-      connection,
-      query: {
-        measures: [],
-        dimensions: [
-          ...generateResolvedDimensions(
-            BASE_DATA_SOURCE_NAME,
-            query,
-            resolutionConfig,
-            columnProjections
-          ),
-          // Include row_id in dimensions to preserve it through the query
-          getNamespacedKey(BASE_DATA_SOURCE_NAME, ROW_ID_DIMENSION_NAME),
-        ],
-        joinPaths: generateResolutionJoinPaths(
-          BASE_DATA_SOURCE_NAME,
-          resolutionConfig,
-          tableSchemas
-        ),
-      },
-      tableSchemas: [baseTable, ...resolutionSchemas],
-    };
-    const sql = await cubeQueryToSQL(resolveParams);
-
-    // Order by row_id to maintain base SQL ordering, then exclude it
-    return wrapWithRowIdOrderingAndExclusion(sql, ROW_ID_DIMENSION_NAME);
+    columnProjections = [...(query.dimensions || []), ...query.measures];
   }
+  // This is to ensure that, only the column projection columns
+  // are being resolved and other definitions are ignored.
+  resolutionConfig.columnConfigs = resolutionConfig.columnConfigs.filter(
+    (config) => {
+      return columnProjections?.includes(config.name);
+    }
+  );
+  return getCubeQueryToSQLWithResolution({
+    connection,
+    baseSql,
+    query,
+    tableSchemas,
+    resolutionConfig,
+    columnProjections,
+    contextParams,
+  });
 };
 
-export const cubeQueryToSQLWithResolutionWithArray = async ({
+const getCubeQueryToSQLWithResolution = async ({
   connection,
   baseSql,
   query,

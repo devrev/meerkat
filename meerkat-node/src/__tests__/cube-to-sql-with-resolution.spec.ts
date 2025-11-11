@@ -429,7 +429,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     expect(ticket3['Tags']).toEqual(['tag1', 'tag4', 'tag3']);
   });
 
-  it('Should return regular SQL when no resolution is configured', async () => {
+  it('Should return aggregated SQL even when no resolution is configured', async () => {
     const query: Query = {
       measures: ['tickets.count'],
       dimensions: ['tickets.id', 'tickets.created_by'],
@@ -449,7 +449,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     console.log('SQL without resolution:', sql);
 
     // Should not have resolution-specific features when no resolution is configured
-    expect(sql).not.toContain('__row_id');
+    expect(sql).toContain('__row_id');
     expect(sql).not.toContain('unnest');
     expect(sql).not.toContain('ARRAY_AGG');
 
