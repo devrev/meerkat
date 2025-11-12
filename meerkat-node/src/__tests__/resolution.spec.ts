@@ -218,6 +218,7 @@ describe('Resolution Tests', () => {
           columnConfigs: [
             {
               name: 'base_table.part_id_1',
+              type: 'string' as const,
               source: 'dim_part',
               joinColumn: 'id',
               resolutionColumns: ['display_id'],
@@ -247,18 +248,21 @@ describe('Resolution Tests', () => {
         columnConfigs: [
           {
             name: 'base_table.part_id_1',
+            type: 'string' as const,
             source: 'dim_part',
             joinColumn: 'id',
             resolutionColumns: ['display_id'],
           },
           {
             name: 'base_table.work_id',
+            type: 'string' as const,
             source: 'dim_work',
             joinColumn: 'id',
             resolutionColumns: ['display_id', 'title'],
           },
           {
             name: 'base_table.part_id_2',
+            type: 'string' as const,
             source: 'dim_part',
             joinColumn: 'id',
             resolutionColumns: ['display_id'],
@@ -302,6 +306,7 @@ describe('Resolution Tests', () => {
         columnConfigs: [
           {
             name: 'base_table.part_id_1',
+            type: 'string' as const,
             source: 'dim_part',
             joinColumn: 'id',
             resolutionColumns: ['display_id'],
@@ -336,12 +341,14 @@ describe('Resolution Tests', () => {
         columnConfigs: [
           {
             name: 'base_table.part_id_1',
+            type: 'string' as const,
             source: 'dim_part',
             joinColumn: 'id',
             resolutionColumns: ['display_id'],
           },
           {
             name: 'base_table.part_id_2',
+            type: 'string' as const,
             source: 'dim_part',
             joinColumn: 'id',
             resolutionColumns: ['display_id'],
@@ -377,6 +384,7 @@ describe('Resolution Tests', () => {
         columnConfigs: [
           {
             name: 'base_table.part_id_1',
+            type: 'string' as const,
             source: 'dim_part',
             joinColumn: 'id',
             resolutionColumns: ['display_id'],

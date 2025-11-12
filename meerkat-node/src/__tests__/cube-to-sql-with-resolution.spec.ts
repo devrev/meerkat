@@ -172,7 +172,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       columnConfigs: [
         {
           name: 'tickets.owners',
-          isArrayType: true,
+          type: 'string_array' as const,
           source: 'owners_lookup',
           joinColumn: 'id',
           resolutionColumns: ['display_name', 'email'],
@@ -245,21 +245,21 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       columnConfigs: [
         {
           name: 'tickets.owners',
-          isArrayType: true,
+          type: 'string_array' as const,
           source: 'owners_lookup',
           joinColumn: 'id',
           resolutionColumns: ['display_name'],
         },
         {
           name: 'tickets.tags',
-          isArrayType: true,
+          type: 'string_array' as const,
           source: 'tags_lookup',
           joinColumn: 'id',
           resolutionColumns: ['tag_name'],
         },
         {
           name: 'tickets.created_by',
-          isArrayType: false,
+          type: 'string' as const,
           source: 'created_by_lookup',
           joinColumn: 'id',
           resolutionColumns: ['name'],
@@ -362,7 +362,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       columnConfigs: [
         {
           name: 'tickets.created_by',
-          isArrayType: false,
+          type: 'string' as const,
           source: 'created_by_lookup',
           joinColumn: 'id',
           resolutionColumns: ['name'],
@@ -492,6 +492,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       columnConfigs: [
         {
           name: 'tickets.created_by',
+          type: 'string' as const,
           source: 'created_by_lookup',
           joinColumn: 'id',
           resolutionColumns: ['name'],

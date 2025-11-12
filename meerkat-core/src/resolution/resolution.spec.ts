@@ -1,3 +1,4 @@
+import { isArrayTypeMember } from '../utils/is-array-member-type';
 import {
   createBaseTableSchema,
   createWrapperTableSchema,
@@ -108,13 +109,14 @@ describe('Create base table schema', () => {
         {
           name: 'base_table.column1',
           source: 'resolution_table',
-          isArrayType: false,
+          type: 'string' as const,
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
           source: 'resolution_table',
+          type: 'string' as const,
           joinColumn: 'id',
           resolutionColumns: ['display_name'],
         },
@@ -220,14 +222,14 @@ describe('Create base table schema', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
-          isArrayType: false,
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
-          isArrayType: false,
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_name'],
@@ -301,12 +303,14 @@ describe('Generate resolution schemas', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['id', 'display_name'],
@@ -384,12 +388,14 @@ describe('Generate resolution schemas', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
+          type: 'string' as const,
           source: 'resolution_table1', // does not exist
           joinColumn: 'id',
           resolutionColumns: ['id', 'display_name'],
@@ -431,6 +437,7 @@ describe('Generate resolution schemas', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
@@ -468,6 +475,7 @@ describe('Generate resolution schemas', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
@@ -533,6 +541,7 @@ describe('Generate resolution schemas', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
@@ -593,12 +602,14 @@ describe('Generate resolved dimensions', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_name'],
@@ -628,6 +639,7 @@ describe('Generate resolved dimensions', () => {
       columnConfigs: [
         {
           name: 'base_table.column3',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
@@ -657,12 +669,14 @@ describe('Generate resolved dimensions', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['id', 'display_name'],
@@ -698,12 +712,14 @@ describe('Generate resolution join paths', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
         },
         {
           name: 'base_table.column2',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_name'],
@@ -763,6 +779,7 @@ describe('Generate resolution join paths', () => {
       columnConfigs: [
         {
           name: 'base_table.column1',
+          type: 'string' as const,
           source: 'resolution_table',
           joinColumn: 'id',
           resolutionColumns: ['display_id'],
@@ -907,21 +924,21 @@ describe('getArrayTypeResolutionColumnConfigs', () => {
       columnConfigs: [
         {
           name: 'table.array_column',
-          isArrayType: true,
+          type: 'string_array' as const,
           source: 'lookup_table',
           joinColumn: 'id',
           resolutionColumns: ['name'],
         },
         {
           name: 'table.scalar_column',
-          isArrayType: false,
+          type: 'string' as const,
           source: 'lookup_table',
           joinColumn: 'id',
           resolutionColumns: ['name'],
         },
         {
           name: 'table.another_array',
-          isArrayType: true,
+          type: 'number_array' as const,
           source: 'lookup_table2',
           joinColumn: 'id',
           resolutionColumns: ['value'],
@@ -935,7 +952,7 @@ describe('getArrayTypeResolutionColumnConfigs', () => {
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe('table.array_column');
     expect(result[1].name).toBe('table.another_array');
-    expect(result.every((config) => config.isArrayType === true)).toBe(true);
+    expect(result.every((config) => isArrayTypeMember(config.type))).toBe(true);
   });
 
   it('should return empty array when no array type configs exist', () => {
@@ -943,14 +960,14 @@ describe('getArrayTypeResolutionColumnConfigs', () => {
       columnConfigs: [
         {
           name: 'table.scalar_column1',
-          isArrayType: false,
+          type: 'string' as const,
           source: 'lookup_table',
           joinColumn: 'id',
           resolutionColumns: ['name'],
         },
         {
           name: 'table.scalar_column2',
-          isArrayType: false,
+          type: 'number' as const,
           source: 'lookup_table',
           joinColumn: 'id',
           resolutionColumns: ['name'],
@@ -1000,7 +1017,7 @@ describe('withArrayFlattenModifier', () => {
       columnConfigs: [
         {
           name: 'array_column',
-          isArrayType: true,
+          type: 'string_array' as const,
           source: 'lookup_table',
           joinColumn: 'id',
           resolutionColumns: ['name'],
@@ -1047,14 +1064,14 @@ describe('withArrayFlattenModifier', () => {
       columnConfigs: [
         {
           name: 'array_column1',
-          isArrayType: true,
+          type: 'string_array' as const,
           source: 'lookup_table1',
           joinColumn: 'id',
           resolutionColumns: ['name'],
         },
         {
           name: 'array_column2',
-          isArrayType: true,
+          type: 'number_array' as const,
           source: 'lookup_table2',
           joinColumn: 'id',
           resolutionColumns: ['value'],
@@ -1099,7 +1116,7 @@ describe('withArrayFlattenModifier', () => {
       columnConfigs: [
         {
           name: 'column1',
-          isArrayType: false,
+          type: 'string' as const,
           source: 'lookup_table',
           joinColumn: 'id',
           resolutionColumns: ['name'],
@@ -1126,7 +1143,7 @@ describe('withArrayFlattenModifier', () => {
       columnConfigs: [
         {
           name: 'array_column',
-          isArrayType: true,
+          type: 'string_array' as const,
           source: 'lookup_table',
           joinColumn: 'id',
           resolutionColumns: ['name'],

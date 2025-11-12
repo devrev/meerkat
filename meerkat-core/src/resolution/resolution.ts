@@ -9,6 +9,7 @@ import {
   findInDimensionSchemas,
   findInSchemas,
 } from '../utils/find-in-table-schema';
+import { isArrayTypeMember } from '../utils/is-array-member-type';
 import {
   BASE_DATA_SOURCE_NAME,
   ResolutionColumnConfig,
@@ -156,8 +157,8 @@ export const withArrayFlattenModifier = (
 export const getArrayTypeResolutionColumnConfigs = (
   resolutionConfig: ResolutionConfig
 ) => {
-  return resolutionConfig.columnConfigs.filter(
-    (config) => config.isArrayType === true
+  return resolutionConfig.columnConfigs.filter((config) =>
+    isArrayTypeMember(config.type)
   );
 };
 
