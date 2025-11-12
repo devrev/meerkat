@@ -38,7 +38,7 @@ export const cubeQueryToSQLWithResolution = async ({
   });
 
   // Check if resolution should be skipped
-  if (shouldSkipResolution(resolutionConfig, columnProjections)) {
+  if (shouldSkipResolution(resolutionConfig, query, columnProjections)) {
     return baseSql;
   }
 
