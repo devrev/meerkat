@@ -1,18 +1,21 @@
 import {
+  BASE_DATA_SOURCE_NAME,
   ContextParams,
+  getAggregatedSql as coreGetAggregatedSql,
+  getResolvedTableSchema as coreGetResolvedTableSchema,
+  getUnnestTableSchema as coreGetUnnestTableSchema,
   createBaseTableSchema,
-  generateResolutionJoinPaths,
-  generateResolutionSchemas,
-  generateResolvedDimensions,
+  Dimension,
+  generateRowNumberSql,
+  memberKeyToSafeKey,
   Query,
   ResolutionConfig,
+  ROW_ID_DIMENSION_NAME,
+  shouldSkipResolution,
   TableSchema,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import {
-  cubeQueryToSQL,
-  CubeQueryToSQLParams,
-} from '../browser-cube-to-sql/browser-cube-to-sql';
+import { cubeQueryToSQL } from '../browser-cube-to-sql/browser-cube-to-sql';
 
 export interface CubeQueryToSQLWithResolutionParams {
   connection: AsyncDuckDBConnection;
@@ -38,13 +41,23 @@ export const cubeQueryToSQLWithResolution = async ({
     contextParams,
   });
 
-  if (resolutionConfig.columnConfigs.length === 0) {
-    // If no resolution is needed, return the base SQL.
+  // Check if resolution should be skipped
+  if (shouldSkipResolution(resolutionConfig, query, columnProjections)) {
     return baseSql;
   }
 
-  // Create a table schema for the base query.
-  const baseTable: TableSchema = createBaseTableSchema(
+  if (!columnProjections) {
+    columnProjections = [...(query.dimensions || []), ...query.measures];
+  }
+  // This is to ensure that, only the column projection columns
+  // are being resolved and other definitions are ignored.
+  resolutionConfig.columnConfigs = resolutionConfig.columnConfigs.filter(
+    (config) => {
+      return columnProjections?.includes(config.name);
+    }
+  );
+
+  const baseSchema: TableSchema = createBaseTableSchema(
     baseSql,
     tableSchemas,
     resolutionConfig,
@@ -52,25 +65,48 @@ export const cubeQueryToSQLWithResolution = async ({
     query.dimensions
   );
 
-  const resolutionSchemas: TableSchema[] = generateResolutionSchemas(
-    resolutionConfig,
-    tableSchemas
-  );
-
-  const resolveParams: CubeQueryToSQLParams = {
-    connection: connection,
-    query: {
-      measures: [],
-      dimensions: generateResolvedDimensions(
-        query,
-        resolutionConfig,
-        columnProjections
-      ),
-      joinPaths: generateResolutionJoinPaths(resolutionConfig, tableSchemas),
-    },
-    tableSchemas: [baseTable, ...resolutionSchemas],
+  const rowIdDimension: Dimension = {
+    name: ROW_ID_DIMENSION_NAME,
+    sql: generateRowNumberSql(
+      query,
+      baseSchema.dimensions,
+      BASE_DATA_SOURCE_NAME
+    ),
+    type: 'number',
+    alias: ROW_ID_DIMENSION_NAME,
   };
-  const sql = await cubeQueryToSQL(resolveParams);
+  baseSchema.dimensions.push(rowIdDimension);
+  columnProjections.push(ROW_ID_DIMENSION_NAME);
 
-  return sql;
+  // Doing this because we need to use the original name of the column in the base table schema.
+  resolutionConfig.columnConfigs.forEach((config) => {
+    config.name = memberKeyToSafeKey(config.name);
+  });
+
+  // Generate SQL with row_id and unnested arrays
+  const unnestTableSchema = await coreGetUnnestTableSchema({
+    baseTableSchema: baseSchema,
+    resolutionConfig,
+    contextParams,
+    cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
+  });
+
+  //  Apply resolution (join with lookup tables)
+  const resolvedTableSchema = await coreGetResolvedTableSchema({
+    baseTableSchema: unnestTableSchema,
+    resolutionConfig,
+    contextParams,
+    columnProjections,
+    cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
+  });
+
+  // Re-aggregate to reverse the unnest
+  const aggregatedSql = await coreGetAggregatedSql({
+    resolvedTableSchema,
+    resolutionConfig,
+    contextParams,
+    cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
+  });
+
+  return aggregatedSql;
 };

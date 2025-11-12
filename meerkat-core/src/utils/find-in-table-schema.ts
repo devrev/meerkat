@@ -50,8 +50,18 @@ export const findInDimensionSchemas = (
 export const findInSchemas = (name: string, tableSchemas: TableSchema[]) => {
   /*
    ** Finds the dimension or measure in the provided table schemas.
-   ** Assumes the provided name is namespaced as `tableName.columnName`.
+   ** Handles both namespaced (`tableName.columnName`) and non-namespaced names.
    */
+  // TODO: Move to only using namespaced keys.
+  if (!name.includes('.')) {
+    if (tableSchemas.length > 1) {
+      throw new Error(
+        `Multiple table schemas found for ${name} and field doesn't have a table name`
+      );
+    }
+    return findInSchema(name, tableSchemas[0]);
+  }
+
   const [tableName, columnName] = splitIntoDataSourceAndFields(name);
   const tableSchema = tableSchemas.find((table) => table.name === tableName);
   if (!tableSchema) {

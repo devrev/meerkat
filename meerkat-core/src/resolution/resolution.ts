@@ -3,13 +3,50 @@ import {
   getNamespacedKey,
   memberKeyToSafeKey,
 } from '../member-formatters';
-import { JoinPath, Member, Query } from '../types/cube-types/query';
+import { Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
+import { isArrayTypeMember } from '../utils/is-array-member-type';
 import {
-  findInDimensionSchemas,
-  findInSchemas,
-} from '../utils/find-in-table-schema';
-import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
+  BASE_DATA_SOURCE_NAME,
+  ResolutionColumnConfig,
+  ResolutionConfig,
+} from './types';
+
+/**
+ * Constructs a SQL column reference from a table name and a dimension/measure.
+ *
+ * @param tableName - The name of the table
+ * @param member - The dimension or measure object with name and optional alias
+ * @returns Formatted SQL column reference like: tableName."columnName"
+ */
+export const getColumnReference = (
+  tableName: string,
+  member: { name: string; alias?: string }
+): string => {
+  return `${tableName}."${member.alias || member.name}"`;
+};
+
+/**
+ * Checks if resolution should be skipped based on the resolution configuration and column projections.
+ * Resolution is skipped when there are no columns to resolve and no column projections.
+ *
+ * @param resolutionConfig - The resolution configuration
+ * @param columnProjections - Optional array of column projections
+ * @returns true if resolution should be skipped, false otherwise
+ */
+export const shouldSkipResolution = (
+  resolutionConfig: ResolutionConfig,
+  query: Query,
+  columnProjections?: string[]
+): boolean => {
+  // If no resolution required and no column projections to ensure order in which export is happening
+  // and explicit order is not provided, then skip resolution.
+  return (
+    resolutionConfig.columnConfigs.length === 0 &&
+    columnProjections?.length === 0 &&
+    !query.order
+  );
+};
 
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
   return {
@@ -69,112 +106,73 @@ export const createBaseTableSchema = (
   };
 };
 
-export const generateResolutionSchemas = (
-  config: ResolutionConfig,
-  baseTableSchemas: TableSchema[]
+export const createWrapperTableSchema = (
+  sql: string,
+  baseTableSchema: TableSchema
 ) => {
-  const resolutionSchemas: TableSchema[] = [];
-  config.columnConfigs.forEach((colConfig) => {
-    const tableSchema = config.tableSchemas.find(
-      (ts) => ts.name === colConfig.source
-    );
-    if (!tableSchema) {
-      throw new Error(`Table schema not found for ${colConfig.source}`);
-    }
-
-    const baseName = memberKeyToSafeKey(colConfig.name);
-    const baseAlias = constructAlias({
-      name: colConfig.name,
-      alias: findInSchemas(colConfig.name, baseTableSchemas)?.alias,
-      aliasContext: { isTableSchemaAlias: true },
-    });
-
-    // For each column that needs to be resolved, create a copy of the relevant table schema.
-    // We use the name of the column in the base query as the table schema name
-    // to avoid conflicts.
-    const resolutionSchema: TableSchema = {
-      name: baseName,
-      sql: tableSchema.sql,
-      measures: [],
-      dimensions: colConfig.resolutionColumns.map((col) => {
-        const dimension = findInDimensionSchemas(
-          getNamespacedKey(colConfig.source, col),
-          config.tableSchemas
-        );
-        if (!dimension) {
-          throw new Error(`Dimension not found: ${col}`);
-        }
-        return {
-          // Need to create a new name due to limitations with how
-          // CubeToSql handles duplicate dimension names between different sources.
-          name: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
-          sql: `${baseName}.${col}`,
-          type: dimension.type,
-          alias: `${baseAlias} - ${constructAlias({
-            name: col,
-            alias: dimension.alias,
-            aliasContext: { isTableSchemaAlias: true },
-          })}`,
-        };
-      }),
-    };
-
-    resolutionSchemas.push(resolutionSchema);
-  });
-
-  return resolutionSchemas;
+  return {
+    name: BASE_DATA_SOURCE_NAME,
+    sql: sql,
+    dimensions: baseTableSchema.dimensions.map((d) => ({
+      name: d.name,
+      sql: getColumnReference(BASE_DATA_SOURCE_NAME, d),
+      type: d.type,
+      alias: d.alias,
+    })),
+    measures: baseTableSchema.measures.map((m) => ({
+      name: m.name,
+      sql: getColumnReference(BASE_DATA_SOURCE_NAME, m),
+      type: m.type,
+      alias: m.alias,
+    })),
+    joins: baseTableSchema.joins,
+  };
 };
 
-export const generateResolvedDimensions = (
-  query: Query,
-  config: ResolutionConfig,
-  columnProjections?: string[]
-): Member[] => {
-  // If column projections are provided, use those.
-  // Otherwise, use all measures and dimensions from the original query.
-  const aggregatedDimensions = columnProjections
-    ? columnProjections
-    : [...query.measures, ...(query.dimensions || [])];
+export const withArrayFlattenModifier = (
+  baseTableSchema: TableSchema,
+  resolutionConfig: ResolutionConfig
+): TableSchema => {
+  const arrayColumns = getArrayTypeResolutionColumnConfigs(resolutionConfig);
 
-  const resolvedDimensions: Member[] = aggregatedDimensions.flatMap(
-    (dimension) => {
-      const columnConfig = config.columnConfigs.find(
-        (c) => c.name === dimension
+  return {
+    ...baseTableSchema,
+    dimensions: baseTableSchema.dimensions.map((dimension) => {
+      const shouldFlatten = arrayColumns.some(
+        (ac: ResolutionColumnConfig) => ac.name === dimension.name
       );
 
-      if (!columnConfig) {
-        return [
-          getNamespacedKey(
-            BASE_DATA_SOURCE_NAME,
-            memberKeyToSafeKey(dimension)
-          ),
-        ];
-      } else {
-        return columnConfig.resolutionColumns.map((col) =>
-          getNamespacedKey(
-            memberKeyToSafeKey(dimension),
-            memberKeyToSafeKey(getNamespacedKey(columnConfig.name, col))
-          )
-        );
+      if (shouldFlatten) {
+        return {
+          ...dimension,
+          modifier: { shouldFlattenArray: true },
+        };
       }
-    }
-  );
-  return resolvedDimensions;
+
+      return dimension;
+    }),
+  };
 };
 
-export const generateResolutionJoinPaths = (
-  resolutionConfig: ResolutionConfig,
-  baseTableSchemas: TableSchema[]
-): JoinPath[] => {
-  return resolutionConfig.columnConfigs.map((config) => [
-    {
-      left: BASE_DATA_SOURCE_NAME,
-      right: memberKeyToSafeKey(config.name),
-      on: constructAlias({
-        name: config.name,
-        alias: findInSchemas(config.name, baseTableSchemas)?.alias,
-        aliasContext: { isAstIdentifier: false },
-      }),
-    },
-  ]);
+export const getArrayTypeResolutionColumnConfigs = (
+  resolutionConfig: ResolutionConfig
+) => {
+  return resolutionConfig.columnConfigs.filter((config) =>
+    isArrayTypeMember(config.type)
+  );
+};
+
+/**
+ * Wraps SQL to order by row_id and then exclude it from results.
+ * This maintains the ordering from the base query while removing the internal row_id column.
+ *
+ * @param sql - The SQL query that includes a __row_id column
+ * @param rowIdColumnName - The name of the row_id column (defaults to '__row_id')
+ * @returns SQL query ordered by row_id with the row_id column excluded
+ */
+export const wrapWithRowIdOrderingAndExclusion = (
+  sql: string,
+  rowIdColumnName: string
+): string => {
+  return `select * exclude(${rowIdColumnName}) from (${sql}) order by ${rowIdColumnName}`;
 };
