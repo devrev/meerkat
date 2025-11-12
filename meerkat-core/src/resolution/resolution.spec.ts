@@ -1,11 +1,13 @@
 import { isArrayTypeMember } from '../utils/is-array-member-type';
 import {
-  createBaseTableSchema,
-  createWrapperTableSchema,
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
   generateRowNumberSql,
+} from './generators';
+import {
+  createBaseTableSchema,
+  createWrapperTableSchema,
   getArrayTypeResolutionColumnConfigs,
   withArrayFlattenModifier,
 } from './resolution';

@@ -16,6 +16,7 @@ export { getFinalBaseSQL } from './get-final-base-sql/get-final-base-sql';
 export * from './get-wrapped-base-query-with-projections';
 export * from './joins/joins';
 export * from './member-formatters';
+export * from './resolution/generators';
 export * from './resolution/resolution';
 export * from './resolution/steps/aggregation-step';
 export * from './resolution/steps/resolution-step';
