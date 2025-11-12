@@ -3,7 +3,7 @@ import {
   getNamespacedKey,
   memberKeyToSafeKey,
 } from '../member-formatters';
-import { Member } from '../types/cube-types/query';
+import { Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import { isArrayTypeMember } from '../utils/is-array-member-type';
 import {
@@ -36,11 +36,15 @@ export const getColumnReference = (
  */
 export const shouldSkipResolution = (
   resolutionConfig: ResolutionConfig,
+  query: Query,
   columnProjections?: string[]
 ): boolean => {
+  // If no resolution required and no column projections to ensure order in which export is happening
+  // and explicit order is not provided, then skip resolution.
   return (
     resolutionConfig.columnConfigs.length === 0 &&
-    columnProjections?.length === 0
+    columnProjections?.length === 0 &&
+    !query.order
   );
 };
 

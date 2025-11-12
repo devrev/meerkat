@@ -26,11 +26,19 @@ export const generateRowNumberSql = (
         const columnName = dimension
           ? dimension.alias || dimension.name
           : safeMember;
-        return `${baseTableName}."${columnName}" ${direction.toUpperCase()}`;
+        return generateOrderClause(baseTableName, columnName, direction);
       }
     );
     rowNumberSql += `ORDER BY ${orderClauses.join(', ')}`;
   }
   rowNumberSql += ')';
   return rowNumberSql;
+};
+
+const generateOrderClause = (
+  baseTableName: string,
+  columnName: string,
+  direction: string
+) => {
+  return `${baseTableName}."${columnName}" ${direction.toUpperCase()}`;
 };
