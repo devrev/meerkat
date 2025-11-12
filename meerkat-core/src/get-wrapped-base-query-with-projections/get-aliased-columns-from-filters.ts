@@ -5,7 +5,8 @@ import {
   findInDimensionSchema,
   findInMeasureSchema,
 } from '../utils/find-in-table-schema';
-import { getModifiedSqlExpression, Modifier } from './sql-expression-modifiers';
+import { getModifiedSqlExpression } from './sql-expression-modifiers';
+import { Modifier } from './types';
 
 export const getDimensionProjection = ({
   key,
