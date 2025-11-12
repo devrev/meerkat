@@ -85,8 +85,9 @@ export const getAggregatedSql = async ({
 
       // Use ARRAY_AGG for resolved array columns, MAX for others
       // Filter out null values for ARRAY_AGG using FILTER clause
+      // Wrap with to_json() to ensure proper JSON format in CSV exports
       const aggregationFn = isArrayColumn
-        ? `COALESCE(ARRAY_AGG(DISTINCT ${columnRef}) FILTER (WHERE ${columnRef} IS NOT NULL), [])`
+        ? `to_json(COALESCE(ARRAY_AGG(DISTINCT ${columnRef}) FILTER (WHERE ${columnRef} IS NOT NULL), []))`
         : `MAX(${columnRef})`;
 
       aggregationMeasures.push({

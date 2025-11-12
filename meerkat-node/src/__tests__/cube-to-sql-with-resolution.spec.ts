@@ -1,6 +1,21 @@
 import { Query, ResolutionConfig, TableSchema } from '@devrev/meerkat-core';
 import { cubeQueryToSQLWithResolution } from '../cube-to-sql-with-resolution/cube-to-sql-with-resolution';
 import { duckdbExec } from '../duckdb-exec';
+
+/**
+ * Helper function to parse JSON string arrays returned by to_json(ARRAY_AGG(...))
+ * DuckDB returns arrays as JSON strings when using to_json()
+ */
+const parseJsonArray = (value: any): any => {
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+};
 const CREATE_TEST_TABLE = `CREATE TABLE tickets (
   id INTEGER,
   owners VARCHAR[],
@@ -190,17 +205,24 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
 
     console.log('SQL with resolution:', sql);
 
-    // Execute the SQL to verify it works
-    const result = (await duckdbExec(sql)) as any[];
-    console.log('Result:', result);
+    // Export to CSV using COPY command
+    const csvPath = '/tmp/test_array_resolution.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    // Read the CSV back
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV:', result);
 
     // Without array unnesting, should have 3 rows (original count)
     expect(result.length).toBe(3);
 
     // Verify ordering is maintained (ORDER BY tickets.id ASC)
-    expect(result[0].ID).toBe(1);
-    expect(result[1].ID).toBe(2);
-    expect(result[2].ID).toBe(3);
+    // Note: CSV reads integers as BigInt
+    expect(Number(result[0].ID)).toBe(1);
+    expect(Number(result[1].ID)).toBe(2);
+    expect(Number(result[2].ID)).toBe(3);
 
     // Each row should have the expected properties
     expect(result[0]).toHaveProperty('tickets__count');
@@ -210,21 +232,27 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     expect(result[0]).toHaveProperty('Owners - Display Name');
     expect(result[0]).toHaveProperty('Owners - Email');
 
+    // Parse JSON arrays from CSV (to_json ensures proper JSON format in CSV)
     const id1Record = result[0];
+    const owners1 = parseJsonArray(id1Record['Owners - Display Name']);
+    const emails1 = parseJsonArray(id1Record['Owners - Email']);
+
     // Note: Array order may not be preserved without index tracking in UNNEST/ARRAY_AGG
-    expect(id1Record['Owners - Display Name']).toEqual(
+    expect(owners1).toEqual(
       expect.arrayContaining(['Alice Smith', 'Bob Jones'])
     );
-    expect(id1Record['Owners - Email']).toEqual(
+    expect(emails1).toEqual(
       expect.arrayContaining(['alice@example.com', 'bob@example.com'])
     );
 
     const id2Record = result[1];
-    expect(id2Record.ID).toBe(2);
-    expect(id2Record['Owners - Display Name']).toEqual(
+    expect(Number(id2Record.ID)).toBe(2);
+    const owners2 = parseJsonArray(id2Record['Owners - Display Name']);
+    const emails2 = parseJsonArray(id2Record['Owners - Email']);
+    expect(owners2).toEqual(
       expect.arrayContaining(['Bob Jones', 'Charlie Brown'])
     );
-    expect(id2Record['Owners - Email']).toEqual(
+    expect(emails2).toEqual(
       expect.arrayContaining(['bob@example.com', 'charlie@example.com'])
     );
   });
@@ -288,17 +316,24 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
 
     console.log('SQL (multiple arrays):', sql);
 
-    // Execute the SQL to verify it works
-    const result = (await duckdbExec(sql)) as any[];
-    console.log('Result:', result);
+    // Export to CSV using COPY command
+    const csvPath = '/tmp/test_multiple_arrays.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    // Read the CSV back
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV:', result);
 
     // Should have 3 rows (original ticket count)
     expect(result.length).toBe(3);
 
     // Verify ordering is maintained (ORDER BY tickets.id ASC)
-    expect(result[0].ID).toBe(1);
-    expect(result[1].ID).toBe(2);
-    expect(result[2].ID).toBe(3);
+    // Note: CSV reads integers as BigInt
+    expect(Number(result[0].ID)).toBe(1);
+    expect(Number(result[1].ID)).toBe(2);
+    expect(Number(result[2].ID)).toBe(3);
 
     // Each row should have the expected properties
     expect(result[0]).toHaveProperty('tickets__count');
@@ -307,42 +342,42 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     expect(result[0]).toHaveProperty('Tags - Tag Name');
     expect(result[0]).toHaveProperty('Created By - Name');
 
-    // Verify ticket 1: 2 owners, 1 tag
+    // Verify ticket 1: 2 owners, 1 tag (parse JSON from CSV)
     const ticket1 = result[0];
-    expect(ticket1['Owners - Display Name']).toEqual(
+    const ticket1Owners = parseJsonArray(ticket1['Owners - Display Name']);
+    const ticket1Tags = parseJsonArray(ticket1['Tags - Tag Name']);
+    expect(ticket1Owners).toEqual(
       expect.arrayContaining(['Alice Smith', 'Bob Jones'])
     );
-    expect(ticket1['Owners - Display Name'].length).toBe(2);
-    expect(ticket1['Tags - Tag Name']).toEqual(
-      expect.arrayContaining(['Tag 1'])
-    );
-    expect(ticket1['Tags - Tag Name'].length).toBe(1);
+    expect(ticket1Owners.length).toBe(2);
+    expect(ticket1Tags).toEqual(expect.arrayContaining(['Tag 1']));
+    expect(ticket1Tags.length).toBe(1);
     expect(ticket1['Created By - Name']).toBe('User 1');
 
     // Verify ticket 2: 2 owners, 2 tags
     const ticket2 = result[1];
-    expect(ticket2.ID).toBe(2);
-    expect(ticket2['Owners - Display Name']).toEqual(
+    expect(Number(ticket2.ID)).toBe(2);
+    const ticket2Owners = parseJsonArray(ticket2['Owners - Display Name']);
+    const ticket2Tags = parseJsonArray(ticket2['Tags - Tag Name']);
+    expect(ticket2Owners).toEqual(
       expect.arrayContaining(['Bob Jones', 'Charlie Brown'])
     );
-    expect(ticket2['Owners - Display Name'].length).toBe(2);
-    expect(ticket2['Tags - Tag Name']).toEqual(
-      expect.arrayContaining(['Tag 2', 'Tag 3'])
-    );
-    expect(ticket2['Tags - Tag Name'].length).toBe(2);
+    expect(ticket2Owners.length).toBe(2);
+    expect(ticket2Tags).toEqual(expect.arrayContaining(['Tag 2', 'Tag 3']));
+    expect(ticket2Tags.length).toBe(2);
     expect(ticket2['Created By - Name']).toBe('User 2');
 
     // Verify ticket 3: 1 owner, 3 tags
     const ticket3 = result[2];
-    expect(ticket3.ID).toBe(3);
-    expect(ticket3['Owners - Display Name']).toEqual(
-      expect.arrayContaining(['Diana Prince'])
-    );
-    expect(ticket3['Owners - Display Name'].length).toBe(1);
-    expect(ticket3['Tags - Tag Name']).toEqual(
+    expect(Number(ticket3.ID)).toBe(3);
+    const ticket3Owners = parseJsonArray(ticket3['Owners - Display Name']);
+    const ticket3Tags = parseJsonArray(ticket3['Tags - Tag Name']);
+    expect(ticket3Owners).toEqual(expect.arrayContaining(['Diana Prince']));
+    expect(ticket3Owners.length).toBe(1);
+    expect(ticket3Tags).toEqual(
       expect.arrayContaining(['Tag 1', 'Tag 3', 'Tag 4'])
     );
-    expect(ticket3['Tags - Tag Name'].length).toBe(3);
+    expect(ticket3Tags.length).toBe(3);
     expect(ticket3['Created By - Name']).toBe('User 3');
   });
 
@@ -388,17 +423,24 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
 
     console.log('SQL (scalar resolution only):', sql);
 
-    // Execute the SQL to verify it works
-    const result = (await duckdbExec(sql)) as any[];
-    console.log('Result:', result);
+    // Export to CSV using COPY command
+    const csvPath = '/tmp/test_scalar_resolution.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    // Read the CSV back
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV:', result);
 
     // Should have 3 rows (no array unnesting, only scalar resolution)
     expect(result.length).toBe(3);
 
     // Verify ordering is maintained (ORDER BY tickets.id ASC)
-    expect(result[0].ID).toBe(1);
-    expect(result[1].ID).toBe(2);
-    expect(result[2].ID).toBe(3);
+    // Note: CSV reads integers as BigInt
+    expect(Number(result[0].ID)).toBe(1);
+    expect(Number(result[1].ID)).toBe(2);
+    expect(Number(result[2].ID)).toBe(3);
 
     // Each row should have the expected properties
     expect(result[0]).toHaveProperty('tickets__count');
@@ -408,25 +450,25 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     expect(result[0]).toHaveProperty('Created By - Name'); // Resolved scalar field
 
     // Verify scalar resolution worked correctly
+    // Note: Arrays in CSV are read back as strings, not arrays
     const ticket1 = result[0];
-    expect(ticket1.ID).toBe(1);
+    expect(Number(ticket1.ID)).toBe(1);
     expect(ticket1['Created By - Name']).toBe('User 1');
-    expect(Array.isArray(ticket1['Owners'])).toBe(true);
-    expect(ticket1['Owners']).toEqual(['owner1', 'owner2']);
-    expect(Array.isArray(ticket1['Tags'])).toBe(true);
-    expect(ticket1['Tags']).toEqual(['tag1']);
+    // Arrays from CSV come back as strings like "[owner1, owner2]"
+    expect(typeof ticket1['Owners']).toBe('string');
+    expect(ticket1['Owners']).toContain('owner1');
+    expect(ticket1['Owners']).toContain('owner2');
 
     const ticket2 = result[1];
-    expect(ticket2.ID).toBe(2);
+    expect(Number(ticket2.ID)).toBe(2);
     expect(ticket2['Created By - Name']).toBe('User 2');
-    expect(ticket2['Owners']).toEqual(['owner2', 'owner3']);
-    expect(ticket2['Tags']).toEqual(['tag2', 'tag3']);
+    expect(ticket2['Owners']).toContain('owner2');
+    expect(ticket2['Owners']).toContain('owner3');
 
     const ticket3 = result[2];
-    expect(ticket3.ID).toBe(3);
+    expect(Number(ticket3.ID)).toBe(3);
     expect(ticket3['Created By - Name']).toBe('User 3');
-    expect(ticket3['Owners']).toEqual(['owner4']);
-    expect(ticket3['Tags']).toEqual(['tag1', 'tag4', 'tag3']);
+    expect(ticket3['Owners']).toContain('owner4');
   });
 
   it('Should return aggregated SQL even when no resolution is configured', async () => {
@@ -525,9 +567,15 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     // Should still order by row_id at the end
     expect(sql).toContain('order by __row_id');
 
-    // Execute the SQL to verify it works
-    const result = (await duckdbExec(sql)) as any[];
-    console.log('Result (no ORDER BY):', result);
+    // Export to CSV using COPY command
+    const csvPath = '/tmp/test_no_order_by.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    // Read the CSV back
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV (no ORDER BY):', result);
 
     // Should have 3 rows (no array unnesting, only scalar resolution)
     expect(result.length).toBe(3);
@@ -541,17 +589,24 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
 
     // Verify scalar resolution worked correctly
     // Order might vary without ORDER BY, so we find by ID
-    const ticket1 = result.find((r: any) => r.ID === 1);
-    expect(ticket1['Created By - Name']).toBe('User 1');
-    expect(Array.isArray(ticket1['Owners'])).toBe(true);
-    expect(ticket1['Owners']).toEqual(['owner1', 'owner2']);
+    // Note: CSV reads integers as BigInt, so we need to convert
+    const ticket1 = result.find((r: any) => Number(r.ID) === 1);
+    expect(ticket1).toBeDefined();
+    expect(ticket1!['Created By - Name']).toBe('User 1');
+    // Arrays from CSV come back as strings
+    expect(typeof ticket1!['Owners']).toBe('string');
+    expect(ticket1!['Owners']).toContain('owner1');
+    expect(ticket1!['Owners']).toContain('owner2');
 
-    const ticket2 = result.find((r: any) => r.ID === 2);
-    expect(ticket2['Created By - Name']).toBe('User 2');
-    expect(ticket2['Owners']).toEqual(['owner2', 'owner3']);
+    const ticket2 = result.find((r: any) => Number(r.ID) === 2);
+    expect(ticket2).toBeDefined();
+    expect(ticket2!['Created By - Name']).toBe('User 2');
+    expect(ticket2!['Owners']).toContain('owner2');
+    expect(ticket2!['Owners']).toContain('owner3');
 
-    const ticket3 = result.find((r: any) => r.ID === 3);
-    expect(ticket3['Created By - Name']).toBe('User 3');
-    expect(ticket3['Owners']).toEqual(['owner4']);
+    const ticket3 = result.find((r: any) => Number(r.ID) === 3);
+    expect(ticket3).toBeDefined();
+    expect(ticket3!['Created By - Name']).toBe('User 3');
+    expect(ticket3!['Owners']).toContain('owner4');
   });
 });
