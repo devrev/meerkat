@@ -6,9 +6,7 @@ import {
   ResolutionConfig,
   TableSchema,
   withArrayFlattenModifier,
-} from '@devrev/meerkat-core';
-import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import { cubeQueryToSQL } from '../../browser-cube-to-sql/browser-cube-to-sql';
+} from '../../index';
 
 /**
  * Apply unnesting
@@ -19,15 +17,19 @@ import { cubeQueryToSQL } from '../../browser-cube-to-sql/browser-cube-to-sql';
  * @returns Table schema with unnest modifiers for array columns
  */
 export const getUnnestTableSchema = async ({
-  connection,
   baseTableSchema,
   resolutionConfig,
   contextParams,
+  cubeQueryToSQL,
 }: {
-  connection: AsyncDuckDBConnection;
   baseTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
+  cubeQueryToSQL: (params: {
+    query: Query;
+    tableSchemas: TableSchema[];
+    contextParams?: ContextParams;
+  }) => Promise<string>;
 }): Promise<TableSchema> => {
   const updatedBaseTableSchema = withArrayFlattenModifier(
     baseTableSchema,
@@ -35,14 +37,11 @@ export const getUnnestTableSchema = async ({
   );
 
   const unnestedSql = await cubeQueryToSQL({
-    connection,
     query: {
       measures: [],
-      dimensions: [
-        ...updatedBaseTableSchema.dimensions.map((d) =>
-          getNamespacedKey(updatedBaseTableSchema.name, d.name)
-        ),
-      ],
+      dimensions: updatedBaseTableSchema.dimensions.map((d) =>
+        getNamespacedKey(updatedBaseTableSchema.name, d.name)
+      ),
     },
     tableSchemas: [updatedBaseTableSchema],
     contextParams,
@@ -55,4 +54,3 @@ export const getUnnestTableSchema = async ({
 
   return unnestedBaseTableSchema;
 };
-

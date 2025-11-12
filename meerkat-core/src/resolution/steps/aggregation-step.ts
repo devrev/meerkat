@@ -4,12 +4,23 @@ import {
   getNamespacedKey,
   Measure,
   MEERKAT_OUTPUT_DELIMITER,
+  Query,
   ResolutionConfig,
   ROW_ID_DIMENSION_NAME,
   TableSchema,
   wrapWithRowIdOrderingAndExclusion,
-} from '@devrev/meerkat-core';
-import { cubeQueryToSQL } from '../../cube-to-sql/cube-to-sql';
+} from '../../index';
+
+/**
+ * Constructs the resolved column name prefix for array resolution.
+ * This is used to identify which columns in the resolved schema correspond to array fields.
+ *
+ * @param columnName - The original column name
+ * @returns The prefixed column name used in resolution
+ */
+const getResolvedArrayColumnPrefix = (columnName: string): string => {
+  return `${columnName}${MEERKAT_OUTPUT_DELIMITER}`;
+};
 
 /**
  * Re-aggregate to reverse the unnest
@@ -28,10 +39,16 @@ export const getAggregatedSql = async ({
   resolvedTableSchema,
   resolutionConfig,
   contextParams,
+  cubeQueryToSQL,
 }: {
   resolvedTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
+  cubeQueryToSQL: (params: {
+    query: Query;
+    tableSchemas: TableSchema[];
+    contextParams?: ContextParams;
+  }) => Promise<string>;
 }): Promise<string> => {
   const aggregationBaseTableSchema: TableSchema = resolvedTableSchema;
 
@@ -41,7 +58,7 @@ export const getAggregatedSql = async ({
 
   const isResolvedArrayColumn = (dimName: string) => {
     return arrayColumns.some((arrayCol) => {
-      return dimName.includes(`${arrayCol.name}${MEERKAT_OUTPUT_DELIMITER}`);
+      return dimName.includes(getResolvedArrayColumnPrefix(arrayCol.name));
     });
   };
 
@@ -64,8 +81,7 @@ export const getAggregatedSql = async ({
 
       // The dimension's sql field already has the correct reference (e.g., __resolved_query."__row_id")
       // We just need to wrap it in the aggregation function
-      const columnRef =
-        dim.sql || `${baseTableName}."${dim.alias || dim.name}"`;
+      const columnRef = dim.sql;
 
       // Use ARRAY_AGG for resolved array columns, MAX for others
       // Filter out null values for ARRAY_AGG using FILTER clause
@@ -94,9 +110,7 @@ export const getAggregatedSql = async ({
       measures: aggregationMeasures.map((m) =>
         getNamespacedKey(baseTableName, m.name)
       ),
-      dimensions: rowIdDimension
-        ? [getNamespacedKey(baseTableName, rowIdDimension.name)]
-        : [],
+      dimensions: [getNamespacedKey(baseTableName, rowIdDimension.name)],
     },
     tableSchemas: [schemaWithAggregation],
     contextParams,
@@ -108,4 +122,3 @@ export const getAggregatedSql = async ({
     ROW_ID_DIMENSION_NAME
   );
 };
-

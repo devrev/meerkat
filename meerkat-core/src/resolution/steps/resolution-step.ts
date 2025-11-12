@@ -4,14 +4,13 @@ import {
   generateResolutionJoinPaths,
   generateResolutionSchemas,
   generateResolvedDimensions,
+  getColumnReference,
   getNamespacedKey,
   memberKeyToSafeKey,
   Query,
   ResolutionConfig,
   TableSchema,
-} from '@devrev/meerkat-core';
-import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import { cubeQueryToSQL } from '../../browser-cube-to-sql/browser-cube-to-sql';
+} from '../../index';
 
 /**
  * Apply resolution (join with lookup tables)
@@ -23,17 +22,21 @@ import { cubeQueryToSQL } from '../../browser-cube-to-sql/browser-cube-to-sql';
  * @returns Table schema with resolved values from lookup tables
  */
 export const getResolvedTableSchema = async ({
-  connection,
   baseTableSchema,
   resolutionConfig,
-  contextParams,
   columnProjections,
+  contextParams,
+  cubeQueryToSQL,
 }: {
-  connection: AsyncDuckDBConnection;
   baseTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
-  contextParams?: ContextParams;
   columnProjections: string[];
+  contextParams?: ContextParams;
+  cubeQueryToSQL: (params: {
+    query: Query;
+    tableSchemas: TableSchema[];
+    contextParams?: ContextParams;
+  }) => Promise<string>;
 }): Promise<TableSchema> => {
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
@@ -74,7 +77,6 @@ export const getResolvedTableSchema = async ({
   };
 
   const resolvedSql = await cubeQueryToSQL({
-    connection,
     query: resolutionQuery,
     tableSchemas: [updatedBaseTableSchema, ...resolutionSchemas],
     contextParams,
@@ -88,16 +90,31 @@ export const getResolvedTableSchema = async ({
 
   // Create a map of resolution schema dimensions by original column name
   const resolutionDimensionsByColumnName = new Map<string, any[]>();
+
+  // Create a map of resolution schemas by config name for efficient lookup
+  const resolutionSchemaByConfigName = new Map<
+    string,
+    (typeof resolutionSchemas)[0]
+  >();
+  resolutionSchemas.forEach((resSchema) => {
+    resolutionConfig.columnConfigs.forEach((config) => {
+      if (
+        resSchema.dimensions.some((dim) => dim.name.startsWith(config.name))
+      ) {
+        resolutionSchemaByConfigName.set(config.name, resSchema);
+      }
+    });
+  });
+
+  // Build the dimension map using the pre-indexed schemas
   resolutionConfig.columnConfigs.forEach((config) => {
-    const resSchema = resolutionSchemas.find((rs) =>
-      rs.dimensions.some((dim) => dim.name.startsWith(config.name))
-    );
+    const resSchema = resolutionSchemaByConfigName.get(config.name);
     if (resSchema) {
       resolutionDimensionsByColumnName.set(
         config.name,
         resSchema.dimensions.map((dim) => ({
           name: dim.name,
-          sql: `${resolvedTableSchema.name}."${dim.alias || dim.name}"`,
+          sql: getColumnReference(resolvedTableSchema.name, dim),
           type: dim.type,
           alias: dim.alias,
         }))

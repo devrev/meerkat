@@ -15,6 +15,38 @@ import {
   ResolutionConfig,
 } from './types';
 
+/**
+ * Constructs a SQL column reference from a table name and a dimension/measure.
+ *
+ * @param tableName - The name of the table
+ * @param member - The dimension or measure object with name and optional alias
+ * @returns Formatted SQL column reference like: tableName."columnName"
+ */
+export const getColumnReference = (
+  tableName: string,
+  member: { name: string; alias?: string }
+): string => {
+  return `${tableName}."${member.alias || member.name}"`;
+};
+
+/**
+ * Checks if resolution should be skipped based on the resolution configuration and column projections.
+ * Resolution is skipped when there are no columns to resolve and no column projections.
+ *
+ * @param resolutionConfig - The resolution configuration
+ * @param columnProjections - Optional array of column projections
+ * @returns true if resolution should be skipped, false otherwise
+ */
+export const shouldSkipResolution = (
+  resolutionConfig: ResolutionConfig,
+  columnProjections?: string[]
+): boolean => {
+  return (
+    resolutionConfig.columnConfigs.length === 0 &&
+    columnProjections?.length === 0
+  );
+};
+
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
   return {
     name: memberKeyToSafeKey(name),
@@ -82,13 +114,13 @@ export const createWrapperTableSchema = (
     sql: sql,
     dimensions: baseTableSchema.dimensions.map((d) => ({
       name: d.name,
-      sql: `${BASE_DATA_SOURCE_NAME}."${d.alias || d.name}"`,
+      sql: getColumnReference(BASE_DATA_SOURCE_NAME, d),
       type: d.type,
       alias: d.alias,
     })),
     measures: baseTableSchema.measures.map((m) => ({
       name: m.name,
-      sql: `${BASE_DATA_SOURCE_NAME}."${m.alias || m.name}"`,
+      sql: getColumnReference(BASE_DATA_SOURCE_NAME, m),
       type: m.type,
       alias: m.alias,
     })),
