@@ -97,13 +97,7 @@ export const getResolvedTableSchema = async ({
     (typeof resolutionSchemas)[0]
   >();
   resolutionSchemas.forEach((resSchema) => {
-    resolutionConfig.columnConfigs.forEach((config) => {
-      if (
-        resSchema.dimensions.some((dim) => dim.name.startsWith(config.name))
-      ) {
-        resolutionSchemaByConfigName.set(config.name, resSchema);
-      }
-    });
+    resolutionSchemaByConfigName.set(resSchema.name, resSchema);
   });
 
   // Build the dimension map using the pre-indexed schemas
