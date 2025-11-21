@@ -609,4 +609,133 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     expect(ticket3!['Created By - Name']).toBe('User 3');
     expect(ticket3!['Owners']).toContain('owner4');
   });
+
+  it('Should handle fields with prefix names correctly (owners vs owners_field1)', async () => {
+    // Add a new column to the existing tickets table for testing prefix collision
+    await duckdbExec(`
+      ALTER TABLE tickets ADD COLUMN owners_field1 VARCHAR[]
+    `);
+
+    await duckdbExec(`
+      UPDATE tickets SET owners_field1 = CASE 
+        WHEN id = 1 THEN ['owner1', 'owner3']
+        WHEN id = 2 THEN ['owner2', 'owner4']
+        WHEN id = 3 THEN ['owner1', 'owner4']
+      END
+    `);
+
+    // Create a table schema that includes both owners and owners_field1
+    const ticketsWithPrefixSchema: TableSchema = {
+      name: 'tickets',
+      sql: 'select * from tickets',
+      measures: [
+        {
+          name: 'count',
+          sql: 'COUNT(*)',
+          type: 'number',
+        },
+      ],
+      dimensions: [
+        {
+          alias: 'ID',
+          name: 'id',
+          sql: 'id',
+          type: 'number',
+        },
+        {
+          alias: 'Owners',
+          name: 'owners',
+          sql: 'owners',
+          type: 'string_array',
+        },
+        {
+          alias: 'Owners Field 1',
+          name: 'owners_field1',
+          sql: 'owners_field1',
+          type: 'string_array',
+        },
+      ],
+    };
+
+    const query: Query = {
+      measures: ['tickets.count'],
+      dimensions: ['tickets.id', 'tickets.owners', 'tickets.owners_field1'],
+      order: { 'tickets.id': 'asc' },
+    };
+
+    const resolutionConfig: ResolutionConfig = {
+      tableSchemas: [OWNERS_LOOKUP_SCHEMA],
+      columnConfigs: [
+        {
+          name: 'tickets.owners',
+          type: 'string_array' as const,
+          source: 'owners_lookup',
+          joinColumn: 'id',
+          resolutionColumns: ['display_name', 'email'],
+        },
+        {
+          name: 'tickets.owners_field1',
+          type: 'string_array' as const,
+          source: 'owners_lookup',
+          joinColumn: 'id',
+          resolutionColumns: ['display_name', 'email'],
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [ticketsWithPrefixSchema],
+      resolutionConfig,
+      columnProjections: [
+        'tickets.owners',
+        'tickets.owners_field1',
+        'tickets.count',
+        'tickets.id',
+      ],
+    });
+
+    console.log('SQL (prefix test):', sql);
+
+    // Export to CSV using COPY command
+    const csvPath = '/tmp/test_prefix_fields.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    // Read the CSV back
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV (prefix test):', result);
+
+    // Check that both columns are present and resolved independently
+    expect(result[0]).toHaveProperty('Owners - Display Name');
+    expect(result[0]).toHaveProperty('Owners - Email');
+    expect(result[0]).toHaveProperty('Owners Field 1 - Display Name');
+    expect(result[0]).toHaveProperty('Owners Field 1 - Email');
+
+    // Verify the first ticket's data
+    const ticket1Rows = result.filter((r: any) => Number(r.ID) === 1);
+
+    // Check owners field
+    const ownersDisplayNames = parseJsonArray(
+      ticket1Rows[0]['Owners - Display Name']
+    );
+    expect(Array.isArray(ownersDisplayNames)).toBe(true);
+    expect(ownersDisplayNames).toContain('Alice Smith');
+    expect(ownersDisplayNames).toContain('Bob Jones');
+
+    // Check owners_field1 field (should have different values)
+    const ownersField1DisplayNames = parseJsonArray(
+      ticket1Rows[0]['Owners Field 1 - Display Name']
+    );
+    expect(Array.isArray(ownersField1DisplayNames)).toBe(true);
+    expect(ownersField1DisplayNames).toContain('Alice Smith');
+    expect(ownersField1DisplayNames).toContain('Charlie Brown');
+
+    // Verify they are different arrays
+    expect(ownersDisplayNames).not.toEqual(ownersField1DisplayNames);
+
+    // Clean up
+    await duckdbExec('ALTER TABLE tickets DROP COLUMN owners_field1');
+  });
 });
