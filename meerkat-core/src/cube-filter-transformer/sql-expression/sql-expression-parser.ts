@@ -6,10 +6,17 @@ import {
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ParsedExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 
+const getSQLPlaceholder = (sqlExpression: string): string => {
+  return `__MEERKAT_SQL_EXPR__${Buffer.from(sqlExpression).toString(
+    'base64'
+  )}__`;
+};
+
 const createInOperatorAST = (
   member: string,
   sqlExpression: string
 ): ParsedExpression => {
+  const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
   const columnRef: ParsedExpression = {
     class: ExpressionClass.COLUMN_REF,
     type: ExpressionType.COLUMN_REF,
@@ -23,7 +30,7 @@ const createInOperatorAST = (
     class: ExpressionClass.CONSTANT,
     type: ExpressionType.VALUE_CONSTANT,
     alias: '',
-    value: { type: { id: 'VARCHAR' }, is_null: false, value: sqlExpression },
+    value: { type: { id: 'VARCHAR' }, is_null: false, value: sqlPlaceholder },
   };
 
   return {
@@ -38,6 +45,8 @@ const createNotInOperatorAST = (
   member: string,
   sqlExpression: string
 ): ParsedExpression => {
+  const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
+
   const columnRef: ParsedExpression = {
     class: ExpressionClass.COLUMN_REF,
     type: ExpressionType.COLUMN_REF,
@@ -51,7 +60,7 @@ const createNotInOperatorAST = (
     class: ExpressionClass.CONSTANT,
     type: ExpressionType.VALUE_CONSTANT,
     alias: '',
-    value: { type: { id: 'VARCHAR' }, is_null: false, value: sqlExpression },
+    value: { type: { id: 'VARCHAR' }, is_null: false, value: sqlPlaceholder },
   };
 
   return {
@@ -75,4 +84,23 @@ export const getSQLExpressionAST = (
     default:
       throw new Error(`Unsupported operator: ${operator}`);
   }
+};
+
+/**
+ * Extract SQL expression placeholders from generated SQL and replace them
+ *
+ * @param sql - Generated SQL string
+ * @returns SQL with placeholders replaced by actual expressions
+ */
+export const applySQLExpressions = (sql: string): string => {
+  const quotedPattern = /"__MEERKAT_SQL_EXPR__([A-Za-z0-9+/=]+)__"/g;
+
+  // First handle quoted placeholders
+  const result = sql.replace(quotedPattern, (match, encoded) => {
+    // Decode the base64 SQL expression
+    const sqlExpression = Buffer.from(encoded, 'base64').toString('utf-8');
+    return sqlExpression;
+  });
+
+  return result;
 };
