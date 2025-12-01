@@ -82,7 +82,9 @@ export const getSQLExpressionAST = (
     case 'notIn':
       return createNotInOperatorAST(member, sqlExpression);
     default:
-      throw new Error(`Unsupported operator: ${operator}`);
+      throw new Error(
+        `SQL expressions are not supported for ${operator} operator. Only "in" and "notIn" operators support SQL expressions.`
+      );
   }
 };
 
@@ -93,14 +95,13 @@ export const getSQLExpressionAST = (
  * @returns SQL with placeholders replaced by actual expressions
  */
 export const applySQLExpressions = (sql: string): string => {
-  const quotedPattern = /"__MEERKAT_SQL_EXPR__([A-Za-z0-9+/=]+)__"/g;
-
-  // First handle quoted placeholders
-  const result = sql.replace(quotedPattern, (match, encoded) => {
-    // Decode the base64 SQL expression
-    const sqlExpression = Buffer.from(encoded, 'base64').toString('utf-8');
-    return sqlExpression;
-  });
-
-  return result;
+  // Replace quoted placeholders (DuckDB uses single quotes for VARCHAR constants)
+  return sql.replace(
+    /'__MEERKAT_SQL_EXPR__([A-Za-z0-9+/=]+)__'/g,
+    (match, encoded) => {
+      // Decode the base64 SQL expression
+      const sqlExpression = Buffer.from(encoded, 'base64').toString('utf-8');
+      return sqlExpression;
+    }
+  );
 };

@@ -39,7 +39,7 @@ const SCHEMA: TableSchema = {
   joins: [],
 };
 
-describe('SQL Expression Filters - IN and NOT IN Only', () => {
+describe('SQL Expression Filters', () => {
   it('should support simple IN with SQL expression', async () => {
     const query: Query = {
       measures: ['users.count'],
@@ -48,15 +48,23 @@ describe('SQL Expression Filters - IN and NOT IN Only', () => {
         {
           member: 'users.id',
           operator: 'in',
-          sqlExpression: '(1, 3)',
+          sqlExpression: '1, 3',
         },
       ],
     };
 
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.log('Generated SQL:', sql);
 
-    expect(sql).toContain('users__id IN (1, 3)');
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE (users__id IN (1, 3)) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
 
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
@@ -74,15 +82,23 @@ describe('SQL Expression Filters - IN and NOT IN Only', () => {
         {
           member: 'users.id',
           operator: 'notIn',
-          sqlExpression: '(2)',
+          sqlExpression: '2',
         },
       ],
     };
 
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.log('Generated SQL:', sql);
 
-    expect(sql).toContain('users__id NOT IN (2)');
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE (users__id NOT IN (2)) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
 
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
@@ -100,15 +116,23 @@ describe('SQL Expression Filters - IN and NOT IN Only', () => {
         {
           member: 'users.id',
           operator: 'in',
-          sqlExpression: '(SELECT id FROM (VALUES (1), (3)) AS t(id))',
+          sqlExpression: 'SELECT id FROM (VALUES (1), (3)) AS t(id)',
         },
       ],
     };
 
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.log('Generated SQL with subquery:', sql);
 
-    expect(sql).toContain('users__id IN (SELECT id FROM');
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE (users__id IN (SELECT id FROM (VALUES (1), (3)) AS t(id))) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
 
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
@@ -118,7 +142,7 @@ describe('SQL Expression Filters - IN and NOT IN Only', () => {
     ]);
   });
 
-  it('should work with AND combining values and IN with SQL expression', async () => {
+  it('should work with AND combining equals and IN with SQL expression', async () => {
     const query: Query = {
       measures: ['users.count'],
       dimensions: ['users.name'],
@@ -133,7 +157,7 @@ describe('SQL Expression Filters - IN and NOT IN Only', () => {
             {
               member: 'users.id',
               operator: 'in',
-              sqlExpression: '(1, 2, 3)',
+              sqlExpression: '1, 2, 3',
             },
           ],
         },
@@ -141,13 +165,207 @@ describe('SQL Expression Filters - IN and NOT IN Only', () => {
     };
 
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.log('Generated SQL with AND:', sql);
 
-    expect(sql).toContain('users__id IN (1, 2, 3)');
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE ((users__name = 'Alice') AND (users__id IN (1, 2, 3))) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
 
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);
     expect(output[0].users__name).toBe('Alice');
+  });
+
+  it('should work with OR combining IN with SQL expressions', async () => {
+    const query: Query = {
+      measures: ['users.count'],
+      dimensions: ['users.name'],
+      filters: [
+        {
+          or: [
+            {
+              member: 'users.id',
+              operator: 'in',
+              sqlExpression: '1',
+            },
+            {
+              member: 'users.id',
+              operator: 'in',
+              sqlExpression: '3',
+            },
+          ],
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE ((users__id IN (1)) OR (users__id IN (3))) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
+
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(2);
+    expect(output.map((r: any) => r.users__name).sort()).toEqual([
+      'Alice',
+      'Charlie',
+    ]);
+  });
+
+  it('should support NOT IN with subquery', async () => {
+    const query: Query = {
+      measures: ['users.count'],
+      dimensions: ['users.name'],
+      filters: [
+        {
+          member: 'users.id',
+          operator: 'notIn',
+          sqlExpression: 'SELECT 2',
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE (users__id NOT IN (SELECT 2)) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
+
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(2);
+    expect(output.map((r: any) => r.users__name).sort()).toEqual([
+      'Alice',
+      'Charlie',
+    ]);
+  });
+
+  it('should support multiple values in IN with SQL expression', async () => {
+    const query: Query = {
+      measures: ['users.count'],
+      dimensions: ['users.name'],
+      filters: [
+        {
+          member: 'users.id',
+          operator: 'in',
+          sqlExpression: '1, 2, 3',
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE (users__id IN (1, 2, 3)) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
+
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(3);
+    expect(output.map((r: any) => r.users__name).sort()).toEqual([
+      'Alice',
+      'Bob',
+      'Charlie',
+    ]);
+  });
+
+  it('should support NOT IN with multiple values in SQL expression', async () => {
+    const query: Query = {
+      measures: ['users.count'],
+      dimensions: ['users.name'],
+      filters: [
+        {
+          member: 'users.id',
+          operator: 'notIn',
+          sqlExpression: '1, 2',
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE (users__id NOT IN (1, 2)) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
+
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(1);
+    expect(output[0].users__name).toBe('Charlie');
+  });
+
+  it('should support combining IN SQL expression with traditional filters', async () => {
+    const query: Query = {
+      measures: ['users.count'],
+      dimensions: ['users.name'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'users.age',
+              operator: 'gt',
+              values: ['20'],
+            },
+            {
+              member: 'users.id',
+              operator: 'in',
+              sqlExpression: '1, 3',
+            },
+          ],
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT age AS users__age, id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE ((users__age > 20) AND (users__id IN (1, 3))) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
+
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(2);
+    expect(output.map((r: any) => r.users__name).sort()).toEqual([
+      'Alice',
+      'Charlie',
+    ]);
   });
 
   it('should throw error for unsupported operators with SQL expression', async () => {
@@ -184,8 +402,19 @@ describe('SQL Expression Filters - IN and NOT IN Only', () => {
     };
 
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    const output: any = await duckdbExec(sql);
 
+    const expectedSQL = `SELECT COUNT(*) AS users__count ,   users__name FROM (SELECT id AS users__id, name AS users__name, * FROM (
+    SELECT * FROM (
+      VALUES
+        (1, 'Alice', 25),
+        (2, 'Bob', 30),
+        (3, 'Charlie', 35)
+    ) AS t(id, name, age)
+  ) AS users) AS users WHERE (users__id IN (1, 2)) GROUP BY users__name`;
+
+    expect(sql).toBe(expectedSQL);
+
+    const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
     expect(output.map((r: any) => r.users__name).sort()).toEqual([
       'Alice',
