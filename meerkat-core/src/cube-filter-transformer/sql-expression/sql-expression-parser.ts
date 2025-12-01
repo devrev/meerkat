@@ -61,18 +61,7 @@ const createNotInOperatorAST = (
     children: [columnRef, sqlExpressionNode],
   };
 };
-/**
- * Creates a proper AST node for SQL expression filters (IN/NOT IN)
- *
- * For simple value lists like "(1, 3)", creates VALUE_CONSTANT nodes.
- * For subqueries like "(SELECT ...)", creates a placeholder that will be replaced during SQL generation.
- *
- * @param member - The member name (e.g., "users.id")
- * @param sqlExpression - The SQL expression fragment (e.g., "(1, 3)" or "(SELECT id FROM ...)")
- * @param operator - The filter operator ("in" or "notIn")
- * @returns ParsedExpression with proper AST structure
- * @throws Error if sqlExpression is missing or invalid
- */
+
 export const getSQLExpressionAST = (
   member: string,
   sqlExpression: string,

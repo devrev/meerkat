@@ -4,6 +4,7 @@ import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { andDuckdbCondition } from '../and/and';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { equalsArrayTransform } from './equals-array';
 
 export const equalsTransform: CubeToParseExpressionTransform = (query) => {
@@ -11,9 +12,7 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
 
   // SQL expressions not supported for equals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    throw new Error(
-      'SQL expressions are not supported for equals operator. Only "in" and "notIn" operators support SQL expressions.'
-    );
+    return getSQLExpressionAST(member, query.sqlExpression, 'equals');
   }
 
   const values = query.values;
