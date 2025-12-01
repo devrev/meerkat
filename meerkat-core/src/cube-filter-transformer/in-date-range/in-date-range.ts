@@ -3,14 +3,15 @@ import { ExpressionType } from '../../types/duckdb-serialization-types/serializa
 import { andDuckdbCondition } from '../and/and';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
-import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
   const { member } = query;
 
-  // Check if this is a SQL expression
+  // SQL expressions not supported for inDateRange operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'inDateRange');
+    throw new Error(
+      'SQL expressions are not supported for inDateRange operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
   }
 
   // Otherwise, use values

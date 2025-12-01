@@ -3,14 +3,15 @@ import { ExpressionType } from '../../types/duckdb-serialization-types/serializa
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
-import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const gtTransform: CubeToParseExpressionTransform = (query) => {
   const { member } = query;
 
-  // Check if this is a SQL expression
+  // SQL expressions not supported for gt operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'gt');
+    throw new Error(
+      'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
   }
 
   // Otherwise, use values

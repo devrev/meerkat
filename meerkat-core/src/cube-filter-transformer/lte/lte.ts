@@ -3,14 +3,15 @@ import { ExpressionType } from '../../types/duckdb-serialization-types/serializa
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
-import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const lteTransform: CubeToParseExpressionTransform = (query) => {
   const { member } = query;
 
-  // Check if this is a SQL expression
+  // SQL expressions not supported for lte operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'lte');
+    throw new Error(
+      'SQL expressions are not supported for lte operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
   }
 
   // Otherwise, use values

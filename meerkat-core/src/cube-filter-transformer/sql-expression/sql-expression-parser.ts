@@ -10,20 +10,22 @@ import { ParsedExpression } from '../../types/duckdb-serialization-types/seriali
  *
  * Format: __MEERKAT_SQL_EXPR__{base64EncodedSQL}__
  *
+ * Currently only supports IN and NOT IN operators
+ *
  * @param member - The member name (e.g., "users.id")
- * @param sqlExpression - The SQL expression fragment (e.g., "IN (1, 3)" or just "(1, 3)" for IN operator)
- * @param operator - The filter operator (e.g., "in", "gt", "equals")
+ * @param sqlExpression - The SQL expression fragment (e.g., "(1, 3)" or "(SELECT id FROM ...)")
+ * @param operator - The filter operator ("in" or "notIn")
  * @returns ParsedExpression with a placeholder that will be replaced later
  */
 export const getSQLExpressionAST = (
   member: string,
   sqlExpression: string,
-  operator: string
+  operator: 'in' | 'notIn'
 ): ParsedExpression => {
   // Convert member name to column reference (e.g., "users.id" -> "users__id")
   const columnRef = member.split('.').join('__');
 
-  // Build the complete SQL expression based on operator
+  // Build the complete SQL expression
   const fullExpression = buildFullSQLExpression(
     columnRef,
     sqlExpression,
@@ -44,17 +46,17 @@ export const getSQLExpressionAST = (
 };
 
 /**
- * Build the full SQL expression by combining column reference with the SQL fragment
+ * Build the full SQL expression for IN or NOT IN operators
  *
  * @param columnRef - The aliased column name (e.g., "users__id")
  * @param sqlExpression - The SQL expression fragment from user
- * @param operator - The filter operator
+ * @param operator - The filter operator ("in" or "notIn")
  * @returns Complete SQL expression
  */
 function buildFullSQLExpression(
   columnRef: string,
   sqlExpression: string,
-  operator: string
+  operator: 'in' | 'notIn'
 ): string {
   // Check if the SQL expression already contains the column reference
   // (for backwards compatibility with full expressions)
@@ -62,81 +64,16 @@ function buildFullSQLExpression(
     return sqlExpression;
   }
 
-  // Build expression based on operator
-  switch (operator) {
-    case 'in':
-    case 'notIn':
-      // Handle both "IN (1, 3)" and just "(1, 3)"
-      if (
-        sqlExpression.trim().toUpperCase().startsWith('IN ') ||
-        sqlExpression.trim().toUpperCase().startsWith('NOT IN ')
-      ) {
-        return `${columnRef} ${sqlExpression}`;
-      }
-      return operator === 'in'
-        ? `${columnRef} IN ${sqlExpression}`
-        : `${columnRef} NOT IN ${sqlExpression}`;
-
-    case 'equals':
-      return sqlExpression.includes('=')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} = ${sqlExpression}`;
-
-    case 'notEquals':
-      return sqlExpression.includes('!=') || sqlExpression.includes('<>')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} != ${sqlExpression}`;
-
-    case 'gt':
-      return sqlExpression.includes('>')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} > ${sqlExpression}`;
-
-    case 'gte':
-      return sqlExpression.includes('>=')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} >= ${sqlExpression}`;
-
-    case 'lt':
-      return sqlExpression.includes('<')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} < ${sqlExpression}`;
-
-    case 'lte':
-      return sqlExpression.includes('<=')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} <= ${sqlExpression}`;
-
-    case 'contains':
-    case 'notContains':
-      // LIKE expressions
-      return sqlExpression.toUpperCase().includes('LIKE')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} LIKE ${sqlExpression}`;
-
-    case 'inDateRange':
-      // BETWEEN expression
-      return sqlExpression.toUpperCase().includes('BETWEEN')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} BETWEEN ${sqlExpression}`;
-
-    case 'notInDateRange':
-      // NOT BETWEEN expression
-      return sqlExpression.toUpperCase().includes('NOT BETWEEN')
-        ? `${columnRef} ${sqlExpression}`
-        : `${columnRef} NOT BETWEEN ${sqlExpression}`;
-
-    default:
-      // For unknown operators or custom expressions, assume it's a complete expression
-      // or just append it to the column reference
-      return sqlExpression.includes('=') ||
-        sqlExpression.includes('>') ||
-        sqlExpression.includes('<') ||
-        sqlExpression.toUpperCase().includes('IN') ||
-        sqlExpression.toUpperCase().includes('LIKE')
-        ? sqlExpression // Already complete
-        : `${columnRef} ${sqlExpression}`; // Append to column
+  // Handle both "IN (1, 3)" and just "(1, 3)"
+  const trimmed = sqlExpression.trim().toUpperCase();
+  if (trimmed.startsWith('IN ') || trimmed.startsWith('NOT IN ')) {
+    return `${columnRef} ${sqlExpression}`;
   }
+
+  // Build expression based on operator
+  return operator === 'in'
+    ? `${columnRef} IN ${sqlExpression}`
+    : `${columnRef} NOT IN ${sqlExpression}`;
 }
 
 /**

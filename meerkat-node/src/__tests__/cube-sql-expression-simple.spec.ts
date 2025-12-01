@@ -39,7 +39,7 @@ const SCHEMA: TableSchema = {
   joins: [],
 };
 
-describe('SQL Expression Filters - Simple Tests', () => {
+describe('SQL Expression Filters - IN and NOT IN Only', () => {
   it('should support simple IN with SQL expression', async () => {
     const query: Query = {
       measures: ['users.count'],
@@ -66,47 +66,15 @@ describe('SQL Expression Filters - Simple Tests', () => {
     ]);
   });
 
-  it('should support GT with SQL expression', async () => {
-    const query: Query = {
-      measures: ['users.count'],
-      dimensions: ['users.name', 'users.age'],
-      filters: [
-        {
-          member: 'users.age',
-          operator: 'gt',
-          sqlExpression: '28',
-        },
-      ],
-    };
-
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.log('Generated SQL:', sql);
-
-    expect(sql).toContain('users__age > 28');
-
-    const output: any = await duckdbExec(sql);
-    expect(output.length).toBeGreaterThan(0);
-    expect(output.every((r: any) => r.users__age > 28)).toBeTruthy();
-  });
-
-  it('should work with AND combining values and SQL expressions', async () => {
+  it('should support NOT IN with SQL expression', async () => {
     const query: Query = {
       measures: ['users.count'],
       dimensions: ['users.name'],
       filters: [
         {
-          and: [
-            {
-              member: 'users.name',
-              operator: 'equals',
-              values: ['Alice'],
-            },
-            {
-              member: 'users.age',
-              operator: 'gte',
-              sqlExpression: '20',
-            },
-          ],
+          member: 'users.id',
+          operator: 'notIn',
+          sqlExpression: '(2)',
         },
       ],
     };
@@ -114,11 +82,14 @@ describe('SQL Expression Filters - Simple Tests', () => {
     const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
     console.log('Generated SQL:', sql);
 
-    expect(sql).toContain('users__age >= 20');
+    expect(sql).toContain('users__id NOT IN (2)');
 
     const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(1);
-    expect(output[0].users__name).toBe('Alice');
+    expect(output).toHaveLength(2);
+    expect(output.map((r: any) => r.users__name).sort()).toEqual([
+      'Alice',
+      'Charlie',
+    ]);
   });
 
   it('should support complex subquery with IN', async () => {
@@ -147,7 +118,39 @@ describe('SQL Expression Filters - Simple Tests', () => {
     ]);
   });
 
-  it('should support GT with calculated subquery value', async () => {
+  it('should work with AND combining values and IN with SQL expression', async () => {
+    const query: Query = {
+      measures: ['users.count'],
+      dimensions: ['users.name'],
+      filters: [
+        {
+          and: [
+            {
+              member: 'users.name',
+              operator: 'equals',
+              values: ['Alice'],
+            },
+            {
+              member: 'users.id',
+              operator: 'in',
+              sqlExpression: '(1, 2, 3)',
+            },
+          ],
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    console.log('Generated SQL with AND:', sql);
+
+    expect(sql).toContain('users__id IN (1, 2, 3)');
+
+    const output: any = await duckdbExec(sql);
+    expect(output).toHaveLength(1);
+    expect(output[0].users__name).toBe('Alice');
+  });
+
+  it('should throw error for unsupported operators with SQL expression', async () => {
     const query: Query = {
       measures: ['users.count'],
       dimensions: ['users.name'],
@@ -155,21 +158,16 @@ describe('SQL Expression Filters - Simple Tests', () => {
         {
           member: 'users.age',
           operator: 'gt',
-          sqlExpression:
-            '(SELECT AVG(age) FROM (VALUES (25), (30), (35)) AS t(age))',
-        },
+          sqlExpression: '28',
+        } as any,
       ],
     };
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.log('Generated SQL with AVG:', sql);
-
-    expect(sql).toContain('users__age > (SELECT AVG(age)');
-
-    const output: any = await duckdbExec(sql);
-    // Average is 30, so should return ages > 30 (Charlie: 35)
-    expect(output).toHaveLength(1);
-    expect(output[0].users__name).toBe('Charlie');
+    await expect(
+      cubeQueryToSQL({ query, tableSchemas: [SCHEMA] })
+    ).rejects.toThrow(
+      'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
   });
 
   it('should still work with traditional values array', async () => {

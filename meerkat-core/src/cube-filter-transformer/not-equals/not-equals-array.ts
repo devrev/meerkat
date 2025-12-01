@@ -2,14 +2,15 @@ import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to
 import { equalsArrayTransform } from '../equals/equals-array';
 import { CubeToParseExpressionTransform } from '../factory';
 import { notDuckdbCondition } from '../not/not';
-import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const notEqualsArrayTransform: CubeToParseExpressionTransform = (
   query
 ) => {
-  // Check if this is a SQL expression
+  // SQL expressions not supported for notEquals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(query.member, query.sqlExpression, 'notEquals');
+    throw new Error(
+      'SQL expressions are not supported for notEquals operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
   }
 
   if (!query.values || query.values.length === 0) {

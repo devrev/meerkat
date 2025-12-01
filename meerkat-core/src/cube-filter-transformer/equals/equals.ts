@@ -4,15 +4,16 @@ import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { andDuckdbCondition } from '../and/and';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
-import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { equalsArrayTransform } from './equals-array';
 
 export const equalsTransform: CubeToParseExpressionTransform = (query) => {
   const { member, memberInfo } = query;
 
-  // Check if this is a SQL expression
+  // SQL expressions not supported for equals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'equals');
+    throw new Error(
+      'SQL expressions are not supported for equals operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
   }
 
   const values = query.values;

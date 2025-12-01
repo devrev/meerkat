@@ -8,7 +8,6 @@ import {
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
-import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const notContainsDuckdbCondition = (
   columnName: string,
@@ -50,9 +49,11 @@ export const notContainsDuckdbCondition = (
 export const notContainsTransform: CubeToParseExpressionTransform = (query) => {
   const { member, memberInfo } = query;
 
-  // Check if this is a SQL expression
+  // SQL expressions not supported for notContains operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'notContains');
+    throw new Error(
+      'SQL expressions are not supported for notContains operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
   }
 
   // Otherwise, use values
