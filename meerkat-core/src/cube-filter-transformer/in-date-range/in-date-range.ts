@@ -10,7 +10,7 @@ export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
 
   // Check if this is a SQL expression
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(query.sqlExpression);
+    return getSQLExpressionAST(member, query.sqlExpression, 'inDateRange');
   }
 
   // Otherwise, use values

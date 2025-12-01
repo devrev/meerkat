@@ -4,6 +4,7 @@ export * from './ast-serializer/ast-serializer';
 export * from './ast-validator';
 export * from './constants/exports';
 export { detectApplyContextParamsToBaseSQL } from './context-params/context-params-ast';
+export { applySQLExpressions } from './cube-filter-transformer/sql-expression/sql-expression-parser';
 export * from './cube-measure-transformer/cube-measure-transformer';
 export * from './cube-to-duckdb/cube-filter-to-duckdb';
 export {
