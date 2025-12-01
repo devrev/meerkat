@@ -1,13 +1,18 @@
+import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { equalsArrayTransform } from '../equals/equals-array';
 import { CubeToParseExpressionTransform } from '../factory';
 import { notDuckdbCondition } from '../not/not';
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const notEqualsArrayTransform: CubeToParseExpressionTransform = (
   query
 ) => {
-  const { values } = query;
+  // Check if this is a SQL expression
+  if (isQueryOperatorsWithSQLInfo(query)) {
+    return getSQLExpressionAST(query.sqlExpression);
+  }
 
-  if (!values || values.length === 0) {
+  if (!query.values || query.values.length === 0) {
     throw new Error('Equals filter must have at least one value');
   }
 
