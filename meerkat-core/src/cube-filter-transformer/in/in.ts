@@ -1,3 +1,4 @@
+import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import {
@@ -6,6 +7,7 @@ import {
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 const inDuckDbCondition = (
   columnName: string,
@@ -67,9 +69,17 @@ const inDuckDbCondition = (
 };
 
 export const inTransform: CubeToParseExpressionTransform = (query) => {
-  const { member, values, memberInfo } = query;
-  if (!values) {
+  const { member, memberInfo } = query;
+
+  // Check if this is a SQL expression
+  if (isQueryOperatorsWithSQLInfo(query)) {
+    return getSQLExpressionAST(query.sql);
+  }
+
+  // Otherwise, use values
+  if (!query.values) {
     throw new Error('In filter must have at least one value');
   }
-  return inDuckDbCondition(member, values, memberInfo);
+
+  return inDuckDbCondition(member, query.values, memberInfo);
 };

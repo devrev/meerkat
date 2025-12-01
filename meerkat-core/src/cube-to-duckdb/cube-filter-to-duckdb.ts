@@ -1,9 +1,23 @@
-import { QueryFilter } from '../types/cube-types/query';
+import {
+  QueryFilterWithSQL,
+  QueryFilterWithValues,
+} from '../types/cube-types/query';
 import { Dimension, Measure } from '../types/cube-types/table';
 
-export type QueryOperatorsWithInfo = QueryFilter & {
+export type QueryOperatorsWithInfoSQL = QueryFilterWithSQL & {
   memberInfo: Measure | Dimension;
 };
+
+/**
+ * Query filter with member info added
+ */
+export type QueryOperatorsWithInfoValues = QueryFilterWithValues & {
+  memberInfo: Measure | Dimension;
+};
+
+export type QueryOperatorsWithInfo =
+  | QueryOperatorsWithInfoSQL
+  | QueryOperatorsWithInfoValues;
 
 export type LogicalAndFilterWithInfo = {
   and: (
@@ -28,8 +42,18 @@ export type QueryFilterWithInfo =
       | LogicalOrFilterWithInfo
     )[];
 
-export type QueryFiltersWithInfoSingular = QueryOperatorsWithInfo
-| LogicalAndFilterWithInfo
-| LogicalOrFilterWithInfo;
+export type QueryFiltersWithInfoSingular =
+  | QueryOperatorsWithInfo
+  | LogicalAndFilterWithInfo
+  | LogicalOrFilterWithInfo;
 
 export type QueryFiltersWithInfo = QueryFiltersWithInfoSingular[];
+
+/**
+ * Type guard to check if filter uses SQL expression
+ */
+export const isQueryOperatorsWithSQLInfo = (
+  filter: QueryOperatorsWithInfo
+): filter is QueryOperatorsWithInfoSQL => {
+  return 'sql' in filter && typeof filter.sql === 'string';
+};

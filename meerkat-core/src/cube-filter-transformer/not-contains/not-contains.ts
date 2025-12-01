@@ -1,5 +1,5 @@
+import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
-import { Member, QueryFilter } from '../../types/cube-types/query';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import {
   ExpressionClass,
@@ -8,12 +8,7 @@ import {
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
-
-export interface NotContainsFilters extends QueryFilter {
-  member: Member;
-  operator: 'notContains';
-  values: string[];
-}
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const notContainsDuckdbCondition = (
   columnName: string,
@@ -53,11 +48,19 @@ export const notContainsDuckdbCondition = (
 };
 
 export const notContainsTransform: CubeToParseExpressionTransform = (query) => {
-  const { member, values, memberInfo } = query;
+  const { member, memberInfo } = query;
 
-  if (!values || values.length === 0) {
+  // Check if this is a SQL expression
+  if (isQueryOperatorsWithSQLInfo(query)) {
+    return getSQLExpressionAST(query.sql);
+  }
+
+  // Otherwise, use values
+  if (!query.values || query.values.length === 0) {
     throw new Error('Contains filter must have at least one value');
   }
+
+  const values = query.values;
 
   /**
    * If there is only one value, we can create a simple Contains condition

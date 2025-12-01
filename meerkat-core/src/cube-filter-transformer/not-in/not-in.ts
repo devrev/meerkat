@@ -1,5 +1,7 @@
+import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import { CubeToParseExpressionTransform } from '../factory';
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
@@ -75,10 +77,16 @@ const notInDuckDbCondition = (
 };
 
 export const notInTransform: CubeToParseExpressionTransform = (query) => {
-  const { member, values, memberInfo } = query;
-  if (!values) {
+  const { member, memberInfo } = query;
+
+  // Check if this is a SQL expression
+  if (isQueryOperatorsWithSQLInfo(query)) {
+    return getSQLExpressionAST(query.sql);
+  }
+
+  if (!query.values) {
     throw new Error('Not in filter must have at least one value');
   }
 
-  return notInDuckDbCondition(member, values, memberInfo);
+  return notInDuckDbCondition(member, query.values, memberInfo);
 };

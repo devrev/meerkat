@@ -1,24 +1,31 @@
+import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { andDuckdbCondition } from '../and/and';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { equalsArrayTransform } from './equals-array';
 
 export const equalsTransform: CubeToParseExpressionTransform = (query) => {
-  const { member, values } = query;
+  const { member, memberInfo } = query;
+
+  // Check if this is a SQL expression
+  if (isQueryOperatorsWithSQLInfo(query)) {
+    return getSQLExpressionAST(query.sql);
+  }
+
+  const values = query.values;
 
   /**
    * If the member is an array, we need to use the array transform
    */
-  if (isArrayTypeMember(query.memberInfo.type)) {
+  if (isArrayTypeMember(memberInfo.type)) {
     return equalsArrayTransform(query);
   }
-
   if (!values || values.length === 0) {
     throw new Error('Equals filter must have at least one value');
   }
-
   /**
    * If there is only one value, we can create a simple equals condition
    */
