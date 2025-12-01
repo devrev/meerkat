@@ -72,7 +72,7 @@ type QueryFilterWithValues = {
 type QueryFilterWithSQL = {
   member: Member;
   operator: Omit<FilterOperator, 'set' | 'notSet'>;
-  sql: string;
+  sqlExpression: string;
 };
 
 /**
@@ -174,7 +174,7 @@ interface Query {
 export const isQueryFilterWithSQL = (
   filter: QueryFilter
 ): filter is QueryFilterWithSQL => {
-  return 'sql' in filter && typeof filter.sql === 'string';
+  return 'sqlExpression' in filter && typeof filter.sqlExpression === 'string';
 };
 
 export {

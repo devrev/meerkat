@@ -81,7 +81,7 @@ export const notInTransform: CubeToParseExpressionTransform = (query) => {
 
   // Check if this is a SQL expression
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(query.sql);
+    return getSQLExpressionAST(query.sqlExpression);
   }
 
   if (!query.values) {

@@ -12,7 +12,7 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
 
   // Check if this is a SQL expression
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(query.sql);
+    return getSQLExpressionAST(query.sqlExpression);
   }
 
   const values = query.values;

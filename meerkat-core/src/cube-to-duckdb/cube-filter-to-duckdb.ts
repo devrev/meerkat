@@ -55,5 +55,5 @@ export type QueryFiltersWithInfo = QueryFiltersWithInfoSingular[];
 export const isQueryOperatorsWithSQLInfo = (
   filter: QueryOperatorsWithInfo
 ): filter is QueryOperatorsWithInfoSQL => {
-  return 'sql' in filter && typeof filter.sql === 'string';
+  return 'sqlExpression' in filter && typeof filter.sqlExpression === 'string';
 };

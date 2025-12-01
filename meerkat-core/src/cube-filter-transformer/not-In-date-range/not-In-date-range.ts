@@ -12,7 +12,7 @@ export const notInDataRangeTransform: CubeToParseExpressionTransform = (
 
   // Check if this is a SQL expression
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(query.sql);
+    return getSQLExpressionAST(query.sqlExpression);
   }
 
   // Otherwise, use values
