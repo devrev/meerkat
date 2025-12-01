@@ -36,8 +36,7 @@ const createInOperatorAST = (
 
 const createNotInOperatorAST = (
   member: string,
-  sqlExpression: string,
-  _operator: FilterOperator
+  sqlExpression: string
 ): ParsedExpression => {
   const columnRef: ParsedExpression = {
     class: ExpressionClass.COLUMN_REF,
@@ -81,9 +80,9 @@ export const getSQLExpressionAST = (
 ): ParsedExpression => {
   switch (operator) {
     case 'in':
-      return createInOperatorAST(member, sqlExpression, operator);
+      return createInOperatorAST(member, sqlExpression);
     case 'notIn':
-      return createNotInOperatorAST(member, sqlExpression, operator);
+      return createNotInOperatorAST(member, sqlExpression);
     default:
       throw new Error(`Unsupported operator: ${operator}`);
   }
