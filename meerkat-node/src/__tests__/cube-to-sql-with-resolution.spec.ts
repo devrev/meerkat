@@ -45,7 +45,7 @@ const CREATE_TAGS_LOOKUP_TABLE = `CREATE TABLE tags_lookup (
   id VARCHAR,
   tag_name VARCHAR
 )`;
-const CREATE_CREATED_BY_LOOKUP_TABLE = `CREATE TABLE created_by_lookup (
+const CREATE_CREATED_BY_LOOKUP_TABLE = `CREATE OR REPLACE TABLE created_by_lookup (
   id VARCHAR,
   name VARCHAR
 )`;
@@ -805,13 +805,13 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
   beforeAll(async () => {
     await duckdbExec(CREATE_ISSUES_TABLE);
     await duckdbExec(INSERT_ISSUES_DATA);
-    // Also create the lookup table for the combined test
     await duckdbExec(CREATE_CREATED_BY_LOOKUP_TABLE);
     await duckdbExec(CREATED_BY_LOOKUP_DATA_QUERY);
   });
 
   afterAll(async () => {
     await duckdbExec('DROP TABLE IF EXISTS issues');
+    await duckdbExec('DROP TABLE IF EXISTS created_by_lookup');
   });
 
   it('Should apply SQL override to array fields', async () => {
