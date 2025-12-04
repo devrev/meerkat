@@ -19,6 +19,7 @@ export * from './member-formatters';
 export * from './resolution/generators';
 export * from './resolution/resolution';
 export * from './resolution/steps/aggregation-step';
+export * from './resolution/steps/apply-sql-overrides';
 export * from './resolution/steps/resolution-step';
 export * from './resolution/steps/unnest-step';
 export * from './resolution/types';
