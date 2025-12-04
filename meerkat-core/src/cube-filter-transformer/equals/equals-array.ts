@@ -8,6 +8,7 @@ import {
 import { ResultModifierType } from '../../types/duckdb-serialization-types/serialization/ResultModifier';
 import { valueBuilder } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 const equalsDuckDbCondition = (
   columnName: string,
@@ -74,9 +75,7 @@ export const equalsArrayTransform: CubeToParseExpressionTransform = (query) => {
 
   // SQL expressions not supported for equals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    throw new Error(
-      'SQL expressions are not supported for equals operator. Only "in" and "notIn" operators support SQL expressions.'
-    );
+    return getSQLExpressionAST(member, query.sqlExpression, 'equals');
   }
 
   /**
