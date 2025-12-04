@@ -1,4 +1,5 @@
 import {
+  applySqlOverrides,
   BASE_DATA_SOURCE_NAME,
   ContextParams,
   getAggregatedSql as coreGetAggregatedSql,
@@ -65,27 +66,39 @@ export const cubeQueryToSQLWithResolution = async ({
     query.dimensions
   );
 
+  // Transform field names in configs to match base table schema format
+  // This needs to be done for both columnConfigs and sqlOverrideConfigs
+  resolutionConfig.columnConfigs.forEach((config) => {
+    config.name = memberKeyToSafeKey(config.name);
+  });
+
+  if (resolutionConfig.sqlOverrideConfigs) {
+    resolutionConfig.sqlOverrideConfigs.forEach((config) => {
+      config.fieldName = memberKeyToSafeKey(config.fieldName);
+    });
+  }
+
+  // Apply SQL overrides to the base schema
+  // At this point, filters/sorts are baked into baseSql using original values
+  // We can now override dimensions/measures in the base schema with custom SQL expressions for display
+  const schemaWithOverrides = applySqlOverrides(baseSchema, resolutionConfig);
+
   const rowIdDimension: Dimension = {
     name: ROW_ID_DIMENSION_NAME,
     sql: generateRowNumberSql(
       query,
-      baseSchema.dimensions,
+      schemaWithOverrides.dimensions,
       BASE_DATA_SOURCE_NAME
     ),
     type: 'number',
     alias: ROW_ID_DIMENSION_NAME,
   };
-  baseSchema.dimensions.push(rowIdDimension);
+  schemaWithOverrides.dimensions.push(rowIdDimension);
   columnProjections.push(ROW_ID_DIMENSION_NAME);
-
-  // Doing this because we need to use the original name of the column in the base table schema.
-  resolutionConfig.columnConfigs.forEach((config) => {
-    config.name = memberKeyToSafeKey(config.name);
-  });
 
   // Generate SQL with row_id and unnested arrays
   const unnestTableSchema = await coreGetUnnestTableSchema({
-    baseTableSchema: baseSchema,
+    baseTableSchema: schemaWithOverrides,
     resolutionConfig,
     contextParams,
     cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),

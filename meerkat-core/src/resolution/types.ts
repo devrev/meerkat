@@ -29,6 +29,9 @@ export interface SqlOverrideConfig {
   type: DimensionType | MeasureType;
 }
 
+// Placeholder used in SQL override expressions that gets replaced with the actual field reference
+export const RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER = '{{FIELD}}';
+
 export interface ResolutionConfig {
   columnConfigs: ResolutionColumnConfig[];
   tableSchemas: TableSchema[];
