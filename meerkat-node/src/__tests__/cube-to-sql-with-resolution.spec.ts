@@ -338,47 +338,47 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     // Each row should have the expected properties
     expect(result[0]).toHaveProperty('tickets__count');
     expect(result[0]).toHaveProperty('ID');
-    expect(result[0]).toHaveProperty('Owners - Display Name');
-    expect(result[0]).toHaveProperty('Tags - Tag Name');
-    expect(result[0]).toHaveProperty('Created By - Name');
+    expect(result[0]).toHaveProperty('Owners');
+    expect(result[0]).toHaveProperty('Tags');
+    expect(result[0]).toHaveProperty('Created By');
 
     // Verify ticket 1: 2 owners, 1 tag (parse JSON from CSV)
     const ticket1 = result[0];
-    const ticket1Owners = parseJsonArray(ticket1['Owners - Display Name']);
-    const ticket1Tags = parseJsonArray(ticket1['Tags - Tag Name']);
+    const ticket1Owners = parseJsonArray(ticket1['Owners']);
+    const ticket1Tags = parseJsonArray(ticket1['Tags']);
     expect(ticket1Owners).toEqual(
       expect.arrayContaining(['Alice Smith', 'Bob Jones'])
     );
     expect(ticket1Owners.length).toBe(2);
     expect(ticket1Tags).toEqual(expect.arrayContaining(['Tag 1']));
     expect(ticket1Tags.length).toBe(1);
-    expect(ticket1['Created By - Name']).toBe('User 1');
+    expect(ticket1['Created By']).toBe('User 1');
 
     // Verify ticket 2: 2 owners, 2 tags
     const ticket2 = result[1];
     expect(Number(ticket2.ID)).toBe(2);
-    const ticket2Owners = parseJsonArray(ticket2['Owners - Display Name']);
-    const ticket2Tags = parseJsonArray(ticket2['Tags - Tag Name']);
+    const ticket2Owners = parseJsonArray(ticket2['Owners']);
+    const ticket2Tags = parseJsonArray(ticket2['Tags']);
     expect(ticket2Owners).toEqual(
       expect.arrayContaining(['Bob Jones', 'Charlie Brown'])
     );
     expect(ticket2Owners.length).toBe(2);
     expect(ticket2Tags).toEqual(expect.arrayContaining(['Tag 2', 'Tag 3']));
     expect(ticket2Tags.length).toBe(2);
-    expect(ticket2['Created By - Name']).toBe('User 2');
+    expect(ticket2['Created By']).toBe('User 2');
 
     // Verify ticket 3: 1 owner, 3 tags
     const ticket3 = result[2];
     expect(Number(ticket3.ID)).toBe(3);
-    const ticket3Owners = parseJsonArray(ticket3['Owners - Display Name']);
-    const ticket3Tags = parseJsonArray(ticket3['Tags - Tag Name']);
+    const ticket3Owners = parseJsonArray(ticket3['Owners']);
+    const ticket3Tags = parseJsonArray(ticket3['Tags']);
     expect(ticket3Owners).toEqual(expect.arrayContaining(['Diana Prince']));
     expect(ticket3Owners.length).toBe(1);
     expect(ticket3Tags).toEqual(
       expect.arrayContaining(['Tag 1', 'Tag 3', 'Tag 4'])
     );
     expect(ticket3Tags.length).toBe(3);
-    expect(ticket3['Created By - Name']).toBe('User 3');
+    expect(ticket3['Created By']).toBe('User 3');
   });
 
   it('Should handle only scalar field resolution without unnesting', async () => {
@@ -447,13 +447,13 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     expect(result[0]).toHaveProperty('ID');
     expect(result[0]).toHaveProperty('Owners'); // Original array, not resolved
     expect(result[0]).toHaveProperty('Tags'); // Original array, not resolved
-    expect(result[0]).toHaveProperty('Created By - Name'); // Resolved scalar field
+    expect(result[0]).toHaveProperty('Created By'); // Resolved scalar field
 
     // Verify scalar resolution worked correctly
     // Note: Arrays in CSV are read back as strings, not arrays
     const ticket1 = result[0];
     expect(Number(ticket1.ID)).toBe(1);
-    expect(ticket1['Created By - Name']).toBe('User 1');
+    expect(ticket1['Created By']).toBe('User 1');
     // Arrays from CSV come back as strings like "[owner1, owner2]"
     expect(typeof ticket1['Owners']).toBe('string');
     expect(ticket1['Owners']).toContain('owner1');
@@ -461,13 +461,13 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
 
     const ticket2 = result[1];
     expect(Number(ticket2.ID)).toBe(2);
-    expect(ticket2['Created By - Name']).toBe('User 2');
+    expect(ticket2['Created By']).toBe('User 2');
     expect(ticket2['Owners']).toContain('owner2');
     expect(ticket2['Owners']).toContain('owner3');
 
     const ticket3 = result[2];
     expect(Number(ticket3.ID)).toBe(3);
-    expect(ticket3['Created By - Name']).toBe('User 3');
+    expect(ticket3['Created By']).toBe('User 3');
     expect(ticket3['Owners']).toContain('owner4');
   });
 
@@ -585,14 +585,14 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     expect(result[0]).toHaveProperty('ID');
     expect(result[0]).toHaveProperty('Owners'); // Original array, not resolved
     expect(result[0]).toHaveProperty('Tags'); // Original array, not resolved
-    expect(result[0]).toHaveProperty('Created By - Name'); // Resolved scalar field
+    expect(result[0]).toHaveProperty('Created By'); // Resolved scalar field
 
     // Verify scalar resolution worked correctly
     // Order might vary without ORDER BY, so we find by ID
     // Note: CSV reads integers as BigInt, so we need to convert
     const ticket1 = result.find((r: any) => Number(r.ID) === 1);
     expect(ticket1).toBeDefined();
-    expect(ticket1!['Created By - Name']).toBe('User 1');
+    expect(ticket1!['Created By']).toBe('User 1');
     // Arrays from CSV come back as strings
     expect(typeof ticket1!['Owners']).toBe('string');
     expect(ticket1!['Owners']).toContain('owner1');
@@ -600,13 +600,13 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
 
     const ticket2 = result.find((r: any) => Number(r.ID) === 2);
     expect(ticket2).toBeDefined();
-    expect(ticket2!['Created By - Name']).toBe('User 2');
+    expect(ticket2!['Created By']).toBe('User 2');
     expect(ticket2!['Owners']).toContain('owner2');
     expect(ticket2!['Owners']).toContain('owner3');
 
     const ticket3 = result.find((r: any) => Number(r.ID) === 3);
     expect(ticket3).toBeDefined();
-    expect(ticket3!['Created By - Name']).toBe('User 3');
+    expect(ticket3!['Created By']).toBe('User 3');
     expect(ticket3!['Owners']).toContain('owner4');
   });
 
@@ -617,7 +617,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     `);
 
     await duckdbExec(`
-      UPDATE tickets SET owners_field1 = CASE 
+      UPDATE tickets SET owners_field1 = CASE
         WHEN id = 1 THEN ['owner1', 'owner3']
         WHEN id = 2 THEN ['owner2', 'owner4']
         WHEN id = 3 THEN ['owner1', 'owner4']
@@ -818,7 +818,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
     // Add an array column for testing
     await duckdbExec('ALTER TABLE issues ADD COLUMN priority_tags INTEGER[]');
     await duckdbExec(`
-      UPDATE issues SET priority_tags = CASE 
+      UPDATE issues SET priority_tags = CASE
         WHEN id = 1 THEN [1, 2]
         WHEN id = 2 THEN [3]
         WHEN id = 3 THEN [0, 1]
@@ -855,13 +855,13 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
           fieldName: 'issues.priority_tags',
           // Transform each element in the array using list_transform
           // Using {{FIELD}} placeholder which gets replaced with the proper column reference
-          overrideSql: `list_transform({{FIELD}}, x -> CASE 
-            WHEN x = 0 THEN 'P0' 
-            WHEN x = 1 THEN 'P1' 
-            WHEN x = 2 THEN 'P2' 
-            WHEN x = 3 THEN 'P3' 
-            WHEN x = 4 THEN 'P4' 
-            ELSE 'Unknown' 
+          overrideSql: `list_transform(issues.priority_tags, x -> CASE
+            WHEN x = 0 THEN 'P0'
+            WHEN x = 1 THEN 'P1'
+            WHEN x = 2 THEN 'P2'
+            WHEN x = 3 THEN 'P3'
+            WHEN x = 4 THEN 'P4'
+            ELSE 'Unknown'
           END)`,
           type: 'string_array',
         },
@@ -928,13 +928,13 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       sqlOverrideConfigs: [
         {
           fieldName: 'issues.priority',
-          overrideSql: `CASE 
-            WHEN {{FIELD}} = 0 THEN 'P0 - Critical' 
-            WHEN {{FIELD}} = 1 THEN 'P1 - High' 
-            WHEN {{FIELD}} = 2 THEN 'P2 - Medium' 
-            WHEN {{FIELD}} = 3 THEN 'P3 - Low' 
-            WHEN {{FIELD}} = 4 THEN 'P4 - Very Low' 
-            ELSE 'Unknown' 
+          overrideSql: `CASE
+            WHEN issues.priority = 0 THEN 'P0 - Critical'
+            WHEN issues.priority = 1 THEN 'P1 - High'
+            WHEN issues.priority = 2 THEN 'P2 - Medium'
+            WHEN issues.priority = 3 THEN 'P3 - Low'
+            WHEN issues.priority = 4 THEN 'P4 - Very Low'
+            ELSE 'Unknown'
           END`,
           type: 'string',
         },
@@ -1003,13 +1003,13 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       sqlOverrideConfigs: [
         {
           fieldName: 'issues.priority',
-          overrideSql: `CASE 
-            WHEN {{FIELD}} = 0 THEN 'P0' 
-            WHEN {{FIELD}} = 1 THEN 'P1' 
-            WHEN {{FIELD}} = 2 THEN 'P2' 
-            WHEN {{FIELD}} = 3 THEN 'P3' 
-            WHEN {{FIELD}} = 4 THEN 'P4' 
-            ELSE 'Unknown' 
+          overrideSql: `CASE
+            WHEN issues.priority = 0 THEN 'P0'
+            WHEN issues.priority = 1 THEN 'P1'
+            WHEN issues.priority = 2 THEN 'P2'
+            WHEN issues.priority = 3 THEN 'P3'
+            WHEN issues.priority = 4 THEN 'P4'
+            ELSE 'Unknown'
           END`,
           type: 'string',
         },
@@ -1060,23 +1060,23 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       sqlOverrideConfigs: [
         {
           fieldName: 'issues.priority',
-          overrideSql: `CASE 
-            WHEN {{FIELD}} = 0 THEN 'P0' 
-            WHEN {{FIELD}} = 1 THEN 'P1' 
-            WHEN {{FIELD}} = 2 THEN 'P2' 
-            WHEN {{FIELD}} = 3 THEN 'P3' 
-            WHEN {{FIELD}} = 4 THEN 'P4' 
-            ELSE 'Unknown' 
+          overrideSql: `CASE
+            WHEN issues.priority = 0 THEN 'P0'
+            WHEN issues.priority = 1 THEN 'P1'
+            WHEN issues.priority = 2 THEN 'P2'
+            WHEN issues.priority = 3 THEN 'P3'
+            WHEN issues.priority = 4 THEN 'P4'
+            ELSE 'Unknown'
           END`,
           type: 'string',
         },
         {
           fieldName: 'issues.status',
-          overrideSql: `CASE 
-            WHEN {{FIELD}} = 1 THEN 'Open' 
-            WHEN {{FIELD}} = 2 THEN 'In Progress' 
-            WHEN {{FIELD}} = 3 THEN 'Closed' 
-            ELSE 'Unknown Status' 
+          overrideSql: `CASE
+            WHEN issues.status = 1 THEN 'Open'
+            WHEN issues.status = 2 THEN 'In Progress'
+            WHEN issues.status = 3 THEN 'Closed'
+            ELSE 'Unknown Status'
           END`,
           type: 'string',
         },
@@ -1133,13 +1133,13 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       sqlOverrideConfigs: [
         {
           fieldName: 'issues.priority',
-          overrideSql: `CASE 
-            WHEN {{FIELD}} = 0 THEN 'P0' 
-            WHEN {{FIELD}} = 1 THEN 'P1' 
-            WHEN {{FIELD}} = 2 THEN 'P2' 
-            WHEN {{FIELD}} = 3 THEN 'P3' 
-            WHEN {{FIELD}} = 4 THEN 'P4' 
-            ELSE 'Unknown' 
+          overrideSql: `CASE
+            WHEN issues.priority = 0 THEN 'P0'
+            WHEN issues.priority = 1 THEN 'P1'
+            WHEN issues.priority = 2 THEN 'P2'
+            WHEN issues.priority = 3 THEN 'P3'
+            WHEN issues.priority = 4 THEN 'P4'
+            ELSE 'Unknown'
           END`,
           type: 'string',
         },
@@ -1216,13 +1216,13 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         // Only override priority, not status
         {
           fieldName: 'issues.priority',
-          overrideSql: `CASE 
-            WHEN {{FIELD}} = 0 THEN 'P0' 
-            WHEN {{FIELD}} = 1 THEN 'P1' 
-            WHEN {{FIELD}} = 2 THEN 'P2' 
-            WHEN {{FIELD}} = 3 THEN 'P3' 
-            WHEN {{FIELD}} = 4 THEN 'P4' 
-            ELSE 'Unknown' 
+          overrideSql: `CASE
+            WHEN issues.priority = 0 THEN 'P0'
+            WHEN issues.priority = 1 THEN 'P1'
+            WHEN issues.priority = 2 THEN 'P2'
+            WHEN issues.priority = 3 THEN 'P3'
+            WHEN issues.priority = 4 THEN 'P4'
+            ELSE 'Unknown'
           END`,
           type: 'string',
         },
@@ -1280,13 +1280,13 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       sqlOverrideConfigs: [
         {
           fieldName: 'issues.priority',
-          overrideSql: `CASE 
-            WHEN {{FIELD}} = 0 THEN 'P0' 
-            WHEN {{FIELD}} = 1 THEN 'P1' 
-            WHEN {{FIELD}} = 2 THEN 'P2' 
-            WHEN {{FIELD}} = 3 THEN 'P3' 
-            WHEN {{FIELD}} = 4 THEN 'P4' 
-            ELSE 'Unknown' 
+          overrideSql: `CASE
+            WHEN issues.priority = 0 THEN 'P0'
+            WHEN issues.priority = 1 THEN 'P1'
+            WHEN issues.priority = 2 THEN 'P2'
+            WHEN issues.priority = 3 THEN 'P3'
+            WHEN issues.priority = 4 THEN 'P4'
+            ELSE 'Unknown'
           END`,
           type: 'string',
         },
@@ -1316,9 +1316,9 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
     expect(result[0].Priority).toBe('P1');
 
     // Verify created_by resolution worked
-    expect(result[0]['Created By - Name']).toBe('User 1');
-    expect(result[1]['Created By - Name']).toBe('User 2');
-    expect(result[2]['Created By - Name']).toBe('User 3');
+    expect(result[0]['Created By']).toBe('User 1');
+    expect(result[1]['Created By']).toBe('User 2');
+    expect(result[2]['Created By']).toBe('User 3');
   });
 
   it('Should throw error when SQL override is missing {{FIELD}} placeholder', async () => {
@@ -1335,10 +1335,10 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         {
           fieldName: 'issues.priority',
           // Missing {{FIELD}} placeholder - hardcoded 'priority' column name
-          overrideSql: `CASE 
-            WHEN priority = 0 THEN 'P0' 
-            WHEN priority = 1 THEN 'P1' 
-            ELSE 'Unknown' 
+          overrideSql: `CASE
+            WHEN priority = 0 THEN 'P0'
+            WHEN priority = 1 THEN 'P1'
+            ELSE 'Unknown'
           END`,
           type: 'string',
         },
@@ -1352,6 +1352,8 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         resolutionConfig,
         columnProjections: ['issues.id', 'issues.priority', 'issues.count'],
       })
-    ).rejects.toThrow(/must contain {{FIELD}} placeholder/);
+    ).rejects.toThrow(
+      /must reference the field as 'issues.priority' in the SQL/
+    );
   });
 });

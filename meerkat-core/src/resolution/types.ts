@@ -23,14 +23,13 @@ export interface SqlOverrideConfig {
   // Name of the field that needs SQL override.
   // Should match a measure or dimension in the table schema.
   fieldName: string;
-  // Override SQL expression (e.g., CASE WHEN {{FIELD}}=1 THEN 'P0' WHEN {{FIELD}}=2 THEN 'P1' END)
+  // Override SQL expression using datasource.fieldname format
+  // (e.g., CASE WHEN issues.priority=1 THEN 'P0' WHEN issues.priority=2 THEN 'P1' END)
+  // The field references will be automatically converted to safe format (issues.priority -> issues__priority)
   overrideSql: string;
   // Type of the transformed field after override (e.g., 'string')
   type: DimensionType | MeasureType;
 }
-
-// Placeholder used in SQL override expressions that gets replaced with the actual field reference
-export const RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER = '{{FIELD}}';
 
 export interface ResolutionConfig {
   columnConfigs: ResolutionColumnConfig[];

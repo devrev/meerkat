@@ -1,10 +1,5 @@
-import { constructAlias, getNamespacedKey } from '../../member-formatters';
 import { TableSchema } from '../../types/cube-types/table';
-import {
-  BASE_DATA_SOURCE_NAME,
-  RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER,
-  ResolutionConfig,
-} from '../types';
+import { ResolutionConfig } from '../types';
 
 /**
  * Applies SQL override configurations to a table schema.
@@ -16,9 +11,8 @@ import {
  * NOTE: The fieldName in sqlOverrideConfigs should already be transformed
  * using memberKeyToSafeKey before calling this function.
  *
- * The overrideSql can use a {{RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER}} placeholder which will be replaced with
- * the properly formatted column reference using constructAlias().
- * Use the exported RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER constant for type safety.
+ * The overrideSql should reference fields in datasource.fieldname format,
+ * which will be automatically converted to the safe format (datasource__fieldname).
  *
  * @param baseSchema - The base table schema to apply overrides to
  * @param resolutionConfig - Resolution config containing SQL overrides
@@ -26,22 +20,21 @@ import {
  *
  * @example
  * ```typescript
- * import { RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER } from '@devrev/meerkat-core';
- *
  * // For scalar fields:
  * {
  *   fieldName: 'issues__priority',
- *   overrideSql: `CASE WHEN ${RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER} = 1 THEN 'P0' END`,
+ *   overrideSql: `CASE WHEN issues.priority = 1 THEN 'P0' WHEN issues.priority = 2 THEN 'P1' END`,
  *   type: 'string'
  * }
- * // {{FIELD}} gets replaced using constructAlias() with proper quoting
+ * // issues.priority gets automatically replaced with issues__priority
  *
  * // For array fields:
  * {
  *   fieldName: 'issues__priority_tags',
- *   overrideSql: `list_transform(${RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER}, x -> CASE WHEN x = 1 THEN 'P0' ... END)`,
+ *   overrideSql: `list_transform(issues.priority_tags, x -> CASE WHEN x = 1 THEN 'P0' ... END)`,
  *   type: 'string_array'
  * }
+ * // issues.priority_tags gets automatically replaced with issues__priority_tags
  * ```
  */
 export const applySqlOverrides = (
@@ -55,16 +48,15 @@ export const applySqlOverrides = (
     return baseSchema;
   }
 
-  // Validate that all SQL overrides contain the {{FIELD}} placeholder
+  // Validate that all SQL overrides reference the field being overridden
   resolutionConfig.sqlOverrideConfigs.forEach((overrideConfig) => {
-    if (
-      !overrideConfig.overrideSql.includes(
-        RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER
-      )
-    ) {
+    // Convert fieldName back to datasource.fieldname format for validation
+    // e.g., 'issues__priority' -> 'issues.priority'
+    const naturalFieldName = overrideConfig.fieldName.replace(/__/g, '.');
+
+    if (!overrideConfig.overrideSql.includes(naturalFieldName)) {
       throw new Error(
-        `SQL override for field '${overrideConfig.fieldName}' must contain ${RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER} placeholder. ` +
-          `This placeholder will be replaced with the proper column reference. ` +
+        `SQL override for field '${overrideConfig.fieldName}' must reference the field as '${naturalFieldName}' in the SQL. ` +
           `Current SQL: ${overrideConfig.overrideSql}`
       );
     }
@@ -86,21 +78,15 @@ export const applySqlOverrides = (
     if (dimensionIndex !== -1) {
       const originalDimension = updatedSchema.dimensions[dimensionIndex];
 
-      // Use constructAlias to get the properly formatted column reference from alias
-      // Default aliasContext will add quotes when needed (for aliases with spaces, etc.)
-      const columnReference = constructAlias({
-        name: originalDimension.name,
-        alias: originalDimension.alias,
-        aliasContext: {},
-      });
+      // Replace datasource.fieldName with datasource__fieldName
+      // e.g., "issues.priority" -> "issues__priority"
+      const naturalFieldName = overrideConfig.fieldName.replace(/__/g, '.');
+      const safeFieldName = overrideConfig.fieldName; // Already in safe format
+      const fieldNamePattern = naturalFieldName.replace(/\./g, '\\.'); // Escape dots for regex
 
-      // Replace {{FIELD}} placeholder with the column reference
       const finalSql = overrideConfig.overrideSql.replace(
-        new RegExp(
-          RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER.replace(/[{}]/g, '\\$&'),
-          'g'
-        ),
-        getNamespacedKey(BASE_DATA_SOURCE_NAME, columnReference)
+        new RegExp(`\\b${fieldNamePattern}\\b`, 'g'), // Word boundary to match exact field names
+        safeFieldName
       );
 
       updatedSchema.dimensions[dimensionIndex] = {
@@ -118,21 +104,13 @@ export const applySqlOverrides = (
     if (measureIndex !== -1) {
       const originalMeasure = updatedSchema.measures[measureIndex];
 
-      // Use constructAlias to get the properly formatted column reference from alias
-      // Default aliasContext will add quotes when needed (for aliases with spaces, etc.)
-      const columnReference = constructAlias({
-        name: originalMeasure.name,
-        alias: originalMeasure.alias,
-        aliasContext: {},
-      });
+      const naturalFieldName = overrideConfig.fieldName.replace(/__/g, '.');
+      const safeFieldName = overrideConfig.fieldName;
+      const fieldNamePattern = naturalFieldName.replace(/\./g, '\\.');
 
-      // Replace {{FIELD}} placeholder with the column reference
       const finalSql = overrideConfig.overrideSql.replace(
-        new RegExp(
-          RESOLUTION_SQL_OVERRIDE_FIELD_PLACEHOLDER.replace(/[{}]/g, '\\$&'),
-          'g'
-        ),
-        columnReference
+        new RegExp(`\\b${fieldNamePattern}\\b`, 'g'),
+        safeFieldName
       );
 
       updatedSchema.measures[measureIndex] = {

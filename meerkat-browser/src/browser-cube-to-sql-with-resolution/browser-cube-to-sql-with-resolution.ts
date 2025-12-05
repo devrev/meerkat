@@ -14,6 +14,7 @@ import {
   ROW_ID_DIMENSION_NAME,
   shouldSkipResolution,
   TableSchema,
+  wrapWithRowIdOrderingAndExclusion,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { cubeQueryToSQL } from '../browser-cube-to-sql/browser-cube-to-sql';
@@ -47,6 +48,21 @@ export const cubeQueryToSQLWithResolution = async ({
     return baseSql;
   }
 
+  // Resolution is needed - create alias-free tableSchemas for resolution pipeline
+  const tableSchemasWithoutAliases: TableSchema[] = tableSchemas.map(
+    (schema) => ({
+      ...schema,
+      dimensions: schema.dimensions.map((dim) => ({
+        ...dim,
+        alias: undefined, // Strip alias for resolution pipeline
+      })),
+      measures: schema.measures.map((measure) => ({
+        ...measure,
+        alias: undefined, // Strip alias
+      })),
+    })
+  );
+
   if (!columnProjections) {
     columnProjections = [...(query.dimensions || []), ...query.measures];
   }
@@ -60,7 +76,7 @@ export const cubeQueryToSQLWithResolution = async ({
 
   const baseSchema: TableSchema = createBaseTableSchema(
     baseSql,
-    tableSchemas,
+    tableSchemasWithoutAliases, // Use alias-free schemas
     resolutionConfig,
     query.measures,
     query.dimensions
@@ -78,7 +94,7 @@ export const cubeQueryToSQLWithResolution = async ({
     });
   }
 
-  // Apply SQL overrides to the base schema
+  // Apply SQL overrides to the base schema (with alias-free schema)
   // At this point, filters/sorts are baked into baseSql using original values
   // We can now override dimensions/measures in the base schema with custom SQL expressions for display
   const schemaWithOverrides = applySqlOverrides(baseSchema, resolutionConfig);
@@ -114,12 +130,55 @@ export const cubeQueryToSQLWithResolution = async ({
   });
 
   // Re-aggregate to reverse the unnest
-  const aggregatedSql = await coreGetAggregatedSql({
+  const aggregatedTableSchema = await coreGetAggregatedSql({
     resolvedTableSchema,
     resolutionConfig,
     contextParams,
     cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
   });
 
-  return aggregatedSql;
+  // Restore aliases from original tableSchemas to get nice column names in final output
+  // Create a map of datasource__fieldName -> alias from original schemas
+  const aliasMap = new Map<string, string>();
+  tableSchemas.forEach((schema) => {
+    schema.dimensions.forEach((dim) => {
+      if (dim.alias) {
+        const safeKey = memberKeyToSafeKey(`${schema.name}.${dim.name}`);
+        aliasMap.set(safeKey, dim.alias);
+      }
+    });
+    schema.measures.forEach((measure) => {
+      if (measure.alias) {
+        const safeKey = memberKeyToSafeKey(`${schema.name}.${measure.name}`);
+        aliasMap.set(safeKey, measure.alias);
+      }
+    });
+  });
+
+  // Create a new schema with restored aliases
+  const schemaWithAliases: TableSchema = {
+    ...aggregatedTableSchema,
+    dimensions: aggregatedTableSchema.dimensions.map((dim) => ({
+      ...dim,
+      alias: aliasMap.get(dim.name) || dim.alias,
+    })),
+    measures: aggregatedTableSchema.measures.map((measure) => ({
+      ...measure,
+      alias: aliasMap.get(measure.name) || measure.alias,
+    })),
+  };
+
+  // Generate final SQL with aliases
+  const finalSql = await cubeQueryToSQL({
+    connection,
+    query: {
+      dimensions: schemaWithAliases.dimensions.map((d) => d.name),
+      measures: schemaWithAliases.measures.map((m) => m.name),
+    },
+    tableSchemas: [schemaWithAliases],
+    contextParams,
+  });
+
+  // Wrap with row_id ordering and exclusion
+  return wrapWithRowIdOrderingAndExclusion(finalSql, ROW_ID_DIMENSION_NAME);
 };
