@@ -1352,8 +1352,6 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         resolutionConfig,
         columnProjections: ['issues.id', 'issues.priority', 'issues.count'],
       })
-    ).rejects.toThrow(
-      /must reference the field as 'issues.priority' in the SQL/
-    );
+    ).rejects.toThrow(/must reference the field in the SQL/);
   });
 });

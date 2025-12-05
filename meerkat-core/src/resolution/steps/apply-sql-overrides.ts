@@ -1,3 +1,4 @@
+import { memberKeyToSafeKey } from '../../member-formatters';
 import { TableSchema } from '../../types/cube-types/table';
 import { ResolutionConfig } from '../types';
 
@@ -8,10 +9,10 @@ import { ResolutionConfig } from '../types';
  * This is done AFTER the base SQL is generated, so filters and sorts
  * that rely on original values are already compiled into the SQL.
  *
- * NOTE: The fieldName in sqlOverrideConfigs should already be transformed
- * using memberKeyToSafeKey before calling this function.
+ * NOTE: The fieldName in sqlOverrideConfigs should be in natural format (e.g., 'issues.priority').
+ * This function will apply memberKeyToSafeKey internally.
  *
- * The overrideSql should reference fields in datasource.fieldname format,
+ * The overrideSql should reference fields in datasource.fieldname format (same as fieldName),
  * which will be automatically converted to the safe format (datasource__fieldname).
  *
  * @param baseSchema - The base table schema to apply overrides to
@@ -22,7 +23,7 @@ import { ResolutionConfig } from '../types';
  * ```typescript
  * // For scalar fields:
  * {
- *   fieldName: 'issues__priority',
+ *   fieldName: 'issues.priority',
  *   overrideSql: `CASE WHEN issues.priority = 1 THEN 'P0' WHEN issues.priority = 2 THEN 'P1' END`,
  *   type: 'string'
  * }
@@ -30,7 +31,7 @@ import { ResolutionConfig } from '../types';
  *
  * // For array fields:
  * {
- *   fieldName: 'issues__priority_tags',
+ *   fieldName: 'issues.priority_tags',
  *   overrideSql: `list_transform(issues.priority_tags, x -> CASE WHEN x = 1 THEN 'P0' ... END)`,
  *   type: 'string_array'
  * }
@@ -50,13 +51,10 @@ export const applySqlOverrides = (
 
   // Validate that all SQL overrides reference the field being overridden
   resolutionConfig.sqlOverrideConfigs.forEach((overrideConfig) => {
-    // Convert fieldName back to datasource.fieldname format for validation
-    // e.g., 'issues__priority' -> 'issues.priority'
-    const naturalFieldName = overrideConfig.fieldName.replace(/__/g, '.');
-
-    if (!overrideConfig.overrideSql.includes(naturalFieldName)) {
+    // fieldName is expected to be in natural format (e.g., 'issues.priority')
+    if (!overrideConfig.overrideSql.includes(overrideConfig.fieldName)) {
       throw new Error(
-        `SQL override for field '${overrideConfig.fieldName}' must reference the field as '${naturalFieldName}' in the SQL. ` +
+        `SQL override for field '${overrideConfig.fieldName}' must reference the field in the SQL. ` +
           `Current SQL: ${overrideConfig.overrideSql}`
       );
     }
@@ -70,19 +68,21 @@ export const applySqlOverrides = (
   };
 
   resolutionConfig.sqlOverrideConfigs.forEach((overrideConfig) => {
+    // Convert natural field name to safe key for matching
+    // e.g., 'issues.priority' -> 'issues__priority'
+    const safeFieldName = memberKeyToSafeKey(overrideConfig.fieldName);
+
     // Check dimensions in base schema
     const dimensionIndex = updatedSchema.dimensions.findIndex(
-      (dim) => dim.name === overrideConfig.fieldName
+      (dim) => dim.name === safeFieldName
     );
 
     if (dimensionIndex !== -1) {
       const originalDimension = updatedSchema.dimensions[dimensionIndex];
 
-      // Replace datasource.fieldName with datasource__fieldName
+      // Replace datasource.fieldName with datasource__fieldName in the SQL
       // e.g., "issues.priority" -> "issues__priority"
-      const naturalFieldName = overrideConfig.fieldName.replace(/__/g, '.');
-      const safeFieldName = overrideConfig.fieldName; // Already in safe format
-      const fieldNamePattern = naturalFieldName.replace(/\./g, '\\.'); // Escape dots for regex
+      const fieldNamePattern = overrideConfig.fieldName.replace(/\./g, '\\.'); // Escape dots for regex
 
       const finalSql = overrideConfig.overrideSql.replace(
         new RegExp(`\\b${fieldNamePattern}\\b`, 'g'), // Word boundary to match exact field names
@@ -98,15 +98,13 @@ export const applySqlOverrides = (
 
     // Check measures in base schema
     const measureIndex = updatedSchema.measures.findIndex(
-      (measure) => measure.name === overrideConfig.fieldName
+      (measure) => measure.name === safeFieldName
     );
 
     if (measureIndex !== -1) {
       const originalMeasure = updatedSchema.measures[measureIndex];
 
-      const naturalFieldName = overrideConfig.fieldName.replace(/__/g, '.');
-      const safeFieldName = overrideConfig.fieldName;
-      const fieldNamePattern = naturalFieldName.replace(/\./g, '\\.');
+      const fieldNamePattern = overrideConfig.fieldName.replace(/\./g, '\\.');
 
       const finalSql = overrideConfig.overrideSql.replace(
         new RegExp(`\\b${fieldNamePattern}\\b`, 'g'),

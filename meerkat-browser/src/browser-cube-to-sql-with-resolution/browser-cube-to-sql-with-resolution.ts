@@ -1,4 +1,5 @@
 import {
+  applyAliases,
   applySqlOverrides,
   BASE_DATA_SOURCE_NAME,
   ContextParams,
@@ -36,16 +37,14 @@ export const cubeQueryToSQLWithResolution = async ({
   columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams) => {
-  const baseSql = await cubeQueryToSQL({
-    connection,
-    query,
-    tableSchemas,
-    contextParams,
-  });
-
   // Check if resolution should be skipped
   if (shouldSkipResolution(resolutionConfig, query, columnProjections)) {
-    return baseSql;
+    return await cubeQueryToSQL({
+      connection,
+      query,
+      tableSchemas,
+      contextParams,
+    });
   }
 
   // Resolution is needed - create alias-free tableSchemas for resolution pipeline
@@ -63,6 +62,13 @@ export const cubeQueryToSQLWithResolution = async ({
     })
   );
 
+  const baseSql = await cubeQueryToSQL({
+    connection,
+    query,
+    tableSchemas: tableSchemasWithoutAliases,
+    contextParams,
+  });
+
   if (!columnProjections) {
     columnProjections = [...(query.dimensions || []), ...query.measures];
   }
@@ -78,26 +84,18 @@ export const cubeQueryToSQLWithResolution = async ({
     baseSql,
     tableSchemasWithoutAliases, // Use alias-free schemas
     resolutionConfig,
-    query.measures,
-    query.dimensions
+    [],
+    columnProjections
   );
 
-  // Transform field names in configs to match base table schema format
-  // This needs to be done for both columnConfigs and sqlOverrideConfigs
-  resolutionConfig.columnConfigs.forEach((config) => {
-    config.name = memberKeyToSafeKey(config.name);
-  });
-
-  if (resolutionConfig.sqlOverrideConfigs) {
-    resolutionConfig.sqlOverrideConfigs.forEach((config) => {
-      config.fieldName = memberKeyToSafeKey(config.fieldName);
-    });
-  }
-
-  // Apply SQL overrides to the base schema (with alias-free schema)
   // At this point, filters/sorts are baked into baseSql using original values
   // We can now override dimensions/measures in the base schema with custom SQL expressions for display
   const schemaWithOverrides = applySqlOverrides(baseSchema, resolutionConfig);
+
+  // Transform field names in configs to match base table schema format
+  resolutionConfig.columnConfigs.forEach((config) => {
+    config.name = memberKeyToSafeKey(config.name);
+  });
 
   const rowIdDimension: Dimension = {
     name: ROW_ID_DIMENSION_NAME,
@@ -137,48 +135,18 @@ export const cubeQueryToSQLWithResolution = async ({
     cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
   });
 
-  // Restore aliases from original tableSchemas to get nice column names in final output
-  // Create a map of datasource__fieldName -> alias from original schemas
-  const aliasMap = new Map<string, string>();
-  tableSchemas.forEach((schema) => {
-    schema.dimensions.forEach((dim) => {
-      if (dim.alias) {
-        const safeKey = memberKeyToSafeKey(`${schema.name}.${dim.name}`);
-        aliasMap.set(safeKey, dim.alias);
-      }
-    });
-    schema.measures.forEach((measure) => {
-      if (measure.alias) {
-        const safeKey = memberKeyToSafeKey(`${schema.name}.${measure.name}`);
-        aliasMap.set(safeKey, measure.alias);
-      }
-    });
-  });
-
-  // Create a new schema with restored aliases
-  const schemaWithAliases: TableSchema = {
-    ...aggregatedTableSchema,
-    dimensions: aggregatedTableSchema.dimensions.map((dim) => ({
-      ...dim,
-      alias: aliasMap.get(dim.name) || dim.alias,
-    })),
-    measures: aggregatedTableSchema.measures.map((measure) => ({
-      ...measure,
-      alias: aliasMap.get(measure.name) || measure.alias,
-    })),
-  };
-
-  // Generate final SQL with aliases
-  const finalSql = await cubeQueryToSQL({
-    connection,
-    query: {
-      dimensions: schemaWithAliases.dimensions.map((d) => d.name),
-      measures: schemaWithAliases.measures.map((m) => m.name),
-    },
-    tableSchemas: [schemaWithAliases],
+  // Apply aliases and generate final SQL
+  const sqlWithAliases = await applyAliases({
+    aggregatedTableSchema,
+    originalTableSchemas: tableSchemas,
+    resolutionConfig,
     contextParams,
+    cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
   });
 
   // Wrap with row_id ordering and exclusion
-  return wrapWithRowIdOrderingAndExclusion(finalSql, ROW_ID_DIMENSION_NAME);
+  return wrapWithRowIdOrderingAndExclusion(
+    sqlWithAliases,
+    ROW_ID_DIMENSION_NAME
+  );
 };
