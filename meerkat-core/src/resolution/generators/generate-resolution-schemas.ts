@@ -51,11 +51,7 @@ export const generateResolutionSchemas = (
           name: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
           sql: `${baseName}.${col}`,
           type: dimension.type,
-          alias: `${baseAlias} - ${constructAlias({
-            name: col,
-            alias: dimension.alias,
-            aliasContext: { isTableSchemaAlias: true },
-          })}`,
+          alias: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
         };
       }),
     };

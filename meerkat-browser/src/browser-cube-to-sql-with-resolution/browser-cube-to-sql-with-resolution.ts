@@ -1,4 +1,6 @@
 import {
+  applyAliases,
+  applySqlOverrides,
   BASE_DATA_SOURCE_NAME,
   ContextParams,
   getAggregatedSql as coreGetAggregatedSql,
@@ -13,6 +15,7 @@ import {
   ROW_ID_DIMENSION_NAME,
   shouldSkipResolution,
   TableSchema,
+  wrapWithRowIdOrderingAndExclusion,
 } from '@devrev/meerkat-core';
 import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { cubeQueryToSQL } from '../browser-cube-to-sql/browser-cube-to-sql';
@@ -34,17 +37,53 @@ export const cubeQueryToSQLWithResolution = async ({
   columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams) => {
+  // Check if resolution should be skipped
+  if (shouldSkipResolution(resolutionConfig, query, columnProjections)) {
+    return await cubeQueryToSQL({
+      connection,
+      query,
+      tableSchemas,
+      contextParams,
+    });
+  }
+
+  //
+  // Why remove aliases?
+  // The resolution pipeline (unnest → join lookups → re-aggregate) operates on field names
+  // internally for consistency and simplicity. Using aliases throughout would complicate
+  // the logic as we transform schemas through multiple steps.
+  //
+  // Alias handling strategy:
+  // 1. Strip aliases here - work with field names (e.g., tickets__id, tickets__owners)
+  // 2. Run entire resolution pipeline with field names
+  // 3. At the final step (applyAliases), restore aliases from original schemas
+  // 4. Generate final SQL with user-friendly aliases (e.g., "ID", "Owners")
+  //
+  // Benefits:
+  // - Cleaner internal logic (no alias tracking through transformations)
+  // - Single source of truth for aliases (original tableSchemas)
+  // - Easier to debug (field names are consistent throughout pipeline)
+  // - Separation of concerns (resolution logic vs. display formatting)
+  const tableSchemasWithoutAliases: TableSchema[] = tableSchemas.map(
+    (schema) => ({
+      ...schema,
+      dimensions: schema.dimensions.map((dim) => ({
+        ...dim,
+        alias: undefined, // Strip alias for resolution pipeline
+      })),
+      measures: schema.measures.map((measure) => ({
+        ...measure,
+        alias: undefined, // Strip alias
+      })),
+    })
+  );
+
   const baseSql = await cubeQueryToSQL({
     connection,
     query,
-    tableSchemas,
+    tableSchemas: tableSchemasWithoutAliases,
     contextParams,
   });
-
-  // Check if resolution should be skipped
-  if (shouldSkipResolution(resolutionConfig, query, columnProjections)) {
-    return baseSql;
-  }
 
   if (!columnProjections) {
     columnProjections = [...(query.dimensions || []), ...query.measures];
@@ -59,33 +98,37 @@ export const cubeQueryToSQLWithResolution = async ({
 
   const baseSchema: TableSchema = createBaseTableSchema(
     baseSql,
-    tableSchemas,
+    tableSchemasWithoutAliases, // Use alias-free schemas
     resolutionConfig,
-    query.measures,
-    query.dimensions
+    [],
+    columnProjections
   );
+
+  // At this point, filters/sorts are baked into baseSql using original values
+  // We can now override dimensions/measures in the base schema with custom SQL expressions for display
+  const schemaWithOverrides = applySqlOverrides(baseSchema, resolutionConfig);
+
+  // Transform field names in configs to match base table schema format
+  resolutionConfig.columnConfigs.forEach((config) => {
+    config.name = memberKeyToSafeKey(config.name);
+  });
 
   const rowIdDimension: Dimension = {
     name: ROW_ID_DIMENSION_NAME,
     sql: generateRowNumberSql(
       query,
-      baseSchema.dimensions,
+      schemaWithOverrides.dimensions,
       BASE_DATA_SOURCE_NAME
     ),
     type: 'number',
     alias: ROW_ID_DIMENSION_NAME,
   };
-  baseSchema.dimensions.push(rowIdDimension);
+  schemaWithOverrides.dimensions.push(rowIdDimension);
   columnProjections.push(ROW_ID_DIMENSION_NAME);
-
-  // Doing this because we need to use the original name of the column in the base table schema.
-  resolutionConfig.columnConfigs.forEach((config) => {
-    config.name = memberKeyToSafeKey(config.name);
-  });
 
   // Generate SQL with row_id and unnested arrays
   const unnestTableSchema = await coreGetUnnestTableSchema({
-    baseTableSchema: baseSchema,
+    baseTableSchema: schemaWithOverrides,
     resolutionConfig,
     contextParams,
     cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
@@ -101,12 +144,25 @@ export const cubeQueryToSQLWithResolution = async ({
   });
 
   // Re-aggregate to reverse the unnest
-  const aggregatedSql = await coreGetAggregatedSql({
+  const aggregatedTableSchema = await coreGetAggregatedSql({
     resolvedTableSchema,
     resolutionConfig,
     contextParams,
     cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
   });
 
-  return aggregatedSql;
+  // Apply aliases and generate final SQL
+  const sqlWithAliases = await applyAliases({
+    aggregatedTableSchema,
+    originalTableSchemas: tableSchemas,
+    resolutionConfig,
+    contextParams,
+    cubeQueryToSQL: async (params) => cubeQueryToSQL({ connection, ...params }),
+  });
+
+  // Wrap with row_id ordering and exclusion
+  return wrapWithRowIdOrderingAndExclusion(
+    sqlWithAliases,
+    ROW_ID_DIMENSION_NAME
+  );
 };

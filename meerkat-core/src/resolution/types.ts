@@ -19,9 +19,23 @@ export interface ResolutionColumnConfig {
   resolutionColumns: string[];
 }
 
+export interface SqlOverrideConfig {
+  // Name of the field that needs SQL override.
+  // Should match a measure or dimension in the table schema.
+  fieldName: string;
+  // Override SQL expression using datasource.fieldname format
+  // (e.g., CASE WHEN issues.priority=1 THEN 'P0' WHEN issues.priority=2 THEN 'P1' END)
+  // The field references will be automatically converted to safe format (issues.priority -> issues__priority)
+  overrideSql: string;
+  // Type of the transformed field after override (e.g., 'string')
+  type: DimensionType | MeasureType;
+}
+
 export interface ResolutionConfig {
   columnConfigs: ResolutionColumnConfig[];
   tableSchemas: TableSchema[];
+  // Optional: SQL overrides to apply after base SQL generation
+  sqlOverrideConfigs?: SqlOverrideConfig[];
 }
 
 export const BASE_DATA_SOURCE_NAME = '__base_query';

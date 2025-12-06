@@ -1,5 +1,6 @@
 import {
   ContextParams,
+  createWrapperTableSchema,
   getArrayTypeResolutionColumnConfigs,
   getNamespacedKey,
   Measure,
@@ -8,7 +9,6 @@ import {
   ResolutionConfig,
   ROW_ID_DIMENSION_NAME,
   TableSchema,
-  wrapWithRowIdOrderingAndExclusion,
 } from '../../index';
 
 /**
@@ -49,7 +49,7 @@ export const getAggregatedSql = async ({
     tableSchemas: TableSchema[];
     contextParams?: ContextParams;
   }) => Promise<string>;
-}): Promise<string> => {
+}): Promise<TableSchema> => {
   const aggregationBaseTableSchema: TableSchema = resolvedTableSchema;
 
   // Identify which columns need ARRAY_AGG vs MAX
@@ -117,9 +117,10 @@ export const getAggregatedSql = async ({
     contextParams,
   });
 
-  // Order by row_id to maintain consistent ordering before excluding it
-  return wrapWithRowIdOrderingAndExclusion(
+  const tableSchema: TableSchema = createWrapperTableSchema(
     aggregatedSql,
-    ROW_ID_DIMENSION_NAME
+    schemaWithAggregation
   );
+  // Order by row_id to maintain consistent ordering before excluding it
+  return tableSchema;
 };
