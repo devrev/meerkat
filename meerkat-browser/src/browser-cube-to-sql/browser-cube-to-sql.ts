@@ -5,6 +5,7 @@ import {
   TableSchema,
   applyFilterParamsToBaseSQL,
   applyProjectionToSQLQuery,
+  applySQLExpressions,
   astDeserializerQuery,
   cubeToDuckdbAST,
   deserializeQuery,
@@ -100,12 +101,17 @@ export const cubeQueryToSQL = async ({
    */
   const measures = query.measures;
   const dimensions = query.dimensions || [];
-  const finalQuery = applyProjectionToSQLQuery(
+  const queryWithProjections = applyProjectionToSQLQuery(
     dimensions,
     measures,
     updatedTableSchema,
     replaceBaseTableName
   );
+
+  /**
+   * Replace SQL expression placeholders with actual SQL
+   */
+  const finalQuery = applySQLExpressions(queryWithProjections);
 
   return finalQuery;
 };

@@ -28,7 +28,6 @@ type MemberType = 'measures' | 'dimensions' | 'segments';
  */
 type Member = string;
 
-
 /**
  * Filter operator string.
  */
@@ -64,11 +63,22 @@ type ApiScopes = 'graphql' | 'meta' | 'data' | 'jobs';
 
 export type FilterType = 'BASE_FILTER' | 'PROJECTION_FILTER';
 
-interface QueryFilter {
+type QueryFilterWithValues = {
   member: Member;
   operator: FilterOperator;
   values?: string[];
-}
+};
+
+type QueryFilterWithSQL = {
+  member: Member;
+  operator: Omit<FilterOperator, 'set' | 'notSet'>;
+  sqlExpression: string;
+};
+
+/**
+ * Query filter - supports either values array or SQL expression
+ */
+type QueryFilter = QueryFilterWithValues | QueryFilterWithSQL;
 
 /**
  * Query 'and'-filters type definition.
@@ -83,7 +93,6 @@ type LogicalAndFilter = {
 type LogicalOrFilter = {
   or: (QueryFilter | LogicalAndFilter)[];
 };
-
 
 /**
  * Join Edge data type.
@@ -159,6 +168,14 @@ interface Query {
   order?: Record<string, QueryOrderType>;
 }
 
+/**
+ * Type guard to check if filter uses SQL expression
+ */
+export const isQueryFilterWithSQL = (
+  filter: QueryFilter
+): filter is QueryFilterWithSQL => {
+  return 'sqlExpression' in filter && typeof filter.sqlExpression === 'string';
+};
 
 export {
   ApiScopes,
@@ -172,8 +189,10 @@ export {
   MemberType,
   Query,
   QueryFilter,
+  QueryFilterWithSQL,
+  QueryFilterWithValues,
   QueryOrderType,
   QueryType,
   RequestType,
-  ResultType
+  ResultType,
 };

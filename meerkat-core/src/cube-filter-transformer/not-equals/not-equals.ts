@@ -1,28 +1,31 @@
-import { Member, QueryFilter } from '../../types/cube-types/query';
+import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
+import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { notEqualsArrayTransform } from './not-equals-array';
 
-export interface NotEqualsFilters extends QueryFilter {
-  member: Member;
-  operator: 'notEquals';
-  values: string[];
-}
-
 export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
-  const { member, values } = query;
+  const { member, memberInfo } = query;
 
-  if (!values || values.length === 0) {
-    throw new Error('Equals filter must have at least one value');
+  // SQL expressions not supported for notEquals operator
+  if (isQueryOperatorsWithSQLInfo(query)) {
+    return getSQLExpressionAST(member, query.sqlExpression, 'notEquals');
   }
+
+  // Otherwise, use values
+  if (!query.values || query.values.length === 0) {
+    throw new Error('NotEquals filter must have at least one value');
+  }
+
+  const values = query.values;
 
   /**
    * If the member is an array, we need to use the array transform
    */
-  if (isArrayTypeMember(query.memberInfo.type)) {
+  if (isArrayTypeMember(memberInfo.type)) {
     return notEqualsArrayTransform(query);
   }
 
@@ -34,7 +37,7 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_NOTEQUAL,
       values[0],
-      query.memberInfo
+      memberInfo
     );
   }
 
@@ -48,7 +51,7 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
         member,
         ExpressionType.COMPARE_NOTEQUAL,
         value,
-        query.memberInfo
+        memberInfo
       )
     );
   });

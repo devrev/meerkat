@@ -1,3 +1,4 @@
+import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { equalsArrayTransform } from '../equals/equals-array';
 import { CubeToParseExpressionTransform } from '../factory';
 import { notDuckdbCondition } from '../not/not';
@@ -5,9 +6,14 @@ import { notDuckdbCondition } from '../not/not';
 export const notEqualsArrayTransform: CubeToParseExpressionTransform = (
   query
 ) => {
-  const { values } = query;
+  // SQL expressions not supported for notEquals operator
+  if (isQueryOperatorsWithSQLInfo(query)) {
+    throw new Error(
+      'SQL expressions are not supported for notEquals operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
+  }
 
-  if (!values || values.length === 0) {
+  if (!query.values || query.values.length === 0) {
     throw new Error('Equals filter must have at least one value');
   }
 

@@ -18,8 +18,8 @@
     "lodash": "^4.17.21",
     "lodash.isnil": "^4.0.0",
     "loglevel": "^1.8.1",
-    "next": "15.4.7",
-    "puppeteer": "24.15.0",
+    "next": "15.4.8",
+    "puppeteer": "24.32.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "^6.19.0",
@@ -103,7 +103,9 @@
   "license": "ISC",
   "overrides": {
     "duckdb": {
-      "node-gyp": "10.0.0"
+      "node-gyp": {
+        "glob": "10.5.0"
+      }
     }
   }
 }
