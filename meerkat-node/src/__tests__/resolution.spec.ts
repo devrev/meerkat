@@ -184,16 +184,14 @@ describe('Resolution Tests', () => {
     console.info(`SQL: `, sql);
     const expectedSQL = `
       select * exclude(__row_id) 
-      from (
-        SELECT "__row_id", "base_table__part_id_1", "base_table__random_column", "base_table__work_id", "base_table__part_id_2" 
+      from (SELECT "__row_id", "base_table__part_id_1", "base_table__random_column", "base_table__work_id", "base_table__part_id_2" 
         FROM 
           (SELECT __base_query."__row_id" AS "__row_id", 
                   __base_query."base_table__part_id_1" AS "base_table__part_id_1", 
                   __base_query."base_table__random_column" AS "base_table__random_column", 
                   __base_query."base_table__work_id" AS "base_table__work_id", 
                   __base_query."base_table__part_id_2" AS "base_table__part_id_2", * 
-          FROM (
-            SELECT MAX(__base_query."base_table__part_id_1") AS "base_table__part_id_1" , 
+          FROM (SELECT MAX(__base_query."base_table__part_id_1") AS "base_table__part_id_1" , 
                    MAX(__base_query."base_table__random_column") AS "base_table__random_column" , 
                    MAX(__base_query."base_table__work_id") AS "base_table__work_id" , 
                    MAX(__base_query."base_table__part_id_2") AS "base_table__part_id_2" , 
@@ -284,22 +282,19 @@ describe('Resolution Tests', () => {
     console.info(`SQL: `, sql);
     const expectedSQL = `
       select * exclude(__row_id) 
-        from (
-          SELECT "__row_id", 
+        from (SELECT "__row_id", 
                  "Part ID 1", 
                  "Random Column", 
                  "Work ID - Display ID", 
                  "Work ID - Title", 
                  "Part ID 2" 
-          FROM (
-            SELECT __base_query."__row_id" AS "__row_id", 
+          FROM (SELECT __base_query."__row_id" AS "__row_id", 
                    __base_query."base_table__part_id_1__display_id" AS "Part ID 1", 
                    __base_query."base_table__random_column" AS "Random Column", 
                    __base_query."base_table__work_id__display_id" AS "Work ID - Display ID", 
                    __base_query."base_table__work_id__title" AS "Work ID - Title", 
                    __base_query."base_table__part_id_2__display_id" AS "Part ID 2", * 
-            FROM (
-              SELECT MAX(__base_query."base_table__part_id_1__display_id") AS "base_table__part_id_1__display_id" , 
+            FROM (SELECT MAX(__base_query."base_table__part_id_1__display_id") AS "base_table__part_id_1__display_id" , 
                      MAX(__base_query."base_table__random_column") AS "base_table__random_column" , 
                      MAX(__base_query."base_table__work_id__display_id") AS "base_table__work_id__display_id" , 
                      MAX(__base_query."base_table__work_id__title") AS "base_table__work_id__title" , 
