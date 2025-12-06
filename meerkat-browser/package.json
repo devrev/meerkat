@@ -1,6 +1,6 @@
 {
   "name": "@devrev/meerkat-browser",
-  "version": "0.0.110",
+  "version": "0.0.111",
   "dependencies": {
     "tslib": "^2.3.0",
     "@devrev/meerkat-core": "*",

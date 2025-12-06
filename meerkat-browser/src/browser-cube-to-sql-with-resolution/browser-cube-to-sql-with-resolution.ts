@@ -47,7 +47,23 @@ export const cubeQueryToSQLWithResolution = async ({
     });
   }
 
-  // Resolution is needed - create alias-free tableSchemas for resolution pipeline
+  //
+  // Why remove aliases?
+  // The resolution pipeline (unnest → join lookups → re-aggregate) operates on field names
+  // internally for consistency and simplicity. Using aliases throughout would complicate
+  // the logic as we transform schemas through multiple steps.
+  //
+  // Alias handling strategy:
+  // 1. Strip aliases here - work with field names (e.g., tickets__id, tickets__owners)
+  // 2. Run entire resolution pipeline with field names
+  // 3. At the final step (applyAliases), restore aliases from original schemas
+  // 4. Generate final SQL with user-friendly aliases (e.g., "ID", "Owners")
+  //
+  // Benefits:
+  // - Cleaner internal logic (no alias tracking through transformations)
+  // - Single source of truth for aliases (original tableSchemas)
+  // - Easier to debug (field names are consistent throughout pipeline)
+  // - Separation of concerns (resolution logic vs. display formatting)
   const tableSchemasWithoutAliases: TableSchema[] = tableSchemas.map(
     (schema) => ({
       ...schema,
