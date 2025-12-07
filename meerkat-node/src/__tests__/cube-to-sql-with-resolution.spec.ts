@@ -738,6 +738,166 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
     // Clean up
     await duckdbExec('ALTER TABLE tickets DROP COLUMN owners_field1');
   });
+
+  it('Should handle multiple columns of same type resolving to same lookup table', async () => {
+    // Add 3 owner columns to the tickets table
+    await duckdbExec('ALTER TABLE tickets ADD COLUMN owner_1 VARCHAR');
+    await duckdbExec('ALTER TABLE tickets ADD COLUMN owner_2 VARCHAR');
+    await duckdbExec('ALTER TABLE tickets ADD COLUMN owner_3 VARCHAR');
+
+    await duckdbExec(`
+      UPDATE tickets SET 
+        owner_1 = CASE WHEN id = 1 THEN 'owner1' WHEN id = 2 THEN 'owner2' WHEN id = 3 THEN 'owner3' END,
+        owner_2 = CASE WHEN id = 1 THEN 'owner2' WHEN id = 2 THEN 'owner3' WHEN id = 3 THEN 'owner1' END,
+        owner_3 = CASE WHEN id = 1 THEN 'owner3' WHEN id = 2 THEN 'owner1' WHEN id = 3 THEN 'owner2' END
+    `);
+
+    // Create a table schema with 3 owner columns
+    const ticketsWithMultipleOwnersSchema: TableSchema = {
+      name: 'tickets',
+      sql: 'select * from tickets',
+      measures: [
+        {
+          name: 'count',
+          sql: 'COUNT(*)',
+          type: 'number',
+          alias: 'Count',
+        },
+      ],
+      dimensions: [
+        {
+          alias: 'ID',
+          name: 'id',
+          sql: 'id',
+          type: 'number',
+        },
+        {
+          alias: 'Primary Owner',
+          name: 'owner_1',
+          sql: 'owner_1',
+          type: 'string',
+        },
+        {
+          alias: 'Secondary Owner',
+          name: 'owner_2',
+          sql: 'owner_2',
+          type: 'string',
+        },
+        {
+          alias: 'Tertiary Owner',
+          name: 'owner_3',
+          sql: 'owner_3',
+          type: 'string',
+        },
+      ],
+    };
+
+    const query: Query = {
+      measures: ['tickets.count'],
+      dimensions: [
+        'tickets.id',
+        'tickets.owner_1',
+        'tickets.owner_2',
+        'tickets.owner_3',
+      ],
+      order: { 'tickets.id': 'asc' },
+    };
+
+    const resolutionConfig: ResolutionConfig = {
+      tableSchemas: [OWNERS_LOOKUP_SCHEMA],
+      columnConfigs: [
+        {
+          name: 'tickets.owner_1',
+          type: 'string' as const,
+          source: 'owners_lookup',
+          joinColumn: 'id',
+          resolutionColumns: ['display_name', 'email'],
+        },
+        {
+          name: 'tickets.owner_2',
+          type: 'string' as const,
+          source: 'owners_lookup',
+          joinColumn: 'id',
+          resolutionColumns: ['display_name', 'email'],
+        },
+        {
+          name: 'tickets.owner_3',
+          type: 'string' as const,
+          source: 'owners_lookup',
+          joinColumn: 'id',
+          resolutionColumns: ['display_name', 'email'],
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [ticketsWithMultipleOwnersSchema],
+      resolutionConfig,
+    });
+
+    console.log('SQL (multiple same-type columns):', sql);
+
+    // Export to CSV
+    const csvPath = '/tmp/test_multiple_same_type.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    // Read back the CSV
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV (multiple same-type):', result);
+
+    expect(result.length).toBe(3);
+
+    // Verify all columns are present (3 owners × 2 resolution columns each + ID + Count)
+    expect(result[0]).toHaveProperty('ID');
+    expect(result[0]).toHaveProperty('Count');
+    expect(result[0]).toHaveProperty('Primary Owner - Display Name');
+    expect(result[0]).toHaveProperty('Primary Owner - Email');
+    expect(result[0]).toHaveProperty('Secondary Owner - Display Name');
+    expect(result[0]).toHaveProperty('Secondary Owner - Email');
+    expect(result[0]).toHaveProperty('Tertiary Owner - Display Name');
+    expect(result[0]).toHaveProperty('Tertiary Owner - Email');
+
+    // Verify ticket 1 data
+    const ticket1 = result[0];
+    expect(Number(ticket1.ID)).toBe(1);
+    expect(Number(ticket1.Count)).toBe(1);
+    expect(ticket1['Primary Owner - Display Name']).toBe('Alice Smith');
+    expect(ticket1['Primary Owner - Email']).toBe('alice@example.com');
+    expect(ticket1['Secondary Owner - Display Name']).toBe('Bob Jones');
+    expect(ticket1['Secondary Owner - Email']).toBe('bob@example.com');
+    expect(ticket1['Tertiary Owner - Display Name']).toBe('Charlie Brown');
+    expect(ticket1['Tertiary Owner - Email']).toBe('charlie@example.com');
+
+    // Verify ticket 2 data
+    const ticket2 = result[1];
+    expect(Number(ticket2.ID)).toBe(2);
+    expect(Number(ticket2.Count)).toBe(1);
+    expect(ticket2['Primary Owner - Display Name']).toBe('Bob Jones');
+    expect(ticket2['Primary Owner - Email']).toBe('bob@example.com');
+    expect(ticket2['Secondary Owner - Display Name']).toBe('Charlie Brown');
+    expect(ticket2['Secondary Owner - Email']).toBe('charlie@example.com');
+    expect(ticket2['Tertiary Owner - Display Name']).toBe('Alice Smith');
+    expect(ticket2['Tertiary Owner - Email']).toBe('alice@example.com');
+
+    // Verify ticket 3 data
+    const ticket3 = result[2];
+    expect(Number(ticket3.ID)).toBe(3);
+    expect(Number(ticket3.Count)).toBe(1);
+    expect(ticket3['Primary Owner - Display Name']).toBe('Charlie Brown');
+    expect(ticket3['Primary Owner - Email']).toBe('charlie@example.com');
+    expect(ticket3['Secondary Owner - Display Name']).toBe('Alice Smith');
+    expect(ticket3['Secondary Owner - Email']).toBe('alice@example.com');
+    expect(ticket3['Tertiary Owner - Display Name']).toBe('Bob Jones');
+    expect(ticket3['Tertiary Owner - Email']).toBe('bob@example.com');
+
+    // Clean up
+    await duckdbExec('ALTER TABLE tickets DROP COLUMN owner_1');
+    await duckdbExec('ALTER TABLE tickets DROP COLUMN owner_2');
+    await duckdbExec('ALTER TABLE tickets DROP COLUMN owner_3');
+  });
 });
 
 describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
@@ -1353,5 +1513,465 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         columnProjections: ['issues.id', 'issues.priority', 'issues.count'],
       })
     ).rejects.toThrow(/must reference the field in the SQL/);
+  });
+
+  it('Should handle multiple SQL overrides on fields of same type', async () => {
+    // Add 3 priority columns to test multiple overrides of the same type
+    await duckdbExec('ALTER TABLE issues ADD COLUMN priority_1 INTEGER');
+    await duckdbExec('ALTER TABLE issues ADD COLUMN priority_2 INTEGER');
+    await duckdbExec('ALTER TABLE issues ADD COLUMN priority_3 INTEGER');
+
+    await duckdbExec(`
+      UPDATE issues SET 
+        priority_1 = CASE WHEN id = 1 THEN 1 WHEN id = 2 THEN 2 WHEN id = 3 THEN 3 WHEN id = 4 THEN 4 ELSE 1 END,
+        priority_2 = CASE WHEN id = 1 THEN 2 WHEN id = 2 THEN 3 WHEN id = 3 THEN 4 WHEN id = 4 THEN 1 ELSE 2 END,
+        priority_3 = CASE WHEN id = 1 THEN 3 WHEN id = 2 THEN 4 WHEN id = 3 THEN 1 WHEN id = 4 THEN 2 ELSE 3 END
+    `);
+
+    const issuesWithMultiplePrioritiesSchema: TableSchema = {
+      name: 'issues',
+      sql: 'SELECT * FROM issues',
+      dimensions: [
+        {
+          alias: 'ID',
+          name: 'id',
+          sql: 'id',
+          type: 'number',
+        },
+        {
+          alias: 'P1 Priority',
+          name: 'priority_1',
+          sql: 'priority_1',
+          type: 'number',
+        },
+        {
+          alias: 'P2 Priority',
+          name: 'priority_2',
+          sql: 'priority_2',
+          type: 'number',
+        },
+        {
+          alias: 'P3 Priority',
+          name: 'priority_3',
+          sql: 'priority_3',
+          type: 'number',
+        },
+      ],
+      measures: [
+        {
+          alias: 'Count',
+          name: 'count',
+          sql: 'COUNT(*)',
+          type: 'number',
+        },
+      ],
+    };
+
+    const query: Query = {
+      measures: ['issues.count'],
+      dimensions: [
+        'issues.id',
+        'issues.priority_1',
+        'issues.priority_2',
+        'issues.priority_3',
+      ],
+      order: { 'issues.id': 'asc' },
+    };
+
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [],
+      tableSchemas: [],
+      sqlOverrideConfigs: [
+        {
+          fieldName: 'issues.priority_1',
+          overrideSql: `CASE 
+            WHEN issues.priority_1 = 1 THEN 'P0'
+            WHEN issues.priority_1 = 2 THEN 'P1'
+            WHEN issues.priority_1 = 3 THEN 'P2'
+            WHEN issues.priority_1 = 4 THEN 'P3'
+            ELSE 'Unknown'
+          END`,
+          type: 'string',
+        },
+        {
+          fieldName: 'issues.priority_2',
+          overrideSql: `CASE 
+            WHEN issues.priority_2 = 1 THEN 'P0'
+            WHEN issues.priority_2 = 2 THEN 'P1'
+            WHEN issues.priority_2 = 3 THEN 'P2'
+            WHEN issues.priority_2 = 4 THEN 'P3'
+            ELSE 'Unknown'
+          END`,
+          type: 'string',
+        },
+        {
+          fieldName: 'issues.priority_3',
+          overrideSql: `CASE 
+            WHEN issues.priority_3 = 1 THEN 'P0'
+            WHEN issues.priority_3 = 2 THEN 'P1'
+            WHEN issues.priority_3 = 3 THEN 'P2'
+            WHEN issues.priority_3 = 4 THEN 'P3'
+            ELSE 'Unknown'
+          END`,
+          type: 'string',
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [issuesWithMultiplePrioritiesSchema],
+      resolutionConfig,
+    });
+
+    console.log('SQL (multiple SQL overrides):', sql);
+
+    const csvPath = '/tmp/test_multiple_sql_overrides.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV (multiple SQL overrides):', result);
+
+    expect(result.length).toBe(5);
+
+    // Verify all columns are present with correct aliases
+    expect(result[0]).toHaveProperty('ID');
+    expect(result[0]).toHaveProperty('Count');
+    expect(result[0]).toHaveProperty('P1 Priority');
+    expect(result[0]).toHaveProperty('P2 Priority');
+    expect(result[0]).toHaveProperty('P3 Priority');
+
+    // Verify issue 1 data - all priorities transformed to strings
+    const issue1 = result.find((r: any) => Number(r.ID) === 1);
+    expect(issue1['P1 Priority']).toBe('P0'); // priority_1 = 1 -> P0
+    expect(issue1['P2 Priority']).toBe('P1'); // priority_2 = 2 -> P1
+    expect(issue1['P3 Priority']).toBe('P2'); // priority_3 = 3 -> P2
+
+    // Verify issue 2 data
+    const issue2 = result.find((r: any) => Number(r.ID) === 2);
+    expect(issue2['P1 Priority']).toBe('P1'); // priority_1 = 2 -> P1
+    expect(issue2['P2 Priority']).toBe('P2'); // priority_2 = 3 -> P2
+    expect(issue2['P3 Priority']).toBe('P3'); // priority_3 = 4 -> P3
+
+    // Verify issue 3 data
+    const issue3 = result.find((r: any) => Number(r.ID) === 3);
+    expect(issue3['P1 Priority']).toBe('P2'); // priority_1 = 3 -> P2
+    expect(issue3['P2 Priority']).toBe('P3'); // priority_2 = 4 -> P3
+    expect(issue3['P3 Priority']).toBe('P0'); // priority_3 = 1 -> P0
+
+    // Verify issue 4 data
+    const issue4 = result.find((r: any) => Number(r.ID) === 4);
+    expect(issue4['P1 Priority']).toBe('P3'); // priority_1 = 4 -> P3
+    expect(issue4['P2 Priority']).toBe('P0'); // priority_2 = 1 -> P0
+    expect(issue4['P3 Priority']).toBe('P1'); // priority_3 = 2 -> P1
+
+    // Clean up
+    await duckdbExec('ALTER TABLE issues DROP COLUMN priority_1');
+    await duckdbExec('ALTER TABLE issues DROP COLUMN priority_2');
+    await duckdbExec('ALTER TABLE issues DROP COLUMN priority_3');
+  });
+
+  it('Should handle resolution on fields from a base SQL with existing joins', async () => {
+    // Create table1 with columns a, b, c
+    await duckdbExec(`
+      CREATE TABLE table1 (
+        a VARCHAR,
+        b VARCHAR,
+        c VARCHAR
+      )
+    `);
+
+    await duckdbExec(`
+      INSERT INTO table1 VALUES
+        ('a1', 'b1', 'c1'),
+        ('a2', 'b2', 'c2'),
+        ('a3', 'b1', 'c3')
+    `);
+
+    // Create table2 with columns b, d
+    await duckdbExec(`
+      CREATE TABLE table2 (
+        b VARCHAR,
+        d VARCHAR
+      )
+    `);
+
+    await duckdbExec(`
+      INSERT INTO table2 VALUES
+        ('b1', 'd1'),
+        ('b2', 'd2')
+    `);
+
+    // Create lookup tables for resolution
+    await duckdbExec(`
+      CREATE TABLE lookup_a (
+        id VARCHAR,
+        name VARCHAR,
+        description VARCHAR
+      )
+    `);
+
+    await duckdbExec(`
+      INSERT INTO lookup_a VALUES
+        ('a1', 'Alpha One', 'First alpha'),
+        ('a2', 'Alpha Two', 'Second alpha'),
+        ('a3', 'Alpha Three', 'Third alpha')
+    `);
+
+    await duckdbExec(`
+      CREATE TABLE lookup_d (
+        id VARCHAR,
+        name VARCHAR
+      )
+    `);
+
+    await duckdbExec(`
+      INSERT INTO lookup_d VALUES
+        ('d1', 'Delta One'),
+        ('d2', 'Delta Two')
+    `);
+
+    await duckdbExec(`
+      CREATE TABLE lookup_c (
+        id VARCHAR,
+        label VARCHAR
+      )
+    `);
+
+    await duckdbExec(`
+      INSERT INTO lookup_c VALUES
+        ('c1', 'Charlie One'),
+        ('c2', 'Charlie Two'),
+        ('c3', 'Charlie Three')
+    `);
+
+    // Define table schemas separately with join definitions
+    const table1Schema: TableSchema = {
+      name: 'table1',
+      sql: 'SELECT * FROM table1',
+      dimensions: [
+        {
+          alias: 'Field A',
+          name: 'a',
+          sql: 'table1.a',
+          type: 'string',
+        },
+        {
+          alias: 'Field B',
+          name: 'b',
+          sql: 'table1.b',
+          type: 'string',
+        },
+        {
+          alias: 'Field C',
+          name: 'c',
+          sql: 'table1.c',
+          type: 'string',
+        },
+      ],
+      measures: [
+        {
+          alias: 'Count',
+          name: 'count',
+          sql: 'COUNT(*)',
+          type: 'number',
+        },
+      ],
+      joins: [
+        {
+          sql: 'table1.b = table2.b',
+        },
+      ],
+    };
+
+    const table2Schema: TableSchema = {
+      name: 'table2',
+      sql: 'SELECT * FROM table2',
+      dimensions: [
+        {
+          alias: 'Field B',
+          name: 'b',
+          sql: 'table2.b',
+          type: 'string',
+        },
+        {
+          alias: 'Field D',
+          name: 'd',
+          sql: 'table2.d',
+          type: 'string',
+        },
+      ],
+      measures: [],
+      joins: [],
+    };
+
+    // Define lookup table schemas
+    const lookupASchema: TableSchema = {
+      name: 'lookup_a',
+      sql: 'SELECT * FROM lookup_a',
+      dimensions: [
+        {
+          alias: 'ID',
+          name: 'id',
+          sql: 'id',
+          type: 'string',
+        },
+        {
+          alias: 'Name',
+          name: 'name',
+          sql: 'name',
+          type: 'string',
+        },
+        {
+          alias: 'Description',
+          name: 'description',
+          sql: 'description',
+          type: 'string',
+        },
+      ],
+      measures: [],
+    };
+
+    const lookupDSchema: TableSchema = {
+      name: 'lookup_d',
+      sql: 'SELECT * FROM lookup_d',
+      dimensions: [
+        {
+          alias: 'ID',
+          name: 'id',
+          sql: 'id',
+          type: 'string',
+        },
+        {
+          alias: 'Name',
+          name: 'name',
+          sql: 'name',
+          type: 'string',
+        },
+      ],
+      measures: [],
+    };
+
+    const lookupCSchema: TableSchema = {
+      name: 'lookup_c',
+      sql: 'SELECT * FROM lookup_c',
+      dimensions: [
+        {
+          alias: 'ID',
+          name: 'id',
+          sql: 'id',
+          type: 'string',
+        },
+        {
+          alias: 'Label',
+          name: 'label',
+          sql: 'label',
+          type: 'string',
+        },
+      ],
+      measures: [],
+    };
+
+    const query: Query = {
+      measures: ['table1.count'],
+      dimensions: ['table1.a', 'table2.d', 'table1.c'],
+      order: { 'table1.a': 'asc' },
+      joinPaths: [
+        [
+          {
+            left: 'table1',
+            right: 'table2',
+            on: 'b',
+          },
+        ],
+      ],
+    };
+
+    const resolutionConfig: ResolutionConfig = {
+      tableSchemas: [lookupASchema, lookupDSchema, lookupCSchema],
+      columnConfigs: [
+        {
+          name: 'table1.a',
+          type: 'string' as const,
+          source: 'lookup_a',
+          joinColumn: 'id',
+          resolutionColumns: ['name', 'description'],
+        },
+        {
+          name: 'table2.d',
+          type: 'string' as const,
+          source: 'lookup_d',
+          joinColumn: 'id',
+          resolutionColumns: ['name'],
+        },
+        {
+          name: 'table1.c',
+          type: 'string' as const,
+          source: 'lookup_c',
+          joinColumn: 'id',
+          resolutionColumns: ['label'],
+        },
+      ],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [table1Schema, table2Schema],
+      resolutionConfig,
+    });
+
+    console.log('SQL (resolution on joined base):', sql);
+
+    const csvPath = '/tmp/test_resolution_on_joined_base.csv';
+    await duckdbExec(`COPY (${sql}) TO '${csvPath}' (HEADER, DELIMITER ',')`);
+
+    const result = (await duckdbExec(
+      `SELECT * FROM read_csv_auto('${csvPath}')`
+    )) as any[];
+    console.log('Result from CSV (resolution on joined base):', result);
+
+    expect(result.length).toBe(3);
+
+    // Verify all columns are present
+    // Field A has 2 resolution columns, so it gets compound aliases
+    // Fields D and C have 1 resolution column each, so they use the original alias
+    expect(result[0]).toHaveProperty('Field A - Name');
+    expect(result[0]).toHaveProperty('Field A - Description');
+    expect(result[0]).toHaveProperty('Field D'); // Single resolution column uses original alias
+    expect(result[0]).toHaveProperty('Field C'); // Single resolution column uses original alias
+    expect(result[0]).toHaveProperty('Count');
+
+    // Verify row 1: a1, d1, c1
+    const row1 = result.find((r: any) => r['Field A - Name'] === 'Alpha One');
+    expect(row1['Field A - Name']).toBe('Alpha One');
+    expect(row1['Field A - Description']).toBe('First alpha');
+    expect(row1['Field D']).toBe('Delta One');
+    expect(row1['Field C']).toBe('Charlie One');
+    expect(Number(row1.Count)).toBe(1);
+
+    // Verify row 2: a2, d2, c2
+    const row2 = result.find((r: any) => r['Field A - Name'] === 'Alpha Two');
+    expect(row2['Field A - Name']).toBe('Alpha Two');
+    expect(row2['Field A - Description']).toBe('Second alpha');
+    expect(row2['Field D']).toBe('Delta Two');
+    expect(row2['Field C']).toBe('Charlie Two');
+    expect(Number(row2.Count)).toBe(1);
+
+    // Verify row 3: a3, d1, c3
+    const row3 = result.find((r: any) => r['Field A - Name'] === 'Alpha Three');
+    expect(row3['Field A - Name']).toBe('Alpha Three');
+    expect(row3['Field A - Description']).toBe('Third alpha');
+    expect(row3['Field D']).toBe('Delta One');
+    expect(row3['Field C']).toBe('Charlie Three');
+    expect(Number(row3.Count)).toBe(1);
+
+    // Clean up
+    await duckdbExec('DROP TABLE table1');
+    await duckdbExec('DROP TABLE table2');
+    await duckdbExec('DROP TABLE lookup_a');
+    await duckdbExec('DROP TABLE lookup_d');
+    await duckdbExec('DROP TABLE lookup_c');
   });
 });
