@@ -61,3 +61,24 @@ export const constructAlias = ({
   }
   return memberKeyToSafeKey(name);
 };
+
+/**
+ * Creates a compound alias by joining two alias strings with " - ".
+ * Used when a field resolves to multiple columns (e.g., "Owners - Display Name").
+ *
+ * @param baseAlias - The base field alias (e.g., "Owners")
+ * @param resolutionAlias - The resolved field alias (e.g., "Display Name")
+ * @returns The compound alias (e.g., "Owners - Display Name")
+ *
+ * @example
+ * ```typescript
+ * createCompoundAlias("Owners", "Display Name") // "Owners - Display Name"
+ * createCompoundAlias("Tags", "Tag Name") // "Tags - Tag Name"
+ * ```
+ */
+export const constructCompoundAlias = (
+  baseAlias: string,
+  resolutionAlias: string
+): string => {
+  return `${baseAlias} - ${resolutionAlias}`;
+};

@@ -16,7 +16,7 @@ export const generateResolutionJoinPaths = (
       on: constructAlias({
         name: config.name,
         alias: findInSchemas(config.name, baseTableSchemas)?.alias,
-        aliasContext: { isAstIdentifier: false },
+        aliasContext: { isTableSchemaAlias: true },
       }),
     },
   ]);
