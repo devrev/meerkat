@@ -6,10 +6,32 @@ import {
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ParsedExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 
+/**
+ * Encode a string to base64 (works in both browser and Node.js)
+ */
+const toBase64 = (str: string): string => {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+};
+
+/**
+ * Decode a base64 string (works in both browser and Node.js)
+ */
+const fromBase64 = (base64: string): string => {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
+};
+
 const getSQLPlaceholder = (sqlExpression: string): string => {
-  return `__MEERKAT_SQL_EXPR__${Buffer.from(sqlExpression).toString(
-    'base64'
-  )}__`;
+  return `__MEERKAT_SQL_EXPR__${toBase64(sqlExpression)}__`;
 };
 
 const createInOperatorAST = (
@@ -98,10 +120,9 @@ export const applySQLExpressions = (sql: string): string => {
   // Replace quoted placeholders (DuckDB uses single quotes for VARCHAR constants)
   return sql.replace(
     /'__MEERKAT_SQL_EXPR__([A-Za-z0-9+/=]+)__'/g,
-    (match, encoded) => {
+    (_, encoded) => {
       // Decode the base64 SQL expression
-      const sqlExpression = Buffer.from(encoded, 'base64').toString('utf-8');
-      return sqlExpression;
+      return fromBase64(encoded);
     }
   );
 };
