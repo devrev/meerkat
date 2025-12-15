@@ -51,6 +51,7 @@ export class IFrameManager {
   }
 
   destroy() {
+    this.communication.destroy();
     this.iframe.remove();
   }
 }

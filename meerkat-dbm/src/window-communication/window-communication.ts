@@ -58,6 +58,7 @@ export class WindowCommunication<MessageType>
     }
   > = new Map();
   private logger: Logger;
+  private externalMessageListeners: ((event: MessageEvent) => void)[] = [];
 
   constructor({
     app_name,
@@ -81,9 +82,11 @@ export class WindowCommunication<MessageType>
   }
 
   private gc = () => {
-    this.logger.info(
-      `Starting GC with ${this.messagesPromiseMap.size} messages`
-    );
+    if (this.messagesPromiseMap.size > 0) {
+      this.logger.info(
+        `Starting GC with ${this.messagesPromiseMap.size} messages`
+      );
+    }
     //Delete all messages that are older than 30 seconds
     const now = Date.now();
     this.messagesPromiseMap.forEach((value, key) => {
@@ -93,46 +96,50 @@ export class WindowCommunication<MessageType>
         this.messagesPromiseMap.delete(key);
       }
     });
-    this.logger.info(
-      `GC finished with ${this.messagesPromiseMap.size} messages`
-    );
+  };
+
+  private handleInternalMessage = (event: MessageEvent) => {
+    if (event.origin !== this._origin) {
+      this.logger.warn(
+        'IframeCommunication: origin mismatch',
+        event.origin,
+        this._origin
+      );
+      return;
+    }
+    if (event.data.target_app !== this.app_name) {
+      this.logger.warn(
+        'IframeCommunication: target_app mismatch',
+        event.data.target_app,
+        this.app_name
+      );
+      return;
+    }
+
+    const { message, timestamp, uuid } = event.data;
+    const promise = this.messagesPromiseMap.get(uuid);
+    if (promise) {
+      this.messagesPromiseMap.delete(uuid);
+      promise.resolve({
+        message,
+        target_app: this._targetApp,
+        timestamp,
+        uuid,
+      });
+    }
   };
 
   private registerMessageListener() {
-    window.addEventListener('message', (event) => {
-      if (event.origin !== this._origin) {
-        this.logger.warn(
-          'IframeCommunication: origin mismatch',
-          event.origin,
-          this._origin
-        );
-        return;
-      }
-      if (event.data.target_app !== this.app_name) {
-        this.logger.warn(
-          'IframeCommunication: target_app mismatch',
-          event.data.target_app,
-          this.app_name
-        );
-        return;
-      }
-
-      const { message, timestamp, uuid } = event.data;
-      const promise = this.messagesPromiseMap.get(uuid);
-      if (promise) {
-        this.messagesPromiseMap.delete(uuid);
-        promise.resolve({
-          message,
-          target_app: this._targetApp,
-          timestamp,
-          uuid,
-        });
-      }
-    });
+    window.addEventListener('message', this.handleInternalMessage);
   }
 
   public destroy() {
     clearInterval(this.gcRunnerIntervalRef);
+    window.removeEventListener('message', this.handleInternalMessage);
+    this.externalMessageListeners.forEach((listener) => {
+      window.removeEventListener('message', listener);
+    });
+    this.externalMessageListeners = [];
   }
 
   /**
@@ -204,7 +211,7 @@ export class WindowCommunication<MessageType>
   }
 
   public onMessage(callback: (message: WindowMessage<MessageType>) => void) {
-    window.addEventListener('message', (event) => {
+    const listener = (event: MessageEvent) => {
       if (event.origin !== this._origin) {
         this.logger.warn(
           'IframeCommunication: origin mismatch',
@@ -226,6 +233,9 @@ export class WindowCommunication<MessageType>
         return;
       }
       callback({ message, target_app, timestamp, uuid });
-    });
+    };
+
+    window.addEventListener('message', listener);
+    this.externalMessageListeners.push(listener);
   }
 }
