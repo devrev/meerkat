@@ -52,14 +52,14 @@ export const cubeMeasureToSQLSelectString = (
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = getNamespacedKey(tableSchemaName, column);
-      const columnKey = `"${memberKeyToSafeKey(memberKey)}"`;
+      const columnKey = memberKeyToSafeKey(memberKey);
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
         columnKey
       );
     });
 
-    base += ` ${meerkatReplacedSqlString} AS "${safeKey}" `;
+    base += ` ${meerkatReplacedSqlString} AS ${safeKey} `;
   }
   return base;
 };
@@ -80,8 +80,8 @@ const addDimensionToSQLProjection = (
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    // Use safe key internally
-    const safeKey = `"${memberKeyToSafeKey(dimension)}"`;
+    // Use safe key internally - no quotes needed as they're already SQL-safe
+    const safeKey = memberKeyToSafeKey(dimension);
 
     if (!dimensionSchema) {
       continue;
