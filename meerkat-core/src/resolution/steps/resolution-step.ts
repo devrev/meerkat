@@ -41,9 +41,7 @@ export const getResolvedTableSchema = async ({
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
   // Generate resolution schemas for fields that need resolution
-  const resolutionSchemas = generateResolutionSchemas(resolutionConfig, [
-    updatedBaseTableSchema,
-  ]);
+  const resolutionSchemas = generateResolutionSchemas(resolutionConfig);
 
   const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
