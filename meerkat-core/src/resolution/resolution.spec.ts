@@ -344,10 +344,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(
-      resolutionConfig,
-      baseTableSchemas
-    );
+    const schemas = generateResolutionSchemas(resolutionConfig);
 
     expect(schemas).toEqual([
       {
@@ -430,7 +427,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig, []);
+      generateResolutionSchemas(resolutionConfig);
     }).toThrow('Table schema not found for resolution_table1');
   });
 
@@ -468,7 +465,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig, []);
+      generateResolutionSchemas(resolutionConfig);
     }).toThrow('Dimension not found: display_id');
   });
 
@@ -504,7 +501,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig, []);
+    const schemas = generateResolutionSchemas(resolutionConfig);
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -572,10 +569,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(
-      resolutionConfig,
-      baseTableSchemas
-    );
+    const schemas = generateResolutionSchemas(resolutionConfig);
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',

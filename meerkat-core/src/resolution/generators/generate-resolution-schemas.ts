@@ -1,19 +1,9 @@
-import {
-  constructAlias,
-  getNamespacedKey,
-  memberKeyToSafeKey,
-} from '../../member-formatters';
+import { getNamespacedKey, memberKeyToSafeKey } from '../../member-formatters';
 import { TableSchema } from '../../types/cube-types/table';
-import {
-  findInDimensionSchemas,
-  findInSchemas,
-} from '../../utils/find-in-table-schema';
+import { findInDimensionSchemas } from '../../utils/find-in-table-schema';
 import { ResolutionConfig } from '../types';
 
-export const generateResolutionSchemas = (
-  config: ResolutionConfig,
-  baseTableSchemas: TableSchema[]
-) => {
+export const generateResolutionSchemas = (config: ResolutionConfig) => {
   const resolutionSchemas: TableSchema[] = [];
   config.columnConfigs.forEach((colConfig) => {
     const tableSchema = config.tableSchemas.find(
@@ -24,11 +14,6 @@ export const generateResolutionSchemas = (
     }
 
     const baseName = memberKeyToSafeKey(colConfig.name);
-    const baseAlias = constructAlias({
-      name: colConfig.name,
-      alias: findInSchemas(colConfig.name, baseTableSchemas)?.alias,
-      aliasContext: { isTableSchemaAlias: true },
-    });
 
     // For each column that needs to be resolved, create a copy of the relevant table schema.
     // We use the name of the column in the base query as the table schema name
