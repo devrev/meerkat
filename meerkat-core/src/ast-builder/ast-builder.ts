@@ -7,7 +7,7 @@ import {
   QueryFiltersWithInfoSingular,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { traverseAndFilter } from '../filter-params/filter-params-ast';
-import { constructAlias } from '../member-formatters/get-alias';
+import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
 import {
   FilterType,
   MeerkatQueryFilter,
@@ -32,13 +32,8 @@ const formatFilters = (
     : (modifyLeafMeerkatFilter(queryFiltersWithInfo, (item) => {
         return {
           ...item,
-          member: constructAlias({
-            name: item.member,
-            alias: item.memberInfo.alias,
-            aliasContext: {
-              isAstIdentifier: true,
-            },
-          }),
+          // Use safe keys internally instead of aliases
+          member: memberKeyToSafeKey(item.member),
         };
       }) as QueryFiltersWithInfo);
 };
@@ -119,10 +114,7 @@ export const cubeToDuckdbAST = (
     query.dimensions &&
     query.dimensions?.length > 0
   ) {
-    node.group_expressions = cubeDimensionToGroupByAST(
-      query.dimensions,
-      tableSchema
-    );
+    node.group_expressions = cubeDimensionToGroupByAST(query.dimensions);
     const groupSets = [];
     /**
      * We only support one group set for now.
@@ -134,7 +126,7 @@ export const cubeToDuckdbAST = (
   }
   node.modifiers = [];
   if (query.order && Object.keys(query.order).length > 0) {
-    node.modifiers.push(cubeOrderByToAST(query.order, tableSchema));
+    node.modifiers.push(cubeOrderByToAST(query.order));
   }
   if (query.limit || query.offset) {
     // Type assertion is needed here because the AST is not typed correctly.

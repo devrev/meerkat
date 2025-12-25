@@ -1,19 +1,13 @@
-import { getAliasFromSchema, getNamespacedKey } from '../member-formatters';
-import { TableSchema } from '../types/cube-types';
+import { getNamespacedKey, memberKeyToSafeKey } from '../member-formatters';
 
 export const meerkatPlaceholderReplacer = (
   sql: string,
-  originalTableName: string,
-  tableSchema: TableSchema
+  originalTableName: string
 ) => {
   const tableNameEncapsulationRegEx = /\{MEERKAT\}\.([a-zA-Z_][a-zA-Z0-9_]*)/g;
   return sql.replace(tableNameEncapsulationRegEx, (_, columnName) => {
-    return getAliasFromSchema({
-      name: getNamespacedKey(originalTableName, columnName),
-      tableSchema,
-      aliasContext: {
-        isAstIdentifier: false,
-      },
-    });
+    const namespacedKey = getNamespacedKey(originalTableName, columnName);
+    // Use safe keys internally
+    return `"${memberKeyToSafeKey(namespacedKey)}"`;
   });
 };

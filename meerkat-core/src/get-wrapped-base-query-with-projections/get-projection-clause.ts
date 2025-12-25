@@ -55,7 +55,6 @@ export const getProjectionClause = (
         member: getAliasFromSchema({
           name: member,
           tableSchema,
-          aliasContext: { isAstIdentifier: false },
         }),
         aliasedColumnSet,
         acc,
@@ -104,12 +103,11 @@ export const getProjectionClause = (
 
   let columnsUsedInMeasuresInProjection = '';
   columnsUsedInMeasures.forEach((column, index) => {
-    const safeKey = getAliasFromSchema({
+    const aliasKey = getAliasFromSchema({
       name: column,
       tableSchema,
-      aliasContext: { isAstIdentifier: false },
     });
-    columnsUsedInMeasuresInProjection += `${column} AS ${safeKey}`;
+    columnsUsedInMeasuresInProjection += `${column} AS ${aliasKey}`;
     if (index !== columnsUsedInMeasures.length - 1) {
       columnsUsedInMeasuresInProjection += ', ';
     }

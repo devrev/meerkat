@@ -1,8 +1,4 @@
-import {
-  constructAlias,
-  getNamespacedKey,
-  memberKeyToSafeKey,
-} from '../member-formatters';
+import { getNamespacedKey, memberKeyToSafeKey } from '../member-formatters';
 import { Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import { isArrayTypeMember } from '../utils/is-array-member-type';
@@ -49,20 +45,13 @@ export const shouldSkipResolution = (
 };
 
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
+  const safeKey = memberKeyToSafeKey(name);
   return {
-    name: memberKeyToSafeKey(name),
-    sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
-      name,
-      alias: schema.alias,
-      aliasContext: { isAstIdentifier: false },
-    })}`,
+    name: safeKey,
+    sql: `${BASE_DATA_SOURCE_NAME}."${safeKey}"`,
     type: schema.type,
-    // Constructs alias to match the name in the base query.
-    alias: constructAlias({
-      name,
-      alias: schema.alias,
-      aliasContext: { isTableSchemaAlias: true },
-    }),
+    // Store the user-facing alias for later use in final projection
+    alias: schema.alias || safeKey,
   };
 };
 
@@ -96,13 +85,12 @@ export const createBaseTableSchema = (
         throw new Error(`Not found: ${member}`);
       }
     }),
-    joins: resolutionConfig.columnConfigs.map((config) => ({
-      sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
-        name: config.name,
-        alias: schemaByName[config.name]?.alias,
-        aliasContext: { isAstIdentifier: false },
-      })} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
-    })),
+    joins: resolutionConfig.columnConfigs.map((config) => {
+      const safeKey = memberKeyToSafeKey(config.name);
+      return {
+        sql: `${BASE_DATA_SOURCE_NAME}."${safeKey}" = ${safeKey}.${config.joinColumn}`,
+      };
+    }),
   };
 };
 

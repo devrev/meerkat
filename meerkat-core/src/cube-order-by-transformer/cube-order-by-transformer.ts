@@ -1,5 +1,4 @@
-import { getAliasFromSchema } from '../member-formatters/get-alias';
-import { TableSchema } from '../types/cube-types';
+import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
 import {
   ExpressionClass,
   ExpressionType,
@@ -7,10 +6,7 @@ import {
 import { OrderType } from '../types/duckdb-serialization-types/serialization/Nodes';
 import { ResultModifierType } from '../types/duckdb-serialization-types/serialization/ResultModifier';
 
-export const cubeOrderByToAST = (
-  order: { [key: string]: 'asc' | 'desc' },
-  tableSchema: TableSchema
-) => {
+export const cubeOrderByToAST = (order: { [key: string]: 'asc' | 'desc' }) => {
   const orderArr = [];
   for (const key in order) {
     const value = order[key];
@@ -24,15 +20,9 @@ export const cubeOrderByToAST = (
         type: ExpressionType.COLUMN_REF,
         alias: '',
         /**
-         * We need to convert the key in the __ format as they are being projected in this format
+         * Use safe keys internally instead of aliases
          */
-        column_names: [
-          getAliasFromSchema({
-            name: key,
-            tableSchema,
-            aliasContext: { isAstIdentifier: true },
-          }),
-        ],
+        column_names: [memberKeyToSafeKey(key)],
       },
     };
     orderArr.push(orderByAST);

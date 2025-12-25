@@ -1,4 +1,4 @@
-import { getAliasFromSchema, getNamespacedKey } from '../member-formatters';
+import { getNamespacedKey, memberKeyToSafeKey } from '../member-formatters';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
@@ -18,13 +18,8 @@ export const cubeMeasureToSQLSelectString = (
     const [tableSchemaName, measureKeyWithoutTable] =
       splitIntoDataSourceAndFields(measure);
 
-    const aliasKey = getAliasFromSchema({
-      name: measure,
-      tableSchema,
-      aliasContext: {
-        isAstIdentifier: false,
-      },
-    });
+    // Use safe key internally
+    const safeKey = memberKeyToSafeKey(measure);
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
     );
@@ -39,8 +34,7 @@ export const cubeMeasureToSQLSelectString = (
     // since tableSchema might be the merged tableSchema.
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
-      tableSchemaName,
-      tableSchema
+      tableSchemaName
     );
 
     /**
@@ -56,22 +50,16 @@ export const cubeMeasureToSQLSelectString = (
 
     //Replace all the columnsUsedInMeasure with safeKey
     columnsUsedInMeasure?.forEach((measureKey) => {
-      const [_, column] = splitIntoDataSourceAndFields(measureKey);
+      const [, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = getNamespacedKey(tableSchemaName, column);
-      const columnKey = getAliasFromSchema({
-        name: memberKey,
-        tableSchema,
-        aliasContext: {
-          isAstIdentifier: false,
-        },
-      });
+      const columnKey = `"${memberKeyToSafeKey(memberKey)}"`;
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
         columnKey
       );
     });
 
-    base += ` ${meerkatReplacedSqlString} AS ${aliasKey} `;
+    base += ` ${meerkatReplacedSqlString} AS "${safeKey}" `;
   }
   return base;
 };
@@ -87,18 +75,13 @@ const addDimensionToSQLProjection = (
   let newSelectString = selectString;
   for (let i = 0; i < dimensions.length; i++) {
     const dimension = dimensions[i];
-    const [_, dimensionKeyWithoutTable] =
+    const [, dimensionKeyWithoutTable] =
       splitIntoDataSourceAndFields(dimension);
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    const aliasKey = getAliasFromSchema({
-      name: dimension,
-      tableSchema,
-      aliasContext: {
-        isAstIdentifier: false,
-      },
-    });
+    // Use safe key internally
+    const safeKey = `"${memberKeyToSafeKey(dimension)}"`;
 
     if (!dimensionSchema) {
       continue;
@@ -106,8 +89,8 @@ const addDimensionToSQLProjection = (
     if (i > 0) {
       newSelectString += ',';
     }
-    // since alias key is expected to have been unfurled in the base query, we can just use it as is.
-    newSelectString += `  ${aliasKey}`;
+    // Use safe keys in internal queries
+    newSelectString += `  ${safeKey}`;
   }
   return newSelectString;
 };

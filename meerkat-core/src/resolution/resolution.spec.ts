@@ -726,8 +726,7 @@ describe('Generate resolution join paths', () => {
 
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
-      resolutionConfig,
-      []
+      resolutionConfig
     );
 
     expect(joinPaths).toEqual([
@@ -786,8 +785,7 @@ describe('Generate resolution join paths', () => {
 
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
-      resolutionConfig,
-      baseTableSchemas
+      resolutionConfig
     );
     expect(joinPaths).toEqual([
       [

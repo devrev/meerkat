@@ -45,8 +45,7 @@ export const getResolvedTableSchema = async ({
 
   const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
-    resolutionConfig,
-    [updatedBaseTableSchema]
+    resolutionConfig
   );
 
   const tempQuery: Query = {
