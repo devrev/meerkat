@@ -1,6 +1,5 @@
 import { TableSchema } from '../../types/cube-types';
 import {
-  AliasContext,
   constructAlias,
   constructCompoundAlias,
   getAliasFromSchema,
