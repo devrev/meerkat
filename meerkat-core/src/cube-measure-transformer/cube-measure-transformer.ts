@@ -21,9 +21,7 @@ export const cubeMeasureToSQLSelectString = (
     const aliasKey = getAliasFromSchema({
       name: measure,
       tableSchema,
-      aliasContext: {
-        isAstIdentifier: false,
-      },
+      shouldWrapAliasWithQuotes: true,
     });
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
@@ -61,9 +59,7 @@ export const cubeMeasureToSQLSelectString = (
       const columnKey = getAliasFromSchema({
         name: memberKey,
         tableSchema,
-        aliasContext: {
-          isAstIdentifier: false,
-        },
+        shouldWrapAliasWithQuotes: true,
       });
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
@@ -95,9 +91,7 @@ const addDimensionToSQLProjection = (
     const aliasKey = getAliasFromSchema({
       name: dimension,
       tableSchema,
-      aliasContext: {
-        isAstIdentifier: false,
-      },
+      shouldWrapAliasWithQuotes: true,
     });
 
     if (!dimensionSchema) {

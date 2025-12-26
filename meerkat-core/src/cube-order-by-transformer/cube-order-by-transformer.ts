@@ -30,7 +30,7 @@ export const cubeOrderByToAST = (
           getAliasFromSchema({
             name: key,
             tableSchema,
-            aliasContext: { isAstIdentifier: true },
+            shouldWrapAliasWithQuotes: false, // AST auto-quotes
           }),
         ],
       },
