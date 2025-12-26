@@ -16,7 +16,6 @@ export const getWrappedBaseQueryWithProjections = ({
   query,
   options,
 }: GetWrappedBaseQueryWithProjectionsParams) => {
-  const { isDotDelimiterEnabled } = options;
   /*
    * Im order to be able to filter on computed metric from a query, we need to project the computed metric in the base query.
    * If theres filters supplied, we can safely return the original base query. Since nothing need to be projected and filtered in this case
@@ -29,7 +28,7 @@ export const getWrappedBaseQueryWithProjections = ({
     query,
     tableSchema,
     aliasedColumnSet,
-    isDotDelimiterEnabled
+    options.isDotDelimiterEnabled
   );
 
   const aliasFromFilters = getAliasedColumnsFromFilters({
@@ -38,7 +37,7 @@ export const getWrappedBaseQueryWithProjections = ({
     tableSchema: tableSchema,
     query,
     meerkatFilters: query.filters,
-    isDotDelimiterEnabled,
+    isDotDelimiterEnabled: options.isDotDelimiterEnabled,
   });
 
   const parts = [aliasFromFilters, memberProjections].filter(

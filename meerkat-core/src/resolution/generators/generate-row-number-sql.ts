@@ -17,13 +17,15 @@ export const generateRowNumberSql = (
   baseTableName: string,
   options: MeerkatQueryOptions
 ): string => {
-  const { isDotDelimiterEnabled } = options;
   let rowNumberSql = 'row_number() OVER (';
   if (query.order && Object.keys(query.order).length > 0) {
     const orderClauses = Object.entries(query.order).map(
       ([member, direction]) => {
         // Find the actual column name/alias in the base table dimensions
-        const safeMember = memberKeyToSafeKey(member, isDotDelimiterEnabled);
+        const safeMember = memberKeyToSafeKey(
+          member,
+          options.isDotDelimiterEnabled
+        );
         const dimension = dimensions.find(
           (d) => d.name === safeMember || d.alias === safeMember
         );

@@ -30,8 +30,6 @@ export const cubeQueryToSQL = async ({
   options,
   contextParams,
 }: CubeQueryToSQLParams) => {
-  const { isDotDelimiterEnabled } = options;
-
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
       const baseFilterParamsSQL = await getFinalBaseSQL({
@@ -49,9 +47,7 @@ export const cubeQueryToSQL = async ({
 
   const updatedTableSchema = getCombinedTableSchema(updatedTableSchemas, query);
 
-  const ast = cubeToDuckdbAST(query, updatedTableSchema, {
-    isDotDelimiterEnabled,
-  });
+  const ast = cubeToDuckdbAST(query, updatedTableSchema, options);
   if (!ast) {
     throw new Error('Could not generate AST');
   }
@@ -98,7 +94,7 @@ export const cubeQueryToSQL = async ({
     measures,
     updatedTableSchema,
     replaceBaseTableName,
-    isDotDelimiterEnabled
+    options.isDotDelimiterEnabled
   );
 
   /**
