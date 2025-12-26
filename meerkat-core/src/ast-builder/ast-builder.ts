@@ -22,7 +22,8 @@ import { modifyLeafMeerkatFilter } from '../utils/modify-meerkat-filter';
 
 const formatFilters = (
   queryFiltersWithInfo: QueryFiltersWithInfo,
-  filterType?: FilterType
+  filterType: FilterType | undefined,
+  isDotDelimiterEnabled: boolean
 ) => {
   /*
    * If the type of filter is set to base filter where
@@ -36,6 +37,7 @@ const formatFilters = (
             name: item.member,
             alias: item.memberInfo.alias,
             shouldWrapAliasWithQuotes: false, // AST auto-quotes
+            isDotDelimiterEnabled,
           }),
         };
       }) as QueryFiltersWithInfo);
@@ -46,24 +48,37 @@ const getFormattedFilters = ({
   filterType,
   mapperFn,
   baseAST,
+  isDotDelimiterEnabled,
 }: {
   queryFiltersWithInfo: QueryFiltersWithInfo;
   filterType?: FilterType;
   baseAST: SelectStatement;
   mapperFn: (val: QueryFiltersWithInfoSingular) => MeerkatQueryFilter | null;
+  isDotDelimiterEnabled: boolean;
 }) => {
   const filters = queryFiltersWithInfo
     .map((item) => mapperFn(item))
     .filter(Boolean) as QueryFiltersWithInfoSingular[];
-  const formattedFilters = formatFilters(filters, filterType);
+  const formattedFilters = formatFilters(
+    filters,
+    filterType,
+    isDotDelimiterEnabled
+  );
   return cubeFilterToDuckdbAST(formattedFilters, baseAST);
 };
+
+export interface CubeToDuckdbASTOptions {
+  filterType?: FilterType;
+  isDotDelimiterEnabled: boolean;
+}
 
 export const cubeToDuckdbAST = (
   query: Query,
   tableSchema: TableSchema,
-  options?: { filterType: FilterType }
+  options: CubeToDuckdbASTOptions
 ) => {
+  const { filterType, isDotDelimiterEnabled } = options;
+
   /**
    * Obviously, if no table schema was found, return null.
    */
@@ -94,7 +109,8 @@ export const cubeToDuckdbAST = (
           (value) => !query.measures.includes(value.member)
         ),
       queryFiltersWithInfo,
-      filterType: options?.filterType,
+      filterType,
+      isDotDelimiterEnabled,
     });
 
     const havingClause = getFormattedFilters({
@@ -104,7 +120,8 @@ export const cubeToDuckdbAST = (
           query.measures.includes(value.member)
         ),
       queryFiltersWithInfo,
-      filterType: options?.filterType,
+      filterType,
+      isDotDelimiterEnabled,
     });
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -119,7 +136,8 @@ export const cubeToDuckdbAST = (
   ) {
     node.group_expressions = cubeDimensionToGroupByAST(
       query.dimensions,
-      tableSchema
+      tableSchema,
+      isDotDelimiterEnabled
     );
     const groupSets = [];
     /**
@@ -132,7 +150,9 @@ export const cubeToDuckdbAST = (
   }
   node.modifiers = [];
   if (query.order && Object.keys(query.order).length > 0) {
-    node.modifiers.push(cubeOrderByToAST(query.order, tableSchema));
+    node.modifiers.push(
+      cubeOrderByToAST(query.order, tableSchema, isDotDelimiterEnabled)
+    );
   }
   if (query.limit || query.offset) {
     // Type assertion is needed here because the AST is not typed correctly.

@@ -42,6 +42,7 @@ describe('get final base sql', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      options: { isDotDelimiterEnabled: false },
     });
     expect(result).toEqual(
       'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
@@ -60,6 +61,7 @@ describe('get final base sql', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      options: { isDotDelimiterEnabled: false },
     });
     expect(result).toEqual(
       'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE TRUE) AS orders'
@@ -108,6 +110,7 @@ describe('get final base sql', () => {
       },
       tableSchema: tableSchema,
       getQueryOutput,
+      options: { isDotDelimiterEnabled: false },
     });
     expect(result).toEqual(
       'SELECT amount AS "order amount", status AS "order status", * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'

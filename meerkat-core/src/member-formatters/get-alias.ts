@@ -16,16 +16,19 @@ export const getAliasFromSchema = ({
   name,
   tableSchema,
   shouldWrapAliasWithQuotes,
+  isDotDelimiterEnabled,
 }: {
   name: string;
   tableSchema: TableSchema;
   shouldWrapAliasWithQuotes: boolean;
+  isDotDelimiterEnabled: boolean;
 }): string => {
   const [, field] = splitIntoDataSourceAndFields(name);
   return constructAlias({
     name,
     alias: findInSchema(field, tableSchema)?.alias,
     shouldWrapAliasWithQuotes,
+    isDotDelimiterEnabled,
   });
 };
 
@@ -42,10 +45,12 @@ export const constructAlias = ({
   name,
   alias,
   shouldWrapAliasWithQuotes,
+  isDotDelimiterEnabled,
 }: {
   name: string;
   alias?: string;
   shouldWrapAliasWithQuotes: boolean;
+  isDotDelimiterEnabled: boolean;
 }): string => {
   if (alias) {
     if (shouldWrapAliasWithQuotes) {
@@ -54,8 +59,22 @@ export const constructAlias = ({
     }
     return alias;
   }
-  return memberKeyToSafeKey(name);
+
+  const safeKey = memberKeyToSafeKey(name, isDotDelimiterEnabled);
+
+  // When using dot delimiter and we need a safe alias (for projections),
+  // we must quote the identifier to preserve the dot
+  if (isDotDelimiterEnabled && shouldWrapAliasWithQuotes) {
+    return `"${safeKey}"`;
+  }
+
+  return safeKey;
 };
+
+// ============================================================================
+// PUBLIC WRAPPER FUNCTIONS
+// These hide the AliasContext complexity from consumers
+// ============================================================================
 
 /**
  * Creates a compound alias by joining two alias strings with " - ".

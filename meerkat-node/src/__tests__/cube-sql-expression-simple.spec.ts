@@ -327,7 +327,8 @@ const SQL_EXPRESSION_TEST_DATA = [
 describe('SQL Expression Filters', () => {
   SQL_EXPRESSION_TEST_DATA.forEach((testCase) => {
     it(testCase.testName, async () => {
-      const sql = await cubeQueryToSQL({
+      const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
         query: testCase.cubeInput,
         tableSchemas: [SCHEMA],
       });
@@ -365,7 +366,7 @@ describe('SQL Expression Filters', () => {
     };
 
     await expect(
-      cubeQueryToSQL({ query, tableSchemas: [SCHEMA] })
+      cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [SCHEMA] })
     ).rejects.toThrow(
       'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
     );

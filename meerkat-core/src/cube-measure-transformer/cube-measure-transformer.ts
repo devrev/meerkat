@@ -1,4 +1,8 @@
-import { getAliasFromSchema, getNamespacedKey } from '../member-formatters';
+import {
+  getAliasFromSchema,
+  getNamespacedKey,
+  getProjectionAlias,
+} from '../member-formatters';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
@@ -6,7 +10,8 @@ import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replace
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  isDotDelimiterEnabled: boolean
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -22,6 +27,7 @@ export const cubeMeasureToSQLSelectString = (
       name: measure,
       tableSchema,
       shouldWrapAliasWithQuotes: true,
+      isDotDelimiterEnabled,
     });
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
@@ -38,7 +44,8 @@ export const cubeMeasureToSQLSelectString = (
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
       tableSchemaName,
-      tableSchema
+      tableSchema,
+      isDotDelimiterEnabled
     );
 
     /**
@@ -56,10 +63,11 @@ export const cubeMeasureToSQLSelectString = (
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [_, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = getNamespacedKey(tableSchemaName, column);
-      const columnKey = getAliasFromSchema({
+      const columnKey = getProjectionAlias({
         name: memberKey,
         tableSchema,
         shouldWrapAliasWithQuotes: true,
+        isDotDelimiterEnabled,
       });
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
@@ -75,7 +83,8 @@ export const cubeMeasureToSQLSelectString = (
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  isDotDelimiterEnabled: boolean
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -88,12 +97,13 @@ const addDimensionToSQLProjection = (
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    const aliasKey = getAliasFromSchema({
+    const aliasKey = getProjectionAlias({
       name: dimension,
+      dimension,
       tableSchema,
       shouldWrapAliasWithQuotes: true,
+      isDotDelimiterEnabled,
     });
-
     if (!dimensionSchema) {
       continue;
     }
@@ -159,15 +169,21 @@ const getColumnsFromSQL = (sql: string, tableName: string) => {
  * @param measures
  * @param tableSchema
  * @param sqlToReplace
+ * @param isDotDelimiterEnabled
  * @returns
  */
 export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string
+  sqlToReplace: string,
+  isDotDelimiterEnabled: boolean
 ) => {
-  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
+  let measureSelectString = cubeMeasureToSQLSelectString(
+    measures,
+    tableSchema,
+    isDotDelimiterEnabled
+  );
 
   if (measures.length > 0 && dimensions.length > 0) {
     measureSelectString += ', ';
@@ -175,7 +191,8 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema
+    tableSchema,
+    isDotDelimiterEnabled
   );
 
   return getSelectReplacedSql(sqlToReplace, selectString);

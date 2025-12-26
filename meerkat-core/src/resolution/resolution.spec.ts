@@ -54,7 +54,8 @@ describe('Create base table schema', () => {
       tableSchemas,
       resolutionConfig,
       measures,
-      dimensions
+      dimensions,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(baseTableSchema).toEqual({
@@ -132,7 +133,8 @@ describe('Create base table schema', () => {
       tableSchemas,
       resolutionConfig,
       [],
-      dimensions
+      dimensions,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(baseTableSchema).toEqual({
@@ -192,7 +194,8 @@ describe('Create base table schema', () => {
         tableSchemas,
         resolutionConfig,
         [],
-        dimensions
+        dimensions,
+        { isDotDelimiterEnabled: false }
       );
     }).toThrow('Not found: base_table.column2');
   });
@@ -246,7 +249,8 @@ describe('Create base table schema', () => {
       tableSchemas,
       resolutionConfig,
       [],
-      dimensions
+      dimensions,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(baseTableSchema).toEqual({
@@ -727,7 +731,8 @@ describe('Generate resolution join paths', () => {
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
       resolutionConfig,
-      []
+      [],
+      { isDotDelimiterEnabled: false }
     );
 
     expect(joinPaths).toEqual([
@@ -787,7 +792,8 @@ describe('Generate resolution join paths', () => {
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
       resolutionConfig,
-      baseTableSchemas
+      baseTableSchemas,
+      { isDotDelimiterEnabled: false }
     );
     expect(joinPaths).toEqual([
       [
@@ -1177,7 +1183,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(result).toBe('row_number() OVER (ORDER BY __base_query."ID" ASC)');
@@ -1201,7 +1208,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(result).toBe(
@@ -1221,7 +1229,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(result).toBe('row_number() OVER ()');
@@ -1241,7 +1250,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(result).toBe('row_number() OVER ()');
@@ -1260,7 +1270,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(result).toBe(
@@ -1282,7 +1293,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(result).toBe(
@@ -1308,7 +1320,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      { isDotDelimiterEnabled: false }
     );
 
     expect(result).toBe(
@@ -1328,7 +1341,7 @@ describe('generateRowNumberSql', () => {
     ];
     const customBaseTableName = 'custom_table';
 
-    const result = generateRowNumberSql(query, dimensions, customBaseTableName);
+    const result = generateRowNumberSql(query, dimensions, customBaseTableName, { isDotDelimiterEnabled: false });
 
     expect(result).toBe('row_number() OVER (ORDER BY custom_table."ID" ASC)');
   });

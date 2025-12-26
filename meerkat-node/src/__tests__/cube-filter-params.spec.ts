@@ -58,7 +58,7 @@ describe('filter-param-tests', () => {
       ],
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(2);
@@ -92,7 +92,7 @@ describe('filter-param-tests', () => {
       order: { id: 'asc' },
       dimensions: [],
     };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(3);
@@ -106,7 +106,7 @@ describe('filter-param-tests', () => {
       dimensions: [],
     };
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(8);
@@ -138,7 +138,7 @@ describe('filter-param-tests', () => {
       dimensions: [],
     };
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(5);
@@ -163,7 +163,7 @@ describe('filter-param-tests', () => {
       dimensions: [],
     };
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [SCHEMA] });
     console.info('SQL: ', sql);
     const output: any = await duckdbExec(sql);
     expect(output).toHaveLength(1);

@@ -5,6 +5,7 @@ import {
   getNamespacedKey,
   Measure,
   MEERKAT_OUTPUT_DELIMITER,
+  MeerkatQueryOptions,
   Query,
   ResolutionConfig,
   ROW_ID_DIMENSION_NAME,
@@ -40,6 +41,7 @@ export const getAggregatedSql = async ({
   resolutionConfig,
   contextParams,
   cubeQueryToSQL,
+  options: _options,
 }: {
   resolvedTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
@@ -49,6 +51,7 @@ export const getAggregatedSql = async ({
     tableSchemas: TableSchema[];
     contextParams?: ContextParams;
   }) => Promise<string>;
+  options: MeerkatQueryOptions;
 }): Promise<TableSchema> => {
   const aggregationBaseTableSchema: TableSchema = resolvedTableSchema;
 

@@ -13,11 +13,13 @@ export const getDimensionProjection = ({
   tableSchema,
   modifiers,
   query,
+  isDotDelimiterEnabled,
 }: {
   key: string;
   tableSchema: TableSchema;
   modifiers: Modifier[];
   query: Query;
+  isDotDelimiterEnabled: boolean;
 }) => {
   // Find the table access key
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
@@ -45,6 +47,7 @@ export const getDimensionProjection = ({
     name: key,
     tableSchema,
     shouldWrapAliasWithQuotes: true,
+    isDotDelimiterEnabled,
   });
   // Add the alias key to the set. So we have a reference to all the previously selected members.
   return { sql: `${modifiedSql} AS ${aliasKey}`, foundMember, aliasKey };
@@ -54,10 +57,12 @@ export const getFilterMeasureProjection = ({
   key,
   tableSchema,
   measures,
+  isDotDelimiterEnabled,
 }: {
   key: string;
   tableSchema: TableSchema;
   measures: string[];
+  isDotDelimiterEnabled: boolean;
 }) => {
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
   const foundMember = findInMeasureSchema(measureWithoutTable, tableSchema);
@@ -76,6 +81,7 @@ export const getFilterMeasureProjection = ({
     name: key,
     tableSchema,
     shouldWrapAliasWithQuotes: true,
+    isDotDelimiterEnabled,
   });
   return { sql: `${key} AS ${aliasKey}`, foundMember, aliasKey };
 };
@@ -85,11 +91,13 @@ const getFilterProjections = ({
   tableSchema,
   measures,
   query,
+  isDotDelimiterEnabled,
 }: {
   member: string;
   tableSchema: TableSchema;
   measures: string[];
   query: Query;
+  isDotDelimiterEnabled: boolean;
 }) => {
   const [, memberWithoutTable] = splitIntoDataSourceAndFields(member);
   const isDimension = findInDimensionSchema(memberWithoutTable, tableSchema);
@@ -99,6 +107,7 @@ const getFilterProjections = ({
       tableSchema,
       modifiers: [],
       query,
+      isDotDelimiterEnabled,
     });
   }
   const isMeasure = findInMeasureSchema(memberWithoutTable, tableSchema);
@@ -107,6 +116,7 @@ const getFilterProjections = ({
       key: member,
       tableSchema,
       measures,
+      isDotDelimiterEnabled,
     });
   }
   return {
@@ -121,11 +131,13 @@ export const getAliasedColumnsFromFilters = ({
   tableSchema,
   aliasedColumnSet,
   query,
+  isDotDelimiterEnabled,
 }: {
   meerkatFilters?: MeerkatQueryFilter[];
   tableSchema: TableSchema;
   aliasedColumnSet: Set<string>;
   query: Query;
+  isDotDelimiterEnabled: boolean;
 }) => {
   const parts: string[] = [];
   const { measures } = query;
@@ -137,6 +149,7 @@ export const getAliasedColumnsFromFilters = ({
         tableSchema,
         aliasedColumnSet,
         query,
+        isDotDelimiterEnabled,
       });
       if (sql) {
         parts.push(sql);
@@ -149,6 +162,7 @@ export const getAliasedColumnsFromFilters = ({
         meerkatFilters: filter.or,
         aliasedColumnSet,
         query,
+        isDotDelimiterEnabled,
       });
       if (sql) {
         parts.push(sql);
@@ -164,6 +178,7 @@ export const getAliasedColumnsFromFilters = ({
         tableSchema,
         measures,
         query,
+        isDotDelimiterEnabled,
       });
       if (!foundMember || aliasedColumnSet.has(aliasKey)) {
         // If the selected member is not found in the table schema or if it is already selected, continue.

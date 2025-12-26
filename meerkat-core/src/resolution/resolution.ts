@@ -3,6 +3,7 @@ import {
   getNamespacedKey,
   memberKeyToSafeKey,
 } from '../member-formatters';
+import { MeerkatQueryOptions } from '../types/cube-types';
 import { Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import { isArrayTypeMember } from '../utils/is-array-member-type';
@@ -48,20 +49,27 @@ export const shouldSkipResolution = (
   );
 };
 
-const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
+const constructBaseDimension = (
+  name: string,
+  schema: Measure | Dimension,
+  options: MeerkatQueryOptions
+) => {
+  const { isDotDelimiterEnabled } = options;
   return {
-    name: memberKeyToSafeKey(name),
+    name: memberKeyToSafeKey(name, isDotDelimiterEnabled),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
       name,
       alias: schema.alias,
       shouldWrapAliasWithQuotes: true,
+      isDotDelimiterEnabled,
     })}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
     alias: constructAlias({
       name,
       alias: schema.alias,
-      shouldWrapAliasWithQuotes: false, // Internal schema reference
+      shouldWrapAliasWithQuotes: false, // Internal schema reference,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     }),
   };
 };
@@ -71,8 +79,10 @@ export const createBaseTableSchema = (
   tableSchemas: TableSchema[],
   resolutionConfig: ResolutionConfig,
   measures: Member[],
-  dimensions?: Member[]
+  dimensions: Member[] | undefined,
+  options: MeerkatQueryOptions
 ) => {
+  const { isDotDelimiterEnabled } = options;
   const schemaByName: Record<string, Measure | Dimension> = {};
   tableSchemas.forEach((tableSchema) => {
     tableSchema.dimensions.forEach((dimension) => {
@@ -91,7 +101,7 @@ export const createBaseTableSchema = (
     dimensions: [...measures, ...(dimensions || [])].map((member) => {
       const schema = schemaByName[member];
       if (schema) {
-        return constructBaseDimension(member, schema);
+        return constructBaseDimension(member, schema, options);
       } else {
         throw new Error(`Not found: ${member}`);
       }
@@ -101,7 +111,10 @@ export const createBaseTableSchema = (
         name: config.name,
         alias: schemaByName[config.name]?.alias,
         shouldWrapAliasWithQuotes: true,
-      })} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
+      })} = ${memberKeyToSafeKey(config.name, isDotDelimiterEnabled)}.${
+        config.joinColumn
+      }`,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     })),
   };
 };
