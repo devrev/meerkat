@@ -11,9 +11,7 @@ export const meerkatPlaceholderReplacer = (
     return getAliasFromSchema({
       name: getNamespacedKey(originalTableName, columnName),
       tableSchema,
-      aliasContext: {
-        isAstIdentifier: false,
-      },
+      shouldWrapAliasWithQuotes: true,
     });
   });
 };

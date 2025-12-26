@@ -44,7 +44,7 @@ export const getDimensionProjection = ({
   const aliasKey = getAliasFromSchema({
     name: key,
     tableSchema,
-    aliasContext: { isAstIdentifier: false },
+    shouldWrapAliasWithQuotes: true,
   });
   // Add the alias key to the set. So we have a reference to all the previously selected members.
   return { sql: `${modifiedSql} AS ${aliasKey}`, foundMember, aliasKey };
@@ -75,7 +75,7 @@ export const getFilterMeasureProjection = ({
   const aliasKey = getAliasFromSchema({
     name: key,
     tableSchema,
-    aliasContext: { isAstIdentifier: false },
+    shouldWrapAliasWithQuotes: true,
   });
   return { sql: `${key} AS ${aliasKey}`, foundMember, aliasKey };
 };

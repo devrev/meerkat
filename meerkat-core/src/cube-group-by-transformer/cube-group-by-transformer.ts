@@ -19,7 +19,7 @@ export const cubeDimensionToGroupByAST = (
         getAliasFromSchema({
           name: dimension,
           tableSchema,
-          aliasContext: { isAstIdentifier: true },
+          shouldWrapAliasWithQuotes: false, // AST auto-quotes
         }),
       ],
     };

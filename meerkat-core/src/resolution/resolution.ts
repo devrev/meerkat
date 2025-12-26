@@ -54,14 +54,14 @@ const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
       name,
       alias: schema.alias,
-      aliasContext: { isAstIdentifier: false },
+      shouldWrapAliasWithQuotes: true,
     })}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
     alias: constructAlias({
       name,
       alias: schema.alias,
-      aliasContext: { isTableSchemaAlias: true },
+      shouldWrapAliasWithQuotes: false, // Internal schema reference
     }),
   };
 };
@@ -100,7 +100,7 @@ export const createBaseTableSchema = (
       sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
         name: config.name,
         alias: schemaByName[config.name]?.alias,
-        aliasContext: { isAstIdentifier: false },
+        shouldWrapAliasWithQuotes: true,
       })} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
     })),
   };

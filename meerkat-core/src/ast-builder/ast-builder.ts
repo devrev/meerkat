@@ -35,9 +35,7 @@ const formatFilters = (
           member: constructAlias({
             name: item.member,
             alias: item.memberInfo.alias,
-            aliasContext: {
-              isAstIdentifier: true,
-            },
+            shouldWrapAliasWithQuotes: false, // AST auto-quotes
           }),
         };
       }) as QueryFiltersWithInfo);
