@@ -1,8 +1,6 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
-import {
-  getAliasFromSchema,
-  getProjectionAlias,
-} from '../member-formatters/get-alias';
+
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Query, TableSchema } from '../types/cube-types';
 import {
@@ -111,12 +109,12 @@ export const getProjectionClause = (
 
   let columnsUsedInMeasuresInProjection = '';
   columnsUsedInMeasures.forEach((column, index) => {
-    const safeKey = getProjectionAlias(
-      column,
+    const safeKey = getAliasFromSchema({
+      name: column,
       tableSchema,
-      true,
-      isDotDelimiterEnabled
-    );
+      shouldWrapAliasWithQuotes: true,
+      isDotDelimiterEnabled,
+    });
     columnsUsedInMeasuresInProjection += `${column} AS ${safeKey}`;
     if (index !== columnsUsedInMeasures.length - 1) {
       columnsUsedInMeasuresInProjection += ', ';

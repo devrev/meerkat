@@ -111,6 +111,7 @@ export const createBaseTableSchema = (
         name: config.name,
         alias: schemaByName[config.name]?.alias,
         shouldWrapAliasWithQuotes: true,
+        isDotDelimiterEnabled: options.isDotDelimiterEnabled,
       })} = ${memberKeyToSafeKey(config.name, isDotDelimiterEnabled)}.${
         config.joinColumn
       }`,

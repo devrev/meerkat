@@ -72,12 +72,12 @@ export const constructAlias = ({
 };
 
 // ============================================================================
-// PUBLIC WRAPPER FUNCTIONS
-// These hide the AliasContext complexity from consumers
+// PUBLIC API
 // ============================================================================
 
 /**
  * Creates a compound alias by joining two alias strings with " - ".
+ *
  * Used when a field resolves to multiple columns (e.g., "Owners - Display Name").
  *
  * @param baseAlias - The base field alias (e.g., "Owners")
@@ -86,8 +86,8 @@ export const constructAlias = ({
  *
  * @example
  * ```typescript
- * createCompoundAlias("Owners", "Display Name") // "Owners - Display Name"
- * createCompoundAlias("Tags", "Tag Name") // "Tags - Tag Name"
+ * constructCompoundAlias("Owners", "Display Name") // "Owners - Display Name"
+ * constructCompoundAlias("Tags", "Tag Name") // "Tags - Tag Name"
  * ```
  */
 export const constructCompoundAlias = (

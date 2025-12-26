@@ -1,4 +1,4 @@
-import { getAstIdentifierAlias } from '../member-formatters/get-alias';
+import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import { Member } from '../types/cube-types/query';
 import {
@@ -17,7 +17,12 @@ export const cubeDimensionToGroupByAST = (
       type: ExpressionType.COLUMN_REF,
       alias: '',
       column_names: [
-        getAstIdentifierAlias(dimension, tableSchema, isDotDelimiterEnabled),
+        getAliasFromSchema({
+          name: dimension,
+          tableSchema,
+          shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled,
+        }),
       ],
     };
 

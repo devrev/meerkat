@@ -1,8 +1,4 @@
-import {
-  getAliasFromSchema,
-  getNamespacedKey,
-  getProjectionAlias,
-} from '../member-formatters';
+import { getAliasFromSchema, getNamespacedKey } from '../member-formatters';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
@@ -63,7 +59,7 @@ export const cubeMeasureToSQLSelectString = (
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [_, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = getNamespacedKey(tableSchemaName, column);
-      const columnKey = getProjectionAlias({
+      const columnKey = getAliasFromSchema({
         name: memberKey,
         tableSchema,
         shouldWrapAliasWithQuotes: true,
@@ -97,13 +93,13 @@ const addDimensionToSQLProjection = (
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    const aliasKey = getProjectionAlias({
+    const aliasKey = getAliasFromSchema({
       name: dimension,
-      dimension,
       tableSchema,
       shouldWrapAliasWithQuotes: true,
       isDotDelimiterEnabled,
     });
+
     if (!dimensionSchema) {
       continue;
     }
