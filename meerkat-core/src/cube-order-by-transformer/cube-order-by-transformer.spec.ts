@@ -121,4 +121,3 @@ describe('cube-order-by-transformer', () => {
     });
   });
 });
-

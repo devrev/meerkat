@@ -88,4 +88,3 @@ describe('cube-group-by-transformer', () => {
     });
   });
 });
-
