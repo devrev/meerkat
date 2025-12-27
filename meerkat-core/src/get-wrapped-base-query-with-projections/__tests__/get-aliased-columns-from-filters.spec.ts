@@ -20,6 +20,9 @@ const TABLE_SCHEMA: TableSchema = {
   // Define your table schema here
 };
 
+const DEFAULT_OPTIONS = { isDotDelimiterEnabled: false };
+const DEFAULT_QUERY = { measures: [], dimensions: [] };
+
 describe('get-aliased-columns-from-filters', () => {
   describe('getFilterMeasureProjection', () => {
     it('should return the member projection when the key exists in the table schema', () => {
@@ -28,6 +31,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         measures: ['test.a'],
+        options: DEFAULT_OPTIONS,
       });
       expect(result).toEqual({
         aliasKey: 'test__x',
@@ -42,6 +46,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         measures: ['test.x'],
+        options: DEFAULT_OPTIONS,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -61,6 +66,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema,
         measures: ['test.b'],
+        options: DEFAULT_OPTIONS,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -79,6 +85,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: tableSchema,
         measures: ['test.a'],
+        options: DEFAULT_OPTIONS,
       });
       expect(result).toEqual({
         aliasKey: '"test x"',
@@ -96,6 +103,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         modifiers: [],
+        query: DEFAULT_QUERY,
+        options: DEFAULT_OPTIONS,
       });
       expect(result).toEqual({
         aliasKey: 'test__a',
@@ -115,6 +124,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema,
         modifiers: [],
+        query: DEFAULT_QUERY,
+        options: DEFAULT_OPTIONS,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -136,6 +147,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: tableSchema,
         modifiers: [],
+        query: DEFAULT_QUERY,
+        options: DEFAULT_OPTIONS,
       });
       expect(result).toEqual({
         aliasKey: '"test a"',

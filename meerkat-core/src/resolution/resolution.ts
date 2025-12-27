@@ -113,7 +113,6 @@ export const createBaseTableSchema = (
       })} = ${memberKeyToSafeKey(config.name, options.isDotDelimiterEnabled)}.${
         config.joinColumn
       }`,
-      options,
     })),
   };
 };

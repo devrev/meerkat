@@ -51,19 +51,19 @@ describe('cubeMeasureToSQLSelectString', () => {
 
   it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure1'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
+    const result = cubeMeasureToSQLSelectString(measures, tableSchema, { isDotDelimiterEnabled: false });
     expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 `);
   });
 
   it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure2'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
+    const result = cubeMeasureToSQLSelectString(measures, tableSchema, { isDotDelimiterEnabled: false });
     expect(result).toBe(`SELECT SUM(total) AS temp__measure2 `);
   });
 
   it('should substitute "*" for all columns in the cube', () => {
     const measures: Member[] = ['*'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
+    const result = cubeMeasureToSQLSelectString(measures, tableSchema, { isDotDelimiterEnabled: false });
     expect(result).toBe(`SELECT test.*`);
   });
 
@@ -71,7 +71,8 @@ describe('cubeMeasureToSQLSelectString', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const result = cubeMeasureToSQLSelectString(
       measures,
-      tableSchemaWithAliases
+      tableSchemaWithAliases,
+      { isDotDelimiterEnabled: false }
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
@@ -85,7 +86,8 @@ describe('cubeMeasureToSQLSelectString', () => {
       [],
       measures,
       tableSchema,
-      sqlToReplace
+      sqlToReplace,
+      { isDotDelimiterEnabled: false }
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM my_table`
@@ -99,7 +101,8 @@ describe('cubeMeasureToSQLSelectString', () => {
       [],
       measures,
       tableSchema,
-      sqlToReplace
+      sqlToReplace,
+      { isDotDelimiterEnabled: false }
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
@@ -114,7 +117,8 @@ describe('cubeMeasureToSQLSelectString', () => {
       dimensions,
       measures,
       tableSchema,
-      sqlToReplace
+      sqlToReplace,
+      { isDotDelimiterEnabled: false }
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
@@ -128,7 +132,8 @@ describe('cubeMeasureToSQLSelectString', () => {
       [],
       measures,
       tableSchemaWithAliases,
-      sqlToReplace
+      sqlToReplace,
+      { isDotDelimiterEnabled: false }
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`

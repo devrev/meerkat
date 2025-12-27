@@ -348,7 +348,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig);
+    const schemas = generateResolutionSchemas(resolutionConfig, { isDotDelimiterEnabled: false });
 
     expect(schemas).toEqual([
       {
@@ -431,7 +431,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig);
+      generateResolutionSchemas(resolutionConfig, { isDotDelimiterEnabled: false });
     }).toThrow('Table schema not found for resolution_table1');
   });
 
@@ -469,7 +469,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig);
+      generateResolutionSchemas(resolutionConfig, { isDotDelimiterEnabled: false });
     }).toThrow('Dimension not found: display_id');
   });
 
@@ -505,7 +505,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig);
+    const schemas = generateResolutionSchemas(resolutionConfig, { isDotDelimiterEnabled: false });
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -573,7 +573,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig);
+    const schemas = generateResolutionSchemas(resolutionConfig, { isDotDelimiterEnabled: false });
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -618,11 +618,12 @@ describe('Generate resolved dimensions', () => {
       tableSchemas: [],
     };
 
-    const resolvedDimensions = generateResolvedDimensions(
-      BASE_DATA_SOURCE_NAME,
+    const resolvedDimensions = generateResolvedDimensions({
+      baseDataSourceName: BASE_DATA_SOURCE_NAME,
       query,
-      resolutionConfig
-    );
+      config: resolutionConfig,
+      options: { isDotDelimiterEnabled: false },
+    });
 
     expect(resolvedDimensions).toEqual([
       'base_table__column1.base_table__column1__display_id',
@@ -648,11 +649,12 @@ describe('Generate resolved dimensions', () => {
       tableSchemas: [],
     };
 
-    const resolvedDimensions = generateResolvedDimensions(
-      BASE_DATA_SOURCE_NAME,
+    const resolvedDimensions = generateResolvedDimensions({
+      baseDataSourceName: BASE_DATA_SOURCE_NAME,
       query,
-      resolutionConfig
-    );
+      config: resolutionConfig,
+      options: { isDotDelimiterEnabled: false },
+    });
 
     expect(resolvedDimensions).toEqual([
       '__base_query.base_table__count',
@@ -690,12 +692,13 @@ describe('Generate resolved dimensions', () => {
       'base_table.total',
     ];
 
-    const resolvedDimensions = generateResolvedDimensions(
-      BASE_DATA_SOURCE_NAME,
+    const resolvedDimensions = generateResolvedDimensions({
+      baseDataSourceName: BASE_DATA_SOURCE_NAME,
       query,
-      resolutionConfig,
-      projections
-    );
+      config: resolutionConfig,
+      options: { isDotDelimiterEnabled: false },
+      columnProjections: projections,
+    });
 
     expect(resolvedDimensions).toEqual([
       '__base_query.base_table__count',
