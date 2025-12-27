@@ -1,5 +1,5 @@
 import { getAliasFromSchema } from '../member-formatters/get-alias';
-import { TableSchema } from '../types/cube-types';
+import { MeerkatQueryOptions, TableSchema } from '../types/cube-types';
 import {
   ExpressionClass,
   ExpressionType,
@@ -10,7 +10,7 @@ import { ResultModifierType } from '../types/duckdb-serialization-types/serializ
 export const cubeOrderByToAST = (
   order: { [key: string]: 'asc' | 'desc' },
   tableSchema: TableSchema,
-  isDotDelimiterEnabled: boolean
+  options: MeerkatQueryOptions
 ) => {
   const orderArr = [];
   for (const key in order) {
@@ -32,7 +32,7 @@ export const cubeOrderByToAST = (
             name: key,
             tableSchema,
             shouldWrapAliasWithQuotes: false, // AST auto-quotes
-            isDotDelimiterEnabled,
+            isDotDelimiterEnabled: options.isDotDelimiterEnabled,
           }),
         ],
       },

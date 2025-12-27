@@ -11,6 +11,7 @@ import { splitIntoDataSourceAndFields } from './split-into-data-source-and-field
  * @param shouldWrapAliasWithQuotes - When true, wraps alias in quotes for SQL validity.
  *   Use `true` for SELECT projections where special characters need quoting.
  *   Use `false` for AST nodes (DuckDB auto-quotes) and internal schema references.
+ * @param options - MeerkatQueryOptions containing isDotDelimiterEnabled
  */
 export const getAliasFromSchema = ({
   name,
@@ -40,6 +41,7 @@ export const getAliasFromSchema = ({
  * @param shouldWrapAliasWithQuotes - When true, wraps alias in quotes for SQL validity.
  *   Use `true` for SELECT projections where special characters need quoting.
  *   Use `false` for AST nodes (DuckDB auto-quotes) and internal schema references.
+ * @param options - MeerkatQueryOptions containing isDotDelimiterEnabled
  */
 export const constructAlias = ({
   name,

@@ -135,8 +135,6 @@ export const getFilterParamsAST = (
           tableSchema,
           {
             filterType,
-            // For BASE_FILTER: isDotDelimiterEnabled is ignored (uses raw column names)
-            // For PROJECTION_FILTER: defaults to false for backward compatibility
             // Filter params in base SQL don't need dot delimiter support
             isDotDelimiterEnabled: false,
           }

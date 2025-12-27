@@ -1,11 +1,11 @@
 import { getAliasFromSchema, getNamespacedKey } from '../member-formatters';
-import { TableSchema } from '../types/cube-types';
+import { MeerkatQueryOptions, TableSchema } from '../types/cube-types';
 
 export const meerkatPlaceholderReplacer = (
   sql: string,
   originalTableName: string,
   tableSchema: TableSchema,
-  isDotDelimiterEnabled: boolean
+  options: MeerkatQueryOptions
 ) => {
   const tableNameEncapsulationRegEx = /\{MEERKAT\}\.([a-zA-Z_][a-zA-Z0-9_]*)/g;
   return sql.replace(tableNameEncapsulationRegEx, (_, columnName) => {
@@ -13,7 +13,7 @@ export const meerkatPlaceholderReplacer = (
       name: getNamespacedKey(originalTableName, columnName),
       tableSchema,
       shouldWrapAliasWithQuotes: true,
-      isDotDelimiterEnabled,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     });
   });
 };

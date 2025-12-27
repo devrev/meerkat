@@ -94,7 +94,7 @@ export const cubeQueryToSQL = async ({
     measures,
     updatedTableSchema,
     replaceBaseTableName,
-    options.isDotDelimiterEnabled
+    options
   );
 
   /**

@@ -33,6 +33,7 @@ describe('get-alias', () => {
           name: 'orders.total_amount',
           alias: 'Total Amount',
           shouldWrapAliasWithQuotes: true,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('"Total Amount"');
       });
@@ -41,6 +42,7 @@ describe('get-alias', () => {
         const result = constructAlias({
           name: 'orders.total_amount',
           shouldWrapAliasWithQuotes: true,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('orders__total_amount');
       });
@@ -50,6 +52,7 @@ describe('get-alias', () => {
           name: 'orders.field',
           alias: 'Field.With.Dots',
           shouldWrapAliasWithQuotes: true,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('"Field.With.Dots"');
       });
@@ -61,6 +64,7 @@ describe('get-alias', () => {
           name: 'orders.total_amount',
           alias: 'Total Amount',
           shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('Total Amount');
       });
@@ -69,6 +73,7 @@ describe('get-alias', () => {
         const result = constructAlias({
           name: 'orders.total_amount',
           shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('orders__total_amount');
       });
@@ -78,6 +83,7 @@ describe('get-alias', () => {
           name: 'orders.field',
           alias: 'Field.With.Dots',
           shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('Field.With.Dots');
       });
@@ -92,6 +98,7 @@ describe('get-alias', () => {
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: true,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('orders__customer_id');
       });
@@ -104,6 +111,7 @@ describe('get-alias', () => {
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: true,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('"Customer ID"');
       });
@@ -117,6 +125,7 @@ describe('get-alias', () => {
           name: 'orders.total_amount',
           tableSchema,
           shouldWrapAliasWithQuotes: true,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('"Total Amount"');
       });
@@ -129,6 +138,7 @@ describe('get-alias', () => {
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('orders__customer_id');
       });
@@ -141,6 +151,7 @@ describe('get-alias', () => {
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('Customer ID');
       });
@@ -151,6 +162,7 @@ describe('get-alias', () => {
           name: 'orders.unknown_field',
           tableSchema,
           shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled: false,
         });
         expect(result).toBe('orders__unknown_field');
       });

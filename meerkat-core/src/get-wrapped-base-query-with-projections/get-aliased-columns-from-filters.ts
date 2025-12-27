@@ -1,6 +1,11 @@
 import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
-import { MeerkatQueryFilter, Query, TableSchema } from '../types/cube-types';
+import {
+  MeerkatQueryFilter,
+  MeerkatQueryOptions,
+  Query,
+  TableSchema,
+} from '../types/cube-types';
 import {
   findInDimensionSchema,
   findInMeasureSchema,
@@ -13,13 +18,13 @@ export const getDimensionProjection = ({
   tableSchema,
   modifiers,
   query,
-  isDotDelimiterEnabled,
+  options,
 }: {
   key: string;
   tableSchema: TableSchema;
   modifiers: Modifier[];
   query: Query;
-  isDotDelimiterEnabled: boolean;
+  options: MeerkatQueryOptions;
 }) => {
   // Find the table access key
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
@@ -47,7 +52,7 @@ export const getDimensionProjection = ({
     name: key,
     tableSchema,
     shouldWrapAliasWithQuotes: true,
-    isDotDelimiterEnabled,
+    isDotDelimiterEnabled: options.isDotDelimiterEnabled,
   });
   // Add the alias key to the set. So we have a reference to all the previously selected members.
   return { sql: `${modifiedSql} AS ${aliasKey}`, foundMember, aliasKey };
@@ -57,12 +62,12 @@ export const getFilterMeasureProjection = ({
   key,
   tableSchema,
   measures,
-  isDotDelimiterEnabled,
+  options,
 }: {
   key: string;
   tableSchema: TableSchema;
   measures: string[];
-  isDotDelimiterEnabled: boolean;
+  options: MeerkatQueryOptions;
 }) => {
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
   const foundMember = findInMeasureSchema(measureWithoutTable, tableSchema);
@@ -81,7 +86,7 @@ export const getFilterMeasureProjection = ({
     name: key,
     tableSchema,
     shouldWrapAliasWithQuotes: true,
-    isDotDelimiterEnabled,
+    isDotDelimiterEnabled: options.isDotDelimiterEnabled,
   });
   return { sql: `${key} AS ${aliasKey}`, foundMember, aliasKey };
 };
@@ -91,13 +96,13 @@ const getFilterProjections = ({
   tableSchema,
   measures,
   query,
-  isDotDelimiterEnabled,
+  options,
 }: {
   member: string;
   tableSchema: TableSchema;
   measures: string[];
   query: Query;
-  isDotDelimiterEnabled: boolean;
+  options: MeerkatQueryOptions;
 }) => {
   const [, memberWithoutTable] = splitIntoDataSourceAndFields(member);
   const isDimension = findInDimensionSchema(memberWithoutTable, tableSchema);
@@ -107,7 +112,7 @@ const getFilterProjections = ({
       tableSchema,
       modifiers: [],
       query,
-      isDotDelimiterEnabled,
+      options,
     });
   }
   const isMeasure = findInMeasureSchema(memberWithoutTable, tableSchema);
@@ -116,7 +121,7 @@ const getFilterProjections = ({
       key: member,
       tableSchema,
       measures,
-      isDotDelimiterEnabled,
+      options,
     });
   }
   return {
@@ -131,13 +136,13 @@ export const getAliasedColumnsFromFilters = ({
   tableSchema,
   aliasedColumnSet,
   query,
-  isDotDelimiterEnabled,
+  options,
 }: {
   meerkatFilters?: MeerkatQueryFilter[];
   tableSchema: TableSchema;
   aliasedColumnSet: Set<string>;
   query: Query;
-  isDotDelimiterEnabled: boolean;
+  options: MeerkatQueryOptions;
 }) => {
   const parts: string[] = [];
   const { measures } = query;
@@ -149,7 +154,7 @@ export const getAliasedColumnsFromFilters = ({
         tableSchema,
         aliasedColumnSet,
         query,
-        isDotDelimiterEnabled,
+        options,
       });
       if (sql) {
         parts.push(sql);
@@ -162,7 +167,7 @@ export const getAliasedColumnsFromFilters = ({
         meerkatFilters: filter.or,
         aliasedColumnSet,
         query,
-        isDotDelimiterEnabled,
+        options,
       });
       if (sql) {
         parts.push(sql);
@@ -178,7 +183,7 @@ export const getAliasedColumnsFromFilters = ({
         tableSchema,
         measures,
         query,
-        isDotDelimiterEnabled,
+        options,
       });
       if (!foundMember || aliasedColumnSet.has(aliasKey)) {
         // If the selected member is not found in the table schema or if it is already selected, continue.

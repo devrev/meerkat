@@ -37,8 +37,6 @@ export const cubeQueryToSQLWithResolution = async ({
   columnProjections,
   contextParams,
 }: CubeQueryToSQLWithResolutionParams) => {
-  const { isDotDelimiterEnabled } = options;
-
   // Check if resolution should be skipped
   if (shouldSkipResolution(resolutionConfig, query, columnProjections)) {
     return await cubeQueryToSQL({
@@ -113,7 +111,7 @@ export const cubeQueryToSQLWithResolution = async ({
 
   // Transform field names in configs to match base table schema format
   resolutionConfig.columnConfigs.forEach((config) => {
-    config.name = memberKeyToSafeKey(config.name, isDotDelimiterEnabled);
+    config.name = memberKeyToSafeKey(config.name, options);
   });
 
   const rowIdDimension: Dimension = {

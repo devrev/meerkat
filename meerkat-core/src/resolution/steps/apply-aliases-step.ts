@@ -45,7 +45,6 @@ export const applyAliases = async ({
   cubeQueryToSQL,
   options,
 }: ApplyAliasesParams): Promise<string> => {
-  const { isDotDelimiterEnabled } = options;
   // Restore aliases from original tableSchemas to get nice column names in final output
   // Create a map of schemaName__fieldName -> alias from original schemas
   const aliasMap = new Map<string, string>();
@@ -68,7 +67,7 @@ export const applyAliases = async ({
 
       const columnName = memberKeyToSafeKey(
         `${schemaName}.${member.name}`,
-        isDotDelimiterEnabled
+        options
       );
       const columnConfig = columnConfigMap.get(columnName);
 
@@ -88,7 +87,7 @@ export const applyAliases = async ({
               joinedTableName,
               columnConfig.resolutionColumns[0]
             ),
-            isDotDelimiterEnabled
+            options
           ),
           member.alias
         );
@@ -118,7 +117,7 @@ export const applyAliases = async ({
         aliasMap.set(
           memberKeyToSafeKey(
             getNamespacedKey(joinedTableName, resolutionColumn),
-            isDotDelimiterEnabled
+            options
           ),
           constructCompoundAlias(member.alias, sourceFieldAlias)
         );

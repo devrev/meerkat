@@ -28,7 +28,7 @@ export const getWrappedBaseQueryWithProjections = ({
     query,
     tableSchema,
     aliasedColumnSet,
-    options.isDotDelimiterEnabled
+    options
   );
 
   const aliasFromFilters = getAliasedColumnsFromFilters({
@@ -37,7 +37,7 @@ export const getWrappedBaseQueryWithProjections = ({
     tableSchema: tableSchema,
     query,
     meerkatFilters: query.filters,
-    isDotDelimiterEnabled: options.isDotDelimiterEnabled,
+    options,
   });
 
   const parts = [aliasFromFilters, memberProjections].filter(

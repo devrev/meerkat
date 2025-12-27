@@ -54,14 +54,13 @@ const constructBaseDimension = (
   schema: Measure | Dimension,
   options: MeerkatQueryOptions
 ) => {
-  const { isDotDelimiterEnabled } = options;
   return {
-    name: memberKeyToSafeKey(name, isDotDelimiterEnabled),
+    name: memberKeyToSafeKey(name, options),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
       name,
       alias: schema.alias,
       shouldWrapAliasWithQuotes: true,
-      isDotDelimiterEnabled,
+      options,
     })}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
@@ -69,7 +68,7 @@ const constructBaseDimension = (
       name,
       alias: schema.alias,
       shouldWrapAliasWithQuotes: false, // Internal schema reference,
-      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
+      options,
     }),
   };
 };
@@ -82,7 +81,6 @@ export const createBaseTableSchema = (
   dimensions: Member[] | undefined,
   options: MeerkatQueryOptions
 ) => {
-  const { isDotDelimiterEnabled } = options;
   const schemaByName: Record<string, Measure | Dimension> = {};
   tableSchemas.forEach((tableSchema) => {
     tableSchema.dimensions.forEach((dimension) => {
@@ -111,11 +109,9 @@ export const createBaseTableSchema = (
         name: config.name,
         alias: schemaByName[config.name]?.alias,
         shouldWrapAliasWithQuotes: true,
-        isDotDelimiterEnabled: options.isDotDelimiterEnabled,
-      })} = ${memberKeyToSafeKey(config.name, isDotDelimiterEnabled)}.${
-        config.joinColumn
-      }`,
-      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
+        options,
+      })} = ${memberKeyToSafeKey(config.name, options)}.${config.joinColumn}`,
+      options,
     })),
   };
 };

@@ -41,8 +41,6 @@ export const cubeQueryToSQL = async ({
   options,
   contextParams,
 }: CubeQueryToSQLParams) => {
-  const { isDotDelimiterEnabled } = options;
-
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
       const baseFilterParamsSQL = await getFinalBaseSQL({
@@ -64,7 +62,7 @@ export const cubeQueryToSQL = async ({
   );
 
   const ast = cubeToDuckdbAST(query, updatedTableSchema, {
-    isDotDelimiterEnabled,
+    ...options,
     filterType: 'BASE_FILTER',
   });
   if (!ast) {
@@ -115,7 +113,7 @@ export const cubeQueryToSQL = async ({
     measures,
     updatedTableSchema,
     replaceBaseTableName,
-    isDotDelimiterEnabled
+    options
   );
 
   /**

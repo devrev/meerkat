@@ -41,7 +41,6 @@ export const getResolvedTableSchema = async ({
   }) => Promise<string>;
   options: MeerkatQueryOptions;
 }): Promise<TableSchema> => {
-  const { isDotDelimiterEnabled } = options;
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
   // Generate resolution schemas for fields that need resolution
@@ -62,7 +61,7 @@ export const getResolvedTableSchema = async ({
   };
 
   const updatedColumnProjections = columnProjections?.map((cp) =>
-    memberKeyToSafeKey(cp, isDotDelimiterEnabled)
+    memberKeyToSafeKey(cp, options)
   );
   // Generate resolved dimensions using columnProjections
   const resolvedDimensions = generateResolvedDimensions(

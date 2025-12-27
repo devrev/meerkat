@@ -2,7 +2,7 @@ import { COLUMN_NAME_DELIMITER, MEERKAT_OUTPUT_DELIMITER } from './constants';
 
 export const memberKeyToSafeKey = (
   memberKey: string,
-  isDotDelimiterEnabled = false
+  isDotDelimiterEnabled: boolean
 ) => {
   if (isDotDelimiterEnabled) {
     return memberKey; // Return as-is, caller handles quoting
