@@ -67,7 +67,7 @@ export const applyAliases = async ({
 
       const columnName = memberKeyToSafeKey(
         `${schemaName}.${member.name}`,
-        options
+        options.isDotDelimiterEnabled
       );
       const columnConfig = columnConfigMap.get(columnName);
 
@@ -87,7 +87,7 @@ export const applyAliases = async ({
               joinedTableName,
               columnConfig.resolutionColumns[0]
             ),
-            options
+            options.isDotDelimiterEnabled
           ),
           member.alias
         );
@@ -117,7 +117,7 @@ export const applyAliases = async ({
         aliasMap.set(
           memberKeyToSafeKey(
             getNamespacedKey(joinedTableName, resolutionColumn),
-            options
+            options.isDotDelimiterEnabled
           ),
           constructCompoundAlias(member.alias, sourceFieldAlias)
         );

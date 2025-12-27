@@ -111,7 +111,10 @@ export const cubeQueryToSQLWithResolution = async ({
 
   // Transform field names in configs to match base table schema format
   resolutionConfig.columnConfigs.forEach((config) => {
-    config.name = memberKeyToSafeKey(config.name, options);
+    config.name = memberKeyToSafeKey(
+      config.name,
+      options.isDotDelimiterEnabled
+    );
   });
 
   const rowIdDimension: Dimension = {
@@ -153,7 +156,6 @@ export const cubeQueryToSQLWithResolution = async ({
     resolutionConfig,
     contextParams,
     cubeQueryToSQL: async (params) => cubeQueryToSQL({ ...params, options }),
-    options,
   });
 
   // Apply aliases and generate final SQL
