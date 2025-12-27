@@ -1,13 +1,21 @@
 import { getNamespacedKey, memberKeyToSafeKey } from '../../member-formatters';
+import { MeerkatQueryOptions } from '../../types/cube-types';
 import { Member, Query } from '../../types/cube-types/query';
 import { ResolutionConfig } from '../types';
 
-export const generateResolvedDimensions = (
-  baseDataSourceName: string,
-  query: Query,
-  config: ResolutionConfig,
-  columnProjections?: string[]
-): Member[] => {
+export const generateResolvedDimensions = ({
+  baseDataSourceName,
+  query,
+  config,
+  options,
+  columnProjections,
+}: {
+  baseDataSourceName: string;
+  query: Query;
+  config: ResolutionConfig;
+  options: MeerkatQueryOptions;
+  columnProjections?: string[];
+}): Member[] => {
   // If column projections are provided, use those.
   // Otherwise, use all measures and dimensions from the original query.
   const aggregatedDimensions = columnProjections
@@ -22,13 +30,19 @@ export const generateResolvedDimensions = (
 
       if (!columnConfig) {
         return [
-          getNamespacedKey(baseDataSourceName, memberKeyToSafeKey(dimension)),
+          getNamespacedKey(
+            baseDataSourceName,
+            memberKeyToSafeKey(dimension, options.isDotDelimiterEnabled)
+          ),
         ];
       } else {
         return columnConfig.resolutionColumns.map((col) =>
           getNamespacedKey(
-            memberKeyToSafeKey(dimension),
-            memberKeyToSafeKey(getNamespacedKey(columnConfig.name, col))
+            memberKeyToSafeKey(dimension, options.isDotDelimiterEnabled),
+            memberKeyToSafeKey(
+              getNamespacedKey(columnConfig.name, col),
+              options.isDotDelimiterEnabled
+            )
           )
         );
       }

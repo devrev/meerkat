@@ -107,7 +107,11 @@ export const cubeQueryToSQLWithResolution = async ({
 
   // At this point, filters/sorts are baked into baseSql using original values
   // We can now override dimensions/measures in the base schema with custom SQL expressions for display
-  const schemaWithOverrides = applySqlOverrides(baseSchema, resolutionConfig);
+  const schemaWithOverrides = applySqlOverrides(
+    baseSchema,
+    resolutionConfig,
+    options
+  );
 
   // Transform field names in configs to match base table schema format
   resolutionConfig.columnConfigs.forEach((config) => {

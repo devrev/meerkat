@@ -14,12 +14,12 @@ export const generateResolutionJoinPaths = (
   return resolutionConfig.columnConfigs.map((config) => [
     {
       left: baseDataSourceName,
-      right: memberKeyToSafeKey(config.name, options),
+      right: memberKeyToSafeKey(config.name, options.isDotDelimiterEnabled),
       on: constructAlias({
         name: config.name,
         alias: findInSchemas(config.name, baseTableSchemas)?.alias,
         shouldWrapAliasWithQuotes: false, // Internal schema reference,
-        options,
+        isDotDelimiterEnabled: options.isDotDelimiterEnabled,
       }),
     },
   ]);

@@ -23,18 +23,9 @@ type MemberType = 'measures' | 'dimensions' | 'segments';
  */
 type Member = string;
 /**
- * Datetime member identifier. Should satisfy to the following
- * regexp: /^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+(\.(second|minute|hour|day|week|month|year))?$/
- */
-type TimeMember = string;
-/**
  * Filter operator string.
  */
 type FilterOperator = 'equals' | 'notEquals' | 'contains' | 'notContains' | 'in' | 'notIn' | 'gt' | 'gte' | 'lt' | 'lte' | 'set' | 'notSet' | 'inDateRange' | 'notInDateRange' | 'onTheDate' | 'beforeDate' | 'afterDate' | 'measureFilter';
-/**
- * Time dimension granularity data type.
- */
-type QueryTimeDimensionGranularity = 'quarter' | 'day' | 'month' | 'year' | 'week' | 'hour' | 'minute' | 'second';
 /**
  * Query order data type.
  */
@@ -43,11 +34,21 @@ type QueryOrderType = 'asc' | 'desc';
  * ApiScopes data type.
  */
 type ApiScopes = 'graphql' | 'meta' | 'data' | 'jobs';
-interface QueryFilter {
+export type FilterType = 'BASE_FILTER' | 'PROJECTION_FILTER';
+type QueryFilterWithValues = {
     member: Member;
     operator: FilterOperator;
     values?: string[];
-}
+};
+type QueryFilterWithSQL = {
+    member: Member;
+    operator: Omit<FilterOperator, 'set' | 'notSet'>;
+    sqlExpression: string;
+};
+/**
+ * Query filter - supports either values array or SQL expression
+ */
+type QueryFilter = QueryFilterWithValues | QueryFilterWithSQL;
 /**
  * Query 'and'-filters type definition.
  */
@@ -63,47 +64,49 @@ type LogicalOrFilter = {
     or: (QueryFilter | LogicalAndFilter)[];
 };
 /**
- * Query datetime dimention interface.
+ * Join Edge data type.
  */
-interface QueryTimeDimension {
-    dimension: Member;
-    dateRange?: string[] | string;
-    granularity?: QueryTimeDimensionGranularity;
+interface JoinNode {
+    /**
+     * Left node.
+     */
+    left: Member;
+    /**
+     * Right node.
+     */
+    right: Member;
+    /**
+     * On condition.
+     */
+    on: string;
 }
+/**
+ * Single node data type.
+ * This is the case when there is no join. Just a single node.
+ */
+interface SingleNode {
+    /**
+     * Left node.
+     */
+    left: Member;
+}
+type JoinPath = [JoinNode | SingleNode, ...JoinNode[]];
+export declare const isJoinNode: (node: JoinNode | SingleNode) => node is JoinNode;
 /**
  * Incoming network query data type.
  */
+type MeerkatQueryFilter = QueryFilter | LogicalAndFilter | LogicalOrFilter;
 interface Query {
     measures: Member[];
-    dimensions?: (Member | TimeMember)[];
-    filters?: (QueryFilter | LogicalAndFilter | LogicalOrFilter)[];
-    timeDimensions?: QueryTimeDimension[];
-    segments?: Member[];
+    dimensions?: Member[];
+    filters?: MeerkatQueryFilter[];
+    joinPaths?: JoinPath[];
     limit?: null | number;
     offset?: number;
-    total?: boolean;
-    totalQuery?: boolean;
-    order?: any;
-    timezone?: string;
-    renewQuery?: boolean;
-    ungrouped?: boolean;
-    responseFormat?: ResultType;
+    order?: Record<string, QueryOrderType>;
 }
 /**
- * Normalized filter interface.
+ * Type guard to check if filter uses SQL expression
  */
-interface NormalizedQueryFilter extends QueryFilter {
-    dimension?: Member;
-}
-/**
- * Normalized query interface.
- */
-interface NormalizedQuery extends Query {
-    filters?: NormalizedQueryFilter[];
-    rowLimit?: null | number;
-    order?: [{
-        id: string;
-        desc: boolean;
-    }];
-}
-export { ApiScopes, ApiType, FilterOperator, LogicalAndFilter, LogicalOrFilter, Member, MemberType, NormalizedQuery, NormalizedQueryFilter, Query, QueryFilter, QueryOrderType, QueryTimeDimension, QueryTimeDimensionGranularity, QueryType, RequestType, ResultType, TimeMember, };
+export declare const isQueryFilterWithSQL: (filter: QueryFilter) => filter is QueryFilterWithSQL;
+export { ApiScopes, ApiType, FilterOperator, JoinPath, LogicalAndFilter, LogicalOrFilter, MeerkatQueryFilter, Member, MemberType, Query, QueryFilter, QueryFilterWithSQL, QueryFilterWithValues, QueryOrderType, QueryType, RequestType, ResultType, };

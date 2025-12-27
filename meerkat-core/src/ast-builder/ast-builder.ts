@@ -38,7 +38,7 @@ const formatFilters = (
             name: item.member,
             alias: item.memberInfo.alias,
             shouldWrapAliasWithQuotes: false, // AST auto-quotes
-            options,
+            isDotDelimiterEnabled: options.isDotDelimiterEnabled,
           }),
         };
       }) as QueryFiltersWithInfo);

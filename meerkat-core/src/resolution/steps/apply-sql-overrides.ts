@@ -1,4 +1,5 @@
 import { memberKeyToSafeKey } from '../../member-formatters';
+import { MeerkatQueryOptions } from '../../types/cube-types';
 import { TableSchema } from '../../types/cube-types/table';
 import { ResolutionConfig } from '../types';
 
@@ -40,7 +41,8 @@ import { ResolutionConfig } from '../types';
  */
 export const applySqlOverrides = (
   baseSchema: TableSchema,
-  resolutionConfig: ResolutionConfig
+  resolutionConfig: ResolutionConfig,
+  options: MeerkatQueryOptions
 ): TableSchema => {
   if (
     !resolutionConfig.sqlOverrideConfigs ||
@@ -70,7 +72,10 @@ export const applySqlOverrides = (
   resolutionConfig.sqlOverrideConfigs.forEach((overrideConfig) => {
     // Convert natural field name to safe key for matching
     // e.g., 'issues.priority' -> 'issues__priority'
-    const safeFieldName = memberKeyToSafeKey(overrideConfig.fieldName);
+    const safeFieldName = memberKeyToSafeKey(
+      overrideConfig.fieldName,
+      options.isDotDelimiterEnabled
+    );
 
     // Check dimensions in base schema
     const dimensionIndex = updatedSchema.dimensions.findIndex(

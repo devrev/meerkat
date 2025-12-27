@@ -22,7 +22,10 @@ export const generateRowNumberSql = (
     const orderClauses = Object.entries(query.order).map(
       ([member, direction]) => {
         // Find the actual column name/alias in the base table dimensions
-        const safeMember = memberKeyToSafeKey(member, options);
+        const safeMember = memberKeyToSafeKey(
+          member,
+          options.isDotDelimiterEnabled
+        );
         const dimension = dimensions.find(
           (d) => d.name === safeMember || d.alias === safeMember
         );

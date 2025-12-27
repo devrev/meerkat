@@ -55,12 +55,12 @@ const constructBaseDimension = (
   options: MeerkatQueryOptions
 ) => {
   return {
-    name: memberKeyToSafeKey(name, options),
+    name: memberKeyToSafeKey(name, options.isDotDelimiterEnabled),
     sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
       name,
       alias: schema.alias,
       shouldWrapAliasWithQuotes: true,
-      options,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     })}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
@@ -68,7 +68,7 @@ const constructBaseDimension = (
       name,
       alias: schema.alias,
       shouldWrapAliasWithQuotes: false, // Internal schema reference,
-      options,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     }),
   };
 };
@@ -109,8 +109,10 @@ export const createBaseTableSchema = (
         name: config.name,
         alias: schemaByName[config.name]?.alias,
         shouldWrapAliasWithQuotes: true,
-        options,
-      })} = ${memberKeyToSafeKey(config.name, options)}.${config.joinColumn}`,
+        isDotDelimiterEnabled: options.isDotDelimiterEnabled,
+      })} = ${memberKeyToSafeKey(config.name, options.isDotDelimiterEnabled)}.${
+        config.joinColumn
+      }`,
       options,
     })),
   };
