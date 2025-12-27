@@ -300,7 +300,8 @@ describe('Joins Tests', () => {
       dimensions: ['authors.author_name'],
     };
     await expect(
-      cubeQueryToSQL({
+      cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
         query: query,
         tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
       })
@@ -330,7 +331,7 @@ describe('Joins Tests', () => {
       dimensions: ['authors.author_name'],
     };
     await expect(
-      cubeQueryToSQL({ query, tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA] })
+      cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA] })
     ).rejects.toThrow(`A loop was detected in the joins.`);
   });
 
@@ -359,7 +360,8 @@ describe('Joins Tests', () => {
       dimensions: ['customers.customer_id', 'orders.customer_id'],
     };
     await expect(
-      cubeQueryToSQL({
+      cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
         query,
         tableSchemas: [
           BOOK_SCHEMA,
@@ -387,7 +389,8 @@ describe('Joins Tests', () => {
         ],
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [AUTHOR_SCHEMA, ORDER_SCHEMA],
     });
@@ -448,7 +451,8 @@ describe('Joins Tests', () => {
         'customers.customer_id',
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [DEMO_SCHEMA, CUSTOMER_SCHEMA, PRODUCT_SCHEMA],
     });
@@ -506,7 +510,8 @@ describe('Joins Tests', () => {
         'customers.customer_id',
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ORDER_SCHEMA, DEMO_SCHEMA, PRODUCT_SCHEMA],
     });
@@ -560,7 +565,8 @@ describe('Joins Tests', () => {
       },
     };
 
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query: query1,
       tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
     });
@@ -610,7 +616,8 @@ describe('Joins Tests', () => {
       ],
     };
 
-    const sql2 = await cubeQueryToSQL({
+    const sql2 = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query: query2,
       tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
     });
@@ -655,7 +662,8 @@ describe('Joins Tests', () => {
       },
       limit: 2,
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
     });

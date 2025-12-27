@@ -135,6 +135,8 @@ export const getFilterParamsAST = (
           tableSchema,
           {
             filterType,
+            // Filter params in base SQL don't need dot delimiter support
+            isDotDelimiterEnabled: false,
           }
         ),
       });

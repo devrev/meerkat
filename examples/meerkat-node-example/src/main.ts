@@ -26,6 +26,7 @@ app.post('/api-v1', async (req, res) => {
   const data = await cubeQueryToSQL({
     query: cube,
     tableSchemas: table_schema,
+    options: { isDotDelimiterEnabled: false },
   });
 
   res.json({ data });

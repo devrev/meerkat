@@ -2,6 +2,7 @@ import {
   ContextParams,
   createWrapperTableSchema,
   getNamespacedKey,
+  MeerkatQueryOptions,
   Query,
   ResolutionConfig,
   TableSchema,
@@ -21,6 +22,7 @@ export const getUnnestTableSchema = async ({
   resolutionConfig,
   contextParams,
   cubeQueryToSQL,
+  options,
 }: {
   baseTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
@@ -30,6 +32,7 @@ export const getUnnestTableSchema = async ({
     tableSchemas: TableSchema[];
     contextParams?: ContextParams;
   }) => Promise<string>;
+  options: MeerkatQueryOptions;
 }): Promise<TableSchema> => {
   const updatedBaseTableSchema = withArrayFlattenModifier(
     baseTableSchema,

@@ -1,6 +1,7 @@
 import {
   BASE_TABLE_NAME,
   ContextParams,
+  MeerkatQueryOptions,
   Query,
   TableSchema,
   applyFilterParamsToBaseSQL,
@@ -29,6 +30,7 @@ export interface CubeQueryToSQLParams {
   connection: AsyncDuckDBConnection;
   query: Query;
   tableSchemas: TableSchema[];
+  options: MeerkatQueryOptions;
   contextParams?: ContextParams;
 }
 
@@ -36,6 +38,7 @@ export const cubeQueryToSQL = async ({
   connection,
   query,
   tableSchemas,
+  options,
   contextParams,
 }: CubeQueryToSQLParams) => {
   const updatedTableSchemas: TableSchema[] = await Promise.all(
@@ -44,6 +47,7 @@ export const cubeQueryToSQL = async ({
         query,
         tableSchema: schema,
         getQueryOutput: (query) => getQueryOutput(query, connection),
+        options,
       });
       return {
         ...schema,
@@ -57,7 +61,10 @@ export const cubeQueryToSQL = async ({
     query
   );
 
-  const ast = cubeToDuckdbAST(query, updatedTableSchema);
+  const ast = cubeToDuckdbAST(query, updatedTableSchema, {
+    ...options,
+    filterType: 'BASE_FILTER',
+  });
   if (!ast) {
     throw new Error('Could not generate AST');
   }
@@ -105,7 +112,8 @@ export const cubeQueryToSQL = async ({
     dimensions,
     measures,
     updatedTableSchema,
-    replaceBaseTableName
+    replaceBaseTableName,
+    options
   );
 
   /**

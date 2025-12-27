@@ -1,7 +1,8 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
+
 import { getAliasFromSchema } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
-import { Query, TableSchema } from '../types/cube-types';
+import { MeerkatQueryOptions, Query, TableSchema } from '../types/cube-types';
 import {
   getDimensionProjection,
   getFilterMeasureProjection,
@@ -32,7 +33,8 @@ const memberClauseAggregator = ({
 export const getProjectionClause = (
   query: Query,
   tableSchema: TableSchema,
-  aliasedColumnSet: Set<string>
+  aliasedColumnSet: Set<string>,
+  options: MeerkatQueryOptions
 ) => {
   const { measures, dimensions = [] } = query;
   const filteredDimensions = dimensions.filter((dimension) => {
@@ -50,12 +52,14 @@ export const getProjectionClause = (
         tableSchema,
         modifiers: MODIFIERS,
         query,
+        options,
       });
       return memberClauseAggregator({
         member: getAliasFromSchema({
           name: member,
           tableSchema,
           shouldWrapAliasWithQuotes: true,
+          isDotDelimiterEnabled: options.isDotDelimiterEnabled,
         }),
         aliasedColumnSet,
         acc,
@@ -74,6 +78,7 @@ export const getProjectionClause = (
         key: member,
         tableSchema,
         measures,
+        options,
       });
       return memberClauseAggregator({
         member,
@@ -108,6 +113,7 @@ export const getProjectionClause = (
       name: column,
       tableSchema,
       shouldWrapAliasWithQuotes: true,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     });
     columnsUsedInMeasuresInProjection += `${column} AS ${safeKey}`;
     if (index !== columnsUsedInMeasures.length - 1) {

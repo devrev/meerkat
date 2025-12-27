@@ -11,21 +11,25 @@ import { splitIntoDataSourceAndFields } from './split-into-data-source-and-field
  * @param shouldWrapAliasWithQuotes - When true, wraps alias in quotes for SQL validity.
  *   Use `true` for SELECT projections where special characters need quoting.
  *   Use `false` for AST nodes (DuckDB auto-quotes) and internal schema references.
+ * @param options - MeerkatQueryOptions containing isDotDelimiterEnabled
  */
 export const getAliasFromSchema = ({
   name,
   tableSchema,
   shouldWrapAliasWithQuotes,
+  isDotDelimiterEnabled,
 }: {
   name: string;
   tableSchema: TableSchema;
   shouldWrapAliasWithQuotes: boolean;
+  isDotDelimiterEnabled: boolean;
 }): string => {
   const [, field] = splitIntoDataSourceAndFields(name);
   return constructAlias({
     name,
     alias: findInSchema(field, tableSchema)?.alias,
     shouldWrapAliasWithQuotes,
+    isDotDelimiterEnabled,
   });
 };
 
@@ -37,15 +41,18 @@ export const getAliasFromSchema = ({
  * @param shouldWrapAliasWithQuotes - When true, wraps alias in quotes for SQL validity.
  *   Use `true` for SELECT projections where special characters need quoting.
  *   Use `false` for AST nodes (DuckDB auto-quotes) and internal schema references.
+ * @param options - MeerkatQueryOptions containing isDotDelimiterEnabled
  */
 export const constructAlias = ({
   name,
   alias,
   shouldWrapAliasWithQuotes,
+  isDotDelimiterEnabled,
 }: {
   name: string;
   alias?: string;
   shouldWrapAliasWithQuotes: boolean;
+  isDotDelimiterEnabled: boolean;
 }): string => {
   if (alias) {
     if (shouldWrapAliasWithQuotes) {
@@ -54,11 +61,25 @@ export const constructAlias = ({
     }
     return alias;
   }
-  return memberKeyToSafeKey(name);
+
+  const safeKey = memberKeyToSafeKey(name, isDotDelimiterEnabled);
+
+  // When using dot delimiter and we need a safe alias (for projections),
+  // we must quote the identifier to preserve the dot
+  if (isDotDelimiterEnabled && shouldWrapAliasWithQuotes) {
+    return `"${safeKey}"`;
+  }
+
+  return safeKey;
 };
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
 
 /**
  * Creates a compound alias by joining two alias strings with " - ".
+ *
  * Used when a field resolves to multiple columns (e.g., "Owners - Display Name").
  *
  * @param baseAlias - The base field alias (e.g., "Owners")
@@ -67,8 +88,8 @@ export const constructAlias = ({
  *
  * @example
  * ```typescript
- * createCompoundAlias("Owners", "Display Name") // "Owners - Display Name"
- * createCompoundAlias("Tags", "Tag Name") // "Tags - Tag Name"
+ * constructCompoundAlias("Owners", "Display Name") // "Owners - Display Name"
+ * constructCompoundAlias("Tags", "Tag Name") // "Tags - Tag Name"
  * ```
  */
 export const constructCompoundAlias = (

@@ -33,7 +33,8 @@ describe('cube-order-by-transformer', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
       const result = cubeOrderByToAST(
         { 'orders.customer_id': 'asc' },
-        tableSchema
+        tableSchema,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result.type).toBe(ResultModifierType.ORDER_MODIFIER);
@@ -54,7 +55,8 @@ describe('cube-order-by-transformer', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
       const result = cubeOrderByToAST(
         { 'orders.customer_id': 'desc' },
-        tableSchema
+        tableSchema,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result.orders[0].type).toBe(OrderType.DESCENDING);
@@ -69,7 +71,8 @@ describe('cube-order-by-transformer', () => {
       ]);
       const result = cubeOrderByToAST(
         { 'orders.customer_id': 'asc' },
-        tableSchema
+        tableSchema,
+        { isDotDelimiterEnabled: false }
       );
 
       // Should NOT have quotes - AST handles quoting automatically
@@ -86,7 +89,8 @@ describe('cube-order-by-transformer', () => {
           'orders.customer_id': 'asc',
           'orders.total_amount': 'desc',
         },
-        tableSchema
+        tableSchema,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result.orders).toHaveLength(2);
@@ -102,7 +106,7 @@ describe('cube-order-by-transformer', () => {
 
     it('should return empty orders array when no order provided', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
-      const result = cubeOrderByToAST({}, tableSchema);
+      const result = cubeOrderByToAST({}, tableSchema, { isDotDelimiterEnabled: false });
 
       expect(result.type).toBe(ResultModifierType.ORDER_MODIFIER);
       expect(result.orders).toEqual([]);
@@ -112,7 +116,7 @@ describe('cube-order-by-transformer', () => {
       const tableSchema = createMockTableSchema([
         { name: 'field', alias: 'Field.With.Dots' },
       ]);
-      const result = cubeOrderByToAST({ 'orders.field': 'asc' }, tableSchema);
+      const result = cubeOrderByToAST({ 'orders.field': 'asc' }, tableSchema, { isDotDelimiterEnabled: false });
 
       // Should NOT have quotes - AST handles quoting automatically
       expect(result.orders[0].expression.column_names).toEqual([

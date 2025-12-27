@@ -63,7 +63,8 @@ describe('Cube Schema to SQL', () => {
         ],
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [productsSchema, suppliersSchema],
     });

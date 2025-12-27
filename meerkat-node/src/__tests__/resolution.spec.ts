@@ -173,7 +173,7 @@ describe('Resolution Tests', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [BASE_TABLE_SCHEMA],
       resolutionConfig: {
@@ -216,7 +216,7 @@ describe('Resolution Tests', () => {
     };
 
     await expect(
-      cubeQueryToSQLWithResolution({
+      cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
         query,
         tableSchemas: [BASE_TABLE_SCHEMA],
         resolutionConfig: {
@@ -246,7 +246,7 @@ describe('Resolution Tests', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
       resolutionConfig: {
@@ -312,7 +312,7 @@ describe('Resolution Tests', () => {
       measures: ['base_table.count'],
       dimensions: ['base_table.part_id_1'],
     };
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
       resolutionConfig: {
@@ -347,7 +347,7 @@ describe('Resolution Tests', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
       resolutionConfig: {
@@ -390,7 +390,7 @@ describe('Resolution Tests', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
       resolutionConfig: {

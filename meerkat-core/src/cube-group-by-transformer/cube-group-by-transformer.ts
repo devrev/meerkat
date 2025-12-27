@@ -1,5 +1,5 @@
 import { getAliasFromSchema } from '../member-formatters/get-alias';
-import { TableSchema } from '../types/cube-types';
+import { MeerkatQueryOptions, TableSchema } from '../types/cube-types';
 import { Member } from '../types/cube-types/query';
 import {
   ExpressionClass,
@@ -8,7 +8,8 @@ import {
 
 export const cubeDimensionToGroupByAST = (
   dimensions: Member[],
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  options: MeerkatQueryOptions
 ) => {
   const groupByAST = dimensions.map((dimension) => {
     const dimensionAST = {
@@ -19,7 +20,8 @@ export const cubeDimensionToGroupByAST = (
         getAliasFromSchema({
           name: dimension,
           tableSchema,
-          shouldWrapAliasWithQuotes: false, // AST auto-quotes
+          shouldWrapAliasWithQuotes: false,
+          isDotDelimiterEnabled: options.isDotDelimiterEnabled,
         }),
       ],
     };

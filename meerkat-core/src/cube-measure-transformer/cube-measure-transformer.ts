@@ -1,12 +1,14 @@
 import { getAliasFromSchema, getNamespacedKey } from '../member-formatters';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
+import { MeerkatQueryOptions } from '../types/cube-types';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
 import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replacer';
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  options: MeerkatQueryOptions
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -22,6 +24,7 @@ export const cubeMeasureToSQLSelectString = (
       name: measure,
       tableSchema,
       shouldWrapAliasWithQuotes: true,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     });
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
@@ -38,7 +41,8 @@ export const cubeMeasureToSQLSelectString = (
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
       tableSchemaName,
-      tableSchema
+      tableSchema,
+      options
     );
 
     /**
@@ -60,6 +64,7 @@ export const cubeMeasureToSQLSelectString = (
         name: memberKey,
         tableSchema,
         shouldWrapAliasWithQuotes: true,
+        isDotDelimiterEnabled: options.isDotDelimiterEnabled,
       });
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
@@ -75,7 +80,8 @@ export const cubeMeasureToSQLSelectString = (
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  options: MeerkatQueryOptions
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -92,6 +98,7 @@ const addDimensionToSQLProjection = (
       name: dimension,
       tableSchema,
       shouldWrapAliasWithQuotes: true,
+      isDotDelimiterEnabled: options.isDotDelimiterEnabled,
     });
 
     if (!dimensionSchema) {
@@ -159,15 +166,21 @@ const getColumnsFromSQL = (sql: string, tableName: string) => {
  * @param measures
  * @param tableSchema
  * @param sqlToReplace
+ * @param options
  * @returns
  */
 export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string
+  sqlToReplace: string,
+  options: MeerkatQueryOptions
 ) => {
-  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
+  let measureSelectString = cubeMeasureToSQLSelectString(
+    measures,
+    tableSchema,
+    options
+  );
 
   if (measures.length > 0 && dimensions.length > 0) {
     measureSelectString += ', ';
@@ -175,7 +188,8 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema
+    tableSchema,
+    options
   );
 
   return getSelectReplacedSql(sqlToReplace, selectString);

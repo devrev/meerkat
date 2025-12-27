@@ -81,7 +81,7 @@ describe('composite-dimensions-and-measures', () => {
       limit: 2,
     };
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false }, query, tableSchemas: [TABLE_SCHEMA] });
     console.info(`SQL for Composite Dimensions and Measures: `, sql);
 
     const output = await duckdbExec(sql);

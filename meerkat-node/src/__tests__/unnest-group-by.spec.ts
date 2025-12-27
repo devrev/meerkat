@@ -90,7 +90,8 @@ describe('cube-to-sql', () => {
         TAGS_DIMENSION,
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
     });
@@ -139,7 +140,8 @@ describe('cube-to-sql', () => {
         TAGS_DIMENSION,
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
     });
@@ -192,7 +194,8 @@ describe('cube-to-sql', () => {
         TAGS_DIMENSION,
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
     });
@@ -233,7 +236,8 @@ describe('cube-to-sql', () => {
         TAGS_DIMENSION,
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
     });
@@ -282,7 +286,8 @@ describe('cube-to-sql', () => {
         },
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
     });
@@ -413,7 +418,8 @@ describe('cube-to-sql', () => {
         },
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
     });
@@ -454,7 +460,8 @@ describe('cube-to-sql', () => {
         TAGS_DIMENSION,
       ],
     };
-    const sql = await cubeQueryToSQL({
+    const sql = await cubeQueryToSQL({ options: { isDotDelimiterEnabled: false },
+        options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
     });

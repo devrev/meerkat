@@ -1,7 +1,7 @@
 import { memberKeyToSafeKey } from '../../member-formatters';
 import { constructCompoundAlias } from '../../member-formatters/get-alias';
 import { getNamespacedKey } from '../../member-formatters/get-namespaced-key';
-import { Query } from '../../types/cube-types/query';
+import { MeerkatQueryOptions, Query } from '../../types/cube-types';
 import { ContextParams, TableSchema } from '../../types/cube-types/table';
 import { ResolutionConfig } from '../types';
 
@@ -15,6 +15,7 @@ export interface ApplyAliasesParams {
     tableSchemas: TableSchema[];
     contextParams?: ContextParams;
   }) => Promise<string>;
+  options: MeerkatQueryOptions;
 }
 
 /**
@@ -42,6 +43,7 @@ export const applyAliases = async ({
   resolutionConfig,
   contextParams,
   cubeQueryToSQL,
+  options,
 }: ApplyAliasesParams): Promise<string> => {
   // Restore aliases from original tableSchemas to get nice column names in final output
   // Create a map of schemaName__fieldName -> alias from original schemas
@@ -63,7 +65,10 @@ export const applyAliases = async ({
     members.forEach((member) => {
       if (!member.alias) return;
 
-      const columnName = memberKeyToSafeKey(`${schemaName}.${member.name}`);
+      const columnName = memberKeyToSafeKey(
+        `${schemaName}.${member.name}`,
+        options.isDotDelimiterEnabled
+      );
       const columnConfig = columnConfigMap.get(columnName);
 
       // No resolution config - use original alias
@@ -78,7 +83,11 @@ export const applyAliases = async ({
       if (columnConfig.resolutionColumns.length === 1) {
         aliasMap.set(
           memberKeyToSafeKey(
-            getNamespacedKey(joinedTableName, columnConfig.resolutionColumns[0])
+            getNamespacedKey(
+              joinedTableName,
+              columnConfig.resolutionColumns[0]
+            ),
+            options.isDotDelimiterEnabled
           ),
           member.alias
         );
@@ -107,7 +116,8 @@ export const applyAliases = async ({
 
         aliasMap.set(
           memberKeyToSafeKey(
-            getNamespacedKey(joinedTableName, resolutionColumn)
+            getNamespacedKey(joinedTableName, resolutionColumn),
+            options.isDotDelimiterEnabled
           ),
           constructCompoundAlias(member.alias, sourceFieldAlias)
         );

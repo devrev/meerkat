@@ -6,6 +6,7 @@ import {
   generateResolvedDimensions,
   getColumnReference,
   getNamespacedKey,
+  MeerkatQueryOptions,
   memberKeyToSafeKey,
   Query,
   ResolutionConfig,
@@ -27,6 +28,7 @@ export const getResolvedTableSchema = async ({
   columnProjections,
   contextParams,
   cubeQueryToSQL,
+  options,
 }: {
   baseTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
@@ -37,16 +39,21 @@ export const getResolvedTableSchema = async ({
     tableSchemas: TableSchema[];
     contextParams?: ContextParams;
   }) => Promise<string>;
+  options: MeerkatQueryOptions;
 }): Promise<TableSchema> => {
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
   // Generate resolution schemas for fields that need resolution
-  const resolutionSchemas = generateResolutionSchemas(resolutionConfig);
+  const resolutionSchemas = generateResolutionSchemas(
+    resolutionConfig,
+    options
+  );
 
   const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
     resolutionConfig,
-    [updatedBaseTableSchema]
+    [updatedBaseTableSchema],
+    options
   );
 
   const tempQuery: Query = {
@@ -57,15 +64,16 @@ export const getResolvedTableSchema = async ({
   };
 
   const updatedColumnProjections = columnProjections?.map((cp) =>
-    memberKeyToSafeKey(cp)
+    memberKeyToSafeKey(cp, options.isDotDelimiterEnabled)
   );
   // Generate resolved dimensions using columnProjections
-  const resolvedDimensions = generateResolvedDimensions(
-    updatedBaseTableSchema.name,
-    tempQuery,
-    resolutionConfig,
-    updatedColumnProjections
-  );
+  const resolvedDimensions = generateResolvedDimensions({
+    baseDataSourceName: updatedBaseTableSchema.name,
+    query: tempQuery,
+    config: resolutionConfig,
+    columnProjections: updatedColumnProjections,
+    options,
+  });
 
   // Create query and generate SQL
   const resolutionQuery: Query = {

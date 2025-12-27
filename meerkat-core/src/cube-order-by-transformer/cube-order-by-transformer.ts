@@ -1,5 +1,5 @@
 import { getAliasFromSchema } from '../member-formatters/get-alias';
-import { TableSchema } from '../types/cube-types';
+import { MeerkatQueryOptions, TableSchema } from '../types/cube-types';
 import {
   ExpressionClass,
   ExpressionType,
@@ -9,7 +9,8 @@ import { ResultModifierType } from '../types/duckdb-serialization-types/serializ
 
 export const cubeOrderByToAST = (
   order: { [key: string]: 'asc' | 'desc' },
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  options: MeerkatQueryOptions
 ) => {
   const orderArr = [];
   for (const key in order) {
@@ -24,13 +25,14 @@ export const cubeOrderByToAST = (
         type: ExpressionType.COLUMN_REF,
         alias: '',
         /**
-         * We need to convert the key in the __ format as they are being projected in this format
+         * We need to convert the key in the appropriate format as they are being projected in this format
          */
         column_names: [
           getAliasFromSchema({
             name: key,
             tableSchema,
             shouldWrapAliasWithQuotes: false, // AST auto-quotes
+            isDotDelimiterEnabled: options.isDotDelimiterEnabled,
           }),
         ],
       },

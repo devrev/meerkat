@@ -196,7 +196,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       tableSchemas: [OWNERS_LOOKUP_SCHEMA],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
@@ -307,7 +307,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       'tickets.created_by',
       'tickets.count',
     ];
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
@@ -414,7 +414,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       'tickets.count',
     ];
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
@@ -482,7 +482,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       tableSchemas: [],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
@@ -551,7 +551,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       'tickets.count',
     ];
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
@@ -683,7 +683,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ticketsWithPrefixSchema],
       resolutionConfig,
@@ -830,7 +830,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ticketsWithMultipleOwnersSchema],
       resolutionConfig,
@@ -1028,7 +1028,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [issuesWithArraySchema],
       resolutionConfig,
@@ -1101,7 +1101,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
@@ -1176,7 +1176,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
@@ -1243,7 +1243,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
@@ -1306,7 +1306,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
@@ -1339,7 +1339,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       // No sqlOverrideConfigs
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
@@ -1389,7 +1389,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
@@ -1453,7 +1453,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
@@ -1506,7 +1506,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
     };
 
     await expect(
-      cubeQueryToSQLWithResolution({
+      cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
         query,
         tableSchemas: [ISSUES_TABLE_SCHEMA],
         resolutionConfig,
@@ -1618,7 +1618,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [issuesWithMultiplePrioritiesSchema],
       resolutionConfig,
@@ -1916,7 +1916,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       ],
     };
 
-    const sql = await cubeQueryToSQLWithResolution({
+    const sql = await cubeQueryToSQLWithResolution({ options: { isDotDelimiterEnabled: false },
       query,
       tableSchemas: [table1Schema, table2Schema],
       resolutionConfig,

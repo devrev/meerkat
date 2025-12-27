@@ -44,7 +44,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result).toHaveLength(1);
@@ -84,7 +85,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result).toHaveLength(1);
@@ -133,7 +135,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result).toHaveLength(2);
@@ -151,7 +154,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result).toEqual([]);
@@ -178,7 +182,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        { isDotDelimiterEnabled: false }
       );
 
       expect(result[0][0].right).toBe('orders__nested__field');

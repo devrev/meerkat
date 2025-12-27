@@ -1,11 +1,11 @@
-import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
-import { duckdbExec } from '../duckdb-exec';
 import {
   CREATE_TEST_TABLE,
   INPUT_DATA_QUERY,
   TABLE_SCHEMA,
-  TEST_DATA,
-} from './test-data';
+  getTestData,
+} from '../__fixtures__/test-data';
+import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
+import { duckdbExec } from '../duckdb-exec';
 
 describe('cube-to-sql', () => {
   beforeAll(async () => {
@@ -16,124 +16,289 @@ describe('cube-to-sql', () => {
     await duckdbExec(INPUT_DATA_QUERY);
   });
 
-  TEST_DATA.flat().forEach((data) => {
-    it(`Testing ${data.testName}`, async () => {
-      const sql = await cubeQueryToSQL({
-        query: data.cubeInput,
-        tableSchemas: [TABLE_SCHEMA],
+  describe('Without dot delimiter', () => {
+    getTestData({ isDotDelimiterEnabled: false })
+      .flat()
+      .forEach((data) => {
+        it(`Testing ${data.testName}`, async () => {
+          const sql = await cubeQueryToSQL({
+            query: data.cubeInput,
+            tableSchemas: [TABLE_SCHEMA],
+            options: {
+              isDotDelimiterEnabled: false,
+            },
+          });
+          expect(sql).toEqual(data.expectedSQL);
+          console.info(`SQL for ${data.testName}: `, sql);
+          //TODO: Remove order by
+          const output = await duckdbExec(sql);
+          const parsedOutput = JSON.parse(JSON.stringify(output));
+          const formattedOutput = parsedOutput.map((row) => {
+            if (!row.order_date) {
+              return row;
+            }
+            return {
+              ...row,
+              order_date: new Date(row.order_date).toISOString(),
+              orders__order_date: row.orders__order_date
+                ? new Date(row.orders__order_date).toISOString()
+                : undefined,
+            };
+          });
+          const expectedOutput = data.expectedOutput.map((row) => {
+            if (!row.order_date) {
+              return row;
+            }
+            return {
+              ...row,
+              order_date: new Date(row.order_date).toISOString(),
+              orders__order_date: row.orders__order_date
+                ? new Date(row.orders__order_date).toISOString()
+                : undefined,
+            };
+          });
+
+          /**
+           * Compare the output with the expected output
+           */
+          expect(formattedOutput).toStrictEqual(expectedOutput);
+          /**
+           * Compare expect SQL with the generated SQL
+           */
+          expect(sql).toBe(data.expectedSQL);
+        });
       });
-      expect(sql).toEqual(data.expectedSQL);
-      console.info(`SQL for ${data.testName}: `, sql);
-      //TODO: Remove order by
+
+    it('Should order the projected value', async () => {
+      const query = {
+        measures: ['orders.total_order_amount'],
+        filters: [],
+        dimensions: ['orders.customer_id'],
+        order: {
+          'orders.total_order_amount': 'desc',
+        },
+        limit: 2,
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: false },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
-      const formattedOutput = parsedOutput.map((row) => {
-        if (!row.order_date) {
-          return row;
-        }
-        return {
-          ...row,
-          order_date: new Date(row.order_date).toISOString(),
-          orders__order_date: row.orders__order_date
-            ? new Date(row.orders__order_date).toISOString()
-            : undefined,
-        };
-      });
-      const expectedOutput = data.expectedOutput.map((row) => {
-        if (!row.order_date) {
-          return row;
-        }
-        return {
-          ...row,
-          order_date: new Date(row.order_date).toISOString(),
-          orders__order_date: row.orders__order_date
-            ? new Date(row.orders__order_date).toISOString()
-            : undefined,
-        };
-      });
+      console.info('parsedOutput', parsedOutput);
+      expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
+        parsedOutput[1].orders__total_order_amount
+      );
+    });
 
-      /**
-       * Compare the output with the expected output
-       */
-      expect(formattedOutput).toStrictEqual(expectedOutput);
-      /**
-       * Compare expect SQL with the generated SQL
-       */
-      expect(sql).toBe(data.expectedSQL);
+    it('Without filter query generator with empty and', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            and: [],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query: query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: false },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toEqual(
+        'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
+      );
+    });
+
+    it('Without filter query generator with empty or', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            or: [],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: false },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toEqual(
+        'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
+      );
+    });
+    it('Should handle empty order', async () => {
+      const query = {
+        order: {},
+        measures: ['*'],
+        filters: [
+          {
+            or: [],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: false },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toEqual(
+        'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
+      );
     });
   });
 
-  it('Should order the projected value', async () => {
-    const query = {
-      measures: ['orders.total_order_amount'],
-      filters: [],
-      dimensions: ['orders.customer_id'],
-      order: {
-        'orders.total_order_amount': 'desc',
-      },
-      limit: 2,
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    const output = await duckdbExec(sql);
-    const parsedOutput = JSON.parse(JSON.stringify(output));
-    console.info('parsedOutput', parsedOutput);
-    expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
-      parsedOutput[1].orders__total_order_amount
-    );
-  });
+  describe('With dot delimiter', () => {
+    getTestData({ isDotDelimiterEnabled: true })
+      .flat()
+      .forEach((data) => {
+        it(`Testing ${data.testName}`, async () => {
+          const sql = await cubeQueryToSQL({
+            query: data.cubeInput,
+            tableSchemas: [TABLE_SCHEMA],
+            options: {
+              isDotDelimiterEnabled: true,
+            },
+          });
+          expect(sql).toEqual(data.expectedSQL);
+          console.info(`SQL for ${data.testName}: `, sql);
+          //TODO: Remove order by
+          const output = await duckdbExec(sql);
+          const parsedOutput = JSON.parse(JSON.stringify(output));
+          const formattedOutput = parsedOutput.map(
+            (row: Record<string, any>) => {
+              if (!row.order_date) {
+                return row;
+              }
+              return {
+                ...row,
+                order_date: new Date(row.order_date).toISOString(),
+                'orders.order_date': row['orders.order_date']
+                  ? new Date(row['orders.order_date']).toISOString()
+                  : undefined,
+              };
+            }
+          );
+          const expectedOutput = data.expectedOutput.map(
+            (row: Record<string, any>) => {
+              if (!row.order_date) {
+                return row;
+              }
+              return {
+                ...row,
+                order_date: new Date(row.order_date).toISOString(),
+                'orders.order_date': row['orders.order_date']
+                  ? new Date(row['orders.order_date']).toISOString()
+                  : undefined,
+              };
+            }
+          );
 
-  it('Without filter query generator with empty and', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [
-        {
-          and: [],
+          /**
+           * Compare the output with the expected output
+           */
+          expect(formattedOutput).toStrictEqual(expectedOutput);
+          /**
+           * Compare expect SQL with the generated SQL
+           */
+          expect(sql).toBe(data.expectedSQL);
+        });
+      });
+
+    it('Should order the projected value', async () => {
+      const query = {
+        measures: ['orders.total_order_amount'],
+        filters: [],
+        dimensions: ['orders.customer_id'],
+        order: {
+          'orders.total_order_amount': 'desc',
         },
-      ],
-      dimensions: [],
-    };
-    const sql = await cubeQueryToSQL({
-      query: query,
-      tableSchemas: [TABLE_SCHEMA],
+        limit: 2,
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: true },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      const output = await duckdbExec(sql);
+      const parsedOutput = JSON.parse(JSON.stringify(output));
+      console.info('parsedOutput', parsedOutput);
+      expect(parsedOutput[0]['orders.total_order_amount']).toBeGreaterThan(
+        parsedOutput[1]['orders.total_order_amount']
+      );
     });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toEqual(
-      'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
-    );
-  });
 
-  it('Without filter query generator with empty or', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [
-        {
-          or: [],
-        },
-      ],
-      dimensions: [],
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toEqual(
-      'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
-    );
-  });
-  it('Should handle empty order', async () => {
-    const query = {
-      order: {},
-      measures: ['*'],
-      filters: [
-        {
-          or: [],
-        },
-      ],
-      dimensions: [],
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toEqual(
-      'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
-    );
+    it('Without filter query generator with empty and', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            and: [],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query: query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: true },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toEqual(
+        'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
+      );
+    });
+
+    it('Without filter query generator with empty or', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            or: [],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: true },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toEqual(
+        'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
+      );
+    });
+    it('Should handle empty order', async () => {
+      const query = {
+        order: {},
+        measures: ['*'],
+        filters: [
+          {
+            or: [],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA],
+        options: { isDotDelimiterEnabled: true },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toEqual(
+        'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
+      );
+    });
   });
 });
