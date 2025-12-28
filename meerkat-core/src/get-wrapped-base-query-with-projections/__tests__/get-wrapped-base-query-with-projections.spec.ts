@@ -40,9 +40,9 @@ describe('get-wrapped-base-query-with-projections', () => {
         query,
       });
 
-      expect(result).toContain('SELECT');
-      expect(result).toContain('orders__customer_id');
-      expect(result).toContain('FROM (SELECT * FROM orders) AS orders');
+      expect(result).toEqual(
+        'SELECT orders.customer_id AS orders__customer_id, * FROM (SELECT * FROM orders) AS orders'
+      );
     });
 
     it('should include measures in projections with underscores', () => {
@@ -63,7 +63,9 @@ describe('get-wrapped-base-query-with-projections', () => {
         query,
       });
 
-      expect(result).toContain('orders__total');
+      expect(result).toEqual(
+        'SELECT orders.total AS orders__total, * FROM (SELECT * FROM orders) AS orders'
+      );
     });
 
     it('should handle dimension with underscore in name', () => {
@@ -82,7 +84,9 @@ describe('get-wrapped-base-query-with-projections', () => {
         query,
       });
 
-      expect(result).toContain('data__customer_nested_id');
+      expect(result).toEqual(
+        'SELECT data.customer_nested_id AS data__customer_nested_id, * FROM (SELECT * FROM data) AS data'
+      );
     });
 
     it('should use custom alias when provided', () => {
@@ -101,7 +105,9 @@ describe('get-wrapped-base-query-with-projections', () => {
         query,
       });
 
-      expect(result).toContain('"Customer"');
+      expect(result).toEqual(
+        'SELECT orders.customer_id AS "Customer", * FROM (SELECT * FROM orders) AS orders'
+      );
     });
 
     it('should handle filters and add projections for filter members', () => {
@@ -124,24 +130,9 @@ describe('get-wrapped-base-query-with-projections', () => {
         query,
       });
 
-      expect(result).toContain('orders__customer_id');
-    });
-
-    it('should always include * in final select', () => {
-      const baseQuery = 'SELECT * FROM orders';
-      const tableSchema = createMockTableSchema('orders', []);
-      const query: Query = {
-        measures: [],
-        dimensions: [],
-      };
-
-      const result = getWrappedBaseQueryWithProjections({
-        baseQuery,
-        tableSchema,
-        query,
-      });
-
-      expect(result).toContain('*');
+      expect(result).toEqual(
+        'SELECT orders.status AS orders__status, orders.customer_id AS orders__customer_id, * FROM (SELECT * FROM orders) AS orders'
+      );
     });
 
     it('should handle empty dimensions and measures', () => {
@@ -158,8 +149,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         query,
       });
 
-      expect(result).toContain('SELECT');
-      expect(result).toContain('*');
+      expect(result).toEqual('SELECT * FROM (SELECT * FROM orders) AS orders');
     });
 
     it('should handle both dimensions and measures together', () => {
@@ -180,8 +170,9 @@ describe('get-wrapped-base-query-with-projections', () => {
         query,
       });
 
-      expect(result).toContain('orders__customer_id');
-      expect(result).toContain('orders__total');
+      expect(result).toEqual(
+        'SELECT orders.customer_id AS orders__customer_id, orders.total AS orders__total, * FROM (SELECT * FROM orders) AS orders'
+      );
     });
   });
 });
