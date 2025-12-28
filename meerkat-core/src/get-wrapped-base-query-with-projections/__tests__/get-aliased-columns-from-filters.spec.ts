@@ -17,7 +17,6 @@ const TABLE_SCHEMA: TableSchema = {
   ],
   name: 'test',
   sql: 'SELECT * from test',
-  // Define your table schema here
 };
 
 describe('get-aliased-columns-from-filters', () => {
