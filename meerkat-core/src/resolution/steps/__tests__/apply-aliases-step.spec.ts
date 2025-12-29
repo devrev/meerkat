@@ -25,7 +25,9 @@ describe('apply-aliases-step', () => {
       })),
     });
 
-    const mockCubeQueryToSQL = jest.fn().mockResolvedValue('SELECT * FROM test');
+    const mockCubeQueryToSQL = jest
+      .fn()
+      .mockResolvedValue('SELECT * FROM test');
 
     beforeEach(() => {
       mockCubeQueryToSQL.mockClear();
@@ -54,7 +56,7 @@ describe('apply-aliases-step', () => {
 
       await applyAliases(params);
 
-      expect(mockCubeQueryToSQL).toHaveBeenCalled();
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
@@ -98,7 +100,7 @@ describe('apply-aliases-step', () => {
 
       await applyAliases(params);
 
-      expect(mockCubeQueryToSQL).toHaveBeenCalled();
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
@@ -145,7 +147,7 @@ describe('apply-aliases-step', () => {
 
       await applyAliases(params);
 
-      expect(mockCubeQueryToSQL).toHaveBeenCalled();
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Owner - First Name');
@@ -178,7 +180,7 @@ describe('apply-aliases-step', () => {
 
       await applyAliases(params);
 
-      expect(mockCubeQueryToSQL).toHaveBeenCalled();
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
     });
 
     it('should handle measures from original schema', async () => {
@@ -208,7 +210,7 @@ describe('apply-aliases-step', () => {
 
       await applyAliases(params);
 
-      expect(mockCubeQueryToSQL).toHaveBeenCalled();
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       // Measures are converted to dimensions in the final schema
@@ -224,7 +226,9 @@ describe('apply-aliases-step', () => {
           },
         ]);
         const originalTableSchemas = [
-          createMockTableSchema('orders', [{ name: 'owner_id', alias: 'Owner' }]),
+          createMockTableSchema('orders', [
+            { name: 'owner_id', alias: 'Owner' },
+          ]),
         ];
         const resolutionConfig: ResolutionConfig = {
           columnConfigs: [
@@ -259,7 +263,9 @@ describe('apply-aliases-step', () => {
           },
         ]);
         const originalTableSchemas = [
-          createMockTableSchema('orders', [{ name: 'owner_id', alias: 'Owner' }]),
+          createMockTableSchema('orders', [
+            { name: 'owner_id', alias: 'Owner' },
+          ]),
         ];
         const resolutionConfig: ResolutionConfig = {
           columnConfigs: [
@@ -316,11 +322,227 @@ describe('apply-aliases-step', () => {
 
       await applyAliases(params);
 
-      expect(mockCubeQueryToSQL).toHaveBeenCalled();
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       // Should keep original alias from aggregated schema
       expect(calledSchema.dimensions[0].alias).toBe('orders__customer_id');
+    });
+
+    it('should pass context params to cubeQueryToSQL', async () => {
+      const aggregatedTableSchema = createMockTableSchema('aggregated', [
+        { name: 'orders__customer_id', alias: 'orders__customer_id' },
+      ]);
+      const originalTableSchemas = [
+        createMockTableSchema('orders', [
+          { name: 'customer_id', alias: 'Customer ID' },
+        ]),
+      ];
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+      const contextParams = { userId: '123', orgId: 'abc' };
+
+      const params: ApplyAliasesParams = {
+        aggregatedTableSchema,
+        originalTableSchemas,
+        resolutionConfig,
+        contextParams,
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      };
+
+      await applyAliases(params);
+
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
+      expect(mockCubeQueryToSQL.mock.calls[0][0].contextParams).toEqual({
+        userId: '123',
+        orgId: 'abc',
+      });
+    });
+
+    it('should merge dimensions and measures into dimensions array', async () => {
+      const aggregatedTableSchema = createMockTableSchema(
+        'aggregated',
+        [{ name: 'orders__status', alias: 'orders__status' }],
+        [{ name: 'orders__total', alias: 'orders__total' }]
+      );
+      const originalTableSchemas = [
+        createMockTableSchema(
+          'orders',
+          [{ name: 'status', alias: 'Status' }],
+          [{ name: 'total', alias: 'Total' }]
+        ),
+      ];
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const params: ApplyAliasesParams = {
+        aggregatedTableSchema,
+        originalTableSchemas,
+        resolutionConfig,
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      };
+
+      await applyAliases(params);
+
+      const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
+        .tableSchemas[0] as TableSchema;
+      expect(calledSchema.dimensions).toHaveLength(2);
+      expect(calledSchema.dimensions[0].alias).toBe('Status');
+      expect(calledSchema.dimensions[1].alias).toBe('Total');
+      expect(calledSchema.measures).toEqual([]);
+    });
+
+    it('should generate query with all dimensions namespaced', async () => {
+      const aggregatedTableSchema = createMockTableSchema('aggregated', [
+        { name: 'orders__customer_id', alias: 'orders__customer_id' },
+        { name: 'orders__status', alias: 'orders__status' },
+      ]);
+      const originalTableSchemas = [
+        createMockTableSchema('orders', [
+          { name: 'customer_id', alias: 'Customer ID' },
+          { name: 'status', alias: 'Status' },
+        ]),
+      ];
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const params: ApplyAliasesParams = {
+        aggregatedTableSchema,
+        originalTableSchemas,
+        resolutionConfig,
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      };
+
+      await applyAliases(params);
+
+      const calledQuery = mockCubeQueryToSQL.mock.calls[0][0].query;
+      expect(calledQuery.measures).toEqual([]);
+      expect(calledQuery.dimensions).toEqual([
+        'aggregated.orders__customer_id',
+        'aggregated.orders__status',
+      ]);
+    });
+
+    it('should handle multiple original table schemas', async () => {
+      const aggregatedTableSchema = createMockTableSchema('aggregated', [
+        { name: 'orders__customer_id', alias: 'orders__customer_id' },
+        { name: 'products__name', alias: 'products__name' },
+      ]);
+      const originalTableSchemas = [
+        createMockTableSchema('orders', [
+          { name: 'customer_id', alias: 'Customer ID' },
+        ]),
+        createMockTableSchema('products', [
+          { name: 'name', alias: 'Product Name' },
+        ]),
+      ];
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const params: ApplyAliasesParams = {
+        aggregatedTableSchema,
+        originalTableSchemas,
+        resolutionConfig,
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      };
+
+      await applyAliases(params);
+
+      const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
+        .tableSchemas[0] as TableSchema;
+      expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
+      expect(calledSchema.dimensions[1].alias).toBe('Product Name');
+    });
+
+    it('should return SQL from cubeQueryToSQL', async () => {
+      mockCubeQueryToSQL.mockResolvedValueOnce(
+        'SELECT customer_id AS "Customer ID" FROM orders'
+      );
+
+      const aggregatedTableSchema = createMockTableSchema('aggregated', [
+        { name: 'orders__customer_id', alias: 'orders__customer_id' },
+      ]);
+      const originalTableSchemas = [
+        createMockTableSchema('orders', [
+          { name: 'customer_id', alias: 'Customer ID' },
+        ]),
+      ];
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const params: ApplyAliasesParams = {
+        aggregatedTableSchema,
+        originalTableSchemas,
+        resolutionConfig,
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      };
+
+      const result = await applyAliases(params);
+
+      expect(result).toBe('SELECT customer_id AS "Customer ID" FROM orders');
+    });
+
+    it('should handle three resolution columns', async () => {
+      const aggregatedTableSchema = createMockTableSchema('aggregated', [
+        {
+          name: 'orders__owner_id__first_name',
+          alias: 'orders__owner_id__first_name',
+        },
+        {
+          name: 'orders__owner_id__last_name',
+          alias: 'orders__owner_id__last_name',
+        },
+        {
+          name: 'orders__owner_id__email',
+          alias: 'orders__owner_id__email',
+        },
+      ]);
+      const originalTableSchemas = [
+        createMockTableSchema('orders', [{ name: 'owner_id', alias: 'Owner' }]),
+      ];
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders__owner_id',
+            type: 'string',
+            source: 'users',
+            joinColumn: 'id',
+            resolutionColumns: ['first_name', 'last_name', 'email'],
+          },
+        ],
+        tableSchemas: [
+          createMockTableSchema('users', [
+            { name: 'first_name', alias: 'First Name' },
+            { name: 'last_name', alias: 'Last Name' },
+            { name: 'email', alias: 'Email Address' },
+          ]),
+        ],
+      };
+
+      const params: ApplyAliasesParams = {
+        aggregatedTableSchema,
+        originalTableSchemas,
+        resolutionConfig,
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      };
+
+      await applyAliases(params);
+
+      const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
+        .tableSchemas[0] as TableSchema;
+      expect(calledSchema.dimensions[0].alias).toBe('Owner - First Name');
+      expect(calledSchema.dimensions[1].alias).toBe('Owner - Last Name');
+      expect(calledSchema.dimensions[2].alias).toBe('Owner - Email Address');
     });
   });
 });

@@ -233,5 +233,143 @@ describe('generate-resolution-schemas', () => {
 
       expect(result[0].dimensions[0].type).toBe('number');
     });
+
+    it('should copy SQL from source table schema', () => {
+      const config: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders.customer_id',
+            type: 'string',
+            source: 'customers',
+            joinColumn: 'id',
+            resolutionColumns: ['name'],
+          },
+        ],
+        tableSchemas: [
+          {
+            name: 'customers',
+            sql: 'SELECT * FROM customers WHERE active = true',
+            dimensions: [{ name: 'name', sql: 'customers.name', type: 'string' }],
+            measures: [],
+          },
+        ],
+      };
+
+      const result = generateResolutionSchemas(config);
+
+      expect(result[0].sql).toBe('SELECT * FROM customers WHERE active = true');
+    });
+
+    it('should have empty measures array in resolution schema', () => {
+      const config: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders.customer_id',
+            type: 'string',
+            source: 'customers',
+            joinColumn: 'id',
+            resolutionColumns: ['name'],
+          },
+        ],
+        tableSchemas: [
+          createMockTableSchema('customers', [{ name: 'name', type: 'string' }]),
+        ],
+      };
+
+      const result = generateResolutionSchemas(config);
+
+      expect(result[0].measures).toEqual([]);
+    });
+
+    it('should handle array type column configs', () => {
+      const config: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders.tag_ids',
+            type: 'string_array',
+            source: 'tags',
+            joinColumn: 'id',
+            resolutionColumns: ['tag_name'],
+          },
+        ],
+        tableSchemas: [
+          createMockTableSchema('tags', [{ name: 'tag_name', type: 'string' }]),
+        ],
+      };
+
+      const result = generateResolutionSchemas(config);
+
+      expect(result[0].name).toBe('orders__tag_ids');
+      expect(result[0].dimensions[0].name).toBe('orders__tag_ids__tag_name');
+      expect(result[0].dimensions[0].sql).toBe('orders__tag_ids.tag_name');
+    });
+
+    it('should handle multiple resolution columns from same source', () => {
+      const config: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders.user_id',
+            type: 'number',
+            source: 'users',
+            joinColumn: 'id',
+            resolutionColumns: ['first_name', 'last_name', 'email'],
+          },
+        ],
+        tableSchemas: [
+          createMockTableSchema('users', [
+            { name: 'first_name', type: 'string' },
+            { name: 'last_name', type: 'string' },
+            { name: 'email', type: 'string' },
+          ]),
+        ],
+      };
+
+      const result = generateResolutionSchemas(config);
+
+      expect(result[0].dimensions).toHaveLength(3);
+      expect(result[0].dimensions[0]).toEqual({
+        name: 'orders__user_id__first_name',
+        sql: 'orders__user_id.first_name',
+        type: 'string',
+        alias: 'orders__user_id__first_name',
+      });
+      expect(result[0].dimensions[1]).toEqual({
+        name: 'orders__user_id__last_name',
+        sql: 'orders__user_id.last_name',
+        type: 'string',
+        alias: 'orders__user_id__last_name',
+      });
+      expect(result[0].dimensions[2]).toEqual({
+        name: 'orders__user_id__email',
+        sql: 'orders__user_id.email',
+        type: 'string',
+        alias: 'orders__user_id__email',
+      });
+    });
+
+    it('should handle column config with number type dimension', () => {
+      const config: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders.product_id',
+            type: 'number',
+            source: 'products',
+            joinColumn: 'id',
+            resolutionColumns: ['price', 'quantity'],
+          },
+        ],
+        tableSchemas: [
+          createMockTableSchema('products', [
+            { name: 'price', type: 'number' },
+            { name: 'quantity', type: 'number' },
+          ]),
+        ],
+      };
+
+      const result = generateResolutionSchemas(config);
+
+      expect(result[0].dimensions[0].type).toBe('number');
+      expect(result[0].dimensions[1].type).toBe('number');
+    });
   });
 });

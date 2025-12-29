@@ -230,5 +230,228 @@ describe('resolution-step', () => {
       expect(result.dimensions[1].name).toBe('orders__customer_id');
       expect(result.dimensions[2].name).toBe('orders__status');
     });
+
+    it('should handle undefined context params', async () => {
+      const mockCubeQueryToSQL = jest
+        .fn()
+        .mockResolvedValue('SELECT * FROM resolved');
+      const baseTableSchema = createMockTableSchema(BASE_DATA_SOURCE_NAME, [
+        { name: 'orders__customer_id', alias: 'Customer ID' },
+      ]);
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      await getResolvedTableSchema({
+        baseTableSchema,
+        resolutionConfig,
+        columnProjections: ['orders.customer_id'],
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      });
+
+      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
+      const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
+      expect(calledParams.contextParams).toBeUndefined();
+    });
+
+    it('should handle multiple resolution configs for different columns', async () => {
+      const mockCubeQueryToSQL = jest
+        .fn()
+        .mockResolvedValue('SELECT * FROM resolved');
+      const baseTableSchema = createMockTableSchema(BASE_DATA_SOURCE_NAME, [
+        { name: 'orders__customer_id', alias: 'Customer ID', type: 'number' },
+        { name: 'orders__product_id', alias: 'Product ID', type: 'number' },
+      ]);
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders.customer_id',
+            type: 'number',
+            source: 'customers',
+            joinColumn: 'id',
+            resolutionColumns: ['name'],
+          },
+          {
+            name: 'orders.product_id',
+            type: 'number',
+            source: 'products',
+            joinColumn: 'id',
+            resolutionColumns: ['title'],
+          },
+        ],
+        tableSchemas: [
+          createMockTableSchema('customers', [
+            { name: 'name', alias: 'Name', type: 'string' },
+          ]),
+          createMockTableSchema('products', [
+            { name: 'title', alias: 'Title', type: 'string' },
+          ]),
+        ],
+      };
+
+      await getResolvedTableSchema({
+        baseTableSchema,
+        resolutionConfig,
+        columnProjections: ['orders.customer_id', 'orders.product_id'],
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      });
+
+      const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
+
+      // Should have 3 table schemas: base + 2 resolution schemas
+      expect(calledParams.tableSchemas).toHaveLength(3);
+      expect(calledParams.tableSchemas[0].name).toBe(BASE_DATA_SOURCE_NAME);
+      expect(calledParams.tableSchemas[1].name).toBe('orders__customer_id');
+      expect(calledParams.tableSchemas[2].name).toBe('orders__product_id');
+
+      // Should have 2 join paths
+      expect(calledParams.query.joinPaths).toHaveLength(2);
+    });
+
+    it('should preserve dimension types from base schema', async () => {
+      const mockCubeQueryToSQL = jest
+        .fn()
+        .mockResolvedValue('SELECT * FROM resolved');
+      const baseTableSchema = createMockTableSchema(BASE_DATA_SOURCE_NAME, [
+        { name: 'orders__amount', alias: 'Amount', type: 'number' },
+        { name: 'orders__date', alias: 'Date', type: 'time' },
+        { name: 'orders__tags', alias: 'Tags', type: 'string_array' },
+      ]);
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const result = await getResolvedTableSchema({
+        baseTableSchema,
+        resolutionConfig,
+        columnProjections: ['orders.amount', 'orders.date', 'orders.tags'],
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      });
+
+      expect(result.dimensions[0].type).toBe('number');
+      expect(result.dimensions[1].type).toBe('time');
+      expect(result.dimensions[2].type).toBe('string_array');
+    });
+
+    it('should use SQL from cubeQueryToSQL in result schema', async () => {
+      const expectedSql = 'SELECT a, b, c FROM complex_query WHERE x > 5';
+      const mockCubeQueryToSQL = jest.fn().mockResolvedValue(expectedSql);
+      const baseTableSchema = createMockTableSchema(BASE_DATA_SOURCE_NAME, [
+        { name: 'orders__customer_id', alias: 'Customer ID' },
+      ]);
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const result = await getResolvedTableSchema({
+        baseTableSchema,
+        resolutionConfig,
+        columnProjections: ['orders.customer_id'],
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      });
+
+      expect(result.sql).toBe(expectedSql);
+    });
+
+    it('should generate resolved dimensions for resolution columns', async () => {
+      const mockCubeQueryToSQL = jest
+        .fn()
+        .mockResolvedValue('SELECT * FROM resolved');
+      const baseTableSchema = createMockTableSchema(BASE_DATA_SOURCE_NAME, [
+        { name: 'orders__user_id', alias: 'User ID', type: 'number' },
+      ]);
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [
+          {
+            name: 'orders.user_id',
+            type: 'number',
+            source: 'users',
+            joinColumn: 'id',
+            resolutionColumns: ['first_name', 'last_name'],
+          },
+        ],
+        tableSchemas: [
+          createMockTableSchema('users', [
+            { name: 'first_name', alias: 'First Name', type: 'string' },
+            { name: 'last_name', alias: 'Last Name', type: 'string' },
+          ]),
+        ],
+      };
+
+      await getResolvedTableSchema({
+        baseTableSchema,
+        resolutionConfig,
+        columnProjections: ['orders.user_id'],
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      });
+
+      const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
+      const resolutionSchema = calledParams.tableSchemas[1];
+
+      expect(resolutionSchema.dimensions).toHaveLength(2);
+      expect(resolutionSchema.dimensions[0].name).toBe(
+        'orders__user_id__first_name'
+      );
+      expect(resolutionSchema.dimensions[1].name).toBe(
+        'orders__user_id__last_name'
+      );
+    });
+
+    it('should handle nested dot notation in column projections', async () => {
+      const mockCubeQueryToSQL = jest
+        .fn()
+        .mockResolvedValue('SELECT * FROM resolved');
+      const baseTableSchema = createMockTableSchema(BASE_DATA_SOURCE_NAME, [
+        { name: 'orders__customer__nested_id', alias: 'Nested ID' },
+      ]);
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const result = await getResolvedTableSchema({
+        baseTableSchema,
+        resolutionConfig,
+        columnProjections: ['orders.customer.nested_id'],
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      });
+
+      expect(result.dimensions).toHaveLength(1);
+      expect(result.dimensions[0].name).toBe('orders__customer__nested_id');
+    });
+
+    it('should preserve measures from base table schema in result', async () => {
+      const mockCubeQueryToSQL = jest
+        .fn()
+        .mockResolvedValue('SELECT * FROM resolved');
+      const baseTableSchema: TableSchema = {
+        name: BASE_DATA_SOURCE_NAME,
+        sql: 'SELECT * FROM base',
+        dimensions: [
+          { name: 'orders__customer_id', sql: 'customer_id', type: 'string' },
+        ],
+        measures: [
+          { name: 'orders__total', sql: 'SUM(total)', type: 'number' },
+        ],
+      };
+      const resolutionConfig: ResolutionConfig = {
+        columnConfigs: [],
+        tableSchemas: [],
+      };
+
+      const result = await getResolvedTableSchema({
+        baseTableSchema,
+        resolutionConfig,
+        columnProjections: ['orders.customer_id'],
+        cubeQueryToSQL: mockCubeQueryToSQL,
+      });
+
+      // Measures are preserved from the base table schema
+      expect(result.measures).toHaveLength(1);
+      expect(result.measures[0].name).toBe('orders__total');
+    });
   });
 });
