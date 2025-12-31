@@ -1,11 +1,11 @@
-import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
-import { duckdbExec } from '../duckdb-exec';
 import {
   CREATE_TEST_TABLE,
+  getTestData,
   INPUT_DATA_QUERY,
   TABLE_SCHEMA,
-  TEST_DATA,
-} from './test-data';
+} from '../__fixtures__/test-data';
+import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
+import { duckdbExec } from '../duckdb-exec';
 
 describe('cube-to-sql', () => {
   beforeAll(async () => {
@@ -16,52 +16,54 @@ describe('cube-to-sql', () => {
     await duckdbExec(INPUT_DATA_QUERY);
   });
 
-  TEST_DATA.flat().forEach((data) => {
-    it(`Testing ${data.testName}`, async () => {
-      const sql = await cubeQueryToSQL({
-        query: data.cubeInput,
-        tableSchemas: [TABLE_SCHEMA],
-      });
-      expect(sql).toEqual(data.expectedSQL);
-      console.info(`SQL for ${data.testName}: `, sql);
-      //TODO: Remove order by
-      const output = await duckdbExec(sql);
-      const parsedOutput = JSON.parse(JSON.stringify(output));
-      const formattedOutput = parsedOutput.map((row) => {
-        if (!row.order_date) {
-          return row;
-        }
-        return {
-          ...row,
-          order_date: new Date(row.order_date).toISOString(),
-          orders__order_date: row.orders__order_date
-            ? new Date(row.orders__order_date).toISOString()
-            : undefined,
-        };
-      });
-      const expectedOutput = data.expectedOutput.map((row) => {
-        if (!row.order_date) {
-          return row;
-        }
-        return {
-          ...row,
-          order_date: new Date(row.order_date).toISOString(),
-          orders__order_date: row.orders__order_date
-            ? new Date(row.orders__order_date).toISOString()
-            : undefined,
-        };
-      });
+  getTestData()
+    .flat()
+    .forEach((data) => {
+      it(`Testing ${data.testName}`, async () => {
+        const sql = await cubeQueryToSQL({
+          query: data.cubeInput,
+          tableSchemas: [TABLE_SCHEMA],
+        });
+        expect(sql).toEqual(data.expectedSQL);
+        console.info(`SQL for ${data.testName}: `, sql);
+        //TODO: Remove order by
+        const output = await duckdbExec(sql);
+        const parsedOutput = JSON.parse(JSON.stringify(output));
+        const formattedOutput = parsedOutput.map((row) => {
+          if (!row.order_date) {
+            return row;
+          }
+          return {
+            ...row,
+            order_date: new Date(row.order_date).toISOString(),
+            orders__order_date: row.orders__order_date
+              ? new Date(row.orders__order_date).toISOString()
+              : undefined,
+          };
+        });
+        const expectedOutput = data.expectedOutput.map((row) => {
+          if (!row.order_date) {
+            return row;
+          }
+          return {
+            ...row,
+            order_date: new Date(row.order_date).toISOString(),
+            orders__order_date: row.orders__order_date
+              ? new Date(row.orders__order_date).toISOString()
+              : undefined,
+          };
+        });
 
-      /**
-       * Compare the output with the expected output
-       */
-      expect(formattedOutput).toStrictEqual(expectedOutput);
-      /**
-       * Compare expect SQL with the generated SQL
-       */
-      expect(sql).toBe(data.expectedSQL);
+        /**
+         * Compare the output with the expected output
+         */
+        expect(formattedOutput).toStrictEqual(expectedOutput);
+        /**
+         * Compare expect SQL with the generated SQL
+         */
+        expect(sql).toBe(data.expectedSQL);
+      });
     });
-  });
 
   it('Should order the projected value', async () => {
     const query = {
