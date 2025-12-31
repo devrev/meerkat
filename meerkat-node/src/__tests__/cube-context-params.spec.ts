@@ -45,23 +45,47 @@ describe('context-param-tests', () => {
              (7, DATE '2022-04-01', 'completed', 210.00);`);
   });
 
-  it('Should apply context params to base SQL', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [
-        {
-          member: 'orders.status',
-          operator: 'equals',
-          values: ['pending'],
-        },
-      ],
-      dimensions: [],
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
-      TABLE_NAME: 'orders',
-    }});
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(1);
+  describe('useDotNotation: false (default)', () => {
+    it('Should apply context params to base SQL', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'orders.status',
+            operator: 'equals',
+            values: ['pending'],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
+        TABLE_NAME: 'orders',
+      }, aliasConfig: { useDotNotation: false }});
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(1);
+    });
+  });
+
+  describe('useDotNotation: true', () => {
+    it('Should apply context params to base SQL', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'orders.status',
+            operator: 'equals',
+            values: ['pending'],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
+        TABLE_NAME: 'orders',
+      }, aliasConfig: { useDotNotation: true }});
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(1);
+    });
   });
 });

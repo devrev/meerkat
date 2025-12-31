@@ -46,126 +46,223 @@ describe('filter-param-tests', () => {
              (8, DATE '2022-04-01', 'initiated', null);`);
   });
 
-  it('Should apply filter params to base SQL', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [
-        {
-          member: 'orders.status',
-          operator: 'equals',
-          values: ['pending'],
-        },
-      ],
-      dimensions: [],
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(2);
-    expect(output[0].id).toBe(6);
+  describe('useDotNotation: false (default)', () => {
+    it('Should apply filter params to base SQL', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'orders.status',
+            operator: 'equals',
+            values: ['pending'],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: false } });
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(2);
+      expect(output[0].id).toBe(6);
+    });
+
+    it('Should apply multiple filter params to base SQL', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            or: [
+              {
+                member: 'orders.status',
+                operator: 'equals',
+                values: ['pending'],
+              },
+              {
+                member: 'orders.status',
+                operator: 'equals',
+                values: ['cancelled'],
+              },
+              {
+                member: 'orders.amount',
+                operator: 'gt',
+                values: ['40'],
+              },
+            ],
+          },
+        ],
+        order: { id: 'asc' },
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: false } });
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(3);
+      expect(output[0].id).toBe(4);
+    });
+
+    it('Should apply true filter if no filters are present', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: false } });
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(8);
+    });
+
+    it('Should apply true filter if filters are present but are not matching', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            and: [
+              {
+                member: 'orders.amount',
+                operator: 'gt',
+                values: ['40'],
+              },
+              {
+                or: [
+                  {
+                    member: 'orders.amount',
+                    operator: 'lt',
+                    values: ['200'],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: false } });
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(5);
+    });
+
+    it('Should apply notSet and set filters', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            and: [
+              {
+                member: 'orders.amount',
+                operator: 'notSet',
+              },
+              {
+                member: 'orders.status',
+                operator: 'set',
+              },
+            ],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: false } });
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(1);
+    });
   });
 
-  it('Should apply multiple filter params to base SQL', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [
-        {
-          or: [
-            {
-              member: 'orders.status',
-              operator: 'equals',
-              values: ['pending'],
-            },
-            {
-              member: 'orders.status',
-              operator: 'equals',
-              values: ['cancelled'],
-            },
-            {
-              member: 'orders.amount',
-              operator: 'gt',
-              values: ['40'],
-            },
-          ],
-        },
-      ],
-      order: { id: 'asc' },
-      dimensions: [],
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(3);
-    expect(output[0].id).toBe(4);
-  });
+  describe('useDotNotation: true', () => {
+    it('Should apply filter params to base SQL', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'orders.status',
+            operator: 'equals',
+            values: ['pending'],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: true } });
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(2);
+      expect(output[0].id).toBe(6);
+    });
 
-  it('Should apply true filter if no filters are present', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [],
-      dimensions: [],
-    };
+    it('Should apply multiple filter params to base SQL', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            or: [
+              {
+                member: 'orders.status',
+                operator: 'equals',
+                values: ['pending'],
+              },
+              {
+                member: 'orders.status',
+                operator: 'equals',
+                values: ['cancelled'],
+              },
+              {
+                member: 'orders.amount',
+                operator: 'gt',
+                values: ['40'],
+              },
+            ],
+          },
+        ],
+        order: { id: 'asc' },
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: true } });
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(3);
+      expect(output[0].id).toBe(4);
+    });
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(8);
-  });
+    it('Should apply true filter if no filters are present', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [],
+        dimensions: [],
+      };
 
-  it('Should apply true filter if filters are present but are not matching', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [
-        {
-          and: [
-            {
-              member: 'orders.amount',
-              operator: 'gt',
-              values: ['40'],
-            },
-            {
-              or: [
-                {
-                  member: 'orders.amount',
-                  operator: 'lt',
-                  values: ['200'],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      dimensions: [],
-    };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: true } });
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(8);
+    });
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(5);
-  });
-  it('Should apply notSet and set filters', async () => {
-    const query = {
-      measures: ['*'],
-      filters: [
-        {
-          and: [
-            {
-              member: 'orders.amount',
-              operator: 'notSet',
-            },
-            {
-              member: 'orders.status',
-              operator: 'set',
-            },
-          ],
-        },
-      ],
-      dimensions: [],
-    };
+    it('Should apply notSet and set filters', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            and: [
+              {
+                member: 'orders.amount',
+                operator: 'notSet',
+              },
+              {
+                member: 'orders.status',
+                operator: 'set',
+              },
+            ],
+          },
+        ],
+        dimensions: [],
+      };
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA] });
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    expect(output).toHaveLength(1);
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: true } });
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(1);
+    });
   });
 });

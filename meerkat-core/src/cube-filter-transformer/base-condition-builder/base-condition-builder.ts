@@ -11,22 +11,79 @@ import {
 import { CUBE_TYPE_TO_DUCKDB_TYPE } from '../../utils/cube-type-to-duckdb-type';
 import { convertFloatToInt, getTypeInfo } from '../../utils/get-type-info';
 
+/**
+ * Options for creating a column reference.
+ */
+export interface CreateColumnRefOptions {
+  /**
+   * When true, the columnName is an alias (e.g., "orders.customer_id" as a single column name).
+   * When false (default), the columnName is a table.column reference to be split.
+   */
+  isAlias?: boolean;
+  /**
+   * When true, uses dot notation for aliases (requires isAlias=true to have effect).
+   * When false (default), uses underscore notation.
+   */
+  useDotNotation?: boolean;
+}
+
+/**
+ * Creates a column reference AST node.
+ *
+ * @param columnName - The column name or member key
+ * @param options - Configuration options
+ * @returns A column reference expression for DuckDB AST
+ *
+ * @example
+ * ```typescript
+ * // Base table reference (isAlias: false)
+ * createColumnRef("orders.customer_id") // column_names: ["orders", "customer_id"]
+ *
+ * // Alias reference (isAlias: true, useDotNotation: true)
+ * createColumnRef("orders.customer_id", { isAlias: true, useDotNotation: true })
+ * // column_names: ["orders.customer_id"]
+ *
+ * // Alias reference (isAlias: true, useDotNotation: false - legacy)
+ * createColumnRef("orders__customer_id", { isAlias: true })
+ * // column_names: ["orders__customer_id"]
+ * ```
+ */
+export const createColumnRef = (
+  columnName: string,
+  options?: CreateColumnRefOptions
+) => {
+  let columnNames: string[];
+
+  if (options?.isAlias) {
+    // When it's an alias, don't split - use as single column name
+    // This is used for PROJECTION_FILTER where we reference projected aliases
+    columnNames = [columnName];
+  } else {
+    // When it's a base table reference, split by delimiter
+    // This is used for BASE_FILTER where we reference table.column
+    columnNames = columnName.split(COLUMN_NAME_DELIMITER);
+  }
+
+  return {
+    class: ExpressionClass.COLUMN_REF,
+    type: ExpressionType.COLUMN_REF,
+    alias: '',
+    column_names: columnNames,
+  };
+};
+
 export const baseDuckdbCondition = (
   columnName: string,
   type: ExpressionType,
   value: string,
-  memberInfo: Measure | Dimension
+  memberInfo: Measure | Dimension,
+  options?: CreateColumnRefOptions
 ) => {
   return {
     class: ExpressionClass.COMPARISON,
     type: type,
     alias: '',
-    left: {
-      class: ExpressionClass.COLUMN_REF,
-      type: ExpressionType.COLUMN_REF,
-      alias: '',
-      column_names: columnName.split(COLUMN_NAME_DELIMITER),
-    },
+    left: createColumnRef(columnName, options),
     right: {
       class: ExpressionClass.CONSTANT,
       type: ExpressionType.VALUE_CONSTANT,
@@ -40,7 +97,8 @@ export const baseArrayDuckdbCondition = (
   columnName: string,
   type: ExpressionType,
   value: string,
-  memberInfo: Measure | Dimension
+  memberInfo: Measure | Dimension,
+  options?: CreateColumnRefOptions
 ) => {
   return {
     class: ExpressionClass.SUBQUERY,
@@ -61,14 +119,7 @@ export const baseArrayDuckdbCondition = (
             alias: '',
             function_name: 'unnest',
             schema: '',
-            children: [
-              {
-                class: ExpressionClass.COLUMN_REF,
-                type: ExpressionType.COLUMN_REF,
-                alias: '',
-                column_names: columnName.split(COLUMN_NAME_DELIMITER),
-              },
-            ],
+            children: [createColumnRef(columnName, options)],
             filter: null,
             order_bys: {
               type: 'ORDER_MODIFIER',

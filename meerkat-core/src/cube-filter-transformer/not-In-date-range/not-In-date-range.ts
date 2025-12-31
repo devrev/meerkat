@@ -1,11 +1,15 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
-import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
+import {
+  baseDuckdbCondition,
+  CreateColumnRefOptions,
+} from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 
 export const notInDataRangeTransform: CubeToParseExpressionTransform = (
-  query
+  query,
+  options
 ) => {
   const { member } = query;
 
@@ -33,7 +37,8 @@ export const notInDataRangeTransform: CubeToParseExpressionTransform = (
       member,
       ExpressionType.COMPARE_LESSTHAN,
       values[0],
-      query.memberInfo
+      query.memberInfo,
+      options
     )
   );
 
@@ -42,7 +47,8 @@ export const notInDataRangeTransform: CubeToParseExpressionTransform = (
       member,
       ExpressionType.COMPARE_GREATERTHAN,
       values[1],
-      query.memberInfo
+      query.memberInfo,
+      options
     )
   );
 

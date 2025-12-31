@@ -1,22 +1,26 @@
 import { astDeserializerQuery, deserializeQuery } from "../ast-deserializer/ast-deserializer";
 import { getFilterParamsAST } from "../filter-params/filter-params-ast";
+import { AliasConfig } from "../member-formatters/get-alias";
 import { FilterType, Query, TableSchema } from "../types/cube-types";
 
 export const getFilterParamsSQL = async ({
   query,
   tableSchema,
   filterType,
-  getQueryOutput
+  getQueryOutput,
+  config
 }: {
   query: Query;
   tableSchema: TableSchema;
   filterType?: FilterType;
   getQueryOutput: (query: string) => Promise<any>;
+  config?: AliasConfig;
 }) => {
   const filterParamsAST = getFilterParamsAST(
     query,
     tableSchema,
-    filterType
+    filterType,
+    config
   );
   const filterParamsSQL = [];
   for (const filterParamAST of filterParamsAST) {

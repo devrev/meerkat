@@ -1,10 +1,10 @@
-import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import { FilterOperator } from '../../types/cube-types/query';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ParsedExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
+import { createColumnRef } from '../base-condition-builder/base-condition-builder';
 
 /**
  * Encode a string to base64 (works in both browser and Node.js)
@@ -39,12 +39,7 @@ const createInOperatorAST = (
   sqlExpression: string
 ): ParsedExpression => {
   const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
-  const columnRef: ParsedExpression = {
-    class: ExpressionClass.COLUMN_REF,
-    type: ExpressionType.COLUMN_REF,
-    alias: '',
-    column_names: member.split(COLUMN_NAME_DELIMITER),
-  };
+  const columnRef = createColumnRef(member) as ParsedExpression;
 
   // Create a placeholder constant node for the SQL expression
   // This will be replaced with actual SQL during query generation
@@ -69,12 +64,7 @@ const createNotInOperatorAST = (
 ): ParsedExpression => {
   const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
 
-  const columnRef: ParsedExpression = {
-    class: ExpressionClass.COLUMN_REF,
-    type: ExpressionType.COLUMN_REF,
-    alias: '',
-    column_names: member.split(COLUMN_NAME_DELIMITER),
-  };
+  const columnRef = createColumnRef(member) as ParsedExpression;
 
   // Create a placeholder constant node for the SQL expression
   // This will be replaced with actual SQL during query generation

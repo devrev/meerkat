@@ -1,4 +1,9 @@
-import { constructAlias, memberKeyToSafeKey } from '../../member-formatters';
+import {
+  AliasConfig,
+  constructAliasForAST,
+  DEFAULT_ALIAS_CONFIG,
+} from '../../member-formatters/get-alias';
+import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import { JoinPath } from '../../types/cube-types/query';
 import { TableSchema } from '../../types/cube-types/table';
 import { findInSchemas } from '../../utils/find-in-table-schema';
@@ -7,17 +12,20 @@ import { ResolutionConfig } from '../types';
 export const generateResolutionJoinPaths = (
   baseDataSourceName: string,
   resolutionConfig: ResolutionConfig,
-  baseTableSchemas: TableSchema[]
+  baseTableSchemas: TableSchema[],
+  config: AliasConfig = DEFAULT_ALIAS_CONFIG
 ): JoinPath[] => {
-  return resolutionConfig.columnConfigs.map((config) => [
+  return resolutionConfig.columnConfigs.map((columnConfig) => [
     {
       left: baseDataSourceName,
-      right: memberKeyToSafeKey(config.name),
-      on: constructAlias({
-        name: config.name,
-        alias: findInSchemas(config.name, baseTableSchemas)?.alias,
-        shouldWrapAliasWithQuotes: false, // Internal schema reference
+      right: memberKeyToSafeKey(columnConfig.name, {
+        useDotNotation: config.useDotNotation,
       }),
+      on: constructAliasForAST(
+        columnConfig.name,
+        findInSchemas(columnConfig.name, baseTableSchemas)?.alias,
+        config
+      ),
     },
   ]);
 };

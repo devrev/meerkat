@@ -1,4 +1,5 @@
 import { TEST_DATA_WITH_SAFE_ALIAS } from './test-data-with-safe-alias';
+import { WITH_DOT_ALIAS_TEST_DATA } from './with-dot-alias';
 
 export const CREATE_TEST_TABLE = `
 CREATE TABLE orders (
@@ -77,6 +78,14 @@ export const TABLE_SCHEMA = {
   ],
 };
 
-export const getTestData = () => {
+/**
+ * Get test data based on alias configuration.
+ * @param useSafeAlias - When true, returns test data with dot notation aliases (e.g., "orders.customer_id")
+ *                       When false, returns test data with underscore notation aliases (e.g., orders__customer_id)
+ */
+export const getTestData = ({ useSafeAlias }: { useSafeAlias: boolean }) => {
+  if (useSafeAlias) {
+    return WITH_DOT_ALIAS_TEST_DATA;
+  }
   return TEST_DATA_WITH_SAFE_ALIAS;
 };

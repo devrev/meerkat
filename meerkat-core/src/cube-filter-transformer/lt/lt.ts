@@ -1,11 +1,14 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
-import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
+import {
+  baseDuckdbCondition,
+  CreateColumnRefOptions,
+} from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
-export const ltTransform: CubeToParseExpressionTransform = (query) => {
+export const ltTransform: CubeToParseExpressionTransform = (query, options) => {
   const { member } = query;
 
   // SQL expressions not supported for lt operator
@@ -28,7 +31,8 @@ export const ltTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_LESSTHAN,
       values[0],
-      query.memberInfo
+      query.memberInfo,
+      options
     );
   }
 
@@ -42,7 +46,8 @@ export const ltTransform: CubeToParseExpressionTransform = (query) => {
         member,
         ExpressionType.COMPARE_LESSTHAN,
         value,
-        query.memberInfo
+        query.memberInfo,
+        options
       )
     );
   });

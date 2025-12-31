@@ -416,3 +416,133 @@ describe('Resolution Tests', () => {
     );
   });
 });
+
+describe('Resolution Tests (useDotNotation: true)', () => {
+  const aliasConfig = { useDotNotation: true };
+
+  it('aliasConfig is accepted and generates valid SQL', async () => {
+    const query = {
+      measures: [],
+      dimensions: ['base_table.part_id_1', 'base_table.random_column'],
+    };
+
+    // Test that aliasConfig parameter is accepted without throwing
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA],
+      resolutionConfig: {
+        columnConfigs: [],
+        tableSchemas: [],
+      },
+      aliasConfig,
+    });
+
+    // Verify SQL is generated (the resolution pipeline uses underscore notation internally,
+    // but the base SQL generation uses dot notation)
+    expect(sql).toBeDefined();
+    expect(typeof sql).toBe('string');
+    expect(sql.length).toBeGreaterThan(0);
+
+    // The base SQL (innermost) should contain dot notation from the initial cubeQueryToSQL call
+    expect(sql).toContain('"base_table.part_id_1"');
+    expect(sql).toContain('"base_table.random_column"');
+  });
+
+  it('Resolution Config Missing Table Schema with dot notation', async () => {
+    const query = {
+      measures: [],
+      dimensions: [
+        'base_table.part_id_1',
+        'base_table.random_column',
+        'base_table.work_id',
+        'base_table.part_id_2',
+      ],
+    };
+
+    await expect(
+      cubeQueryToSQLWithResolution({
+        query,
+        tableSchemas: [BASE_TABLE_SCHEMA],
+        resolutionConfig: {
+          columnConfigs: [
+            {
+              name: 'base_table.part_id_1',
+              type: 'string' as const,
+              source: 'dim_part',
+              joinColumn: 'id',
+              resolutionColumns: ['display_id'],
+            },
+          ],
+          tableSchemas: [],
+        },
+        aliasConfig,
+      })
+    ).rejects.toThrow('Table schema not found for dim_part');
+  });
+
+  it('aliasConfig with resolution generates valid SQL', async () => {
+    const query = {
+      measures: [],
+      dimensions: ['base_table.part_id_1', 'base_table.random_column'],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
+      resolutionConfig: {
+        columnConfigs: [
+          {
+            name: 'base_table.part_id_1',
+            type: 'string' as const,
+            source: 'dim_part',
+            joinColumn: 'id',
+            resolutionColumns: ['display_id'],
+          },
+        ],
+        tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
+      },
+      aliasConfig,
+    });
+
+    // Verify SQL is generated successfully with aliasConfig
+    expect(sql).toBeDefined();
+    expect(typeof sql).toBe('string');
+    expect(sql.length).toBeGreaterThan(0);
+
+    // The base SQL should use dot notation
+    expect(sql).toContain('"base_table.part_id_1"');
+    expect(sql).toContain('"base_table.random_column"');
+  });
+
+  it('Resolution With Measures with aliasConfig', async () => {
+    const query = {
+      measures: ['base_table.count'],
+      dimensions: ['base_table.part_id_1'],
+    };
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
+      resolutionConfig: {
+        columnConfigs: [
+          {
+            name: 'base_table.part_id_1',
+            type: 'string' as const,
+            source: 'dim_part',
+            joinColumn: 'id',
+            resolutionColumns: ['display_id'],
+          },
+        ],
+        tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
+      },
+      aliasConfig,
+    });
+
+    // Verify SQL is generated successfully
+    expect(sql).toBeDefined();
+    expect(typeof sql).toBe('string');
+
+    // The base SQL should use dot notation for measures
+    expect(sql).toContain('"base_table.count"');
+    expect(sql).toContain('"base_table.part_id_1"');
+  });
+});

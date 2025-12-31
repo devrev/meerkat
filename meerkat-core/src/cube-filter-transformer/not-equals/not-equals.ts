@@ -1,13 +1,19 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { isArrayTypeMember } from '../../utils/is-array-member-type';
-import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
+import {
+  baseDuckdbCondition,
+  CreateColumnRefOptions,
+} from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { notEqualsArrayTransform } from './not-equals-array';
 
-export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
+export const notEqualsTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member, memberInfo } = query;
 
   // SQL expressions not supported for notEquals operator
@@ -26,7 +32,7 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
    * If the member is an array, we need to use the array transform
    */
   if (isArrayTypeMember(memberInfo.type)) {
-    return notEqualsArrayTransform(query);
+    return notEqualsArrayTransform(query, options);
   }
 
   /**
@@ -37,7 +43,8 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_NOTEQUAL,
       values[0],
-      memberInfo
+      memberInfo,
+      options
     );
   }
 
@@ -51,7 +58,8 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (query) => {
         member,
         ExpressionType.COMPARE_NOTEQUAL,
         value,
-        memberInfo
+        memberInfo,
+        options
       )
     );
   });

@@ -1,26 +1,25 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
-import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ResultModifierType } from '../../types/duckdb-serialization-types/serialization/ResultModifier';
-import { valueBuilder } from '../base-condition-builder/base-condition-builder';
+import {
+  createColumnRef,
+  CreateColumnRefOptions,
+  valueBuilder,
+} from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 const equalsDuckDbCondition = (
   columnName: string,
   values: string[],
-  memberInfo: Measure | Dimension
+  memberInfo: Measure | Dimension,
+  options?: CreateColumnRefOptions
 ) => {
-  const columnRef = {
-    class: ExpressionClass.COLUMN_REF,
-    type: ExpressionType.COLUMN_REF,
-    alias: '',
-    column_names: columnName.split(COLUMN_NAME_DELIMITER),
-  };
+  const columnRef = createColumnRef(columnName, options);
 
   const sqlTreeValues = values.map((value) => {
     const children = {
@@ -70,7 +69,10 @@ const equalsDuckDbCondition = (
   return sqlTree;
 };
 
-export const equalsArrayTransform: CubeToParseExpressionTransform = (query) => {
+export const equalsArrayTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member, memberInfo } = query;
 
   // SQL expressions not supported for equals operator
@@ -84,5 +86,5 @@ export const equalsArrayTransform: CubeToParseExpressionTransform = (query) => {
   if (!query.values) {
     throw new Error('In filter must have at least one value');
   }
-  return equalsDuckDbCondition(member, query.values, memberInfo);
+  return equalsDuckDbCondition(member, query.values, memberInfo, options);
 };

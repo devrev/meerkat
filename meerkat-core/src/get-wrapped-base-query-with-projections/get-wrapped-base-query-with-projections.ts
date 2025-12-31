@@ -1,4 +1,5 @@
 import { getSelectReplacedSql } from '../cube-measure-transformer/cube-measure-transformer';
+import { AliasConfig } from '../member-formatters/get-alias';
 import { Query, TableSchema } from '../types/cube-types';
 import { getAliasedColumnsFromFilters } from './get-aliased-columns-from-filters';
 import { getProjectionClause } from './get-projection-clause';
@@ -7,12 +8,14 @@ interface GetWrappedBaseQueryWithProjectionsParams {
   baseQuery: string;
   tableSchema: TableSchema;
   query: Query;
+  config?: AliasConfig;
 }
 
 export const getWrappedBaseQueryWithProjections = ({
   baseQuery,
   tableSchema,
   query,
+  config,
 }: GetWrappedBaseQueryWithProjectionsParams) => {
   /*
    * Im order to be able to filter on computed metric from a query, we need to project the computed metric in the base query.
@@ -25,7 +28,8 @@ export const getWrappedBaseQueryWithProjections = ({
   const memberProjections = getProjectionClause(
     query,
     tableSchema,
-    aliasedColumnSet
+    aliasedColumnSet,
+    config
   );
 
   const aliasFromFilters = getAliasedColumnsFromFilters({
@@ -34,6 +38,7 @@ export const getWrappedBaseQueryWithProjections = ({
     tableSchema: tableSchema,
     query,
     meerkatFilters: query.filters,
+    config,
   });
 
   const parts = [aliasFromFilters, memberProjections].filter(

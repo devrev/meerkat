@@ -1,6 +1,10 @@
-import { memberKeyToSafeKey } from '../../member-formatters';
-import { constructCompoundAlias } from '../../member-formatters/get-alias';
+import {
+  AliasConfig,
+  constructCompoundAlias,
+  DEFAULT_ALIAS_CONFIG,
+} from '../../member-formatters/get-alias';
 import { getNamespacedKey } from '../../member-formatters/get-namespaced-key';
+import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import { Query } from '../../types/cube-types/query';
 import { ContextParams, TableSchema } from '../../types/cube-types/table';
 import { ResolutionConfig } from '../types';
@@ -10,6 +14,7 @@ export interface ApplyAliasesParams {
   originalTableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
+  config?: AliasConfig;
   cubeQueryToSQL: (params: {
     query: Query;
     tableSchemas: TableSchema[];
@@ -41,6 +46,7 @@ export const applyAliases = async ({
   originalTableSchemas,
   resolutionConfig,
   contextParams,
+  config,
   cubeQueryToSQL,
 }: ApplyAliasesParams): Promise<string> => {
   // Restore aliases from original tableSchemas to get nice column names in final output
@@ -48,12 +54,18 @@ export const applyAliases = async ({
   const aliasMap = new Map<string, string>();
 
   const columnConfigMap = new Map(
-    resolutionConfig.columnConfigs?.map((config) => [config.name, config]) || []
+    resolutionConfig.columnConfigs?.map((colConfig) => [
+      colConfig.name,
+      colConfig,
+    ]) || []
   );
 
   const tableSchemaMap = new Map(
     resolutionConfig.tableSchemas.map((schema) => [schema.name, schema])
   );
+
+  const effectiveConfig = config ?? DEFAULT_ALIAS_CONFIG;
+  const safeKeyOptions = { useDotNotation: effectiveConfig.useDotNotation };
 
   // Helper function to process dimensions or measures and populate the alias map
   const processMembers = (
@@ -63,7 +75,10 @@ export const applyAliases = async ({
     members.forEach((member) => {
       if (!member.alias) return;
 
-      const columnName = memberKeyToSafeKey(`${schemaName}.${member.name}`);
+      const columnName = memberKeyToSafeKey(
+        `${schemaName}.${member.name}`,
+        safeKeyOptions
+      );
       const columnConfig = columnConfigMap.get(columnName);
 
       // No resolution config - use original alias
@@ -78,7 +93,8 @@ export const applyAliases = async ({
       if (columnConfig.resolutionColumns.length === 1) {
         aliasMap.set(
           memberKeyToSafeKey(
-            getNamespacedKey(joinedTableName, columnConfig.resolutionColumns[0])
+            getNamespacedKey(joinedTableName, columnConfig.resolutionColumns[0]),
+            safeKeyOptions
           ),
           member.alias
         );
@@ -107,7 +123,8 @@ export const applyAliases = async ({
 
         aliasMap.set(
           memberKeyToSafeKey(
-            getNamespacedKey(joinedTableName, resolutionColumn)
+            getNamespacedKey(joinedTableName, resolutionColumn),
+            safeKeyOptions
           ),
           constructCompoundAlias(member.alias, sourceFieldAlias)
         );

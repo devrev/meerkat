@@ -1,7 +1,11 @@
 import { TableSchema } from '../../types/cube-types';
 import {
   constructAlias,
+  constructAliasForAST,
+  constructAliasForSQL,
   constructCompoundAlias,
+  getAliasForAST,
+  getAliasForSQL,
   getAliasFromSchema,
 } from '../get-alias';
 
@@ -181,6 +185,170 @@ describe('get-alias', () => {
     it('should handle aliases with spaces', () => {
       const result = constructCompoundAlias('First Name', 'Last Name');
       expect(result).toBe('First Name - Last Name');
+    });
+  });
+
+  // ============================================================================
+  // NEW FLAG-AWARE API TESTS
+  // ============================================================================
+
+  describe('constructAliasForSQL', () => {
+    describe('with useDotNotation: false', () => {
+      it('should return safe key with underscores when no custom alias', () => {
+        const result = constructAliasForSQL('orders.total_amount', undefined, {
+          useDotNotation: false,
+        });
+        expect(result).toBe('orders__total_amount');
+      });
+
+      it('should wrap custom alias in quotes', () => {
+        const result = constructAliasForSQL(
+          'orders.total_amount',
+          'Total Amount',
+          { useDotNotation: false }
+        );
+        expect(result).toBe('"Total Amount"');
+      });
+    });
+
+    describe('with useDotNotation: true', () => {
+      it('should return quoted dot notation when no custom alias', () => {
+        const result = constructAliasForSQL('orders.total_amount', undefined, {
+          useDotNotation: true,
+        });
+        expect(result).toBe('"orders.total_amount"');
+      });
+
+      it('should wrap custom alias in quotes', () => {
+        const result = constructAliasForSQL(
+          'orders.total_amount',
+          'Total Amount',
+          { useDotNotation: true }
+        );
+        expect(result).toBe('"Total Amount"');
+      });
+    });
+  });
+
+  describe('constructAliasForAST', () => {
+    describe('with useDotNotation: false', () => {
+      it('should return safe key with underscores when no custom alias', () => {
+        const result = constructAliasForAST('orders.total_amount', undefined, {
+          useDotNotation: false,
+        });
+        expect(result).toBe('orders__total_amount');
+      });
+
+      it('should return custom alias without quotes', () => {
+        const result = constructAliasForAST(
+          'orders.total_amount',
+          'Total Amount',
+          { useDotNotation: false }
+        );
+        expect(result).toBe('Total Amount');
+      });
+    });
+
+    describe('with useDotNotation: true', () => {
+      it('should return dot notation when no custom alias', () => {
+        const result = constructAliasForAST('orders.total_amount', undefined, {
+          useDotNotation: true,
+        });
+        expect(result).toBe('orders.total_amount');
+      });
+
+      it('should return custom alias without quotes', () => {
+        const result = constructAliasForAST(
+          'orders.total_amount',
+          'Total Amount',
+          { useDotNotation: true }
+        );
+        expect(result).toBe('Total Amount');
+      });
+    });
+  });
+
+  describe('getAliasForSQL', () => {
+    describe('with useDotNotation: false', () => {
+      it('should return safe key with underscores', () => {
+        const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
+        const result = getAliasForSQL('orders.customer_id', tableSchema, {
+          useDotNotation: false,
+        });
+        expect(result).toBe('orders__customer_id');
+      });
+
+      it('should wrap custom alias in quotes', () => {
+        const tableSchema = createMockTableSchema([
+          { name: 'customer_id', alias: 'Customer ID' },
+        ]);
+        const result = getAliasForSQL('orders.customer_id', tableSchema, {
+          useDotNotation: false,
+        });
+        expect(result).toBe('"Customer ID"');
+      });
+    });
+
+    describe('with useDotNotation: true', () => {
+      it('should return quoted dot notation', () => {
+        const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
+        const result = getAliasForSQL('orders.customer_id', tableSchema, {
+          useDotNotation: true,
+        });
+        expect(result).toBe('"orders.customer_id"');
+      });
+
+      it('should wrap custom alias in quotes', () => {
+        const tableSchema = createMockTableSchema([
+          { name: 'customer_id', alias: 'Customer ID' },
+        ]);
+        const result = getAliasForSQL('orders.customer_id', tableSchema, {
+          useDotNotation: true,
+        });
+        expect(result).toBe('"Customer ID"');
+      });
+    });
+  });
+
+  describe('getAliasForAST', () => {
+    describe('with useDotNotation: false', () => {
+      it('should return safe key with underscores', () => {
+        const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
+        const result = getAliasForAST('orders.customer_id', tableSchema, {
+          useDotNotation: false,
+        });
+        expect(result).toBe('orders__customer_id');
+      });
+
+      it('should return custom alias without quotes', () => {
+        const tableSchema = createMockTableSchema([
+          { name: 'customer_id', alias: 'Customer ID' },
+        ]);
+        const result = getAliasForAST('orders.customer_id', tableSchema, {
+          useDotNotation: false,
+        });
+        expect(result).toBe('Customer ID');
+      });
+    });
+
+    describe('with useDotNotation: true', () => {
+      it('should return dot notation without quotes', () => {
+        const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
+        const result = getAliasForAST('orders.customer_id', tableSchema, {
+          useDotNotation: true,
+        });
+        expect(result).toBe('orders.customer_id');
+      });
+
+      it('should return custom alias without quotes', () => {
+        const tableSchema = createMockTableSchema([
+          { name: 'customer_id', alias: 'Customer ID' },
+        ]);
+        const result = getAliasForAST('orders.customer_id', tableSchema, {
+          useDotNotation: true,
+        });
+        expect(result).toBe('Customer ID');
+      });
     });
   });
 });

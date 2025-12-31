@@ -1,11 +1,17 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { andDuckdbCondition } from '../and/and';
-import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
+import {
+  baseDuckdbCondition,
+  CreateColumnRefOptions,
+} from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
-export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
+export const inDataRangeTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member } = query;
 
   // SQL expressions not supported for inDateRange operator
@@ -30,7 +36,8 @@ export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_GREATERTHANOREQUALTO,
       values[0],
-      query.memberInfo
+      query.memberInfo,
+      options
     )
   );
 
@@ -39,7 +46,8 @@ export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_LESSTHANOREQUALTO,
       values[1],
-      query.memberInfo
+      query.memberInfo,
+      options
     )
   );
 

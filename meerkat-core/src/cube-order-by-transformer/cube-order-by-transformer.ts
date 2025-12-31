@@ -1,4 +1,8 @@
-import { getAliasFromSchema } from '../member-formatters/get-alias';
+import {
+  AliasConfig,
+  DEFAULT_ALIAS_CONFIG,
+  getAliasForAST,
+} from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import {
   ExpressionClass,
@@ -9,7 +13,8 @@ import { ResultModifierType } from '../types/duckdb-serialization-types/serializ
 
 export const cubeOrderByToAST = (
   order: { [key: string]: 'asc' | 'desc' },
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  config: AliasConfig = DEFAULT_ALIAS_CONFIG
 ) => {
   const orderArr = [];
   for (const key in order) {
@@ -24,15 +29,9 @@ export const cubeOrderByToAST = (
         type: ExpressionType.COLUMN_REF,
         alias: '',
         /**
-         * We need to convert the key in the __ format as they are being projected in this format
+         * Column name reference - uses alias format matching projections
          */
-        column_names: [
-          getAliasFromSchema({
-            name: key,
-            tableSchema,
-            shouldWrapAliasWithQuotes: false, // AST auto-quotes
-          }),
-        ],
+        column_names: [getAliasForAST(key, tableSchema, config)],
       },
     };
     orderArr.push(orderByAST);
