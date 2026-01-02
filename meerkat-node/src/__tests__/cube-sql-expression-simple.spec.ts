@@ -331,7 +331,7 @@ describe('SQL Expression Filters', () => {
         const sql = await cubeQueryToSQL({
           query: testCase.cubeInput,
           tableSchemas: [SCHEMA],
-          aliasConfig: { useDotNotation: false },
+          options: { useDotNotation: false },
         });
 
         // Compare generated SQL with expected SQL
@@ -367,7 +367,7 @@ describe('SQL Expression Filters', () => {
       };
 
       await expect(
-        cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: false } })
+        cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } })
       ).rejects.toThrow(
         'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
       );
@@ -390,7 +390,7 @@ describe('SQL Expression Filters', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       // Verify SQL uses dot notation
@@ -424,7 +424,7 @@ describe('SQL Expression Filters', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       // Execute and verify data is correct
@@ -462,7 +462,7 @@ describe('SQL Expression Filters', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       const output = await duckdbExec(sql);
@@ -483,7 +483,7 @@ describe('SQL Expression Filters', () => {
       };
 
       await expect(
-        cubeQueryToSQL({ query, tableSchemas: [SCHEMA], aliasConfig: { useDotNotation: true } })
+        cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } })
       ).rejects.toThrow(
         'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
       );

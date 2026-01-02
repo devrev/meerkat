@@ -95,7 +95,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
@@ -145,7 +145,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
@@ -199,7 +199,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
@@ -241,7 +241,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
@@ -291,7 +291,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
@@ -423,7 +423,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
@@ -465,7 +465,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
@@ -524,7 +524,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toBe(
@@ -592,7 +592,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toBe(
@@ -635,7 +635,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toBe(

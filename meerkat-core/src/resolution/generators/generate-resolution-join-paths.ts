@@ -1,7 +1,6 @@
 import {
-  AliasConfig,
+  QueryOptions,
   constructAliasForAST,
-  DEFAULT_ALIAS_CONFIG,
 } from '../../member-formatters/get-alias';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import { JoinPath } from '../../types/cube-types/query';
@@ -13,7 +12,7 @@ export const generateResolutionJoinPaths = (
   baseDataSourceName: string,
   resolutionConfig: ResolutionConfig,
   baseTableSchemas: TableSchema[],
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ): JoinPath[] => {
   return resolutionConfig.columnConfigs.map((columnConfig) => [
     {

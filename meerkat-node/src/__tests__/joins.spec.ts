@@ -304,7 +304,7 @@ describe('Joins Tests', () => {
         cubeQueryToSQL({
           query: query,
           tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
-          aliasConfig: { useDotNotation: false },
+          options: { useDotNotation: false },
         })
       ).rejects.toThrow(
         'Invalid path, multiple data sources are present without a join path.'
@@ -332,7 +332,7 @@ describe('Joins Tests', () => {
         dimensions: ['authors.author_name'],
       };
       await expect(
-        cubeQueryToSQL({ query, tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA], aliasConfig: { useDotNotation: false } })
+        cubeQueryToSQL({ query, tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA], options: { useDotNotation: false } })
       ).rejects.toThrow(`A loop was detected in the joins.`);
     });
 
@@ -369,7 +369,7 @@ describe('Joins Tests', () => {
             ORDER_SCHEMA,
             AUTHOR_SCHEMA,
           ],
-          aliasConfig: { useDotNotation: false },
+          options: { useDotNotation: false },
         })
       ).rejects.toThrow(
         'Invalid path, starting node is not the same for all paths.'
@@ -393,7 +393,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [AUTHOR_SCHEMA, ORDER_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -455,7 +455,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [DEMO_SCHEMA, CUSTOMER_SCHEMA, PRODUCT_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -514,7 +514,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [ORDER_SCHEMA, DEMO_SCHEMA, PRODUCT_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -569,7 +569,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query: query1,
         tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -620,7 +620,7 @@ describe('Joins Tests', () => {
       const sql2 = await cubeQueryToSQL({
         query: query2,
         tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       const output2 = await duckdbExec(sql2);
       const parsedOutput2 = JSON.parse(JSON.stringify(output2));
@@ -666,7 +666,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -700,7 +700,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [AUTHOR_SCHEMA, ORDER_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       const output = await duckdbExec(sql);
@@ -762,7 +762,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [DEMO_SCHEMA, CUSTOMER_SCHEMA, PRODUCT_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       const output = await duckdbExec(sql);
@@ -812,7 +812,7 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       const output = await duckdbExec(sql);

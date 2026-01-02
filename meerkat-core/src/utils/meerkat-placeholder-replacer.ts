@@ -1,6 +1,5 @@
 import {
-  AliasConfig,
-  DEFAULT_ALIAS_CONFIG,
+  QueryOptions,
   getAliasForSQL,
 } from '../member-formatters/get-alias';
 import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
@@ -10,7 +9,7 @@ export const meerkatPlaceholderReplacer = (
   sql: string,
   originalTableName: string,
   tableSchema: TableSchema,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   const tableNameEncapsulationRegEx = /\{MEERKAT\}\.([a-zA-Z_][a-zA-Z0-9_]*)/g;
   return sql.replace(tableNameEncapsulationRegEx, (_, columnName) => {

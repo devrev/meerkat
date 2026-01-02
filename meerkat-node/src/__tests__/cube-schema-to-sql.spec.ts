@@ -67,7 +67,7 @@ describe('Cube Schema to SQL', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [productsSchema, suppliersSchema],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -104,7 +104,7 @@ describe('Cube Schema to SQL', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [productsSchema, suppliersSchema],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       const output = await duckdbExec(sql);

@@ -1,8 +1,4 @@
-import {
-  AliasConfig,
-  DEFAULT_ALIAS_CONFIG,
-  getAliasForAST,
-} from '../member-formatters/get-alias';
+import { QueryOptions, getAliasForAST } from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import { Member } from '../types/cube-types/query';
 import {
@@ -13,7 +9,7 @@ import {
 export const cubeDimensionToGroupByAST = (
   dimensions: Member[],
   tableSchema: TableSchema,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   const groupByAST = dimensions.map((dimension) => {
     const dimensionAST = {

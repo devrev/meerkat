@@ -2,6 +2,8 @@ import { Database } from 'duckdb';
 import { TableSchema } from '../types/cube-types';
 import { getFilterParamsSQL } from './get-filter-params-sql';
 
+const defaultConfig = { useDotNotation: false };
+
 const getQueryOutput = async (sql: string) => {
   const db = new Database(':memory:');
   return new Promise((resolve, reject) => {
@@ -43,6 +45,7 @@ describe('getFilterParamsSQL', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual([
       {
@@ -62,6 +65,7 @@ describe('getFilterParamsSQL', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual([]);
   });
@@ -82,6 +86,7 @@ describe('getFilterParamsSQL', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual([
       {
@@ -101,6 +106,7 @@ describe('getFilterParamsSQL', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual([]);
   });
@@ -120,6 +126,7 @@ describe('getFilterParamsSQL', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual([
       {
@@ -164,6 +171,7 @@ describe('getFilterParamsSQL', () => {
       },
       tableSchema: tableSchema,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual([
       {

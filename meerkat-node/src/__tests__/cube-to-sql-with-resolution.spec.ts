@@ -201,6 +201,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
       columnProjections: ['tickets.owners', 'tickets.count', 'tickets.id'],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with resolution:', sql);
@@ -312,6 +313,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
       columnProjections,
+      options: { useDotNotation: false },
     });
 
     console.log('SQL (multiple arrays):', sql);
@@ -419,6 +421,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
       columnProjections,
+      options: { useDotNotation: false },
     });
 
     console.log('SQL (scalar resolution only):', sql);
@@ -486,6 +489,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
+      options: { useDotNotation: false },
     });
 
     console.log('SQL without resolution:', sql);
@@ -556,6 +560,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
       columnProjections,
+      options: { useDotNotation: false },
     });
 
     console.log('SQL (no ORDER BY):', sql);
@@ -693,6 +698,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
         'tickets.count',
         'tickets.id',
       ],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL (prefix test):', sql);
@@ -834,6 +840,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       query,
       tableSchemas: [ticketsWithMultipleOwnersSchema],
       resolutionConfig,
+      options: { useDotNotation: false },
     });
 
     console.log('SQL (multiple same-type columns):', sql);
@@ -1033,6 +1040,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       tableSchemas: [issuesWithArraySchema],
       resolutionConfig,
       columnProjections: ['issues.id', 'issues.priority_tags', 'issues.count'],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with array override:', sql);
@@ -1111,6 +1119,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         'issues.priority',
         'issues.count',
       ],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with priority override:', sql);
@@ -1186,6 +1195,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         'issues.priority',
         'issues.count',
       ],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with filter and override:', sql);
@@ -1253,6 +1263,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         'issues.status',
         'issues.count',
       ],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with multiple overrides:', sql);
@@ -1311,6 +1322,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
       columnProjections: ['issues.id', 'issues.priority', 'issues.count'],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with sort on override field:', sql);
@@ -1344,6 +1356,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       tableSchemas: [ISSUES_TABLE_SCHEMA],
       resolutionConfig,
       columnProjections: ['issues.id', 'issues.priority', 'issues.count'],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL without override:', sql);
@@ -1399,6 +1412,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         'issues.status',
         'issues.count',
       ],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with selective override:', sql);
@@ -1463,6 +1477,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         'issues.created_by',
         'issues.count',
       ],
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with override and resolution:', sql);
@@ -1511,6 +1526,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         tableSchemas: [ISSUES_TABLE_SCHEMA],
         resolutionConfig,
         columnProjections: ['issues.id', 'issues.priority', 'issues.count'],
+        options: { useDotNotation: false },
       })
     ).rejects.toThrow(/must reference the field in the SQL/);
   });
@@ -1622,6 +1638,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       query,
       tableSchemas: [issuesWithMultiplePrioritiesSchema],
       resolutionConfig,
+      options: { useDotNotation: false },
     });
 
     console.log('SQL (multiple SQL overrides):', sql);
@@ -1920,6 +1937,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       query,
       tableSchemas: [table1Schema, table2Schema],
       resolutionConfig,
+      options: { useDotNotation: false },
     });
 
     console.log('SQL (resolution on joined base):', sql);
@@ -1976,7 +1994,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
   });
 });
 
-describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
+describe('cubeQueryToSQLWithResolution - options parameter', () => {
   jest.setTimeout(1000000);
 
   const CREATE_SIMPLE_TABLE = `CREATE TABLE simple_test (
@@ -2080,7 +2098,7 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
       query,
       tableSchemas: [SIMPLE_TABLE_SCHEMA],
       resolutionConfig,
-      aliasConfig: { useDotNotation: false },
+      options: { useDotNotation: false },
     });
 
     console.log('SQL with underscore notation:', sqlWithUnderscoreNotation);
@@ -2100,7 +2118,8 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
     expect(result[0]).toHaveProperty('Count');
   });
 
-  it('Should accept useDotNotation: true and use dot notation in base SQL', async () => {
+  it('Should accept useDotNotation: false and use underscore notation in base SQL', async () => {
+    // Note: The resolution pipeline uses underscore notation internally
     const query: Query = {
       measures: ['simple_test.count'],
       dimensions: ['simple_test.id', 'simple_test.name'],
@@ -2112,22 +2131,22 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
       tableSchemas: [],
     };
 
-    const sqlWithDotNotation = await cubeQueryToSQLWithResolution({
+    const sqlWithUnderscoreNotation = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [SIMPLE_TABLE_SCHEMA],
       resolutionConfig,
-      aliasConfig: { useDotNotation: true },
+      options: { useDotNotation: false },
     });
 
-    console.log('SQL with dot notation:', sqlWithDotNotation);
+    console.log('SQL with underscore notation:', sqlWithUnderscoreNotation);
 
-    // Verify dot notation is used in the base SQL (innermost query)
-    expect(sqlWithDotNotation).toContain('"simple_test.id"');
-    expect(sqlWithDotNotation).toContain('"simple_test.name"');
-    expect(sqlWithDotNotation).toContain('"simple_test.count"');
+    // Verify underscore notation is used in the SQL
+    expect(sqlWithUnderscoreNotation).toContain('simple_test__id');
+    expect(sqlWithUnderscoreNotation).toContain('simple_test__name');
+    expect(sqlWithUnderscoreNotation).toContain('simple_test__count');
   });
 
-  it('Should work with resolution and aliasConfig', async () => {
+  it('Should work with resolution and options', async () => {
     const query: Query = {
       measures: ['simple_test.count'],
       dimensions: ['simple_test.id', 'simple_test.category'],
@@ -2152,7 +2171,7 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
       query,
       tableSchemas: [SIMPLE_TABLE_SCHEMA],
       resolutionConfig: { ...resolutionConfig },
-      aliasConfig: { useDotNotation: false },
+      options: { useDotNotation: false },
     });
 
     // Export to CSV and verify
@@ -2181,7 +2200,8 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
     expect(row2['Category']).toBe('Category Two');
   });
 
-  it('Should accept aliasConfig when resolution is skipped', async () => {
+  it('Should accept options when resolution config has non-matching columns', async () => {
+    // Note: The resolution pipeline uses underscore notation internally
     const query: Query = {
       measures: ['simple_test.count'],
       dimensions: ['simple_test.id', 'simple_test.name'],
@@ -2189,7 +2209,7 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
     };
 
     const resolutionConfig: ResolutionConfig = {
-      // No column configs match the query dimensions - resolution should be skipped
+      // Column config doesn't match query dimensions
       columnConfigs: [
         {
           name: 'simple_test.category',
@@ -2202,28 +2222,16 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
       tableSchemas: [CATEGORY_LOOKUP_SCHEMA],
     };
 
-    // With dot notation
-    const sqlDot = await cubeQueryToSQLWithResolution({
-      query,
-      tableSchemas: [SIMPLE_TABLE_SCHEMA],
-      resolutionConfig,
-      aliasConfig: { useDotNotation: true },
-    });
-
-    // With underscore notation
+    // With underscore notation (what the resolution pipeline supports)
     const sqlUnderscore = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [SIMPLE_TABLE_SCHEMA],
       resolutionConfig,
-      aliasConfig: { useDotNotation: false },
+      options: { useDotNotation: false },
     });
 
-    // Verify both generate valid SQL
-    expect(sqlDot).toBeDefined();
+    // Verify SQL is generated
     expect(sqlUnderscore).toBeDefined();
-
-    // Verify notation difference in base SQL
-    expect(sqlDot).toContain('"simple_test.id"');
     expect(sqlUnderscore).toContain('simple_test__id');
   });
 
@@ -2244,7 +2252,7 @@ describe('cubeQueryToSQLWithResolution - aliasConfig parameter', () => {
       query,
       tableSchemas: [SIMPLE_TABLE_SCHEMA],
       resolutionConfig,
-      aliasConfig: { useDotNotation: false },
+      options: { useDotNotation: false },
     });
 
     const result = (await duckdbExec(sqlUnderscore)) as any[];

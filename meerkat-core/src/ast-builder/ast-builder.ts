@@ -8,9 +8,8 @@ import {
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { traverseAndFilter } from '../filter-params/filter-params-ast';
 import {
-  AliasConfig,
   constructAliasForAST,
-  DEFAULT_ALIAS_CONFIG,
+  QueryOptions,
 } from '../member-formatters/get-alias';
 import {
   FilterType,
@@ -26,8 +25,8 @@ import { modifyLeafMeerkatFilter } from '../utils/modify-meerkat-filter';
 
 const formatFilters = (
   queryFiltersWithInfo: QueryFiltersWithInfo,
-  filterType?: FilterType,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  filterType: FilterType | undefined,
+  config: QueryOptions
 ) => {
   /*
    * If the type of filter is set to base filter where
@@ -57,7 +56,7 @@ const getFormattedFilters = ({
   filterType?: FilterType;
   baseAST: SelectStatement;
   mapperFn: (val: QueryFiltersWithInfoSingular) => MeerkatQueryFilter | null;
-  config?: AliasConfig;
+  config: QueryOptions;
 }) => {
   const filters = queryFiltersWithInfo
     .map((item) => mapperFn(item))
@@ -67,7 +66,7 @@ const getFormattedFilters = ({
   // we need to treat the member as an alias (single column name)
   const isProjectionFilter = filterType !== 'BASE_FILTER';
   const columnRefOptions =
-    isProjectionFilter && config?.useDotNotation
+    isProjectionFilter && config.useDotNotation
       ? { isAlias: true, useDotNotation: true }
       : undefined;
   return cubeFilterToDuckdbAST(formattedFilters, baseAST, columnRefOptions);
@@ -76,7 +75,7 @@ const getFormattedFilters = ({
 export const cubeToDuckdbAST = (
   query: Query,
   tableSchema: TableSchema,
-  options?: { filterType: FilterType; config?: AliasConfig }
+  options: { filterType: FilterType; config: QueryOptions }
 ) => {
   /**
    * Obviously, if no table schema was found, return null.
@@ -108,8 +107,8 @@ export const cubeToDuckdbAST = (
           (value) => !query.measures.includes(value.member)
         ),
       queryFiltersWithInfo,
-      filterType: options?.filterType,
-      config: options?.config,
+      filterType: options.filterType,
+      config: options.config,
     });
 
     const havingClause = getFormattedFilters({
@@ -119,8 +118,8 @@ export const cubeToDuckdbAST = (
           query.measures.includes(value.member)
         ),
       queryFiltersWithInfo,
-      filterType: options?.filterType,
-      config: options?.config,
+      filterType: options.filterType,
+      config: options.config,
     });
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -136,7 +135,7 @@ export const cubeToDuckdbAST = (
     node.group_expressions = cubeDimensionToGroupByAST(
       query.dimensions,
       tableSchema,
-      options?.config
+      options.config
     );
     const groupSets = [];
     /**
@@ -150,7 +149,7 @@ export const cubeToDuckdbAST = (
   node.modifiers = [];
   if (query.order && Object.keys(query.order).length > 0) {
     node.modifiers.push(
-      cubeOrderByToAST(query.order, tableSchema, options?.config)
+      cubeOrderByToAST(query.order, tableSchema, options.config)
     );
   }
   if (query.limit || query.offset) {

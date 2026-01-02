@@ -9,6 +9,8 @@ import {
 import { isSelectNode } from '../types/utils';
 import { cubeToDuckdbAST } from './ast-builder';
 
+const defaultOptions = { filterType: 'PROJECTION_FILTER' as const, config: { useDotNotation: false } };
+
 describe('cubeToDuckdbAST', () => {
   const mockTableSchema: TableSchema = {
     name: 'test_table',
@@ -30,7 +32,7 @@ describe('cubeToDuckdbAST', () => {
   };
 
   it('should return null if table schema is null', () => {
-    const result = cubeToDuckdbAST({} as Query, null as unknown as TableSchema);
+    const result = cubeToDuckdbAST({} as Query, null as unknown as TableSchema, defaultOptions);
     expect(result).toBeNull();
   });
 
@@ -40,7 +42,7 @@ describe('cubeToDuckdbAST', () => {
       dimensions: ['test_table.dimension1'],
     };
 
-    const result = cubeToDuckdbAST(query, mockTableSchema);
+    const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.group_expressions).toHaveLength(1);
@@ -67,7 +69,7 @@ describe('cubeToDuckdbAST', () => {
       ],
     };
 
-    const result = cubeToDuckdbAST(query, mockTableSchema);
+    const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.where_clause).toEqual({
@@ -109,7 +111,7 @@ describe('cubeToDuckdbAST', () => {
       ],
     };
 
-    const result = cubeToDuckdbAST(query, mockTableSchema);
+    const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.having).toEqual({
       alias: '',
@@ -152,7 +154,7 @@ describe('cubeToDuckdbAST', () => {
       },
     };
 
-    const result = cubeToDuckdbAST(query, mockTableSchema);
+    const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     if (isSelectNode(result.node)) {
@@ -175,7 +177,7 @@ describe('cubeToDuckdbAST', () => {
       offset: 5,
     };
 
-    const result = cubeToDuckdbAST(query, mockTableSchema);
+    const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     if (isSelectNode(result.node)) {
@@ -237,7 +239,7 @@ describe('cubeToDuckdbAST', () => {
       offset: 5,
     };
 
-    const result = cubeToDuckdbAST(query, mockTableSchema);
+    const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.group_expressions).toHaveLength(1);
@@ -367,7 +369,7 @@ describe('cubeToDuckdbAST', () => {
       dimensions: ['test_table.dimension.with.dots'],
     };
 
-    const result = cubeToDuckdbAST(query, complexTableSchema);
+    const result = cubeToDuckdbAST(query, complexTableSchema, defaultOptions);
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.group_expressions).toHaveLength(1);
     expect(result.node.group_expressions[0]).toEqual({
@@ -405,7 +407,7 @@ describe('cubeToDuckdbAST', () => {
       dimensions: ['test_table.dimension'],
     };
 
-    const result = cubeToDuckdbAST(query, tableSchema);
+    const result = cubeToDuckdbAST(query, tableSchema, defaultOptions);
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.group_expressions).toHaveLength(1);
     expect(result.node.group_expressions[0]).toEqual({

@@ -99,7 +99,7 @@ describe('cube-to-sql', () => {
         },
         limit: 2,
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '2') GROUP BY orders__customer_id HAVING (orders__total_order_amount = 100) ORDER BY orders__total_order_amount DESC LIMIT 2`
@@ -129,7 +129,7 @@ describe('cube-to-sql', () => {
         },
         limit: 2,
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT orders.order_amount AS orders__order_amount, customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount = 100) GROUP BY orders__customer_id ORDER BY orders__total_order_amount DESC LIMIT 2`
@@ -166,7 +166,7 @@ describe('cube-to-sql', () => {
         },
         limit: 2,
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toBe(
         `SELECT SUM(order_amount) AS "orders.total_order_amount" ,   "orders.customer_id" FROM (SELECT customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders WHERE ("orders.customer_id" = '2') GROUP BY "orders.customer_id" HAVING ("orders.total_order_amount" = 100) ORDER BY "orders.total_order_amount" DESC LIMIT 2`
@@ -196,7 +196,7 @@ describe('cube-to-sql', () => {
         },
         limit: 2,
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toBe(
         `SELECT SUM(order_amount) AS "orders.total_order_amount" ,   "orders.customer_id" FROM (SELECT orders.order_amount AS "orders.order_amount", customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders WHERE ("orders.order_amount" = 100) GROUP BY "orders.customer_id" ORDER BY "orders.total_order_amount" DESC LIMIT 2`

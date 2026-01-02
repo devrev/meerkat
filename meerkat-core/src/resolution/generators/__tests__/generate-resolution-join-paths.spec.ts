@@ -2,6 +2,8 @@ import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { generateResolutionJoinPaths } from '../generate-resolution-join-paths';
 
+const defaultConfig = { useDotNotation: false };
+
 describe('generate-resolution-join-paths', () => {
   describe('generateResolutionJoinPaths', () => {
     const createMockTableSchema = (
@@ -44,7 +46,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        defaultConfig
       );
 
       expect(result).toHaveLength(1);
@@ -84,7 +87,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        defaultConfig
       );
 
       expect(result).toHaveLength(1);
@@ -133,7 +137,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        defaultConfig
       );
 
       expect(result).toHaveLength(2);
@@ -151,7 +156,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        defaultConfig
       );
 
       expect(result).toEqual([]);
@@ -178,7 +184,8 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas
+        baseTableSchemas,
+        defaultConfig
       );
 
       expect(result[0][0].right).toBe('orders__nested__field');

@@ -82,7 +82,7 @@ describe('composite-dimensions-and-measures', () => {
         limit: 2,
       };
 
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
       console.info(`SQL for Composite Dimensions and Measures: `, sql);
 
       const output = await duckdbExec(sql);
@@ -123,7 +123,7 @@ describe('composite-dimensions-and-measures', () => {
         limit: 2,
       };
 
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
       console.info(`SQL for Composite Dimensions and Measures (dot notation): `, sql);
 
       const output = await duckdbExec(sql);

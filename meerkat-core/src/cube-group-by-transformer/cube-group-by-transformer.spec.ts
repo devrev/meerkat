@@ -5,6 +5,8 @@ import {
 } from '../types/duckdb-serialization-types/serialization/Expression';
 import { cubeDimensionToGroupByAST } from './cube-group-by-transformer';
 
+const defaultConfig = { useDotNotation: false };
+
 describe('cube-group-by-transformer', () => {
   describe('cubeDimensionToGroupByAST', () => {
     const createMockTableSchema = (
@@ -25,7 +27,8 @@ describe('cube-group-by-transformer', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
       const result = cubeDimensionToGroupByAST(
         ['orders.customer_id'],
-        tableSchema
+        tableSchema,
+        defaultConfig
       );
 
       expect(result).toHaveLength(1);
@@ -43,7 +46,8 @@ describe('cube-group-by-transformer', () => {
       ]);
       const result = cubeDimensionToGroupByAST(
         ['orders.customer_id'],
-        tableSchema
+        tableSchema,
+        defaultConfig
       );
 
       expect(result).toHaveLength(1);
@@ -62,7 +66,8 @@ describe('cube-group-by-transformer', () => {
       ]);
       const result = cubeDimensionToGroupByAST(
         ['orders.customer_id', 'orders.order_date'],
-        tableSchema
+        tableSchema,
+        defaultConfig
       );
 
       expect(result).toHaveLength(2);
@@ -72,7 +77,7 @@ describe('cube-group-by-transformer', () => {
 
     it('should return empty array when no dimensions provided', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
-      const result = cubeDimensionToGroupByAST([], tableSchema);
+      const result = cubeDimensionToGroupByAST([], tableSchema, defaultConfig);
 
       expect(result).toEqual([]);
     });
@@ -81,7 +86,7 @@ describe('cube-group-by-transformer', () => {
       const tableSchema = createMockTableSchema([
         { name: 'field', alias: 'Field.With.Dots' },
       ]);
-      const result = cubeDimensionToGroupByAST(['orders.field'], tableSchema);
+      const result = cubeDimensionToGroupByAST(['orders.field'], tableSchema, defaultConfig);
 
       // Should NOT have quotes - AST handles quoting automatically
       expect(result[0].column_names).toEqual(['Field.With.Dots']);

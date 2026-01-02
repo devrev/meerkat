@@ -1,7 +1,6 @@
 import {
-  AliasConfig,
+  QueryOptions,
   constructCompoundAlias,
-  DEFAULT_ALIAS_CONFIG,
 } from '../../member-formatters/get-alias';
 import { getNamespacedKey } from '../../member-formatters/get-namespaced-key';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
@@ -14,7 +13,7 @@ export interface ApplyAliasesParams {
   originalTableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
-  config?: AliasConfig;
+  config: QueryOptions;
   cubeQueryToSQL: (params: {
     query: Query;
     tableSchemas: TableSchema[];
@@ -64,8 +63,10 @@ export const applyAliases = async ({
     resolutionConfig.tableSchemas.map((schema) => [schema.name, schema])
   );
 
-  const effectiveConfig = config ?? DEFAULT_ALIAS_CONFIG;
-  const safeKeyOptions = { useDotNotation: effectiveConfig.useDotNotation };
+  if (!config) {
+    throw new Error('QueryOptions config is required for applyAliases');
+  }
+  const safeKeyOptions = { useDotNotation: config.useDotNotation };
 
   // Helper function to process dimensions or measures and populate the alias map
   const processMembers = (

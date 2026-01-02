@@ -1,6 +1,5 @@
 import {
-  AliasConfig,
-  DEFAULT_ALIAS_CONFIG,
+  QueryOptions,
   getAliasForSQL,
 } from '../member-formatters/get-alias';
 import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
@@ -12,7 +11,7 @@ import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replace
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
   tableSchema: TableSchema,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -75,7 +74,7 @@ const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
   tableSchema: TableSchema,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -165,7 +164,7 @@ export const applyProjectionToSQLQuery = (
   measures: Member[],
   tableSchema: TableSchema,
   sqlToReplace: string,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   let measureSelectString = cubeMeasureToSQLSelectString(
     measures,

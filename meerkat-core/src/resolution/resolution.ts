@@ -1,8 +1,7 @@
 import {
-  AliasConfig,
+  QueryOptions,
   constructAliasForAST,
   constructAliasForSQL,
-  DEFAULT_ALIAS_CONFIG,
 } from '../member-formatters/get-alias';
 import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
 import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
@@ -54,7 +53,7 @@ export const shouldSkipResolution = (
 const constructBaseDimension = (
   name: string,
   schema: Measure | Dimension,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   return {
     name: memberKeyToSafeKey(name, { useDotNotation: config.useDotNotation }),
@@ -70,8 +69,8 @@ export const createBaseTableSchema = (
   tableSchemas: TableSchema[],
   resolutionConfig: ResolutionConfig,
   measures: Member[],
-  dimensions?: Member[],
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  dimensions: Member[] | undefined,
+  config: QueryOptions
 ) => {
   const schemaByName: Record<string, Measure | Dimension> = {};
   tableSchemas.forEach((tableSchema) => {

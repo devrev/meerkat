@@ -8,6 +8,7 @@ import {
   getNamespacedKey,
   memberKeyToSafeKey,
   Query,
+  QueryOptions,
   ResolutionConfig,
   TableSchema,
 } from '../../index';
@@ -27,6 +28,7 @@ export const getResolvedTableSchema = async ({
   columnProjections,
   contextParams,
   cubeQueryToSQL,
+  config,
 }: {
   baseTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
@@ -37,6 +39,7 @@ export const getResolvedTableSchema = async ({
     tableSchemas: TableSchema[];
     contextParams?: ContextParams;
   }) => Promise<string>;
+  config: QueryOptions;
 }): Promise<TableSchema> => {
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
@@ -46,7 +49,8 @@ export const getResolvedTableSchema = async ({
   const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
     resolutionConfig,
-    [updatedBaseTableSchema]
+    [updatedBaseTableSchema],
+    config
   );
 
   const tempQuery: Query = {

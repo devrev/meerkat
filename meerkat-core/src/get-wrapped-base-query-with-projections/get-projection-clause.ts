@@ -1,7 +1,6 @@
 import { getAllColumnUsedInMeasures } from '../cube-measure-transformer/cube-measure-transformer';
 import {
-  AliasConfig,
-  DEFAULT_ALIAS_CONFIG,
+  QueryOptions,
   getAliasForSQL,
 } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
@@ -37,7 +36,7 @@ export const getProjectionClause = (
   query: Query,
   tableSchema: TableSchema,
   aliasedColumnSet: Set<string>,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   const { measures, dimensions = [] } = query;
   const filteredDimensions = dimensions.filter((dimension) => {

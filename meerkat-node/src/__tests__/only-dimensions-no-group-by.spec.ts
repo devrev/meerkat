@@ -78,7 +78,7 @@ describe('cube-to-sql', () => {
         measures: [],
         dimensions: ['orders.customer_id'],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         'SELECT  orders__customer_id FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders'
@@ -113,7 +113,7 @@ describe('cube-to-sql', () => {
         measures: ['orders.total_order_amount'],
         dimensions: ['orders.customer_id'],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         'SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders GROUP BY orders__customer_id'
@@ -146,7 +146,7 @@ describe('cube-to-sql', () => {
         measures: [],
         dimensions: ['orders.customer_id'],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toBe(
         'SELECT  "orders.customer_id" FROM (SELECT customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders'
@@ -181,7 +181,7 @@ describe('cube-to-sql', () => {
         measures: ['orders.total_order_amount'],
         dimensions: ['orders.customer_id'],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], aliasConfig: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toBe(
         'SELECT SUM(order_amount) AS "orders.total_order_amount" ,   "orders.customer_id" FROM (SELECT customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders GROUP BY "orders.customer_id"'

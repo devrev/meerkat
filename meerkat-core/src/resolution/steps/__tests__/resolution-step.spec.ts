@@ -2,6 +2,8 @@ import { TableSchema } from '../../../types/cube-types';
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from '../../types';
 import { getResolvedTableSchema } from '../resolution-step';
 
+const defaultOptions = { useDotNotation: false };
+
 describe('resolution-step', () => {
   describe('getResolvedTableSchema', () => {
     const createMockTableSchema = (
@@ -44,6 +46,7 @@ describe('resolution-step', () => {
         columnProjections: ['orders.customer_id', 'orders.status'],
         cubeQueryToSQL: mockCubeQueryToSQL,
         contextParams,
+        config: defaultOptions,
       });
 
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
@@ -77,6 +80,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: ['orders.customer_id', 'orders.status'],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       expect(result.name).toBe(BASE_DATA_SOURCE_NAME);
@@ -114,6 +118,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: [],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       expect(result.dimensions).toEqual([]);
@@ -137,6 +142,7 @@ describe('resolution-step', () => {
           resolutionConfig,
           columnProjections: ['orders.nonexistent'],
           cubeQueryToSQL: mockCubeQueryToSQL,
+          config: defaultOptions,
         })
       ).rejects.toThrow(
         "Column projection 'orders__nonexistent' not found in base table schema dimensions"
@@ -172,6 +178,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: ['orders.owner_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       // Should have called cubeQueryToSQL with join paths
@@ -223,6 +230,7 @@ describe('resolution-step', () => {
           'orders.status',
         ],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       expect(result.dimensions).toHaveLength(3);
@@ -248,6 +256,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: ['orders.customer_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
@@ -295,6 +304,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: ['orders.customer_id', 'orders.product_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
@@ -328,6 +338,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: ['orders.amount', 'orders.date', 'orders.tags'],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       expect(result.dimensions[0].type).toBe('number');
@@ -386,6 +397,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: ['orders.user_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
@@ -417,6 +429,7 @@ describe('resolution-step', () => {
         resolutionConfig,
         columnProjections: ['orders.customer.nested_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultOptions,
       });
 
       expect(result.dimensions).toHaveLength(1);

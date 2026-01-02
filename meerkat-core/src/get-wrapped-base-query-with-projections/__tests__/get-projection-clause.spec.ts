@@ -1,6 +1,8 @@
 import { TableSchema } from '../../types/cube-types/table';
 import { getProjectionClause } from '../get-projection-clause';
 
+const defaultConfig = { useDotNotation: false };
+
 const TABLE_SCHEMA: TableSchema = {
   dimensions: [
     { name: 'a', sql: 'others', type: 'number' },
@@ -27,7 +29,8 @@ describe('get-projection-clause', () => {
           measures: [],
         },
         TABLE_SCHEMA,
-        aliasedColumnSet
+        aliasedColumnSet,
+        defaultConfig
       );
       expect(result).toEqual('others AS test__a, any AS test__c');
     });
@@ -41,7 +44,8 @@ describe('get-projection-clause', () => {
           measures: [],
         },
         TABLE_SCHEMA,
-        aliasedColumnSet
+        aliasedColumnSet,
+        defaultConfig
       );
       expect(result).toEqual('others AS test__a');
     });
@@ -55,7 +59,8 @@ describe('get-projection-clause', () => {
           dimensions: members,
         },
         TABLE_SCHEMA,
-        aliasedColumnSet
+        aliasedColumnSet,
+        defaultConfig
       );
       expect(result).toEqual('others AS test__a, test.id AS test__id');
     });
@@ -76,7 +81,8 @@ describe('get-projection-clause', () => {
           measures: [],
         },
         tableSchema,
-        aliasedColumnSet
+        aliasedColumnSet,
+        defaultConfig
       );
       expect(result).toEqual('others AS "test a", any AS "test c"');
     });

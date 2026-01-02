@@ -1,9 +1,8 @@
 import {
-  AliasConfig,
   BASE_TABLE_NAME,
   ContextParams,
-  DEFAULT_ALIAS_CONFIG,
   Query,
+  QueryOptions,
   TableSchema,
   applyFilterParamsToBaseSQL,
   applyProjectionToSQLQuery,
@@ -23,18 +22,18 @@ export interface CubeQueryToSQLParams {
   tableSchemas: TableSchema[];
   contextParams?: ContextParams;
   /**
-   * Alias configuration for controlling output format.
+   * Options for controlling output format.
    * When useDotNotation is true, aliases use dot notation (e.g., "orders.customer_id")
    * When useDotNotation is false, aliases use underscore notation (e.g., orders__customer_id)
    */
-  aliasConfig?: AliasConfig;
+  options: QueryOptions;
 }
 
 export const cubeQueryToSQL = async ({
   query,
   tableSchemas,
   contextParams,
-  aliasConfig = DEFAULT_ALIAS_CONFIG,
+  options,
 }: CubeQueryToSQLParams) => {
   const updatedTableSchemas: TableSchema[] = await Promise.all(
     tableSchemas.map(async (schema: TableSchema) => {
@@ -42,7 +41,7 @@ export const cubeQueryToSQL = async ({
         query,
         tableSchema: schema,
         getQueryOutput: duckdbExec,
-        config: aliasConfig,
+        config: options,
       });
       return {
         ...schema,
@@ -55,7 +54,7 @@ export const cubeQueryToSQL = async ({
 
   const ast = cubeToDuckdbAST(query, updatedTableSchema, {
     filterType: 'PROJECTION_FILTER',
-    config: aliasConfig,
+    config: options,
   });
   if (!ast) {
     throw new Error('Could not generate AST');
@@ -70,7 +69,7 @@ export const cubeQueryToSQL = async ({
     query,
     tableSchema: updatedTableSchema,
     getQueryOutput: duckdbExec,
-    config: aliasConfig,
+    config: options,
   });
 
   const filterParamQuery = applyFilterParamsToBaseSQL(
@@ -104,7 +103,7 @@ export const cubeQueryToSQL = async ({
     measures,
     updatedTableSchema,
     replaceBaseTableName,
-    aliasConfig
+    options
   );
 
   /**

@@ -13,6 +13,8 @@ import {
 } from './resolution';
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
+const defaultOptions = { useDotNotation: false };
+
 describe('Create base table schema', () => {
   it('dimensions and measures are converted to dimensions', () => {
     const sql =
@@ -54,7 +56,8 @@ describe('Create base table schema', () => {
       tableSchemas,
       resolutionConfig,
       measures,
-      dimensions
+      dimensions,
+      defaultOptions
     );
 
     expect(baseTableSchema).toEqual({
@@ -132,7 +135,8 @@ describe('Create base table schema', () => {
       tableSchemas,
       resolutionConfig,
       [],
-      dimensions
+      dimensions,
+      defaultOptions
     );
 
     expect(baseTableSchema).toEqual({
@@ -192,7 +196,8 @@ describe('Create base table schema', () => {
         tableSchemas,
         resolutionConfig,
         [],
-        dimensions
+        dimensions,
+        defaultOptions
       );
     }).toThrow('Not found: base_table.column2');
   });
@@ -246,7 +251,8 @@ describe('Create base table schema', () => {
       tableSchemas,
       resolutionConfig,
       [],
-      dimensions
+      dimensions,
+      defaultOptions
     );
 
     expect(baseTableSchema).toEqual({
@@ -727,7 +733,8 @@ describe('Generate resolution join paths', () => {
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
       resolutionConfig,
-      []
+      [],
+      defaultOptions
     );
 
     expect(joinPaths).toEqual([
@@ -787,7 +794,8 @@ describe('Generate resolution join paths', () => {
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
       resolutionConfig,
-      baseTableSchemas
+      baseTableSchemas,
+      defaultOptions
     );
     expect(joinPaths).toEqual([
       [

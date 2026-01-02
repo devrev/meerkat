@@ -1,6 +1,8 @@
 import { Query, TableSchema } from '../../types/cube-types';
 import { getWrappedBaseQueryWithProjections } from '../get-wrapped-base-query-with-projections';
 
+const defaultConfig = { useDotNotation: false };
+
 describe('get-wrapped-base-query-with-projections', () => {
   describe('getWrappedBaseQueryWithProjections', () => {
     const createMockTableSchema = (
@@ -38,6 +40,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -61,6 +64,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -82,6 +86,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -103,6 +108,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -128,6 +134,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -147,6 +154,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe('SELECT * FROM (SELECT * FROM orders) AS orders');
@@ -168,6 +176,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -192,6 +201,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -215,6 +225,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -237,6 +248,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -260,6 +272,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -291,6 +304,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -322,6 +336,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(
@@ -343,6 +358,7 @@ describe('get-wrapped-base-query-with-projections', () => {
         baseQuery,
         tableSchema,
         query,
+        config: defaultConfig,
       });
 
       expect(result).toBe(

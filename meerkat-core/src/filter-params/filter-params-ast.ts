@@ -1,5 +1,5 @@
 import { cubeToDuckdbAST } from '../ast-builder/ast-builder';
-import { AliasConfig } from '../member-formatters/get-alias';
+import { QueryOptions } from '../member-formatters/get-alias';
 import {
   FilterType,
   LogicalAndFilter,
@@ -112,8 +112,8 @@ export const detectAllFilterParamsFromSQL = (
 export const getFilterParamsAST = (
   query: Query,
   tableSchema: TableSchema,
-  filterType: FilterType = 'PROJECTION_FILTER',
-  config?: AliasConfig
+  filterType: FilterType,
+  config: QueryOptions
 ): {
   memberKey: string;
   ast: SelectStatement | null;

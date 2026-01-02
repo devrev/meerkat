@@ -26,7 +26,7 @@ describe('dot-notation-alias', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       // The SQL should contain quoted dot notation alias
@@ -54,7 +54,7 @@ describe('dot-notation-alias', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       // The SQL should contain quoted dot notation aliases
@@ -90,7 +90,7 @@ describe('dot-notation-alias', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       // The SQL should contain quoted dot notation aliases
@@ -123,7 +123,7 @@ describe('dot-notation-alias', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       // The SQL should contain quoted dot notation aliases
@@ -158,7 +158,7 @@ describe('dot-notation-alias', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       // The SQL should have a GROUP BY clause
@@ -183,7 +183,7 @@ describe('dot-notation-alias', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
 
       // The SQL should contain underscore notation alias (unquoted)
@@ -203,7 +203,7 @@ describe('dot-notation-alias', () => {
       }
     });
 
-    it('should work with default config (no aliasConfig provided)', async () => {
+    it('should work with underscore notation config', async () => {
       const query = {
         measures: [],
         dimensions: ['orders.customer_id'],
@@ -213,12 +213,12 @@ describe('dot-notation-alias', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        // No aliasConfig - should default to underscore notation
+        options: { useDotNotation: false },
       });
 
       // The SQL should contain underscore notation alias (unquoted)
       expect(sql).toContain('orders__customer_id');
-      console.info('SQL with default config:', sql);
+      console.info('SQL with underscore config:', sql);
 
       // Execute the query to verify it works
       const output = await duckdbExec(sql);
@@ -246,13 +246,13 @@ describe('dot-notation-alias', () => {
       const sqlDot = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: true },
+        options: { useDotNotation: true },
       });
 
       const sqlUnderscore = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        aliasConfig: { useDotNotation: false },
+        options: { useDotNotation: false },
       });
 
       console.info('Dot notation SQL:', sqlDot);

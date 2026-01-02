@@ -4,6 +4,8 @@ import {
   getFilterMeasureProjection,
 } from '../get-aliased-columns-from-filters';
 
+const defaultConfig = { useDotNotation: false };
+
 const TABLE_SCHEMA: TableSchema = {
   dimensions: [
     { name: 'a', sql: 'others', type: 'number' },
@@ -27,6 +29,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         measures: ['test.a'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: 'test__x',
@@ -41,6 +44,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         measures: ['test.x'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -60,6 +64,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema,
         measures: ['test.b'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -78,6 +83,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: tableSchema,
         measures: ['test.a'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: '"test x"',
@@ -95,6 +101,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         modifiers: [],
+        query: { measures: [], dimensions: [] },
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: 'test__a',
@@ -114,6 +122,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema,
         modifiers: [],
+        query: { measures: [], dimensions: [] },
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -135,6 +145,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: tableSchema,
         modifiers: [],
+        query: { measures: [], dimensions: [] },
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: '"test a"',

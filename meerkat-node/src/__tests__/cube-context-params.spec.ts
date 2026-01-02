@@ -60,7 +60,7 @@ describe('context-param-tests', () => {
       };
       const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
         TABLE_NAME: 'orders',
-      }, aliasConfig: { useDotNotation: false }});
+      }, options: { useDotNotation: false }});
       console.info('SQL: ', sql);
       const output: any = await duckdbExec(sql);
       expect(output).toHaveLength(1);
@@ -82,7 +82,7 @@ describe('context-param-tests', () => {
       };
       const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
         TABLE_NAME: 'orders',
-      }, aliasConfig: { useDotNotation: true }});
+      }, options: { useDotNotation: true }});
       console.info('SQL (dot notation): ', sql);
       const output: any = await duckdbExec(sql);
       expect(output).toHaveLength(1);

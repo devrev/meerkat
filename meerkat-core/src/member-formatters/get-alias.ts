@@ -4,22 +4,15 @@ import { memberKeyToSafeKey } from './member-key-to-safe-key';
 import { splitIntoDataSourceAndFields } from './split-into-data-source-and-fields';
 
 /**
- * Configuration for alias generation.
+ * Configuration for query options.
  */
-export interface AliasConfig {
+export interface QueryOptions {
   /**
    * When true, uses dot notation for aliases: "orders.customer_id"
    * When false, uses underscore notation: orders__customer_id
    */
   useDotNotation: boolean;
 }
-
-/**
- * Default alias configuration (underscore notation for backward compatibility)
- */
-export const DEFAULT_ALIAS_CONFIG: AliasConfig = {
-  useDotNotation: false,
-};
 
 // ============================================================================
 // NEW FLAG-AWARE API (recommended)
@@ -46,7 +39,7 @@ export const DEFAULT_ALIAS_CONFIG: AliasConfig = {
 export const getAliasForSQL = (
   name: string,
   tableSchema: TableSchema,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ): string => {
   const [, field] = splitIntoDataSourceAndFields(name);
   return constructAliasForSQL(
@@ -77,7 +70,7 @@ export const getAliasForSQL = (
 export const getAliasForAST = (
   name: string,
   tableSchema: TableSchema,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ): string => {
   const [, field] = splitIntoDataSourceAndFields(name);
   return constructAliasForAST(
@@ -99,7 +92,7 @@ export const getAliasForAST = (
 export const constructAliasForSQL = (
   name: string,
   alias: string | undefined,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ): string => {
   if (alias) {
     // Custom aliases always need quotes in SQL context (may contain spaces/special chars)
@@ -128,7 +121,7 @@ export const constructAliasForSQL = (
 export const constructAliasForAST = (
   name: string,
   alias: string | undefined,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ): string => {
   if (alias) {
     // Return custom alias without quotes - DuckDB will handle quoting

@@ -1,6 +1,5 @@
 import {
-  AliasConfig,
-  DEFAULT_ALIAS_CONFIG,
+  QueryOptions,
   getAliasForSQL,
 } from '../member-formatters/get-alias';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
@@ -17,13 +16,13 @@ export const getDimensionProjection = ({
   tableSchema,
   modifiers,
   query,
-  config = DEFAULT_ALIAS_CONFIG,
+  config,
 }: {
   key: string;
   tableSchema: TableSchema;
   modifiers: Modifier[];
   query: Query;
-  config?: AliasConfig;
+  config: QueryOptions;
 }) => {
   // Find the table access key
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
@@ -56,12 +55,12 @@ export const getFilterMeasureProjection = ({
   key,
   tableSchema,
   measures,
-  config = DEFAULT_ALIAS_CONFIG,
+  config,
 }: {
   key: string;
   tableSchema: TableSchema;
   measures: string[];
-  config?: AliasConfig;
+  config: QueryOptions;
 }) => {
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
   const foundMember = findInMeasureSchema(measureWithoutTable, tableSchema);
@@ -85,13 +84,13 @@ const getFilterProjections = ({
   tableSchema,
   measures,
   query,
-  config = DEFAULT_ALIAS_CONFIG,
+  config,
 }: {
   member: string;
   tableSchema: TableSchema;
   measures: string[];
   query: Query;
-  config?: AliasConfig;
+  config: QueryOptions;
 }) => {
   const [, memberWithoutTable] = splitIntoDataSourceAndFields(member);
   const isDimension = findInDimensionSchema(memberWithoutTable, tableSchema);
@@ -125,13 +124,13 @@ export const getAliasedColumnsFromFilters = ({
   tableSchema,
   aliasedColumnSet,
   query,
-  config = DEFAULT_ALIAS_CONFIG,
+  config,
 }: {
   meerkatFilters?: MeerkatQueryFilter[];
   tableSchema: TableSchema;
   aliasedColumnSet: Set<string>;
   query: Query;
-  config?: AliasConfig;
+  config: QueryOptions;
 }) => {
   const parts: string[] = [];
   const { measures } = query;

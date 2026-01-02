@@ -1,6 +1,8 @@
 import { TableSchema } from '../types/cube-types';
 import { meerkatPlaceholderReplacer } from './meerkat-placeholder-replacer';
 
+const defaultConfig = { useDotNotation: false };
+
 describe('meerkatPlaceholderReplacer', () => {
   let tableSchema: TableSchema;
   beforeEach(() => {
@@ -17,7 +19,7 @@ describe('meerkatPlaceholderReplacer', () => {
   it('should not replace placeholders with tableName if placeholder pattern doesnt end in .', () => {
     const sql = 'SELECT * FROM {MEERKAT}fieldName';
     const tableName = 'customers';
-    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema)).toEqual(
+    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema, defaultConfig)).toEqual(
       'SELECT * FROM {MEERKAT}fieldName'
     );
   });
@@ -25,7 +27,7 @@ describe('meerkatPlaceholderReplacer', () => {
   it('should replace multiple placeholders in the SQL query', () => {
     const sql = 'SELECT {MEERKAT}.a, {MEERKAT}.b FROM orders';
     const tableName = 'orders';
-    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema)).toEqual(
+    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema, defaultConfig)).toEqual(
       'SELECT orders__a, orders__b FROM orders'
     );
   });
@@ -33,7 +35,7 @@ describe('meerkatPlaceholderReplacer', () => {
   it('should be case sensitive', () => {
     const sql = 'SELECT {meerkat}.a FROM orders';
     const tableName = 'orders';
-    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema)).toEqual(
+    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema, defaultConfig)).toEqual(
       'SELECT {meerkat}.a FROM orders'
     );
   });
@@ -41,7 +43,7 @@ describe('meerkatPlaceholderReplacer', () => {
   it('should replace the correct match', () => {
     const sql = 'SELECT {MEERKAT.{MEERKAT}.a}.a FROM customers';
     const tableName = 'customers';
-    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema)).toEqual(
+    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema, defaultConfig)).toEqual(
       'SELECT {MEERKAT.customers__a}.a FROM customers'
     );
   });
@@ -49,13 +51,13 @@ describe('meerkatPlaceholderReplacer', () => {
   it('should handle empty SQL queries', () => {
     const sql = '';
     const tableName = 'customers';
-    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema)).toEqual('');
+    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema, defaultConfig)).toEqual('');
   });
 
   it('should handle SQL queries without placeholders', () => {
     const sql = 'SELECT * FROM customers.';
     const tableName = 'orders';
-    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema)).toEqual(
+    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema, defaultConfig)).toEqual(
       'SELECT * FROM customers.'
     );
   });
@@ -63,7 +65,7 @@ describe('meerkatPlaceholderReplacer', () => {
   it('should replace placeholders with alias if provided', () => {
     const sql = 'SELECT {MEERKAT}.measure1 FROM orders';
     const tableName = 'orders';
-    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema)).toEqual(
+    expect(meerkatPlaceholderReplacer(sql, tableName, tableSchema, defaultConfig)).toEqual(
       'SELECT "alias1" FROM orders'
     );
   });

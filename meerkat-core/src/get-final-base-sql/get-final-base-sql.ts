@@ -1,7 +1,7 @@
 import { applyFilterParamsToBaseSQL } from "../filter-params/filter-params-ast";
 import { getFilterParamsSQL } from "../get-filter-params-sql/get-filter-params-sql";
 import { getWrappedBaseQueryWithProjections } from "../get-wrapped-base-query-with-projections/get-wrapped-base-query-with-projections";
-import { AliasConfig } from "../member-formatters/get-alias";
+import { QueryOptions } from "../member-formatters/get-alias";
 import { Query } from "../types/cube-types/query";
 import { TableSchema } from "../types/cube-types/table";
 
@@ -14,7 +14,7 @@ export const getFinalBaseSQL = async ({
   query: Query;
   tableSchema: TableSchema;
   getQueryOutput: (query: string) => Promise<any>;
-  config?: AliasConfig;
+  config: QueryOptions;
 }) => {
   /**
    * Apply transformation to the supplied base query.

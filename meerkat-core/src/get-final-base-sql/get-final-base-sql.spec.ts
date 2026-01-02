@@ -2,6 +2,8 @@ import { Database } from 'duckdb';
 import { TableSchema } from '../types/cube-types';
 import { getFinalBaseSQL } from './get-final-base-sql';
 
+const defaultConfig = { useDotNotation: false };
+
 const getQueryOutput = async (sql: string) => {
   const db = new Database(':memory:');
   return new Promise((resolve, reject) => {
@@ -42,6 +44,7 @@ describe('get final base sql', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual(
       'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
@@ -60,6 +63,7 @@ describe('get final base sql', () => {
       },
       tableSchema: TABLE_SCHEMA,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual(
       'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE TRUE) AS orders'
@@ -108,6 +112,7 @@ describe('get final base sql', () => {
       },
       tableSchema: tableSchema,
       getQueryOutput,
+      config: defaultConfig,
     });
     expect(result).toEqual(
       'SELECT amount AS "order amount", status AS "order status", * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'

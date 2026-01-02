@@ -1,10 +1,9 @@
 export { COLUMN_NAME_DELIMITER, MEERKAT_OUTPUT_DELIMITER } from './constants';
 export {
   // New flag-aware API (recommended)
-  AliasConfig,
+  QueryOptions,
   constructAliasForAST,
   constructAliasForSQL,
-  DEFAULT_ALIAS_CONFIG,
   getAliasForAST,
   getAliasForSQL,
   // Legacy API (deprecated)

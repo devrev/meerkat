@@ -80,7 +80,7 @@ describe('meerkat placeholder', () => {
         type: 'sql',
       };
 
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [tableSchema], aliasConfig: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [tableSchema], options: { useDotNotation: false } });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toEqual(
         `SELECT SUM(amount) AS orders__sum_amount ,  SUM(SUM(amount)) OVER (PARTITION BY orders__owned_by_id) AS orders__total_sum_amount ,   orders__owned_by_id,  orders__stage FROM (SELECT owned_by_id AS orders__owned_by_id, stage AS orders__stage, * FROM (SELECT * FROM orders) AS orders) AS orders GROUP BY orders__owned_by_id, orders__stage ORDER BY orders__total_sum_amount DESC, orders__sum_amount DESC, orders__stage DESC, orders__owned_by_id DESC`
@@ -148,7 +148,7 @@ describe('meerkat placeholder', () => {
         type: 'sql',
       };
 
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [tableSchema], aliasConfig: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [tableSchema], options: { useDotNotation: true } });
       console.info(`SQL for Simple Cube Query (dot notation): `, sql);
       expect(sql).toEqual(
         `SELECT SUM(amount) AS "orders.sum_amount" ,  SUM(SUM(amount)) OVER (PARTITION BY "orders.owned_by_id") AS "orders.total_sum_amount" ,   "orders.owned_by_id",  "orders.stage" FROM (SELECT owned_by_id AS "orders.owned_by_id", stage AS "orders.stage", * FROM (SELECT * FROM orders) AS orders) AS orders GROUP BY "orders.owned_by_id", "orders.stage" ORDER BY "orders.total_sum_amount" DESC, "orders.sum_amount" DESC, "orders.stage" DESC, "orders.owned_by_id" DESC`

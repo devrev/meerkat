@@ -1,6 +1,5 @@
 import {
-  AliasConfig,
-  DEFAULT_ALIAS_CONFIG,
+  QueryOptions,
   getAliasForAST,
 } from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
@@ -14,7 +13,7 @@ import { ResultModifierType } from '../types/duckdb-serialization-types/serializ
 export const cubeOrderByToAST = (
   order: { [key: string]: 'asc' | 'desc' },
   tableSchema: TableSchema,
-  config: AliasConfig = DEFAULT_ALIAS_CONFIG
+  config: QueryOptions
 ) => {
   const orderArr = [];
   for (const key in order) {

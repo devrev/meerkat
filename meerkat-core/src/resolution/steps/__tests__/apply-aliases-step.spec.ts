@@ -2,6 +2,8 @@ import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { applyAliases, ApplyAliasesParams } from '../apply-aliases-step';
 
+const defaultConfig = { useDotNotation: false };
+
 describe('apply-aliases-step', () => {
   describe('applyAliases', () => {
     const createMockTableSchema = (
@@ -52,6 +54,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -96,6 +99,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -143,6 +147,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -176,6 +181,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -206,6 +212,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -248,6 +255,7 @@ describe('apply-aliases-step', () => {
           originalTableSchemas,
           resolutionConfig,
           cubeQueryToSQL: mockCubeQueryToSQL,
+          config: defaultConfig,
         };
 
         await expect(applyAliases(params)).rejects.toThrow(
@@ -291,6 +299,7 @@ describe('apply-aliases-step', () => {
           originalTableSchemas,
           resolutionConfig,
           cubeQueryToSQL: mockCubeQueryToSQL,
+          config: defaultConfig,
         };
 
         await expect(applyAliases(params)).rejects.toThrow(
@@ -318,6 +327,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -350,6 +360,7 @@ describe('apply-aliases-step', () => {
         resolutionConfig,
         contextParams,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -384,6 +395,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -417,6 +429,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -452,6 +465,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -485,6 +499,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       const result = await applyAliases(params);
@@ -534,6 +549,7 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
+        config: defaultConfig,
       };
 
       await applyAliases(params);
