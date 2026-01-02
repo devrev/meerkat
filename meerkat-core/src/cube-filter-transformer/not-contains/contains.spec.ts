@@ -9,74 +9,148 @@ import {
   notContainsTransform,
 } from './not-contains';
 
-const defaultOptions: CreateColumnRefOptions = {
-  isAlias: false,
-  useDotNotation: false,
-};
+describe('Not Contains Transform Tests', () => {
+  describe('useDotNotation: false', () => {
+    const options: CreateColumnRefOptions = {
+      isAlias: false,
+      useDotNotation: false,
+    };
 
-describe('Contains Transform Tests', () => {
-  it('Should throw error if values are empty', () => {
-    expect(() =>
-      notContainsTransform(
-        {
-          member: 'country',
-          operator: 'notContains',
-          values: [],
-          memberInfo: {
-            name: 'country',
-            sql: 'table.country',
-            type: 'string',
+    it('Should throw error if values are empty', () => {
+      expect(() =>
+        notContainsTransform(
+          {
+            member: 'country',
+            operator: 'notContains',
+            values: [],
+            memberInfo: {
+              name: 'country',
+              sql: 'table.country',
+              type: 'string',
+            },
           },
-        },
-        defaultOptions
-      )
-    ).toThrow();
-  });
+          options
+        )
+      ).toThrow();
+    });
 
-  it('Should create a simple Contains condition if there is only one value', () => {
-    const expectedOutput = notContainsDuckdbCondition(
-      'country',
-      'US',
-      {
-        name: 'country',
-        sql: 'table.country',
-        type: 'string',
-      },
-      defaultOptions
-    );
-    expect(
-      notContainsTransform(
+    it('Should create a simple Contains condition if there is only one value', () => {
+      const expectedOutput = notContainsDuckdbCondition(
+        'country',
+        'US',
         {
-          member: 'country',
-          operator: 'notContains',
-          values: ['US'],
-          memberInfo: {
-            name: 'country',
-            sql: 'table.country',
-            type: 'string',
-          },
-        },
-        defaultOptions
-      )
-    ).toEqual(expectedOutput);
-  });
-
-  it('Should create an OR condition if there are multiple values', () => {
-    const output = notContainsTransform(
-      {
-        member: 'country',
-        operator: 'notContains',
-        values: ['US', 'Germany', 'Israel'],
-        memberInfo: {
           name: 'country',
           sql: 'table.country',
           type: 'string',
         },
-      },
-      defaultOptions
-    ) as ConjunctionExpression;
-    expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
-    expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
-    expect(output.children.length).toEqual(3);
+        options
+      );
+      expect(
+        notContainsTransform(
+          {
+            member: 'country',
+            operator: 'notContains',
+            values: ['US'],
+            memberInfo: {
+              name: 'country',
+              sql: 'table.country',
+              type: 'string',
+            },
+          },
+          options
+        )
+      ).toEqual(expectedOutput);
+    });
+
+    it('Should create an OR condition if there are multiple values', () => {
+      const output = notContainsTransform(
+        {
+          member: 'country',
+          operator: 'notContains',
+          values: ['US', 'Germany', 'Israel'],
+          memberInfo: {
+            name: 'country',
+            sql: 'table.country',
+            type: 'string',
+          },
+        },
+        options
+      ) as ConjunctionExpression;
+      expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
+      expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
+      expect(output.children.length).toEqual(3);
+    });
+  });
+
+  describe('useDotNotation: true', () => {
+    const options: CreateColumnRefOptions = {
+      isAlias: true,
+      useDotNotation: true,
+    };
+
+    it('Should throw error if values are empty', () => {
+      expect(() =>
+        notContainsTransform(
+          {
+            member: 'country',
+            operator: 'notContains',
+            values: [],
+            memberInfo: {
+              name: 'country',
+              sql: 'table.country',
+              type: 'string',
+            },
+          },
+          options
+        )
+      ).toThrow();
+    });
+
+    it('Should create a simple Contains condition if there is only one value', () => {
+      const expectedOutput = notContainsDuckdbCondition(
+        'country',
+        'US',
+        {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string',
+        },
+        options
+      );
+      expect(
+        notContainsTransform(
+          {
+            member: 'country',
+            operator: 'notContains',
+            values: ['US'],
+            memberInfo: {
+              name: 'country',
+              sql: 'table.country',
+              type: 'string',
+            },
+          },
+          options
+        )
+      ).toEqual(expectedOutput);
+    });
+
+    it('Should create an OR condition if there are multiple values', () => {
+      const output = notContainsTransform(
+        {
+          member: 'country',
+          operator: 'notContains',
+          values: ['US', 'Germany', 'Israel'],
+          memberInfo: {
+            name: 'country',
+            sql: 'table.country',
+            type: 'string',
+          },
+        },
+        options
+      ) as ConjunctionExpression;
+      expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
+      expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
+      expect(output.children.length).toEqual(3);
+    });
   });
 });

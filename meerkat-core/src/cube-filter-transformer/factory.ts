@@ -3,7 +3,6 @@ import {
   QueryFiltersWithInfo,
   QueryOperatorsWithInfo,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
-import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { ParsedExpression } from '../types/duckdb-serialization-types/serialization/ParsedExpression';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
@@ -16,6 +15,7 @@ import {
   isQueryFilter,
 } from '../utils/type-guards';
 import { andDuckdbCondition } from './and/and';
+import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { containsTransform } from './contains/contains';
 import { equalsTransform } from './equals/equals';
 import { gtTransform } from './gt/gt';
@@ -159,7 +159,11 @@ export const cubeFilterToDuckdbAST = (
 
   if (isLogicalAndOR(filter)) {
     // And or Or we need to recurse
-    whereObj = cubeFilterLogicalAndOrToDuckdb(filter, whereObj || null, options);
+    whereObj = cubeFilterLogicalAndOrToDuckdb(
+      filter,
+      whereObj || null,
+      options
+    );
   }
 
   return whereObj;

@@ -9,71 +9,142 @@ import {
 } from '../base-condition-builder/base-condition-builder';
 import { equalsTransform } from './equals'; // replace with your module name
 
-const defaultOptions: CreateColumnRefOptions = {
-  isAlias: false,
-  useDotNotation: false,
-};
-
 describe('Equals Transform Tests', () => {
-  it('Should throw error if values are empty', () => {
-    expect(() =>
-      equalsTransform(
-        {
-          member: 'country',
-          operator: 'equals',
-          values: [],
-          memberInfo: {
-            sql: 'temp.country',
-            type: 'string',
-          },
-        },
-        defaultOptions
-      )
-    ).toThrow();
-  });
+  describe('useDotNotation: false', () => {
+    const options: CreateColumnRefOptions = {
+      isAlias: false,
+      useDotNotation: false,
+    };
 
-  it('Should create a simple equals condition if there is only one value', () => {
-    const expectedOutput = baseDuckdbCondition(
-      'country',
-      ExpressionType.COMPARE_EQUAL,
-      'US',
-      {
-        sql: 'temp.country',
-        type: 'string',
-      },
-      defaultOptions
-    );
-    expect(
-      equalsTransform(
-        {
-          member: 'country',
-          operator: 'equals',
-          values: ['US'],
-          memberInfo: {
-            sql: 'temp.country',
-            type: 'string',
+    it('Should throw error if values are empty', () => {
+      expect(() =>
+        equalsTransform(
+          {
+            member: 'country',
+            operator: 'equals',
+            values: [],
+            memberInfo: {
+              sql: 'temp.country',
+              type: 'string',
+            },
           },
-        },
-        defaultOptions
-      )
-    ).toEqual(expectedOutput);
-  });
+          options
+        )
+      ).toThrow();
+    });
 
-  it('Should create an OR condition if there are multiple values', () => {
-    const output = equalsTransform(
-      {
-        member: 'country',
-        operator: 'equals',
-        values: ['US', 'Germany', 'Israel'],
-        memberInfo: {
+    it('Should create a simple equals condition if there is only one value', () => {
+      const expectedOutput = baseDuckdbCondition(
+        'country',
+        ExpressionType.COMPARE_EQUAL,
+        'US',
+        {
           sql: 'temp.country',
           type: 'string',
         },
-      },
-      defaultOptions
-    ) as ConjunctionExpression;
-    expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
-    expect(output.type).toEqual(ExpressionType.CONJUNCTION_AND);
-    expect(output.children.length).toEqual(3);
+        options
+      );
+      expect(
+        equalsTransform(
+          {
+            member: 'country',
+            operator: 'equals',
+            values: ['US'],
+            memberInfo: {
+              sql: 'temp.country',
+              type: 'string',
+            },
+          },
+          options
+        )
+      ).toEqual(expectedOutput);
+    });
+
+    it('Should create an OR condition if there are multiple values', () => {
+      const output = equalsTransform(
+        {
+          member: 'country',
+          operator: 'equals',
+          values: ['US', 'Germany', 'Israel'],
+          memberInfo: {
+            sql: 'temp.country',
+            type: 'string',
+          },
+        },
+        options
+      ) as ConjunctionExpression;
+      expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
+      expect(output.type).toEqual(ExpressionType.CONJUNCTION_AND);
+      expect(output.children.length).toEqual(3);
+    });
+  });
+
+  describe('useDotNotation: true', () => {
+    const options: CreateColumnRefOptions = {
+      isAlias: true,
+      useDotNotation: true,
+    };
+
+    it('Should throw error if values are empty', () => {
+      expect(() =>
+        equalsTransform(
+          {
+            member: 'country',
+            operator: 'equals',
+            values: [],
+            memberInfo: {
+              sql: 'temp.country',
+              type: 'string',
+            },
+          },
+          options
+        )
+      ).toThrow();
+    });
+
+    it('Should create a simple equals condition if there is only one value', () => {
+      const expectedOutput = baseDuckdbCondition(
+        'country',
+        ExpressionType.COMPARE_EQUAL,
+        'US',
+        {
+          sql: 'temp.country',
+          type: 'string',
+        },
+        options
+      );
+      expect(
+        equalsTransform(
+          {
+            member: 'country',
+            operator: 'equals',
+            values: ['US'],
+            memberInfo: {
+              sql: 'temp.country',
+              type: 'string',
+            },
+          },
+          options
+        )
+      ).toEqual(expectedOutput);
+    });
+
+    it('Should create an OR condition if there are multiple values', () => {
+      const output = equalsTransform(
+        {
+          member: 'country',
+          operator: 'equals',
+          values: ['US', 'Germany', 'Israel'],
+          memberInfo: {
+            sql: 'temp.country',
+            type: 'string',
+          },
+        },
+        options
+      ) as ConjunctionExpression;
+      expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
+      expect(output.type).toEqual(ExpressionType.CONJUNCTION_AND);
+      expect(output.children.length).toEqual(3);
+    });
   });
 });
