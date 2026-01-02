@@ -423,10 +423,10 @@ describe('Resolution Tests', () => {
   });
 });
 
-describe('Resolution Tests (useDotNotation: true)', () => {
-  // Note: The resolution pipeline uses underscore notation internally for consistency.
-  // However, when useDotNotation: true, the base SQL generation uses dot notation.
-  // Due to internal pipeline constraints, resolution tests use underscore notation.
+describe('Resolution Tests (useDotNotation: false for resolution pipeline)', () => {
+  // The resolution pipeline currently operates on underscore-safe field names.
+  // These tests confirm that passing the options object does not break the
+  // pipeline when underscore notation is used.
   const options = { useDotNotation: false };
 
   it('options is accepted and generates valid SQL', async () => {
@@ -552,5 +552,31 @@ describe('Resolution Tests (useDotNotation: true)', () => {
     // The SQL should contain appropriate aliases
     expect(sql).toContain('Count');
     expect(sql).toContain('Part ID 1');
+  });
+});
+
+describe('Resolution Tests (useDotNotation: true)', () => {
+  const options = { useDotNotation: true };
+
+  it('generates dot-notation aliases when resolution is skipped', async () => {
+    const query = {
+      measures: [],
+      dimensions: ['base_table.part_id_1', 'base_table.random_column'],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA],
+      resolutionConfig: {
+        columnConfigs: [],
+        tableSchemas: [],
+      },
+      options,
+    });
+
+    expect(sql).toContain('"base_table.part_id_1"');
+    expect(sql).toContain('"base_table.random_column"');
+    expect(sql).not.toContain('base_table__part_id_1');
+    expect(sql).not.toContain('base_table__random_column');
   });
 });

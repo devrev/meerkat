@@ -2146,6 +2146,38 @@ describe('cubeQueryToSQLWithResolution - options parameter', () => {
     expect(sqlWithUnderscoreNotation).toContain('simple_test__count');
   });
 
+  it('Should accept useDotNotation: true and emit dot notation in base SQL', async () => {
+    const query: Query = {
+      measures: ['simple_test.count'],
+      dimensions: ['simple_test.id', 'simple_test.name'],
+      order: { 'simple_test.id': 'asc' },
+    };
+
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [],
+      tableSchemas: [],
+    };
+
+    const sqlWithDotNotation = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [SIMPLE_TABLE_SCHEMA],
+      resolutionConfig,
+      options: { useDotNotation: true },
+    });
+
+    // Verify dot notation is used in the SQL while underscore notation is absent
+    expect(sqlWithDotNotation).toContain('"simple_test.id"');
+    expect(sqlWithDotNotation).toContain('"simple_test.name"');
+    expect(sqlWithDotNotation).toContain('"simple_test.count"');
+    expect(sqlWithDotNotation).not.toContain('simple_test__id');
+    expect(sqlWithDotNotation).not.toContain('simple_test__name');
+    expect(sqlWithDotNotation).not.toContain('simple_test__count');
+
+    // Execute and ensure the query still runs
+    const result = (await duckdbExec(sqlWithDotNotation)) as any[];
+    expect(result.length).toBe(3);
+  });
+
   it('Should work with resolution and options', async () => {
     const query: Query = {
       measures: ['simple_test.count'],
