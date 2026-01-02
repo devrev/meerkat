@@ -219,14 +219,14 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        options: { useDotNotation: false },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
       console.info('parsedOutput', parsedOutput);
-      expect(parsedOutput[0].orders__total_order_amount).toBeGreaterThan(
-        parsedOutput[1].orders__total_order_amount
+      expect(parsedOutput[0]['orders.total_order_amount']).toBeGreaterThan(
+        parsedOutput[1]['orders.total_order_amount']
       );
     });
 
@@ -243,7 +243,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query: query,
         tableSchemas: [TABLE_SCHEMA],
-        options: { useDotNotation: false },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toEqual(
@@ -264,7 +264,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        options: { useDotNotation: false },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toEqual(
@@ -285,7 +285,7 @@ describe('cube-to-sql', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [TABLE_SCHEMA],
-        options: { useDotNotation: false },
+        options: { useDotNotation: true },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toEqual(

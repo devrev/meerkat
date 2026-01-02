@@ -239,6 +239,38 @@ describe('filter-param-tests', () => {
       expect(output).toHaveLength(8);
     });
 
+    it('Should apply true filter if filters are present but are not matching', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            and: [
+              {
+                member: 'orders.amount',
+                operator: 'gt',
+                values: ['40'],
+              },
+              {
+                or: [
+                  {
+                    member: 'orders.amount',
+                    operator: 'lt',
+                    values: ['200'],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      expect(output).toHaveLength(5);
+    });
+
     it('Should apply notSet and set filters', async () => {
       const query = {
         measures: ['*'],

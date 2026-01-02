@@ -70,7 +70,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       console.info('SQL: ', sql);
       const output: any = await duckdbExec(sql);
       expect(output).toHaveLength(1);
@@ -89,7 +93,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       expect(sql).toBe(
         `SELECT person.* FROM (SELECT activities AS person__activities, * FROM (select * from person) AS person) AS person WHERE list_has_all(person__activities, main.list_value('Hiking'))`
       );
@@ -119,7 +127,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       expect(sql).toBe(
         `SELECT person.* FROM (SELECT activities AS person__activities, id AS person__id, * FROM (select * from person) AS person) AS person WHERE (list_has_all(person__activities, main.list_value('Running')) AND (person__id = '2'))`
       );
@@ -140,7 +152,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       console.info('SQL: ', sql);
       expect(sql).toBe(
         `SELECT person.* FROM (SELECT activities AS person__activities, * FROM (select * from person) AS person) AS person WHERE (NOT list_has_all(person__activities, main.list_value('Running')))`
@@ -162,7 +178,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       console.info('Array contains all elements SQL: ', sql);
       const output: any = await duckdbExec(sql);
 
@@ -183,7 +203,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       console.info('Array contains all elements in reverse order SQL: ', sql);
       const output: any = await duckdbExec(sql);
 
@@ -204,7 +228,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       console.info('No match SQL: ', sql);
       const output: any = await duckdbExec(sql);
       // Should return no results
@@ -223,7 +251,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       console.info('Complex contains all SQL: ', sql);
       const output: any = await duckdbExec(sql);
 
@@ -244,7 +276,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
       const output: any = await duckdbExec(sql);
       expect(output).toHaveLength(3);
       const ids = output.map((row: any) => row.id);
@@ -265,7 +301,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
       console.info('SQL (dot notation): ', sql);
       const output: any = await duckdbExec(sql);
       expect(output).toHaveLength(1);
@@ -284,7 +324,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
       expect(sql).toBe(
         `SELECT person.* FROM (SELECT activities AS "person.activities", * FROM (select * from person) AS person) AS person WHERE list_has_all("person.activities", main.list_value('Hiking'))`
       );
@@ -314,7 +358,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
       expect(sql).toBe(
         `SELECT person.* FROM (SELECT activities AS "person.activities", id AS "person.id", * FROM (select * from person) AS person) AS person WHERE (list_has_all("person.activities", main.list_value('Running')) AND ("person.id" = '2'))`
       );
@@ -335,7 +383,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
       console.info('SQL (dot notation): ', sql);
       expect(sql).toBe(
         `SELECT person.* FROM (SELECT activities AS "person.activities", * FROM (select * from person) AS person) AS person WHERE (NOT list_has_all("person.activities", main.list_value('Running')))`
@@ -358,13 +410,93 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
       console.info('Array contains all elements SQL (dot notation): ', sql);
       const output: any = await duckdbExec(sql);
 
       expect(output).toHaveLength(2);
       const ids = output.map((row: any) => row.id);
       expect(ids).toEqual(['1', '5']);
+    });
+
+    it('Should test array contains all specified elements in reverse order', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'person.activities',
+            operator: 'equals',
+            values: ['Swimming', 'Running'],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
+      console.info(
+        'Array contains all elements in reverse order SQL (dot notation): ',
+        sql
+      );
+      const output: any = await duckdbExec(sql);
+
+      expect(output).toHaveLength(2);
+      const ids = output.map((row: any) => row.id);
+      expect(ids).toEqual(['1', '5']);
+    });
+
+    it('Should test no match condition - searching for non-existent activity', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'person.activities',
+            operator: 'equals',
+            values: ['NonExistentActivity'],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
+      console.info('No match SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      // Should return no results
+      expect(output).toHaveLength(0);
+    });
+
+    it('Should test complex array contains all with multiple elements', async () => {
+      const query = {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'person.activities',
+            operator: 'equals',
+            values: ['Reading', 'Cooking', 'Running'],
+          },
+        ],
+        dimensions: [],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
+      console.info('Complex contains all SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+
+      expect(output).toHaveLength(1);
+      expect(output[0].id).toBe('2');
+      expect(output[0].name).toBe('Jane Doe');
     });
 
     it('Should test notEquals - arrays that do NOT contain all specified elements', async () => {
@@ -379,7 +511,11 @@ describe('cube-to-sql', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
       const output: any = await duckdbExec(sql);
       expect(output).toHaveLength(3);
       const ids = output.map((row: any) => row.id);
