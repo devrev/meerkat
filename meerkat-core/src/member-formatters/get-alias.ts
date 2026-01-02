@@ -213,4 +213,3 @@ export const constructCompoundAlias = (
 ): string => {
   return `${baseAlias} - ${resolutionAlias}`;
 };
-

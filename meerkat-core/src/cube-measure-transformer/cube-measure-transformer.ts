@@ -1,7 +1,4 @@
-import {
-  QueryOptions,
-  getAliasForSQL,
-} from '../member-formatters/get-alias';
+import { QueryOptions, getAliasForSQL } from '../member-formatters/get-alias';
 import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
@@ -146,7 +143,10 @@ export const getAllColumnUsedInMeasures = (
 const getColumnsFromSQL = (sql: string, tableName: string) => {
   // Match table.column patterns that are NOT preceded by a quote character
   // This prevents matching already-quoted aliases like "orders.column"
-  const regex = new RegExp(`(?<!")\\b(${tableName}\\.[a-zA-Z0-9_]+)\\b(?!")`, 'g');
+  const regex = new RegExp(
+    `(?<!")\\b(${tableName}\\.[a-zA-Z0-9_]+)\\b(?!")`,
+    'g'
+  );
   const columnMatch = sql.match(regex);
   return columnMatch;
 };
