@@ -44,7 +44,7 @@ export const getResolvedTableSchema = async ({
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
   // Generate resolution schemas for fields that need resolution
-  const resolutionSchemas = generateResolutionSchemas(resolutionConfig);
+  const resolutionSchemas = generateResolutionSchemas(resolutionConfig, config);
 
   const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
@@ -61,14 +61,15 @@ export const getResolvedTableSchema = async ({
   };
 
   const updatedColumnProjections = columnProjections?.map((cp) =>
-    memberKeyToSafeKey(cp)
+    memberKeyToSafeKey(cp, config)
   );
   // Generate resolved dimensions using columnProjections
   const resolvedDimensions = generateResolvedDimensions(
     updatedBaseTableSchema.name,
     tempQuery,
     resolutionConfig,
-    updatedColumnProjections
+    updatedColumnProjections,
+    config
   );
 
   // Create query and generate SQL

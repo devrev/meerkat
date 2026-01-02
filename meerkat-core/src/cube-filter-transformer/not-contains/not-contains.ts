@@ -54,7 +54,12 @@ export const notContainsTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for notContains operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'notContains');
+    return getSQLExpressionAST(
+      member,
+      query.sqlExpression,
+      'notContains',
+      options
+    );
   }
 
   // Otherwise, use values

@@ -13,7 +13,7 @@ export const ltTransform: CubeToParseExpressionTransform = (query, options) => {
 
   // SQL expressions not supported for lt operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'lt');
+    return getSQLExpressionAST(member, query.sqlExpression, 'lt', options);
   }
 
   // Otherwise, use values

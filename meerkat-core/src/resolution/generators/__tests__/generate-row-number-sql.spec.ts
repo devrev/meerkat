@@ -1,14 +1,23 @@
+import { QueryOptions } from '../../../member-formatters/get-alias';
 import { generateRowNumberSql } from '../generate-row-number-sql';
 
+const defaultOptions: QueryOptions = { useDotNotation: false };
+const dotNotationOptions: QueryOptions = { useDotNotation: true };
+
 describe('generate-row-number-sql', () => {
-  describe('generateRowNumberSql', () => {
+  describe('generateRowNumberSql (useDotNotation: false)', () => {
     const baseTableName = '__base_query';
 
     it('should generate empty ORDER BY when no order specified', () => {
       const query = {};
       const dimensions: { name: string; alias?: string }[] = [];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe('row_number() OVER ()');
     });
@@ -17,7 +26,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'orders.customer_id': 'asc' } };
       const dimensions = [{ name: 'orders__customer_id' }];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__customer_id" ASC)'
@@ -30,7 +44,12 @@ describe('generate-row-number-sql', () => {
         { name: 'orders__customer_id', alias: 'Customer ID' },
       ];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."Customer ID" DESC)'
@@ -49,7 +68,12 @@ describe('generate-row-number-sql', () => {
         { name: 'orders__total' },
       ];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__customer_id" ASC, __base_query."orders__total" DESC)'
@@ -60,7 +84,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'orders.unknown_field': 'asc' } };
       const dimensions: { name: string; alias?: string }[] = [];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__unknown_field" ASC)'
@@ -71,7 +100,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'orders.customer.nested_id': 'asc' } };
       const dimensions = [{ name: 'orders__customer__nested_id' }];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__customer__nested_id" ASC)'
@@ -84,7 +118,12 @@ describe('generate-row-number-sql', () => {
         { name: 'some_other_name', alias: 'orders__customer_id' },
       ];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__customer_id" ASC)'
@@ -95,7 +134,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: {} };
       const dimensions: { name: string; alias?: string }[] = [];
 
-      const result = generateRowNumberSql(query, dimensions, '__base_query');
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        '__base_query',
+        defaultOptions
+      );
 
       expect(result).toBe('row_number() OVER ()');
     });
@@ -104,7 +148,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'orders.field': 'ASC' } };
       const dimensions = [{ name: 'orders__field' }];
 
-      const result = generateRowNumberSql(query, dimensions, '__base_query');
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        '__base_query',
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__field" ASC)'
@@ -115,7 +164,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'orders.field': 'Desc' } };
       const dimensions = [{ name: 'orders__field' }];
 
-      const result = generateRowNumberSql(query, dimensions, '__base_query');
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        '__base_query',
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__field" DESC)'
@@ -126,7 +180,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'orders.id': 'asc' } };
       const dimensions = [{ name: 'orders__id' }];
 
-      const result = generateRowNumberSql(query, dimensions, 'custom_table');
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        'custom_table',
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY custom_table."orders__id" ASC)'
@@ -139,7 +198,12 @@ describe('generate-row-number-sql', () => {
         { name: 'orders__customer_id', alias: 'Different Alias' },
       ];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."Different Alias" ASC)'
@@ -160,7 +224,12 @@ describe('generate-row-number-sql', () => {
         { name: 'orders__priority' },
       ];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__date" DESC, __base_query."orders__customer_id" ASC, __base_query."orders__priority" DESC)'
@@ -171,7 +240,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'orders.customer_nested_id': 'asc' } };
       const dimensions = [{ name: 'orders__customer_nested_id' }];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."orders__customer_nested_id" ASC)'
@@ -187,7 +261,12 @@ describe('generate-row-number-sql', () => {
       };
       const dimensions = [{ name: 'orders__known_field', alias: 'Known Field' }];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."Known Field" ASC, __base_query."orders__unknown_field" DESC)'
@@ -198,7 +277,12 @@ describe('generate-row-number-sql', () => {
       const query = { order: { 'data.value': 'asc' } };
       const dimensions = [{ name: 'data__value' }];
 
-      const result = generateRowNumberSql(query, dimensions, baseTableName);
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        defaultOptions
+      );
 
       expect(result).toBe(
         'row_number() OVER (ORDER BY __base_query."data__value" ASC)'
@@ -212,10 +296,65 @@ describe('generate-row-number-sql', () => {
       const result = generateRowNumberSql(
         query as { order?: Record<string, string> },
         dimensions,
-        baseTableName
+        baseTableName,
+        defaultOptions
       );
 
       expect(result).toBe('row_number() OVER ()');
+    });
+  });
+
+  describe('generateRowNumberSql (useDotNotation: true)', () => {
+    const baseTableName = '__base_query';
+
+    it('should generate ORDER BY with dot notation member key', () => {
+      const query = { order: { 'orders.customer_id': 'asc' } };
+      const dimensions = [{ name: 'orders.customer_id' }];
+
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        dotNotationOptions
+      );
+
+      expect(result).toBe(
+        'row_number() OVER (ORDER BY __base_query."orders.customer_id" ASC)'
+      );
+    });
+
+    it('should use dimension alias when available with dot notation', () => {
+      const query = { order: { 'orders.customer_id': 'desc' } };
+      const dimensions = [
+        { name: 'orders.customer_id', alias: 'Customer ID' },
+      ];
+
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        dotNotationOptions
+      );
+
+      expect(result).toBe(
+        'row_number() OVER (ORDER BY __base_query."Customer ID" DESC)'
+      );
+    });
+
+    it('should use safe member with dot notation when dimension not found', () => {
+      const query = { order: { 'orders.unknown_field': 'asc' } };
+      const dimensions: { name: string; alias?: string }[] = [];
+
+      const result = generateRowNumberSql(
+        query,
+        dimensions,
+        baseTableName,
+        dotNotationOptions
+      );
+
+      expect(result).toBe(
+        'row_number() OVER (ORDER BY __base_query."orders.unknown_field" ASC)'
+      );
     });
   });
 });

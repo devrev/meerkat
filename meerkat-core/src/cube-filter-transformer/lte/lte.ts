@@ -16,7 +16,7 @@ export const lteTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for lte operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'lte');
+    return getSQLExpressionAST(member, query.sqlExpression, 'lte', options);
   }
 
   // Otherwise, use values

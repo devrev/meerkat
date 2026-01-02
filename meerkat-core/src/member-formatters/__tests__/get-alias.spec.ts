@@ -29,14 +29,18 @@ const createMockTableSchema = (
   })),
 });
 
+const defaultConfig = { useDotNotation: false };
+const dotNotationConfig = { useDotNotation: true };
+
 describe('get-alias', () => {
   describe('constructAlias', () => {
-    describe('with shouldWrapAliasWithQuotes: true', () => {
+    describe('with shouldWrapAliasWithQuotes: true, useDotNotation: false', () => {
       it('should wrap custom alias in quotes', () => {
         const result = constructAlias({
           name: 'orders.total_amount',
           alias: 'Total Amount',
           shouldWrapAliasWithQuotes: true,
+          config: defaultConfig,
         });
         expect(result).toBe('"Total Amount"');
       });
@@ -45,6 +49,7 @@ describe('get-alias', () => {
         const result = constructAlias({
           name: 'orders.total_amount',
           shouldWrapAliasWithQuotes: true,
+          config: defaultConfig,
         });
         expect(result).toBe('orders__total_amount');
       });
@@ -54,17 +59,19 @@ describe('get-alias', () => {
           name: 'orders.field',
           alias: 'Field.With.Dots',
           shouldWrapAliasWithQuotes: true,
+          config: defaultConfig,
         });
         expect(result).toBe('"Field.With.Dots"');
       });
     });
 
-    describe('with shouldWrapAliasWithQuotes: false', () => {
+    describe('with shouldWrapAliasWithQuotes: false, useDotNotation: false', () => {
       it('should return custom alias without quotes', () => {
         const result = constructAlias({
           name: 'orders.total_amount',
           alias: 'Total Amount',
           shouldWrapAliasWithQuotes: false,
+          config: defaultConfig,
         });
         expect(result).toBe('Total Amount');
       });
@@ -73,6 +80,7 @@ describe('get-alias', () => {
         const result = constructAlias({
           name: 'orders.total_amount',
           shouldWrapAliasWithQuotes: false,
+          config: defaultConfig,
         });
         expect(result).toBe('orders__total_amount');
       });
@@ -82,20 +90,64 @@ describe('get-alias', () => {
           name: 'orders.field',
           alias: 'Field.With.Dots',
           shouldWrapAliasWithQuotes: false,
+          config: defaultConfig,
         });
         expect(result).toBe('Field.With.Dots');
+      });
+    });
+
+    describe('with shouldWrapAliasWithQuotes: true, useDotNotation: true', () => {
+      it('should wrap custom alias in quotes', () => {
+        const result = constructAlias({
+          name: 'orders.total_amount',
+          alias: 'Total Amount',
+          shouldWrapAliasWithQuotes: true,
+          config: dotNotationConfig,
+        });
+        expect(result).toBe('"Total Amount"');
+      });
+
+      it('should return quoted dot notation when no custom alias', () => {
+        const result = constructAlias({
+          name: 'orders.total_amount',
+          shouldWrapAliasWithQuotes: true,
+          config: dotNotationConfig,
+        });
+        expect(result).toBe('"orders.total_amount"');
+      });
+    });
+
+    describe('with shouldWrapAliasWithQuotes: false, useDotNotation: true', () => {
+      it('should return custom alias without quotes', () => {
+        const result = constructAlias({
+          name: 'orders.total_amount',
+          alias: 'Total Amount',
+          shouldWrapAliasWithQuotes: false,
+          config: dotNotationConfig,
+        });
+        expect(result).toBe('Total Amount');
+      });
+
+      it('should return dot notation when no custom alias', () => {
+        const result = constructAlias({
+          name: 'orders.total_amount',
+          shouldWrapAliasWithQuotes: false,
+          config: dotNotationConfig,
+        });
+        expect(result).toBe('orders.total_amount');
       });
     });
   });
 
   describe('getAliasFromSchema', () => {
-    describe('with shouldWrapAliasWithQuotes: true', () => {
+    describe('with shouldWrapAliasWithQuotes: true, useDotNotation: false', () => {
       it('should return safe key for dimension without custom alias', () => {
         const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
         const result = getAliasFromSchema({
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: true,
+          config: defaultConfig,
         });
         expect(result).toBe('orders__customer_id');
       });
@@ -108,6 +160,7 @@ describe('get-alias', () => {
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: true,
+          config: defaultConfig,
         });
         expect(result).toBe('"Customer ID"');
       });
@@ -121,18 +174,20 @@ describe('get-alias', () => {
           name: 'orders.total_amount',
           tableSchema,
           shouldWrapAliasWithQuotes: true,
+          config: defaultConfig,
         });
         expect(result).toBe('"Total Amount"');
       });
     });
 
-    describe('with shouldWrapAliasWithQuotes: false', () => {
+    describe('with shouldWrapAliasWithQuotes: false, useDotNotation: false', () => {
       it('should return safe key for dimension without custom alias', () => {
         const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
         const result = getAliasFromSchema({
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: false,
+          config: defaultConfig,
         });
         expect(result).toBe('orders__customer_id');
       });
@@ -145,6 +200,7 @@ describe('get-alias', () => {
           name: 'orders.customer_id',
           tableSchema,
           shouldWrapAliasWithQuotes: false,
+          config: defaultConfig,
         });
         expect(result).toBe('Customer ID');
       });
@@ -155,8 +211,33 @@ describe('get-alias', () => {
           name: 'orders.unknown_field',
           tableSchema,
           shouldWrapAliasWithQuotes: false,
+          config: defaultConfig,
         });
         expect(result).toBe('orders__unknown_field');
+      });
+    });
+
+    describe('with useDotNotation: true', () => {
+      it('should return quoted dot notation for dimension without custom alias', () => {
+        const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
+        const result = getAliasFromSchema({
+          name: 'orders.customer_id',
+          tableSchema,
+          shouldWrapAliasWithQuotes: true,
+          config: dotNotationConfig,
+        });
+        expect(result).toBe('"orders.customer_id"');
+      });
+
+      it('should return dot notation without quotes when shouldWrapAliasWithQuotes is false', () => {
+        const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
+        const result = getAliasFromSchema({
+          name: 'orders.customer_id',
+          tableSchema,
+          shouldWrapAliasWithQuotes: false,
+          config: dotNotationConfig,
+        });
+        expect(result).toBe('orders.customer_id');
       });
     });
   });

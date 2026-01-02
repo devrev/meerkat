@@ -77,7 +77,7 @@ export const equalsArrayTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for equals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'equals');
+    return getSQLExpressionAST(member, query.sqlExpression, 'equals', options);
   }
 
   /**

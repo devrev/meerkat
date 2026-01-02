@@ -143,6 +143,7 @@ export const constructAliasForAST = (
  * @param shouldWrapAliasWithQuotes - When true, wraps alias in quotes for SQL validity.
  *   Use `true` for SELECT projections where special characters need quoting.
  *   Use `false` for AST nodes (DuckDB auto-quotes) and internal schema references.
+ * @param config - Configuration with useDotNotation flag
  *
  * @deprecated Use `getAliasForSQL` or `getAliasForAST` instead for clearer intent.
  */
@@ -150,16 +151,19 @@ export const getAliasFromSchema = ({
   name,
   tableSchema,
   shouldWrapAliasWithQuotes,
+  config,
 }: {
   name: string;
   tableSchema: TableSchema;
   shouldWrapAliasWithQuotes: boolean;
+  config: QueryOptions;
 }): string => {
   const [, field] = splitIntoDataSourceAndFields(name);
   return constructAlias({
     name,
     alias: findInSchema(field, tableSchema)?.alias,
     shouldWrapAliasWithQuotes,
+    config,
   });
 };
 
@@ -171,6 +175,7 @@ export const getAliasFromSchema = ({
  * @param shouldWrapAliasWithQuotes - When true, wraps alias in quotes for SQL validity.
  *   Use `true` for SELECT projections where special characters need quoting.
  *   Use `false` for AST nodes (DuckDB auto-quotes) and internal schema references.
+ * @param config - Configuration with useDotNotation flag
  *
  * @deprecated Use `constructAliasForSQL` or `constructAliasForAST` instead for clearer intent.
  */
@@ -178,10 +183,12 @@ export const constructAlias = ({
   name,
   alias,
   shouldWrapAliasWithQuotes,
+  config,
 }: {
   name: string;
   alias?: string;
   shouldWrapAliasWithQuotes: boolean;
+  config: QueryOptions;
 }): string => {
   if (alias) {
     if (shouldWrapAliasWithQuotes) {
@@ -190,7 +197,13 @@ export const constructAlias = ({
     }
     return alias;
   }
-  return memberKeyToSafeKey(name);
+  // Use config to determine notation
+  const safeKey = memberKeyToSafeKey(name, config);
+  if (config.useDotNotation && shouldWrapAliasWithQuotes) {
+    // With dot notation and SQL context, wrap in quotes
+    return `"${safeKey}"`;
+  }
+  return safeKey;
 };
 
 /**

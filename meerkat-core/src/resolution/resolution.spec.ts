@@ -14,6 +14,7 @@ import {
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
 
 const defaultOptions = { useDotNotation: false };
+const dotNotationOptions = { useDotNotation: true };
 
 describe('Create base table schema', () => {
   it('dimensions and measures are converted to dimensions', () => {
@@ -285,6 +286,276 @@ describe('Create base table schema', () => {
   });
 });
 
+describe('Create base table schema (useDotNotation: true)', () => {
+  it('dimensions and measures are converted to dimensions with dot notation', () => {
+    const sql =
+      'SELECT COUNT(*), column1, column2 FROM base_table GROUP BY column1, column2';
+    const tableSchemas = [
+      {
+        name: 'base_table',
+        sql: '<base_table_sql>',
+        measures: [
+          {
+            name: 'count',
+            sql: 'COUNT(*)',
+            type: 'number' as const,
+          },
+        ],
+        dimensions: [
+          {
+            name: 'column1',
+            sql: 'base_table.column1',
+            type: 'string' as const,
+          },
+          {
+            name: 'column2',
+            sql: 'base_table.column2',
+            type: 'string' as const,
+          },
+        ],
+      },
+    ];
+    const resolutionConfig: ResolutionConfig = {
+      columnConfigs: [],
+      tableSchemas: [],
+    };
+    const measures = ['base_table.count'];
+    const dimensions = ['base_table.column1', 'base_table.column2'];
+
+    const baseTableSchema = createBaseTableSchema(
+      sql,
+      tableSchemas,
+      resolutionConfig,
+      measures,
+      dimensions,
+      dotNotationOptions
+    );
+
+    expect(baseTableSchema).toEqual({
+      name: '__base_query',
+      sql: 'SELECT COUNT(*), column1, column2 FROM base_table GROUP BY column1, column2',
+      measures: [],
+      dimensions: [
+        {
+          name: 'base_table.count',
+          sql: '__base_query."base_table.count"',
+          type: 'number',
+          alias: 'base_table.count',
+        },
+        {
+          name: 'base_table.column1',
+          sql: '__base_query."base_table.column1"',
+          type: 'string',
+          alias: 'base_table.column1',
+        },
+        {
+          name: 'base_table.column2',
+          sql: '__base_query."base_table.column2"',
+          type: 'string',
+          alias: 'base_table.column2',
+        },
+      ],
+      joins: [],
+    });
+  });
+
+  it('create join config with dot notation', () => {
+    const sql = 'SELECT * FROM base_table';
+    const tableSchemas = [
+      {
+        name: 'base_table',
+        sql: '<base_table_sql>',
+        measures: [],
+        dimensions: [
+          {
+            name: 'column1',
+            sql: 'base_table.column1',
+            type: 'string' as const,
+          },
+          {
+            name: 'column2',
+            sql: 'base_table.column2',
+            type: 'string' as const,
+          },
+        ],
+      },
+    ];
+    const resolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'base_table.column1',
+          source: 'resolution_table',
+          type: 'string' as const,
+          joinColumn: 'id',
+          resolutionColumns: ['display_id'],
+        },
+        {
+          name: 'base_table.column2',
+          source: 'resolution_table',
+          type: 'string' as const,
+          joinColumn: 'id',
+          resolutionColumns: ['display_name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+    const dimensions = ['base_table.column1', 'base_table.column2'];
+
+    const baseTableSchema = createBaseTableSchema(
+      sql,
+      tableSchemas,
+      resolutionConfig,
+      [],
+      dimensions,
+      dotNotationOptions
+    );
+
+    expect(baseTableSchema).toEqual({
+      name: '__base_query',
+      sql: 'SELECT * FROM base_table',
+      measures: [],
+      dimensions: [
+        {
+          name: 'base_table.column1',
+          sql: '__base_query."base_table.column1"',
+          type: 'string',
+          alias: 'base_table.column1',
+        },
+        {
+          name: 'base_table.column2',
+          sql: '__base_query."base_table.column2"',
+          type: 'string',
+          alias: 'base_table.column2',
+        },
+      ],
+      joins: [
+        {
+          sql: '__base_query."base_table.column1" = base_table.column1.id',
+        },
+        {
+          sql: '__base_query."base_table.column2" = base_table.column2.id',
+        },
+      ],
+    });
+  });
+
+  it('dimension not found with dot notation', () => {
+    const sql = 'SELECT * FROM base_table';
+    const tableSchemas = [
+      {
+        name: 'base_table',
+        sql: '<base_table_sql>',
+        measures: [],
+        dimensions: [
+          {
+            name: 'column1',
+            sql: 'base_table.column1',
+            type: 'string' as const,
+          },
+        ],
+      },
+    ];
+    const resolutionConfig = {
+      columnConfigs: [],
+      tableSchemas: [],
+    };
+    const dimensions = ['base_table.column1', 'base_table.column2']; // column2 does not exist
+
+    expect(() => {
+      createBaseTableSchema(
+        sql,
+        tableSchemas,
+        resolutionConfig,
+        [],
+        dimensions,
+        dotNotationOptions
+      );
+    }).toThrow('Not found: base_table.column2');
+  });
+
+  it('handle aliases with dot notation', () => {
+    const sql = 'SELECT * FROM base_table';
+    const tableSchemas = [
+      {
+        name: 'base_table',
+        sql: '<base_table_sql>',
+        measures: [],
+        dimensions: [
+          {
+            name: 'column1',
+            sql: 'base_table.column1',
+            type: 'string' as const,
+            alias: 'Column 1',
+          },
+          {
+            name: 'column2',
+            sql: 'base_table.column2',
+            type: 'string' as const,
+            alias: 'Column 2',
+          },
+        ],
+      },
+    ];
+    const resolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'base_table.column1',
+          type: 'string' as const,
+          source: 'resolution_table',
+          joinColumn: 'id',
+          resolutionColumns: ['display_id'],
+        },
+        {
+          name: 'base_table.column2',
+          type: 'string' as const,
+          source: 'resolution_table',
+          joinColumn: 'id',
+          resolutionColumns: ['display_name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+    const dimensions = ['base_table.column1', 'base_table.column2'];
+
+    const baseTableSchema = createBaseTableSchema(
+      sql,
+      tableSchemas,
+      resolutionConfig,
+      [],
+      dimensions,
+      dotNotationOptions
+    );
+
+    expect(baseTableSchema).toEqual({
+      name: '__base_query',
+      sql: 'SELECT * FROM base_table',
+      measures: [],
+      dimensions: [
+        {
+          name: 'base_table.column1',
+          sql: '__base_query."Column 1"',
+          type: 'string',
+          alias: 'Column 1',
+        },
+        {
+          name: 'base_table.column2',
+          sql: '__base_query."Column 2"',
+          type: 'string',
+          alias: 'Column 2',
+        },
+      ],
+      joins: [
+        {
+          sql: '__base_query."Column 1" = base_table.column1.id',
+        },
+        {
+          sql: '__base_query."Column 2" = base_table.column2.id',
+        },
+      ],
+    });
+  });
+});
+
 describe('Generate resolution schemas', () => {
   it('multiple columns using same table', () => {
     const baseTableSchemas = [
@@ -350,7 +621,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig);
+    const schemas = generateResolutionSchemas(resolutionConfig, defaultOptions);
 
     expect(schemas).toEqual([
       {
@@ -433,7 +704,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig);
+      generateResolutionSchemas(resolutionConfig, defaultOptions);
     }).toThrow('Table schema not found for resolution_table1');
   });
 
@@ -471,7 +742,7 @@ describe('Generate resolution schemas', () => {
     };
 
     expect(() => {
-      generateResolutionSchemas(resolutionConfig);
+      generateResolutionSchemas(resolutionConfig, defaultOptions);
     }).toThrow('Dimension not found: display_id');
   });
 
@@ -507,7 +778,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig);
+    const schemas = generateResolutionSchemas(resolutionConfig, defaultOptions);
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -575,7 +846,7 @@ describe('Generate resolution schemas', () => {
       ],
     };
 
-    const schemas = generateResolutionSchemas(resolutionConfig);
+    const schemas = generateResolutionSchemas(resolutionConfig, defaultOptions);
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -623,7 +894,9 @@ describe('Generate resolved dimensions', () => {
     const resolvedDimensions = generateResolvedDimensions(
       BASE_DATA_SOURCE_NAME,
       query,
-      resolutionConfig
+      resolutionConfig,
+      undefined,
+      defaultOptions
     );
 
     expect(resolvedDimensions).toEqual([
@@ -653,7 +926,9 @@ describe('Generate resolved dimensions', () => {
     const resolvedDimensions = generateResolvedDimensions(
       BASE_DATA_SOURCE_NAME,
       query,
-      resolutionConfig
+      resolutionConfig,
+      undefined,
+      defaultOptions
     );
 
     expect(resolvedDimensions).toEqual([
@@ -696,7 +971,8 @@ describe('Generate resolved dimensions', () => {
       BASE_DATA_SOURCE_NAME,
       query,
       resolutionConfig,
-      projections
+      projections,
+      defaultOptions
     );
 
     expect(resolvedDimensions).toEqual([
@@ -803,6 +1079,107 @@ describe('Generate resolution join paths', () => {
           left: '__base_query',
           right: 'base_table__column1',
           on: 'base_table__column1',
+        },
+      ],
+    ]);
+  });
+});
+
+describe('Generate resolution join paths (useDotNotation: true)', () => {
+  it('generate join paths for resolution columns with dot notation', () => {
+    const resolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'base_table.column1',
+          type: 'string' as const,
+          source: 'resolution_table',
+          joinColumn: 'id',
+          resolutionColumns: ['display_id'],
+        },
+        {
+          name: 'base_table.column2',
+          type: 'string' as const,
+          source: 'resolution_table',
+          joinColumn: 'id',
+          resolutionColumns: ['display_name'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    const joinPaths = generateResolutionJoinPaths(
+      BASE_DATA_SOURCE_NAME,
+      resolutionConfig,
+      [],
+      dotNotationOptions
+    );
+
+    expect(joinPaths).toEqual([
+      [
+        {
+          left: '__base_query',
+          right: 'base_table.column1',
+          on: 'base_table.column1',
+        },
+      ],
+      [
+        {
+          left: '__base_query',
+          right: 'base_table.column2',
+          on: 'base_table.column2',
+        },
+      ],
+    ]);
+  });
+
+  it('join paths with aliases and dot notation', () => {
+    const baseTableSchemas = [
+      {
+        name: 'base_table',
+        sql: '<base_table_sql>',
+        measures: [],
+        dimensions: [
+          {
+            name: 'column1',
+            sql: 'base_table.column1',
+            type: 'string' as const,
+            alias: 'base_table.column1',
+          },
+          {
+            name: 'column2',
+            sql: 'base_table.column2',
+            type: 'string' as const,
+            alias: 'base_table.column2',
+          },
+        ],
+      },
+    ];
+
+    const resolutionConfig = {
+      columnConfigs: [
+        {
+          name: 'base_table.column1',
+          type: 'string' as const,
+          source: 'resolution_table',
+          joinColumn: 'id',
+          resolutionColumns: ['display_id'],
+        },
+      ],
+      tableSchemas: [],
+    };
+
+    const joinPaths = generateResolutionJoinPaths(
+      BASE_DATA_SOURCE_NAME,
+      resolutionConfig,
+      baseTableSchemas,
+      dotNotationOptions
+    );
+    expect(joinPaths).toEqual([
+      [
+        {
+          left: '__base_query',
+          right: 'base_table.column1',
+          on: 'base_table.column1',
         },
       ],
     ]);
@@ -1185,7 +1562,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      defaultOptions
     );
 
     expect(result).toBe('row_number() OVER (ORDER BY __base_query."ID" ASC)');
@@ -1209,7 +1587,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      defaultOptions
     );
 
     expect(result).toBe(
@@ -1229,7 +1608,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      defaultOptions
     );
 
     expect(result).toBe('row_number() OVER ()');
@@ -1249,7 +1629,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      defaultOptions
     );
 
     expect(result).toBe('row_number() OVER ()');
@@ -1268,7 +1649,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      defaultOptions
     );
 
     expect(result).toBe(
@@ -1290,7 +1672,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      defaultOptions
     );
 
     expect(result).toBe(
@@ -1316,7 +1699,8 @@ describe('generateRowNumberSql', () => {
     const result = generateRowNumberSql(
       query,
       dimensions,
-      BASE_DATA_SOURCE_NAME
+      BASE_DATA_SOURCE_NAME,
+      defaultOptions
     );
 
     expect(result).toBe(
@@ -1336,7 +1720,12 @@ describe('generateRowNumberSql', () => {
     ];
     const customBaseTableName = 'custom_table';
 
-    const result = generateRowNumberSql(query, dimensions, customBaseTableName);
+    const result = generateRowNumberSql(
+      query,
+      dimensions,
+      customBaseTableName,
+      defaultOptions
+    );
 
     expect(result).toBe('row_number() OVER (ORDER BY custom_table."ID" ASC)');
   });

@@ -1,4 +1,5 @@
 import { memberKeyToSafeKey } from '../../member-formatters';
+import { QueryOptions } from '../../member-formatters/get-alias';
 import { TableSchema } from '../../types/cube-types/table';
 import { ResolutionConfig } from '../types';
 
@@ -13,10 +14,11 @@ import { ResolutionConfig } from '../types';
  * This function will apply memberKeyToSafeKey internally.
  *
  * The overrideSql should reference fields in datasource.fieldname format (same as fieldName),
- * which will be automatically converted to the safe format (datasource__fieldname).
+ * which will be automatically converted to the safe format based on options.useDotNotation.
  *
  * @param baseSchema - The base table schema to apply overrides to
  * @param resolutionConfig - Resolution config containing SQL overrides
+ * @param options - Query options including useDotNotation flag
  * @returns A new TableSchema with SQL overrides applied
  *
  * @example
@@ -27,7 +29,8 @@ import { ResolutionConfig } from '../types';
  *   overrideSql: `CASE WHEN issues.priority = 1 THEN 'P0' WHEN issues.priority = 2 THEN 'P1' END`,
  *   type: 'string'
  * }
- * // issues.priority gets automatically replaced with issues__priority
+ * // With useDotNotation: false, issues.priority gets replaced with issues__priority
+ * // With useDotNotation: true, issues.priority remains as issues.priority
  *
  * // For array fields:
  * {
@@ -35,12 +38,12 @@ import { ResolutionConfig } from '../types';
  *   overrideSql: `list_transform(issues.priority_tags, x -> CASE WHEN x = 1 THEN 'P0' ... END)`,
  *   type: 'string_array'
  * }
- * // issues.priority_tags gets automatically replaced with issues__priority_tags
  * ```
  */
 export const applySqlOverrides = (
   baseSchema: TableSchema,
-  resolutionConfig: ResolutionConfig
+  resolutionConfig: ResolutionConfig,
+  options: QueryOptions
 ): TableSchema => {
   if (
     !resolutionConfig.sqlOverrideConfigs ||
@@ -69,8 +72,9 @@ export const applySqlOverrides = (
 
   resolutionConfig.sqlOverrideConfigs.forEach((overrideConfig) => {
     // Convert natural field name to safe key for matching
-    // e.g., 'issues.priority' -> 'issues__priority'
-    const safeFieldName = memberKeyToSafeKey(overrideConfig.fieldName);
+    // e.g., with useDotNotation: false, 'issues.priority' -> 'issues__priority'
+    // e.g., with useDotNotation: true, 'issues.priority' -> 'issues.priority'
+    const safeFieldName = memberKeyToSafeKey(overrideConfig.fieldName, options);
 
     // Check dimensions in base schema
     const dimensionIndex = updatedSchema.dimensions.findIndex(

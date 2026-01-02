@@ -55,7 +55,12 @@ export const containsTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for contains operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'contains');
+    return getSQLExpressionAST(
+      member,
+      query.sqlExpression,
+      'contains',
+      options
+    );
   }
 
   // Otherwise, use values

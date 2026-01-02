@@ -13,7 +13,7 @@ export const gtTransform: CubeToParseExpressionTransform = (query, options) => {
 
   // SQL expressions not supported for gt operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'gt');
+    return getSQLExpressionAST(member, query.sqlExpression, 'gt', options);
   }
 
   // Otherwise, use values

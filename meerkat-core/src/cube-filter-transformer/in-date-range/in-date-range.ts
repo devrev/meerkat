@@ -16,7 +16,7 @@ export const inDataRangeTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for inDateRange operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'inDateRange');
+    return getSQLExpressionAST(member, query.sqlExpression, 'inDateRange', options);
   }
 
   // Otherwise, use values

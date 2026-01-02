@@ -16,7 +16,7 @@ export const gteTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for gte operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'gte');
+    return getSQLExpressionAST(member, query.sqlExpression, 'gte', options);
   }
 
   // Otherwise, use values

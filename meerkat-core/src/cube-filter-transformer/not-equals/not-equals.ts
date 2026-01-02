@@ -18,7 +18,7 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for notEquals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'notEquals');
+    return getSQLExpressionAST(member, query.sqlExpression, 'notEquals', options);
   }
 
   // Otherwise, use values
