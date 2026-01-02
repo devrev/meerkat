@@ -1,15 +1,13 @@
 export { COLUMN_NAME_DELIMITER, MEERKAT_OUTPUT_DELIMITER } from './constants';
 export {
-  // New flag-aware API (recommended)
-  QueryOptions,
+  constructAlias,
   constructAliasForAST,
   constructAliasForSQL,
+  constructCompoundAlias,
   getAliasForAST,
   getAliasForSQL,
-  // Legacy API (deprecated)
-  constructAlias,
-  constructCompoundAlias,
   getAliasFromSchema,
+  QueryOptions,
 } from './get-alias';
 export { getNamespacedKey } from './get-namespaced-key';
 export {

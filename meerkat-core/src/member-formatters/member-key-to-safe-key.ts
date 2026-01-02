@@ -5,7 +5,7 @@ export interface MemberKeyToSafeKeyOptions {
    * When true, keeps the dot notation (returns memberKey as-is).
    * When false (default), converts dots to underscores for SQL-safe identifiers.
    */
-  useDotNotation?: boolean;
+  useDotNotation: boolean;
 }
 
 /**
@@ -19,9 +19,9 @@ export interface MemberKeyToSafeKeyOptions {
  */
 export const memberKeyToSafeKey = (
   memberKey: string,
-  options?: MemberKeyToSafeKeyOptions
+  options: MemberKeyToSafeKeyOptions
 ): string => {
-  if (options?.useDotNotation) {
+  if (options.useDotNotation) {
     // Keep dot notation - the caller is responsible for quoting when needed
     return memberKey;
   }

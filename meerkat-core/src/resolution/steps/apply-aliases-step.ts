@@ -63,9 +63,6 @@ export const applyAliases = async ({
     resolutionConfig.tableSchemas.map((schema) => [schema.name, schema])
   );
 
-  if (!config) {
-    throw new Error('QueryOptions config is required for applyAliases');
-  }
   const safeKeyOptions = { useDotNotation: config.useDotNotation };
 
   // Helper function to process dimensions or measures and populate the alias map
@@ -94,7 +91,10 @@ export const applyAliases = async ({
       if (columnConfig.resolutionColumns.length === 1) {
         aliasMap.set(
           memberKeyToSafeKey(
-            getNamespacedKey(joinedTableName, columnConfig.resolutionColumns[0]),
+            getNamespacedKey(
+              joinedTableName,
+              columnConfig.resolutionColumns[0]
+            ),
             safeKeyOptions
           ),
           member.alias
