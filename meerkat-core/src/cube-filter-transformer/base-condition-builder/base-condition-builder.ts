@@ -5,6 +5,7 @@ import { sanitizeStringValue } from '../../member-formatters/sanitize-value';
 import {
   ExpressionClass,
   ExpressionType,
+  ParsedExpression,
   QueryNodeType,
   SubqueryType,
 } from '../../types/duckdb-serialization-types/index';
@@ -51,7 +52,7 @@ export interface CreateColumnRefOptions {
 export const createColumnRef = (
   columnName: string,
   options: CreateColumnRefOptions
-) => {
+): ParsedExpression => {
   let columnNames: string[];
 
   if (options.isAlias) {

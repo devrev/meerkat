@@ -68,6 +68,7 @@ export const cubeQueryToSQL = async ({
   const filterParamsSQL = await getFilterParamsSQL({
     query,
     tableSchema: updatedTableSchema,
+    filterType: 'PROJECTION_FILTER',
     getQueryOutput: duckdbExec,
     config: options,
   });
