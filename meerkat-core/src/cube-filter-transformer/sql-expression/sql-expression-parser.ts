@@ -39,7 +39,10 @@ const createInOperatorAST = (
   sqlExpression: string
 ): ParsedExpression => {
   const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
-  const columnRef = createColumnRef(member) as ParsedExpression;
+  const columnRef = createColumnRef(member, {
+    isAlias: false,
+    useDotNotation: false,
+  }) as ParsedExpression;
 
   // Create a placeholder constant node for the SQL expression
   // This will be replaced with actual SQL during query generation
@@ -64,7 +67,10 @@ const createNotInOperatorAST = (
 ): ParsedExpression => {
   const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
 
-  const columnRef = createColumnRef(member) as ParsedExpression;
+  const columnRef = createColumnRef(member, {
+    isAlias: false,
+    useDotNotation: false,
+  }) as ParsedExpression;
 
   // Create a placeholder constant node for the SQL expression
   // This will be replaced with actual SQL during query generation

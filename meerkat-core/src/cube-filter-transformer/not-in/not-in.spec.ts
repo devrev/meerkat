@@ -1,73 +1,88 @@
 import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
+import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
 import { notInTransform } from './not-in';
+
+const defaultOptions: CreateColumnRefOptions = {
+  isAlias: false,
+  useDotNotation: false,
+};
 
 describe('Not In transforms Tests', () => {
   it('Should throw error if values are undefined', () => {
     expect(() =>
-        notInTransform({
-        member: 'country',
-        operator: 'contains',
-        memberInfo: {
-          name: 'country',
-          sql: 'table.country',
-          type: 'string',
+      notInTransform(
+        {
+          member: 'country',
+          operator: 'contains',
+          memberInfo: {
+            name: 'country',
+            sql: 'table.country',
+            type: 'string',
+          },
         },
-      })
+        defaultOptions
+      )
     ).toThrow();
   });
 
   it('Should return the correct value for string member', () => {
     const expectedOutput = {
-        "alias": "",
-        "children":  [{
-            "alias": "",
-            "class": "COLUMN_REF",
-            "column_names":  [
-                "country",
-            ],
-            "type": "COLUMN_REF",
+      alias: '',
+      children: [
+        {
+          alias: '',
+          class: 'COLUMN_REF',
+          column_names: ['country'],
+          type: 'COLUMN_REF',
         },
         {
-            "alias": "",
-            "class": "CONSTANT",
-            "type": "VALUE_CONSTANT",
-            "value": {
-                "is_null": false,
-                "type": {
-                    "id": "VARCHAR",
-                    "type_info": null,
-                },
-                "value": "US",
+          alias: '',
+          class: 'CONSTANT',
+          type: 'VALUE_CONSTANT',
+          value: {
+            is_null: false,
+            type: {
+              id: 'VARCHAR',
+              type_info: null,
             },
-        }],
-        "class": "OPERATOR",
-        "type": "COMPARE_NOT_IN",
-    }
-    expect(
-        notInTransform({
-        member: 'country',
-        operator: 'contains',
-        values: ['US'],
-        memberInfo: {
-          name: 'country',
-          sql: 'table.country',
-          type: 'string',
+            value: 'US',
+          },
         },
-      })
+      ],
+      class: 'OPERATOR',
+      type: 'COMPARE_NOT_IN',
+    };
+    expect(
+      notInTransform(
+        {
+          member: 'country',
+          operator: 'contains',
+          values: ['US'],
+          memberInfo: {
+            name: 'country',
+            sql: 'table.country',
+            type: 'string',
+          },
+        },
+        defaultOptions
+      )
     ).toEqual(expectedOutput);
   });
 
   it('Should return the correct value for string_array member', () => {
-    const output = notInTransform({
-      member: 'country',
-      operator: 'contains',
-      values: ['US', 'Germany', 'Israel'],
-      memberInfo: {
-        name: 'country',
-        sql: 'table.country',
-        type: 'string_array',
+    const output = notInTransform(
+      {
+        member: 'country',
+        operator: 'contains',
+        values: ['US', 'Germany', 'Israel'],
+        memberInfo: {
+          name: 'country',
+          sql: 'table.country',
+          type: 'string_array',
+        },
       },
-    }) as ConjunctionExpression;
+      defaultOptions
+    ) as ConjunctionExpression;
     expect(output).toEqual({
         "alias": "",
         "children": [

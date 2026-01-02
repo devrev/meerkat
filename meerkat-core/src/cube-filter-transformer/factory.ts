@@ -34,13 +34,13 @@ import { setTransform } from './set/set';
 
 export type CubeToParseExpressionTransform = (
   query: QueryOperatorsWithInfo,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => ParsedExpression;
 
 // Comparison operators
 const cubeFilterOperatorsToDuckdb = (
   cubeFilter: QueryOperatorsWithInfo,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   switch (cubeFilter.operator) {
     case 'equals':
@@ -81,7 +81,7 @@ const cubeFilterOperatorsToDuckdb = (
 const cubeFilterLogicalAndOrToDuckdb = (
   cubeFilter: QueryFilterWithInfo,
   whereObj: ParsedExpression | null,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ): ParsedExpression | null => {
   /**
    * This condition is true when you are at the leaf most level of the filter
@@ -141,7 +141,7 @@ const cubeFilterLogicalAndOrToDuckdb = (
 export const cubeFilterToDuckdbAST = (
   cubeFilter: QueryFiltersWithInfo,
   ast: SelectStatement,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   let whereObj: ParsedExpression | null | undefined =
     (ast.node as SelectNode).where_clause || null;

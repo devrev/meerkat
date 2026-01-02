@@ -62,13 +62,13 @@ const getFormattedFilters = ({
     .map((item) => mapperFn(item))
     .filter(Boolean) as QueryFiltersWithInfoSingular[];
   const formattedFilters = formatFilters(filters, filterType, config);
-  // When it's a projection filter (not BASE_FILTER) and using dot notation,
-  // we need to treat the member as an alias (single column name)
+  // When it's a projection filter (not BASE_FILTER), we reference projected aliases.
+  // When it's a BASE_FILTER, we reference table.column directly.
   const isProjectionFilter = filterType !== 'BASE_FILTER';
-  const columnRefOptions =
-    isProjectionFilter && config.useDotNotation
-      ? { isAlias: true, useDotNotation: true }
-      : undefined;
+  const columnRefOptions = {
+    isAlias: isProjectionFilter,
+    useDotNotation: config.useDotNotation,
+  };
   return cubeFilterToDuckdbAST(formattedFilters, baseAST, columnRefOptions);
 };
 

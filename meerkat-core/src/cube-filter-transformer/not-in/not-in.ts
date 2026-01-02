@@ -17,7 +17,7 @@ const notInDuckDbCondition = (
   columnName: string,
   values: string[],
   memberInfo: Measure | Dimension,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   const sqlTreeValues = values.map((value) => {
     return {

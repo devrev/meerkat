@@ -17,7 +17,7 @@ export const notContainsDuckdbCondition = (
   columnName: string,
   value: string,
   memberInfo: Measure | Dimension,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   return {
     class: ExpressionClass.FUNCTION,

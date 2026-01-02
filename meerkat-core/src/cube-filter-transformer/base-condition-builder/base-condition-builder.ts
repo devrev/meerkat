@@ -17,14 +17,14 @@ import { convertFloatToInt, getTypeInfo } from '../../utils/get-type-info';
 export interface CreateColumnRefOptions {
   /**
    * When true, the columnName is an alias (e.g., "orders.customer_id" as a single column name).
-   * When false (default), the columnName is a table.column reference to be split.
+   * When false, the columnName is a table.column reference to be split.
    */
-  isAlias?: boolean;
+  isAlias: boolean;
   /**
    * When true, uses dot notation for aliases (requires isAlias=true to have effect).
-   * When false (default), uses underscore notation.
+   * When false, uses underscore notation.
    */
-  useDotNotation?: boolean;
+  useDotNotation: boolean;
 }
 
 /**
@@ -50,11 +50,11 @@ export interface CreateColumnRefOptions {
  */
 export const createColumnRef = (
   columnName: string,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   let columnNames: string[];
 
-  if (options?.isAlias) {
+  if (options.isAlias) {
     // When it's an alias, don't split - use as single column name
     // This is used for PROJECTION_FILTER where we reference projected aliases
     columnNames = [columnName];
@@ -77,7 +77,7 @@ export const baseDuckdbCondition = (
   type: ExpressionType,
   value: string,
   memberInfo: Measure | Dimension,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   return {
     class: ExpressionClass.COMPARISON,
@@ -98,7 +98,7 @@ export const baseArrayDuckdbCondition = (
   type: ExpressionType,
   value: string,
   memberInfo: Measure | Dimension,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   return {
     class: ExpressionClass.SUBQUERY,

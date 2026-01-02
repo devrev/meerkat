@@ -1,5 +1,12 @@
+import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { getBaseAST } from '../utils/base-ast';
 import { cubeFilterToDuckdbAST } from './factory';
+
+const defaultOptions: CreateColumnRefOptions = {
+  isAlias: false,
+  useDotNotation: false,
+};
+
 describe('CubeFilterToDuckDBAST', () => {
   const cubeFilter = [
     {
@@ -42,7 +49,7 @@ describe('CubeFilterToDuckDBAST', () => {
   it('should return a duckdb AST', () => {
     const ast = getBaseAST();
 
-    const output = cubeFilterToDuckdbAST(cubeFilter, ast);
+    const output = cubeFilterToDuckdbAST(cubeFilter, ast, defaultOptions);
     expect(output).toEqual({
       class: 'CONJUNCTION',
       type: 'CONJUNCTION_AND',
@@ -151,7 +158,8 @@ describe('CubeFilterToDuckDBAST', () => {
           },
         },
       ],
-      ast
+      ast,
+      defaultOptions
     );
 
     expect(output).toEqual({

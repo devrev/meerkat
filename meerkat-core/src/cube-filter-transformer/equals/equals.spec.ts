@@ -3,21 +3,32 @@ import {
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
-import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
+import {
+  baseDuckdbCondition,
+  CreateColumnRefOptions,
+} from '../base-condition-builder/base-condition-builder';
 import { equalsTransform } from './equals'; // replace with your module name
+
+const defaultOptions: CreateColumnRefOptions = {
+  isAlias: false,
+  useDotNotation: false,
+};
 
 describe('Equals Transform Tests', () => {
   it('Should throw error if values are empty', () => {
     expect(() =>
-      equalsTransform({
-        member: 'country',
-        operator: 'equals',
-        values: [],
-        memberInfo: {
-          sql: 'temp.country',
-          type: 'string',
+      equalsTransform(
+        {
+          member: 'country',
+          operator: 'equals',
+          values: [],
+          memberInfo: {
+            sql: 'temp.country',
+            type: 'string',
+          },
         },
-      })
+        defaultOptions
+      )
     ).toThrow();
   });
 
@@ -29,31 +40,38 @@ describe('Equals Transform Tests', () => {
       {
         sql: 'temp.country',
         type: 'string',
-      }
+      },
+      defaultOptions
     );
     expect(
-      equalsTransform({
-        member: 'country',
-        operator: 'equals',
-        values: ['US'],
-        memberInfo: {
-          sql: 'temp.country',
-          type: 'string',
+      equalsTransform(
+        {
+          member: 'country',
+          operator: 'equals',
+          values: ['US'],
+          memberInfo: {
+            sql: 'temp.country',
+            type: 'string',
+          },
         },
-      })
+        defaultOptions
+      )
     ).toEqual(expectedOutput);
   });
 
   it('Should create an OR condition if there are multiple values', () => {
-    const output = equalsTransform({
-      member: 'country',
-      operator: 'equals',
-      values: ['US', 'Germany', 'Israel'],
-      memberInfo: {
-        sql: 'temp.country',
-        type: 'string',
+    const output = equalsTransform(
+      {
+        member: 'country',
+        operator: 'equals',
+        values: ['US', 'Germany', 'Israel'],
+        memberInfo: {
+          sql: 'temp.country',
+          type: 'string',
+        },
       },
-    }) as ConjunctionExpression;
+      defaultOptions
+    ) as ConjunctionExpression;
     expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
     expect(output.type).toEqual(ExpressionType.CONJUNCTION_AND);
     expect(output.children.length).toEqual(3);

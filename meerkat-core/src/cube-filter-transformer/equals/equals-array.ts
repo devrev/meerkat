@@ -17,7 +17,7 @@ const equalsDuckDbCondition = (
   columnName: string,
   values: string[],
   memberInfo: Measure | Dimension,
-  options?: CreateColumnRefOptions
+  options: CreateColumnRefOptions
 ) => {
   const columnRef = createColumnRef(columnName, options);
 
