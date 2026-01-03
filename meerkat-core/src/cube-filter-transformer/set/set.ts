@@ -14,6 +14,10 @@ export const setTransform: CubeToParseExpressionTransform = (
     class: ExpressionClass.OPERATOR,
     type: ExpressionType.OPERATOR_IS_NOT_NULL,
     alias: '',
-    children: [createColumnRef(member, options)],
+    children: [
+      createColumnRef(member, {
+        isAlias: options.isAlias,
+      }),
+    ],
   };
 };

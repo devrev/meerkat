@@ -1,10 +1,7 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { andDuckdbCondition } from '../and/and';
-import {
-  baseDuckdbCondition,
-  CreateColumnRefOptions,
-} from '../base-condition-builder/base-condition-builder';
+import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
@@ -16,7 +13,12 @@ export const inDataRangeTransform: CubeToParseExpressionTransform = (
 
   // SQL expressions not supported for inDateRange operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'inDateRange', options);
+    return getSQLExpressionAST(
+      member,
+      query.sqlExpression,
+      'inDateRange',
+      options
+    );
   }
 
   // Otherwise, use values

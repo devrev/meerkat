@@ -5,7 +5,6 @@ describe('notSetTransform', () => {
   describe('useDotNotation: false', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
-      useDotNotation: false,
     };
 
     it('should return the correct expression for a given query', () => {
@@ -60,7 +59,6 @@ describe('notSetTransform', () => {
   describe('useDotNotation: true', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
-      useDotNotation: true,
     };
 
     it('should return the correct expression for a given query with alias', () => {

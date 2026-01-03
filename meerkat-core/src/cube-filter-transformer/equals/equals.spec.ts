@@ -13,7 +13,6 @@ describe('Equals Transform Tests', () => {
   describe('useDotNotation: false', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
-      useDotNotation: false,
     };
 
     it('Should throw error if values are empty', () => {
@@ -82,7 +81,6 @@ describe('Equals Transform Tests', () => {
   describe('useDotNotation: true', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
-      useDotNotation: true,
     };
 
     it('Should throw error if values are empty', () => {

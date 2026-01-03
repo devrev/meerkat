@@ -19,7 +19,9 @@ const equalsDuckDbCondition = (
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {
-  const columnRef = createColumnRef(columnName, options);
+  const columnRef = createColumnRef(columnName, {
+    isAlias: options.isAlias,
+  });
 
   const sqlTreeValues = values.map((value) => {
     const children = {

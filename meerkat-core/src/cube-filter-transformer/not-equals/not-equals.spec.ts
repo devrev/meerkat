@@ -1,8 +1,8 @@
-import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
+import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 import {
   baseDuckdbCondition,
   CreateColumnRefOptions,
@@ -13,7 +13,6 @@ describe('Not Equals Transform Tests', () => {
   describe('useDotNotation: false', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
-      useDotNotation: false,
     };
 
     it('Should throw error if values are empty', () => {
@@ -86,7 +85,6 @@ describe('Not Equals Transform Tests', () => {
   describe('useDotNotation: true', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
-      useDotNotation: true,
     };
 
     it('Should throw error if values are empty', () => {

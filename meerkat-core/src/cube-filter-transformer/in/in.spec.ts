@@ -6,7 +6,6 @@ describe('In transforms Tests', () => {
   describe('useDotNotation: false', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
-      useDotNotation: false,
     };
 
     it('Should throw error if values are undefined', () => {
@@ -84,84 +83,82 @@ describe('In transforms Tests', () => {
         },
         options
       ) as ConjunctionExpression;
-    expect(output).toEqual( {
-        "alias": "",
-        "catalog": "",
-        "children":  [
-            {
-            "alias": "",
-            "class": "COLUMN_REF",
-            "column_names":  [
-                "country",
+      expect(output).toEqual({
+        alias: '',
+        catalog: '',
+        children: [
+          {
+            alias: '',
+            class: 'COLUMN_REF',
+            column_names: ['country'],
+            type: 'COLUMN_REF',
+          },
+          {
+            alias: '',
+            children: [
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'VARCHAR',
+                    type_info: null,
+                  },
+                  value: 'US',
+                },
+              },
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'VARCHAR',
+                    type_info: null,
+                  },
+                  value: 'Germany',
+                },
+              },
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'VARCHAR',
+                    type_info: null,
+                  },
+                  value: 'Israel',
+                },
+              },
             ],
-            "type": "COLUMN_REF",
-        },
-            {
-            "alias": "",
-            "children":  [
-                {
-                "alias": "",
-                "class": "CONSTANT",
-                "type": "VALUE_CONSTANT",
-                "value":  {
-                "is_null": false,
-                "type":  {
-                    "id": "VARCHAR",
-                    "type_info": null,
-                },
-                "value": "US",
-                },
-            },
-            {
-                "alias": "",
-                "class": "CONSTANT",
-                "type": "VALUE_CONSTANT",
-                "value":  {
-                    "is_null": false,
-                    "type":  {
-                        "id": "VARCHAR",
-                        "type_info": null,
-                    },
-                    "value": "Germany",
-                },
-            },
-            {
-            "alias": "",
-            "class": "CONSTANT",
-            "type": "VALUE_CONSTANT",
-            "value":  {
-                "is_null": false,
-                "type":  {
-                        "id": "VARCHAR",
-                        "type_info": null,
-                    },
-                    "value": "Israel",
-                },
-            }],
-            "class": "OPERATOR",
-            "type": "ARRAY_CONSTRUCTOR",
-        },
+            class: 'OPERATOR',
+            type: 'ARRAY_CONSTRUCTOR',
+          },
         ],
-        "class": "FUNCTION",
-        "distinct": false,
-        "export_state": false,
-        "filter": null,
-        "function_name": "&&",
-        "is_operator": true,
-        "order_bys":  {
-        "orders":  [],
-        "type": "ORDER_MODIFIER",
+        class: 'FUNCTION',
+        distinct: false,
+        export_state: false,
+        filter: null,
+        function_name: '&&',
+        is_operator: true,
+        order_bys: {
+          orders: [],
+          type: 'ORDER_MODIFIER',
         },
-        "schema": "",
-        "type": "FUNCTION",
-    });
+        schema: '',
+        type: 'FUNCTION',
+      });
     });
   });
 
   describe('useDotNotation: true', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
-      useDotNotation: true,
     };
 
     it('Should throw error if values are undefined', () => {

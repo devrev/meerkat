@@ -1,8 +1,8 @@
-import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
+import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
 import {
   notContainsDuckdbCondition,
@@ -85,7 +85,6 @@ describe('Not Contains Transform Tests', () => {
   describe('useDotNotation: true', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
-      useDotNotation: true,
     };
 
     it('Should throw error if values are empty', () => {

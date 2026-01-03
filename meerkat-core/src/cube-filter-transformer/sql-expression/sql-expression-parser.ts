@@ -43,7 +43,9 @@ const createInOperatorAST = (
   options: CreateColumnRefOptions
 ): ParsedExpression => {
   const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
-  const columnRef = createColumnRef(member, options);
+  const columnRef = createColumnRef(member, {
+    isAlias: options.isAlias,
+  });
 
   // Create a placeholder constant node for the SQL expression
   // This will be replaced with actual SQL during query generation

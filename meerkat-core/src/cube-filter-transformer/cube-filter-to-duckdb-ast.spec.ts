@@ -1,5 +1,5 @@
-import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { getBaseAST } from '../utils/base-ast';
+import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { cubeFilterToDuckdbAST } from './factory';
 
 describe('CubeFilterToDuckDBAST', () => {
@@ -44,7 +44,6 @@ describe('CubeFilterToDuckDBAST', () => {
   describe('useDotNotation: false', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
-      useDotNotation: false,
     };
 
     it('should return a duckdb AST', () => {
@@ -198,7 +197,6 @@ describe('CubeFilterToDuckDBAST', () => {
   describe('useDotNotation: true', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
-      useDotNotation: true,
     };
 
     it('should return a duckdb AST with alias column names', () => {

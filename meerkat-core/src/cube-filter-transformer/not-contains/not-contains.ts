@@ -26,7 +26,9 @@ export const notContainsDuckdbCondition = (
     function_name: '!~~',
     schema: '',
     children: [
-      createColumnRef(columnName, options),
+      createColumnRef(columnName, {
+        isAlias: options.isAlias,
+      }),
       {
         class: 'CONSTANT',
         type: 'VALUE_CONSTANT',

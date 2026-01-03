@@ -2,10 +2,7 @@ import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { andDuckdbCondition } from '../and/and';
-import {
-  baseDuckdbCondition,
-  CreateColumnRefOptions,
-} from '../base-condition-builder/base-condition-builder';
+import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { equalsArrayTransform } from './equals-array';

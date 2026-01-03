@@ -27,7 +27,9 @@ const notInDuckDbCondition = (
       value: valueBuilder(value, memberInfo),
     };
   });
-  const columnRef = createColumnRef(columnName, options);
+  const columnRef = createColumnRef(columnName, {
+    isAlias: options.isAlias,
+  });
   switch (memberInfo.type) {
     case 'number_array':
     case 'string_array': {

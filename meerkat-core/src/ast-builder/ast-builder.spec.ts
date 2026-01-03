@@ -14,6 +14,11 @@ const defaultOptions = {
   config: { useDotNotation: false },
 };
 
+const dotNotationOptions = {
+  filterType: 'PROJECTION_FILTER' as const,
+  config: { useDotNotation: true },
+};
+
 describe('cubeToDuckdbAST', () => {
   const mockTableSchema: TableSchema = {
     name: 'test_table',
@@ -423,5 +428,157 @@ describe('cubeToDuckdbAST', () => {
       column_names: ['dimension_with_alias'],
       type: 'COLUMN_REF',
     });
+  });
+});
+
+describe('cubeToDuckdbAST (useDotNotation: true)', () => {
+  const mockTableSchema: TableSchema = {
+    name: 'test_table',
+    sql: 'test_table',
+    measures: [
+      {
+        name: 'measure1',
+        sql: 'test_table.measure1',
+        type: 'number',
+      },
+    ],
+    dimensions: [
+      {
+        name: 'dimension1',
+        sql: 'test_table.dimension1',
+        type: 'string',
+      },
+    ],
+  };
+
+  it('should handle basic query with dot notation', () => {
+    const query: Query = {
+      measures: ['test_table.measure1'],
+      dimensions: ['test_table.dimension1'],
+    };
+
+    const result = cubeToDuckdbAST(query, mockTableSchema, dotNotationOptions);
+    expect(result).not.toBeNull();
+    expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
+    expect(result.node.group_expressions).toEqual([
+      {
+        alias: '',
+        class: 'COLUMN_REF',
+        column_names: ['test_table.dimension1'],
+        type: 'COLUMN_REF',
+      },
+    ]);
+  });
+
+  it('should handle filters for dimensions (WHERE clause) with dot notation', () => {
+    const query: Query = {
+      measures: ['test_table.measure1'],
+      dimensions: ['test_table.dimension1'],
+      filters: [
+        {
+          member: 'test_table.dimension1',
+          operator: 'equals',
+          values: ['value1'],
+        },
+      ],
+    };
+
+    const result = cubeToDuckdbAST(query, mockTableSchema, dotNotationOptions);
+    expect(result).not.toBeNull();
+    expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
+    expect(result.node.where_clause).toEqual({
+      alias: '',
+      class: 'COMPARISON',
+      left: {
+        alias: '',
+        class: 'COLUMN_REF',
+        column_names: ['test_table.dimension1'],
+        type: 'COLUMN_REF',
+      },
+      right: {
+        alias: '',
+        class: 'CONSTANT',
+        type: 'VALUE_CONSTANT',
+        value: {
+          is_null: false,
+          type: {
+            id: 'VARCHAR',
+            type_info: null,
+          },
+          value: 'value1',
+        },
+      },
+      type: 'COMPARE_EQUAL',
+    });
+  });
+
+  it('should handle filters for measures (HAVING clause) with dot notation', () => {
+    const query: Query = {
+      measures: ['test_table.measure1'],
+      dimensions: ['test_table.dimension1'],
+      filters: [
+        {
+          member: 'test_table.measure1',
+          operator: 'gt',
+          values: ['100'],
+        },
+      ],
+    };
+
+    const result = cubeToDuckdbAST(query, mockTableSchema, dotNotationOptions);
+    expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
+    expect(result.node.having).toEqual({
+      alias: '',
+      class: 'COMPARISON',
+      left: {
+        alias: '',
+        class: 'COLUMN_REF',
+        column_names: ['test_table.measure1'],
+        type: 'COLUMN_REF',
+      },
+      right: {
+        alias: '',
+        class: 'CONSTANT',
+        type: 'VALUE_CONSTANT',
+        value: {
+          is_null: false,
+          type: {
+            id: 'DECIMAL',
+            type_info: {
+              alias: '',
+              scale: 0,
+              type: 'DECIMAL_TYPE_INFO',
+              width: 3,
+            },
+          },
+          value: 100,
+        },
+      },
+      type: 'COMPARE_GREATERTHAN',
+    });
+  });
+
+  it('should handle order by clause with dot notation', () => {
+    const query: Query = {
+      measures: ['test_table.measure1'],
+      dimensions: ['test_table.dimension1'],
+      order: {
+        'test_table.dimension1': 'asc',
+      },
+    };
+
+    const result = cubeToDuckdbAST(query, mockTableSchema, dotNotationOptions);
+    expect(result).not.toBeNull();
+    expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
+    if (isSelectNode(result.node)) {
+      const orderModifier = result.node.modifiers[0] as OrderModifier;
+      expect(orderModifier.type).toBe(ResultModifierType.ORDER_MODIFIER);
+      expect(orderModifier.orders[0].expression).toEqual({
+        alias: '',
+        class: 'COLUMN_REF',
+        column_names: ['test_table.dimension1'],
+        type: 'COLUMN_REF',
+      });
+    }
   });
 });

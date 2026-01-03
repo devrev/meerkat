@@ -21,11 +21,6 @@ export interface CreateColumnRefOptions {
    * When false, the columnName is a table.column reference to be split.
    */
   isAlias: boolean;
-  /**
-   * When true, uses dot notation for aliases (requires isAlias=true to have effect).
-   * When false, uses underscore notation.
-   */
-  useDotNotation: boolean;
 }
 
 /**
@@ -120,7 +115,11 @@ export const baseArrayDuckdbCondition = (
             alias: '',
             function_name: 'unnest',
             schema: '',
-            children: [createColumnRef(columnName, options)],
+            children: [
+              createColumnRef(columnName, {
+                isAlias: options.isAlias,
+              }),
+            ],
             filter: null,
             order_bys: {
               type: 'ORDER_MODIFIER',
