@@ -108,17 +108,12 @@ export const cubeQueryToSQLWithResolution = async ({
     tableSchemasWithoutAliases, // Use alias-free schemas
     resolutionConfig,
     [],
-    columnProjections,
-    resolutionOptions
+    columnProjections
   );
 
   // At this point, filters/sorts are baked into baseSql using original values
   // We can now override dimensions/measures in the base schema with custom SQL expressions for display
-  const schemaWithOverrides = applySqlOverrides(
-    baseSchema,
-    resolutionConfig,
-    resolutionOptions
-  );
+  const schemaWithOverrides = applySqlOverrides(baseSchema, resolutionConfig);
 
   // Transform field names in configs to match base table schema format
   resolutionConfig.columnConfigs.forEach((config) => {
@@ -130,8 +125,7 @@ export const cubeQueryToSQLWithResolution = async ({
     sql: generateRowNumberSql(
       query,
       schemaWithOverrides.dimensions,
-      BASE_DATA_SOURCE_NAME,
-      resolutionOptions
+      BASE_DATA_SOURCE_NAME
     ),
     type: 'number',
     alias: ROW_ID_DIMENSION_NAME,
@@ -156,7 +150,6 @@ export const cubeQueryToSQLWithResolution = async ({
     columnProjections,
     cubeQueryToSQL: async (params) =>
       cubeQueryToSQL({ connection, ...params, options: resolutionOptions }),
-    config: resolutionOptions,
   });
 
   // Re-aggregate to reverse the unnest
@@ -174,7 +167,6 @@ export const cubeQueryToSQLWithResolution = async ({
     originalTableSchemas: tableSchemas,
     resolutionConfig,
     contextParams,
-    config: resolutionOptions,
     cubeQueryToSQL: async (params) =>
       cubeQueryToSQL({ connection, ...params, options: resolutionOptions }),
   });
