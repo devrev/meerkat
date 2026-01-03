@@ -3,7 +3,7 @@ import { CreateColumnRefOptions } from '../base-condition-builder/base-condition
 import { notInTransform } from './not-in';
 
 describe('Not In transforms Tests', () => {
-  describe('useDotNotation: false', () => {
+  describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
@@ -163,7 +163,7 @@ describe('Not In transforms Tests', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
+  describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };

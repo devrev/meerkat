@@ -7,7 +7,7 @@ import { CreateColumnRefOptions } from '../base-condition-builder/base-condition
 import { containsDuckdbCondition, containsTransform } from './contains';
 
 describe('Contains Transform Tests', () => {
-  describe('useDotNotation: false', () => {
+  describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
@@ -78,7 +78,7 @@ describe('Contains Transform Tests', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
+  describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };

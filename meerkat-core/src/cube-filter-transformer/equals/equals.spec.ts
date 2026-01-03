@@ -10,7 +10,7 @@ import {
 import { equalsTransform } from './equals'; // replace with your module name
 
 describe('Equals Transform Tests', () => {
-  describe('useDotNotation: false', () => {
+  describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
@@ -78,7 +78,7 @@ describe('Equals Transform Tests', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
+  describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };

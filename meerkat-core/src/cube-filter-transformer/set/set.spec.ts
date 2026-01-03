@@ -2,7 +2,7 @@ import { CreateColumnRefOptions } from '../base-condition-builder/base-condition
 import { setTransform } from './set';
 
 describe('setTransform', () => {
-  describe('useDotNotation: false', () => {
+  describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
@@ -56,7 +56,7 @@ describe('setTransform', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
+  describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };

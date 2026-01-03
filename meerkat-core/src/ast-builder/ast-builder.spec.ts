@@ -14,6 +14,11 @@ const defaultOptions = {
   config: { useDotNotation: false },
 };
 
+const baseFilterOptions = {
+  filterType: 'BASE_FILTER' as const,
+  config: { useDotNotation: false },
+};
+
 const dotNotationOptions = {
   filterType: 'PROJECTION_FILTER' as const,
   config: { useDotNotation: true },
@@ -427,6 +432,114 @@ describe('cubeToDuckdbAST', () => {
       class: 'COLUMN_REF',
       column_names: ['dimension_with_alias'],
       type: 'COLUMN_REF',
+    });
+  });
+});
+
+describe('cubeToDuckdbAST (BASE_FILTER)', () => {
+  const mockTableSchema: TableSchema = {
+    name: 'test_table',
+    sql: 'test_table',
+    measures: [
+      {
+        name: 'measure1',
+        sql: 'test_table.measure1',
+        type: 'number',
+      },
+    ],
+    dimensions: [
+      {
+        name: 'dimension1',
+        sql: 'test_table.dimension1',
+        type: 'string',
+      },
+    ],
+  };
+
+  it('should keep base column refs for WHERE with base filters', () => {
+    const query: Query = {
+      measures: ['test_table.measure1'],
+      dimensions: ['test_table.dimension1'],
+      filters: [
+        {
+          member: 'test_table.dimension1',
+          operator: 'equals',
+          values: ['value1'],
+        },
+      ],
+    };
+
+    const result = cubeToDuckdbAST(query, mockTableSchema, baseFilterOptions);
+    expect(result).not.toBeNull();
+    expect(result?.node.where_clause).toEqual({
+      alias: '',
+      class: 'COMPARISON',
+      left: {
+        alias: '',
+        class: 'COLUMN_REF',
+        column_names: ['test_table', 'dimension1'],
+        type: 'COLUMN_REF',
+      },
+      right: {
+        alias: '',
+        class: 'CONSTANT',
+        type: 'VALUE_CONSTANT',
+        value: {
+          is_null: false,
+          type: {
+            id: 'VARCHAR',
+            type_info: null,
+          },
+          value: 'value1',
+        },
+      },
+      type: 'COMPARE_EQUAL',
+    });
+  });
+
+  it('should keep base column refs for HAVING with base filters', () => {
+    const query: Query = {
+      measures: ['test_table.measure1'],
+      dimensions: ['test_table.dimension1'],
+      filters: [
+        {
+          member: 'test_table.measure1',
+          operator: 'gt',
+          values: ['100'],
+        },
+      ],
+    };
+
+    const result = cubeToDuckdbAST(query, mockTableSchema, baseFilterOptions);
+    expect(result).not.toBeNull();
+    expect(result?.node.having).toEqual({
+      alias: '',
+      class: 'COMPARISON',
+      left: {
+        alias: '',
+        class: 'COLUMN_REF',
+        column_names: ['test_table', 'measure1'],
+        type: 'COLUMN_REF',
+      },
+      right: {
+        alias: '',
+        class: 'CONSTANT',
+        type: 'VALUE_CONSTANT',
+        value: {
+          is_null: false,
+          type: {
+            id: 'DECIMAL',
+            type_info: {
+              alias: '',
+              scale: 0,
+              type: 'DECIMAL_TYPE_INFO',
+              width: 3,
+            },
+          },
+          value: 100,
+        },
+      },
+      type: 'COMPARE_GREATERTHAN',
     });
   });
 });

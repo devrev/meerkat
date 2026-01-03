@@ -41,7 +41,7 @@ describe('CubeFilterToDuckDBAST', () => {
     },
   ];
 
-  describe('useDotNotation: false', () => {
+  describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
@@ -194,7 +194,7 @@ describe('CubeFilterToDuckDBAST', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
+  describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };

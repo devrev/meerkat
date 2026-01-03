@@ -10,7 +10,7 @@ import {
 import { notEqualsTransform } from './not-equals';
 
 describe('Not Equals Transform Tests', () => {
-  describe('useDotNotation: false', () => {
+  describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
@@ -82,7 +82,7 @@ describe('Not Equals Transform Tests', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
+  describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };

@@ -10,7 +10,7 @@ import {
 } from './not-contains';
 
 describe('Not Contains Transform Tests', () => {
-  describe('useDotNotation: false', () => {
+  describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
       useDotNotation: false,
@@ -82,7 +82,7 @@ describe('Not Contains Transform Tests', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
+  describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };
