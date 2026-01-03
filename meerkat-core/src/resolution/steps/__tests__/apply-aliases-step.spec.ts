@@ -2,9 +2,6 @@ import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { applyAliases, ApplyAliasesParams } from '../apply-aliases-step';
 
-const defaultConfig = { useDotNotation: false };
-const dotNotationConfig = { useDotNotation: true };
-
 describe('apply-aliases-step', () => {
   describe('applyAliases', () => {
     const createMockTableSchema = (
@@ -55,7 +52,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -100,7 +96,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -148,7 +143,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -182,7 +176,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -213,7 +206,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -256,7 +248,6 @@ describe('apply-aliases-step', () => {
           originalTableSchemas,
           resolutionConfig,
           cubeQueryToSQL: mockCubeQueryToSQL,
-          config: defaultConfig,
         };
 
         await expect(applyAliases(params)).rejects.toThrow(
@@ -300,7 +291,6 @@ describe('apply-aliases-step', () => {
           originalTableSchemas,
           resolutionConfig,
           cubeQueryToSQL: mockCubeQueryToSQL,
-          config: defaultConfig,
         };
 
         await expect(applyAliases(params)).rejects.toThrow(
@@ -328,7 +318,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -361,7 +350,6 @@ describe('apply-aliases-step', () => {
         resolutionConfig,
         contextParams,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -396,7 +384,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -430,7 +417,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -466,7 +452,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -500,7 +485,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       const result = await applyAliases(params);
@@ -550,7 +534,6 @@ describe('apply-aliases-step', () => {
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
-        config: defaultConfig,
       };
 
       await applyAliases(params);
@@ -560,196 +543,6 @@ describe('apply-aliases-step', () => {
       expect(calledSchema.dimensions[0].alias).toBe('Owner - First Name');
       expect(calledSchema.dimensions[1].alias).toBe('Owner - Last Name');
       expect(calledSchema.dimensions[2].alias).toBe('Owner - Email Address');
-    });
-  });
-
-  describe('applyAliases (useDotNotation: true)', () => {
-    const createMockTableSchema = (
-      name: string,
-      dimensions: { name: string; alias?: string; sql?: string }[] = [],
-      measures: { name: string; alias?: string; sql?: string }[] = []
-    ): TableSchema => ({
-      name,
-      sql: `SELECT * FROM ${name}`,
-      dimensions: dimensions.map((d) => ({
-        name: d.name,
-        sql: d.sql || `${name}.${d.name}`,
-        type: 'string',
-        alias: d.alias,
-      })),
-      measures: measures.map((m) => ({
-        name: m.name,
-        sql: m.sql || `SUM(${name}.${m.name})`,
-        type: 'number',
-        alias: m.alias,
-      })),
-    });
-
-    const mockCubeQueryToSQL = jest
-      .fn()
-      .mockResolvedValue('SELECT * FROM test');
-
-    beforeEach(() => {
-      mockCubeQueryToSQL.mockClear();
-    });
-
-    it('should apply aliases from original schema with dot notation config', async () => {
-      const aggregatedTableSchema = createMockTableSchema('aggregated', [
-        { name: 'orders.customer_id', alias: 'orders.customer_id' },
-      ]);
-      const originalTableSchemas = [
-        createMockTableSchema('orders', [
-          { name: 'customer_id', alias: 'Customer ID' },
-        ]),
-      ];
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [],
-        tableSchemas: [],
-      };
-
-      const params: ApplyAliasesParams = {
-        aggregatedTableSchema,
-        originalTableSchemas,
-        resolutionConfig,
-        cubeQueryToSQL: mockCubeQueryToSQL,
-        config: dotNotationConfig,
-      };
-
-      await applyAliases(params);
-
-      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
-      const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
-        .tableSchemas[0] as TableSchema;
-      expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
-    });
-
-    it('should use original alias for single resolution column with dot notation', async () => {
-      const aggregatedTableSchema = createMockTableSchema('aggregated', [
-        {
-          name: 'orders.customer_id.display_name',
-          alias: 'orders.customer_id.display_name',
-        },
-      ]);
-      const originalTableSchemas = [
-        createMockTableSchema('orders', [
-          { name: 'customer_id', alias: 'Customer ID' },
-        ]),
-      ];
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [
-          {
-            name: 'orders.customer_id',
-            type: 'string',
-            source: 'customers',
-            joinColumn: 'id',
-            resolutionColumns: ['display_name'],
-          },
-        ],
-        tableSchemas: [
-          createMockTableSchema('customers', [
-            { name: 'display_name', alias: 'Display Name' },
-          ]),
-        ],
-      };
-
-      const params: ApplyAliasesParams = {
-        aggregatedTableSchema,
-        originalTableSchemas,
-        resolutionConfig,
-        cubeQueryToSQL: mockCubeQueryToSQL,
-        config: dotNotationConfig,
-      };
-
-      await applyAliases(params);
-
-      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
-      const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
-        .tableSchemas[0] as TableSchema;
-      expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
-    });
-
-    it('should create compound alias for multiple resolution columns with dot notation', async () => {
-      const aggregatedTableSchema = createMockTableSchema('aggregated', [
-        {
-          name: 'orders.owner_id.first_name',
-          alias: 'orders.owner_id.first_name',
-        },
-        {
-          name: 'orders.owner_id.last_name',
-          alias: 'orders.owner_id.last_name',
-        },
-      ]);
-      const originalTableSchemas = [
-        createMockTableSchema('orders', [{ name: 'owner_id', alias: 'Owner' }]),
-      ];
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [
-          {
-            name: 'orders.owner_id',
-            type: 'string',
-            source: 'users',
-            joinColumn: 'id',
-            resolutionColumns: ['first_name', 'last_name'],
-          },
-        ],
-        tableSchemas: [
-          createMockTableSchema('users', [
-            { name: 'first_name', alias: 'First Name' },
-            { name: 'last_name', alias: 'Last Name' },
-          ]),
-        ],
-      };
-
-      const params: ApplyAliasesParams = {
-        aggregatedTableSchema,
-        originalTableSchemas,
-        resolutionConfig,
-        cubeQueryToSQL: mockCubeQueryToSQL,
-        config: dotNotationConfig,
-      };
-
-      await applyAliases(params);
-
-      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
-      const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
-        .tableSchemas[0] as TableSchema;
-      expect(calledSchema.dimensions[0].alias).toBe('Owner - First Name');
-      expect(calledSchema.dimensions[1].alias).toBe('Owner - Last Name');
-    });
-
-    it('should handle measures from original schema with dot notation', async () => {
-      const aggregatedTableSchema = createMockTableSchema(
-        'aggregated',
-        [],
-        [{ name: 'orders.total', alias: 'orders.total' }]
-      );
-      const originalTableSchemas = [
-        createMockTableSchema(
-          'orders',
-          [],
-          [{ name: 'total', alias: 'Total Revenue' }]
-        ),
-      ];
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [],
-        tableSchemas: [],
-      };
-
-      const params: ApplyAliasesParams = {
-        aggregatedTableSchema,
-        originalTableSchemas,
-        resolutionConfig,
-        cubeQueryToSQL: mockCubeQueryToSQL,
-        config: dotNotationConfig,
-      };
-
-      await applyAliases(params);
-
-      expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
-      const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
-        .tableSchemas[0] as TableSchema;
-      // Measures are converted to dimensions in the final schema
-      expect(calledSchema.dimensions[0].alias).toBe('Total Revenue');
     });
   });
 });

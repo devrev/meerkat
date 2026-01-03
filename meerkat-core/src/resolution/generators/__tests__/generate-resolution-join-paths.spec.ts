@@ -2,9 +2,6 @@ import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { generateResolutionJoinPaths } from '../generate-resolution-join-paths';
 
-const defaultConfig = { useDotNotation: false };
-const dotNotationConfig = { useDotNotation: true };
-
 describe('generate-resolution-join-paths', () => {
   const createMockTableSchema = (
     name: string,
@@ -47,8 +44,7 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas,
-        defaultConfig
+        baseTableSchemas
       );
 
       expect(result).toHaveLength(1);
@@ -88,8 +84,7 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas,
-        defaultConfig
+        baseTableSchemas
       );
 
       expect(result).toHaveLength(1);
@@ -138,8 +133,7 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas,
-        defaultConfig
+        baseTableSchemas
       );
 
       expect(result).toHaveLength(2);
@@ -157,8 +151,7 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas,
-        defaultConfig
+        baseTableSchemas
       );
 
       expect(result).toEqual([]);
@@ -185,183 +178,10 @@ describe('generate-resolution-join-paths', () => {
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
-        baseTableSchemas,
-        defaultConfig
+        baseTableSchemas
       );
 
       expect(result[0][0].right).toBe('orders__nested__field');
-    });
-  });
-
-  describe('generateResolutionJoinPaths (useDotNotation: true)', () => {
-    it('should generate join paths for single column config without alias', () => {
-      const baseDataSourceName = 'base';
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [
-          {
-            name: 'orders.customer_id',
-            joinColumn: 'id',
-            schema: {
-              name: 'customers',
-              sql: 'SELECT * FROM customers',
-              dimensions: [
-                { name: 'name', sql: 'customers.name', type: 'string' },
-              ],
-              measures: [],
-            },
-          },
-        ],
-      };
-      const baseTableSchemas: TableSchema[] = [
-        createMockTableSchema('orders', [{ name: 'customer_id' }]),
-      ];
-
-      const result = generateResolutionJoinPaths(
-        baseDataSourceName,
-        resolutionConfig,
-        baseTableSchemas,
-        dotNotationConfig
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual([
-        {
-          left: 'base',
-          right: 'orders.customer_id',
-          on: 'orders.customer_id',
-        },
-      ]);
-    });
-
-    it('should generate join paths for single column config with custom alias', () => {
-      const baseDataSourceName = 'base';
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [
-          {
-            name: 'orders.customer_id',
-            joinColumn: 'id',
-            schema: {
-              name: 'customers',
-              sql: 'SELECT * FROM customers',
-              dimensions: [
-                { name: 'name', sql: 'customers.name', type: 'string' },
-              ],
-              measures: [],
-            },
-          },
-        ],
-      };
-      const baseTableSchemas: TableSchema[] = [
-        createMockTableSchema('orders', [
-          { name: 'customer_id', alias: 'Customer ID' },
-        ]),
-      ];
-
-      const result = generateResolutionJoinPaths(
-        baseDataSourceName,
-        resolutionConfig,
-        baseTableSchemas,
-        dotNotationConfig
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toEqual([
-        {
-          left: 'base',
-          right: 'orders.customer_id',
-          on: 'Customer ID', // Uses alias without quotes (internal schema reference)
-        },
-      ]);
-    });
-
-    it('should generate join paths for multiple column configs', () => {
-      const baseDataSourceName = 'base';
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [
-          {
-            name: 'orders.customer_id',
-            joinColumn: 'id',
-            schema: {
-              name: 'customers',
-              sql: 'SELECT * FROM customers',
-              dimensions: [],
-              measures: [],
-            },
-          },
-          {
-            name: 'orders.product_id',
-            joinColumn: 'id',
-            schema: {
-              name: 'products',
-              sql: 'SELECT * FROM products',
-              dimensions: [],
-              measures: [],
-            },
-          },
-        ],
-      };
-      const baseTableSchemas: TableSchema[] = [
-        createMockTableSchema('orders', [
-          { name: 'customer_id' },
-          { name: 'product_id', alias: 'Product ID' },
-        ]),
-      ];
-
-      const result = generateResolutionJoinPaths(
-        baseDataSourceName,
-        resolutionConfig,
-        baseTableSchemas,
-        dotNotationConfig
-      );
-
-      expect(result).toHaveLength(2);
-      expect(result[0][0].on).toBe('orders.customer_id');
-      expect(result[1][0].on).toBe('Product ID');
-    });
-
-    it('should return empty array when no column configs provided', () => {
-      const baseDataSourceName = 'base';
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [],
-      };
-      const baseTableSchemas: TableSchema[] = [];
-
-      const result = generateResolutionJoinPaths(
-        baseDataSourceName,
-        resolutionConfig,
-        baseTableSchemas,
-        dotNotationConfig
-      );
-
-      expect(result).toEqual([]);
-    });
-
-    it('should use dot notation for right side of join', () => {
-      const baseDataSourceName = 'base';
-      const resolutionConfig: ResolutionConfig = {
-        columnConfigs: [
-          {
-            name: 'orders.nested.field',
-            joinColumn: 'id',
-            schema: {
-              name: 'nested',
-              sql: 'SELECT * FROM nested',
-              dimensions: [],
-              measures: [],
-            },
-          },
-        ],
-      };
-      const baseTableSchemas: TableSchema[] = [];
-
-      const result = generateResolutionJoinPaths(
-        baseDataSourceName,
-        resolutionConfig,
-        baseTableSchemas,
-        dotNotationConfig
-      );
-
-      expect(result[0][0].right).toBe('orders.nested.field');
     });
   });
 });
