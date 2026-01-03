@@ -28,12 +28,6 @@ export interface CubeQueryToSQLWithResolutionParams {
   resolutionConfig: ResolutionConfig;
   columnProjections?: string[];
   contextParams?: ContextParams;
-  /**
-   * Options for controlling output format.
-   * When useDotNotation is true, aliases use dot notation (e.g., "orders.customer_id")
-   * When useDotNotation is false, aliases use underscore notation (e.g., orders__customer_id)
-   */
-  options: QueryOptions;
 }
 
 export const cubeQueryToSQLWithResolution = async ({
@@ -43,8 +37,11 @@ export const cubeQueryToSQLWithResolution = async ({
   resolutionConfig,
   columnProjections,
   contextParams,
-  options,
 }: CubeQueryToSQLWithResolutionParams) => {
+  const resolutionOptions: QueryOptions = {
+    useDotNotation: false,
+  };
+
   // Check if resolution should be skipped
   if (shouldSkipResolution(resolutionConfig, query, columnProjections)) {
     return await cubeQueryToSQL({
@@ -52,7 +49,7 @@ export const cubeQueryToSQLWithResolution = async ({
       query,
       tableSchemas,
       contextParams,
-      options,
+      options: resolutionOptions,
     });
   }
 
@@ -92,7 +89,7 @@ export const cubeQueryToSQLWithResolution = async ({
     query,
     tableSchemas: tableSchemasWithoutAliases,
     contextParams,
-    options,
+    options: resolutionOptions,
   });
 
   if (!columnProjections) {
@@ -112,7 +109,7 @@ export const cubeQueryToSQLWithResolution = async ({
     resolutionConfig,
     [],
     columnProjections,
-    options
+    resolutionOptions
   );
 
   // At this point, filters/sorts are baked into baseSql using original values
@@ -120,12 +117,12 @@ export const cubeQueryToSQLWithResolution = async ({
   const schemaWithOverrides = applySqlOverrides(
     baseSchema,
     resolutionConfig,
-    options
+    resolutionOptions
   );
 
   // Transform field names in configs to match base table schema format
   resolutionConfig.columnConfigs.forEach((config) => {
-    config.name = memberKeyToSafeKey(config.name, options);
+    config.name = memberKeyToSafeKey(config.name, resolutionOptions);
   });
 
   const rowIdDimension: Dimension = {
@@ -134,7 +131,7 @@ export const cubeQueryToSQLWithResolution = async ({
       query,
       schemaWithOverrides.dimensions,
       BASE_DATA_SOURCE_NAME,
-      options
+      resolutionOptions
     ),
     type: 'number',
     alias: ROW_ID_DIMENSION_NAME,
@@ -148,7 +145,7 @@ export const cubeQueryToSQLWithResolution = async ({
     resolutionConfig,
     contextParams,
     cubeQueryToSQL: async (params) =>
-      cubeQueryToSQL({ connection, ...params, options }),
+      cubeQueryToSQL({ connection, ...params, options: resolutionOptions }),
   });
 
   //  Apply resolution (join with lookup tables)
@@ -158,8 +155,8 @@ export const cubeQueryToSQLWithResolution = async ({
     contextParams,
     columnProjections,
     cubeQueryToSQL: async (params) =>
-      cubeQueryToSQL({ connection, ...params, options }),
-    config: options,
+      cubeQueryToSQL({ connection, ...params, options: resolutionOptions }),
+    config: resolutionOptions,
   });
 
   // Re-aggregate to reverse the unnest
@@ -168,7 +165,7 @@ export const cubeQueryToSQLWithResolution = async ({
     resolutionConfig,
     contextParams,
     cubeQueryToSQL: async (params) =>
-      cubeQueryToSQL({ connection, ...params, options }),
+      cubeQueryToSQL({ connection, ...params, options: resolutionOptions }),
   });
 
   // Apply aliases and generate final SQL
@@ -177,9 +174,9 @@ export const cubeQueryToSQLWithResolution = async ({
     originalTableSchemas: tableSchemas,
     resolutionConfig,
     contextParams,
-    config: options,
+    config: resolutionOptions,
     cubeQueryToSQL: async (params) =>
-      cubeQueryToSQL({ connection, ...params, options }),
+      cubeQueryToSQL({ connection, ...params, options: resolutionOptions }),
   });
 
   // Wrap with row_id ordering and exclusion
