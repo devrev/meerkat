@@ -312,7 +312,6 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
       columnProjections,
-      options: { useDotNotation: false },
     });
 
     console.log('SQL (multiple arrays):', sql);
@@ -487,7 +486,6 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
       query,
       tableSchemas: [TICKETS_TABLE_SCHEMA],
       resolutionConfig,
-      options: { useDotNotation: false },
     });
 
     console.log('SQL without resolution:', sql);
@@ -1035,7 +1033,6 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       tableSchemas: [issuesWithArraySchema],
       resolutionConfig,
       columnProjections: ['issues.id', 'issues.priority_tags', 'issues.count'],
-      options: { useDotNotation: false },
     });
 
     console.log('SQL with array override:', sql);
@@ -1514,7 +1511,6 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
         tableSchemas: [ISSUES_TABLE_SCHEMA],
         resolutionConfig,
         columnProjections: ['issues.id', 'issues.priority', 'issues.count'],
-        options: { useDotNotation: false },
       })
     ).rejects.toThrow(/must reference the field in the SQL/);
   });
@@ -1924,7 +1920,6 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       query,
       tableSchemas: [table1Schema, table2Schema],
       resolutionConfig,
-      options: { useDotNotation: false },
     });
 
     console.log('SQL (resolution on joined base):', sql);
