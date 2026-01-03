@@ -374,99 +374,35 @@ describe('SQL Expression Filters', () => {
     });
   });
 
-  describe('useDotNotation: true', () => {
-    it('Simple IN with SQL expression', async () => {
-      const query = {
-        measures: ['users.count'],
-        dimensions: ['users.name'],
-        filters: [
-          {
-            member: 'users.id',
-            operator: 'in',
-            sqlExpression: '1, 3',
-          },
-        ],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [SCHEMA],
-        options: { useDotNotation: true },
-      });
-
-      // Verify SQL uses dot notation
-      expect(sql).toContain('"users.count"');
-      expect(sql).toContain('"users.name"');
-      expect(sql).toContain('"users.id"');
-
-      // Execute and verify data is correct
-      const output = await duckdbExec(sql);
-      const sortedOutput = [...output].sort((a: any, b: any) =>
-        a['users.name'].localeCompare(b['users.name'])
+  describe('useDotNotation: true (parity)', () => {
+    const toDotNotation = (rows: any[]) =>
+      rows.map((row) =>
+        Object.fromEntries(
+          Object.entries(row).map(([k, v]) => [k.replace(/__/g, '.'), v])
+        )
       );
-      expect(sortedOutput).toEqual([
-        { 'users.count': 1n, 'users.name': 'Alice' },
-        { 'users.count': 1n, 'users.name': 'Charlie' },
-      ]);
-    });
 
-    it('NOT IN with SQL expression', async () => {
-      const query = {
-        measures: ['users.count'],
-        dimensions: ['users.name'],
-        filters: [
-          {
-            member: 'users.id',
-            operator: 'notIn',
-            sqlExpression: '2',
-          },
-        ],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [SCHEMA],
-        options: { useDotNotation: true },
+    SQL_EXPRESSION_TEST_DATA.forEach((testCase) => {
+      it(testCase.testName, async () => {
+        const sql = await cubeQueryToSQL({
+          query: testCase.cubeInput,
+          tableSchemas: [SCHEMA],
+          options: { useDotNotation: true },
+        });
+
+        // Basic SQL sanity for dot notation aliases
+        expect(sql).toContain('"users.count"');
+        expect(sql).toContain('"users.name"');
+
+        const output = await duckdbExec(sql);
+        const sortedOutput = [...output].sort((a: any, b: any) =>
+          a['users.name'].localeCompare(b['users.name'])
+        );
+        const expected = toDotNotation(testCase.expectedOutput).sort((a, b) =>
+          a['users.name'].localeCompare(b['users.name'])
+        );
+        expect(sortedOutput).toEqual(expected);
       });
-
-      // Execute and verify data is correct
-      const output = await duckdbExec(sql);
-      const sortedOutput = [...output].sort((a: any, b: any) =>
-        a['users.name'].localeCompare(b['users.name'])
-      );
-      expect(sortedOutput).toEqual([
-        { 'users.count': 1n, 'users.name': 'Alice' },
-        { 'users.count': 1n, 'users.name': 'Charlie' },
-      ]);
-    });
-
-    it('AND combining equals and IN with SQL expression', async () => {
-      const query = {
-        measures: ['users.count'],
-        dimensions: ['users.name'],
-        filters: [
-          {
-            and: [
-              {
-                member: 'users.name',
-                operator: 'equals',
-                values: ['Alice'],
-              },
-              {
-                member: 'users.id',
-                operator: 'in',
-                sqlExpression: '1, 2, 3',
-              },
-            ],
-          },
-        ],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [SCHEMA],
-        options: { useDotNotation: true },
-      });
-
-      const output = await duckdbExec(sql);
-      expect(output).toEqual([{ 'users.count': 1n, 'users.name': 'Alice' }]);
     });
 
     it('should throw error for unsupported operators with SQL expression', async () => {
