@@ -7,29 +7,29 @@ export const BASE_TABLE_SCHEMA = {
     {
       name: 'count',
       sql: 'count(*)',
-      type: 'number',
+      type: 'number' as const,
     },
   ],
   dimensions: [
     {
       name: 'part_id_1',
       sql: 'base_table.part_id_1',
-      type: 'string',
+      type: 'string' as const,
     },
     {
       name: 'random_column',
       sql: 'base_table.random_column',
-      type: 'string',
+      type: 'string' as const,
     },
     {
       name: 'work_id',
       sql: 'base_table.work_id',
-      type: 'string',
+      type: 'string' as const,
     },
     {
       name: 'part_id_2',
       sql: 'base_table.part_id_2',
-      type: 'string',
+      type: 'string' as const,
     },
   ],
 };
@@ -42,17 +42,17 @@ export const DIM_WORK_SCHEMA = {
     {
       name: 'id',
       sql: 'dim_work.id',
-      type: 'string',
+      type: 'string' as const,
     },
     {
       name: 'display_id',
       sql: 'dim_work.display_id',
-      type: 'string',
+      type: 'string' as const,
     },
     {
       name: 'title',
       sql: 'dim_work.title',
-      type: 'string',
+      type: 'string' as const,
     },
   ],
 };
@@ -65,12 +65,12 @@ export const DIM_PART_SCHEMA = {
     {
       name: 'id',
       sql: 'dim_part.id',
-      type: 'string',
+      type: 'string' as const,
     },
     {
       name: 'display_id',
       sql: 'dim_part.display_id',
-      type: 'string',
+      type: 'string' as const,
     },
   ],
 };
@@ -82,7 +82,7 @@ export const BASE_TABLE_SCHEMA_WITH_ALIASES = {
     {
       name: 'count',
       sql: 'count(*)',
-      type: 'number',
+      type: 'number' as const,
       alias: 'Count',
     },
   ],
@@ -90,25 +90,25 @@ export const BASE_TABLE_SCHEMA_WITH_ALIASES = {
     {
       name: 'part_id_1',
       sql: 'base_table.part_id_1',
-      type: 'string',
+      type: 'string' as const,
       alias: 'Part ID 1',
     },
     {
       name: 'random_column',
       sql: 'base_table.random_column',
-      type: 'string',
+      type: 'string' as const,
       alias: 'Random Column',
     },
     {
       name: 'part_id_2',
       sql: 'base_table.part_id_2',
-      type: 'string',
+      type: 'string' as const,
       alias: 'Part ID 2',
     },
     {
       name: 'work_id',
       sql: 'base_table.work_id',
-      type: 'string',
+      type: 'string' as const,
       alias: 'Work ID',
     },
   ],
@@ -122,13 +122,13 @@ export const DIM_PART_SCHEMA_WITH_ALIASES = {
     {
       name: 'id',
       sql: 'dim_part.id',
-      type: 'string',
+      type: 'string' as const,
       alias: 'ID',
     },
     {
       name: 'display_id',
       sql: 'dim_part.display_id',
-      type: 'string',
+      type: 'string' as const,
       alias: 'Display ID',
     },
   ],
@@ -142,26 +142,30 @@ export const DIM_WORK_SCHEMA_WITH_ALIASES = {
     {
       name: 'id',
       sql: 'dim_work.id',
-      type: 'string',
+      type: 'string' as const,
       alias: 'ID',
     },
     {
       name: 'display_id',
       sql: 'dim_work.display_id',
-      type: 'string',
+      type: 'string' as const,
       alias: 'Display ID',
     },
-
     {
       name: 'title',
       sql: 'dim_work.title',
-      type: 'string',
+      type: 'string' as const,
       alias: 'Title',
     },
   ],
 };
 
-describe('Resolution Tests', () => {
+// Helper to normalize SQL for comparison (collapse whitespace)
+const normalizeSQL = (sql: string) => sql.replace(/\s+/g, ' ').trim();
+
+describe('Resolution Tests (useDotNotation: false)', () => {
+  const options = { useDotNotation: false };
+
   it('No Resolution Config', async () => {
     const query = {
       measures: [],
@@ -180,9 +184,9 @@ describe('Resolution Tests', () => {
         columnConfigs: [],
         tableSchemas: [],
       },
-      options: { useDotNotation: false },
+      options,
     });
-    console.info(`SQL: `, sql);
+
     const expectedSQL = `
       select * exclude(__row_id) 
       from (SELECT "__row_id", "base_table__part_id_1", "base_table__random_column", "base_table__work_id", "base_table__part_id_2" 
@@ -200,9 +204,8 @@ describe('Resolution Tests', () => {
             (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1", "base_table__random_column", "base_table__work_id", "base_table__part_id_2", "__row_id" FROM (SELECT __base_query."base_table__part_id_1" AS "base_table__part_id_1", __base_query."base_table__random_column" AS "base_table__random_column", __base_query."base_table__work_id" AS "base_table__work_id", __base_query."base_table__part_id_2" AS "base_table__part_id_2", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1", "base_table__random_column", "base_table__work_id", "base_table__part_id_2", "__row_id" FROM (SELECT __base_query.base_table__part_id_1 AS "base_table__part_id_1", __base_query.base_table__random_column AS "base_table__random_column", __base_query.base_table__work_id AS "base_table__work_id", __base_query.base_table__part_id_2 AS "base_table__part_id_2", row_number() OVER () AS "__row_id", * FROM (SELECT base_table__part_id_1, base_table__random_column, base_table__work_id, base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) 
       order by __row_id
     `;
-    expect(sql.replace(/\s+/g, ' ').trim()).toBe(
-      expectedSQL.replace(/\s+/g, ' ').trim()
-    );
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
   });
 
   it('Resolution Config Missing Table Schema', async () => {
@@ -232,7 +235,7 @@ describe('Resolution Tests', () => {
           ],
           tableSchemas: [],
         },
-        options: { useDotNotation: false },
+        options,
       })
     ).rejects.toThrow('Table schema not found for dim_part');
   });
@@ -280,9 +283,9 @@ describe('Resolution Tests', () => {
           DIM_WORK_SCHEMA_WITH_ALIASES,
         ],
       },
-      options: { useDotNotation: false },
+      options,
     });
-    console.info(`SQL: `, sql);
+
     const expectedSQL = `
       select * exclude(__row_id) 
         from (SELECT "__row_id", 
@@ -305,9 +308,8 @@ describe('Resolution Tests', () => {
                      "__row_id" 
               FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1__display_id", "base_table__random_column", "base_table__work_id__display_id", "base_table__work_id__title", "base_table__part_id_2__display_id", "__row_id" FROM (SELECT __base_query."base_table__random_column" AS "base_table__random_column", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1", "base_table__random_column", "base_table__work_id", "base_table__part_id_2", "__row_id" FROM (SELECT __base_query.base_table__part_id_1 AS "base_table__part_id_1", __base_query.base_table__random_column AS "base_table__random_column", __base_query.base_table__work_id AS "base_table__work_id", __base_query.base_table__part_id_2 AS "base_table__part_id_2", row_number() OVER () AS "__row_id", * FROM (SELECT base_table__part_id_1, base_table__random_column, base_table__work_id, base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1__display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1 ON __base_query.base_table__part_id_1 = base_table__part_id_1.id LEFT JOIN (SELECT base_table__work_id.display_id AS "base_table__work_id__display_id", base_table__work_id.title AS "base_table__work_id__title", * FROM (select id, display_id, title from system.dim_issue) AS base_table__work_id) AS base_table__work_id ON __base_query.base_table__work_id = base_table__work_id.id LEFT JOIN (SELECT base_table__part_id_2.display_id AS "base_table__part_id_2__display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_2) AS base_table__part_id_2 ON __base_query.base_table__part_id_2 = base_table__part_id_2.id) AS MEERKAT_GENERATED_TABLE) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
     `;
-    expect(sql.replace(/\s+/g, ' ').trim()).toBe(
-      expectedSQL.replace(/\s+/g, ' ').trim()
-    );
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
   });
 
   it('Resolution With Measures', async () => {
@@ -315,6 +317,7 @@ describe('Resolution Tests', () => {
       measures: ['base_table.count'],
       dimensions: ['base_table.part_id_1'],
     };
+
     const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
@@ -330,15 +333,14 @@ describe('Resolution Tests', () => {
         ],
         tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
       },
-      options: { useDotNotation: false },
+      options,
     });
-    console.info(`SQL: `, sql);
+
     const expectedSQL = `
       select * exclude(__row_id) from (SELECT "__row_id", "Part ID 1", "Count" FROM (SELECT __base_query."__row_id" AS "__row_id", __base_query."base_table__part_id_1__display_id" AS "Part ID 1", __base_query."base_table__count" AS "Count", * FROM (SELECT MAX(__base_query."base_table__part_id_1__display_id") AS "base_table__part_id_1__display_id" , MAX(__base_query."base_table__count") AS "base_table__count" , "__row_id" FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1__display_id", "base_table__count", "__row_id" FROM (SELECT __base_query."base_table__count" AS "base_table__count", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1", "base_table__count", "__row_id" FROM (SELECT __base_query.base_table__part_id_1 AS "base_table__part_id_1", __base_query.base_table__count AS "base_table__count", row_number() OVER () AS "__row_id", * FROM (SELECT count(*) AS base_table__count , base_table__part_id_1 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, * FROM (select * from base_table) AS base_table) AS base_table GROUP BY base_table__part_id_1) AS __base_query) AS __base_query) AS __base_query LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1__display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1 ON __base_query.base_table__part_id_1 = base_table__part_id_1.id) AS MEERKAT_GENERATED_TABLE) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
     `;
-    expect(sql.replace(/\s+/g, ' ').trim()).toBe(
-      expectedSQL.replace(/\s+/g, ' ').trim()
-    );
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
   });
 
   it('Resolution With Aliases', async () => {
@@ -373,15 +375,14 @@ describe('Resolution Tests', () => {
         ],
         tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
       },
-      options: { useDotNotation: false },
+      options,
     });
-    console.info(`SQL: `, sql);
+
     const expectedSQL = `
       select * exclude(__row_id) from (SELECT "__row_id", "Part ID 1", "Random Column", "Part ID 2" FROM (SELECT __base_query."__row_id" AS "__row_id", __base_query."base_table__part_id_1__display_id" AS "Part ID 1", __base_query."base_table__random_column" AS "Random Column", __base_query."base_table__part_id_2__display_id" AS "Part ID 2", * FROM (SELECT MAX(__base_query."base_table__part_id_1__display_id") AS "base_table__part_id_1__display_id" , MAX(__base_query."base_table__random_column") AS "base_table__random_column" , MAX(__base_query."base_table__part_id_2__display_id") AS "base_table__part_id_2__display_id" , "__row_id" FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1__display_id", "base_table__random_column", "base_table__part_id_2__display_id", "__row_id" FROM (SELECT __base_query."base_table__random_column" AS "base_table__random_column", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__part_id_1", "base_table__random_column", "base_table__part_id_2", "__row_id" FROM (SELECT __base_query.base_table__part_id_1 AS "base_table__part_id_1", __base_query.base_table__random_column AS "base_table__random_column", __base_query.base_table__part_id_2 AS "base_table__part_id_2", row_number() OVER () AS "__row_id", * FROM (SELECT base_table__part_id_1, base_table__random_column, base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1__display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1 ON __base_query.base_table__part_id_1 = base_table__part_id_1.id LEFT JOIN (SELECT base_table__part_id_2.display_id AS "base_table__part_id_2__display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_2) AS base_table__part_id_2 ON __base_query.base_table__part_id_2 = base_table__part_id_2.id) AS MEERKAT_GENERATED_TABLE) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
     `;
-    expect(sql.replace(/\s+/g, ' ').trim()).toBe(
-      expectedSQL.replace(/\s+/g, ' ').trim()
-    );
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
   });
 
   it('Resolution With Column Projections', async () => {
@@ -411,31 +412,31 @@ describe('Resolution Tests', () => {
         tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
       },
       columnProjections: ['base_table.random_column', 'base_table.part_id_1'],
-      options: { useDotNotation: false },
+      options,
     });
-    console.info(`SQL: `, sql);
+
     const expectedSQL = `
       select * exclude(__row_id) from (SELECT "__row_id", "Random Column", "Part ID 1" FROM (SELECT __base_query."__row_id" AS "__row_id", __base_query."base_table__random_column" AS "Random Column", __base_query."base_table__part_id_1__display_id" AS "Part ID 1", * FROM (SELECT MAX(__base_query."base_table__random_column") AS "base_table__random_column" , MAX(__base_query."base_table__part_id_1__display_id") AS "base_table__part_id_1__display_id" , "__row_id" FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__random_column", "base_table__part_id_1__display_id", "__row_id" FROM (SELECT __base_query."base_table__random_column" AS "base_table__random_column", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table__random_column", "base_table__part_id_1", "__row_id" FROM (SELECT __base_query.base_table__random_column AS "base_table__random_column", __base_query.base_table__part_id_1 AS "base_table__part_id_1", row_number() OVER () AS "__row_id", * FROM (SELECT base_table__part_id_1, base_table__random_column, base_table__work_id, base_table__part_id_2 FROM (SELECT base_table.part_id_1 AS base_table__part_id_1, base_table.random_column AS base_table__random_column, base_table.work_id AS base_table__work_id, base_table.part_id_2 AS base_table__part_id_2, * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query LEFT JOIN (SELECT base_table__part_id_1.display_id AS "base_table__part_id_1__display_id", * FROM (select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product) AS base_table__part_id_1) AS base_table__part_id_1 ON __base_query.base_table__part_id_1 = base_table__part_id_1.id) AS MEERKAT_GENERATED_TABLE) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
     `;
-    expect(sql.replace(/\s+/g, ' ').trim()).toBe(
-      expectedSQL.replace(/\s+/g, ' ').trim()
-    );
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
   });
 });
 
-describe('Resolution Tests (useDotNotation: false for resolution pipeline)', () => {
-  // The resolution pipeline currently operates on underscore-safe field names.
-  // These tests confirm that passing the options object does not break the
-  // pipeline when underscore notation is used.
-  const options = { useDotNotation: false };
+describe('Resolution Tests (useDotNotation: true)', () => {
+  const options = { useDotNotation: true };
 
-  it('options is accepted and generates valid SQL', async () => {
+  it('No Resolution Config', async () => {
     const query = {
       measures: [],
-      dimensions: ['base_table.part_id_1', 'base_table.random_column'],
+      dimensions: [
+        'base_table.part_id_1',
+        'base_table.random_column',
+        'base_table.work_id',
+        'base_table.part_id_2',
+      ],
     };
 
-    // Test that options parameter is accepted without throwing
     const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [BASE_TABLE_SCHEMA],
@@ -446,17 +447,28 @@ describe('Resolution Tests (useDotNotation: false for resolution pipeline)', () 
       options,
     });
 
-    // Verify SQL is generated
-    expect(sql).toBeDefined();
-    expect(typeof sql).toBe('string');
-    expect(sql.length).toBeGreaterThan(0);
+    const expectedSQL = `
+      select * exclude(__row_id) 
+      from (SELECT "__row_id", "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2" 
+        FROM 
+          (SELECT __base_query."__row_id" AS "__row_id", 
+                  __base_query."base_table.part_id_1" AS "base_table.part_id_1", 
+                  __base_query."base_table.random_column" AS "base_table.random_column", 
+                  __base_query."base_table.work_id" AS "base_table.work_id", 
+                  __base_query."base_table.part_id_2" AS "base_table.part_id_2", * 
+          FROM (SELECT MAX(__base_query."base_table.part_id_1") AS "base_table.part_id_1" , 
+                   MAX(__base_query."base_table.random_column") AS "base_table.random_column" , 
+                   MAX(__base_query."base_table.work_id") AS "base_table.work_id" , 
+                   MAX(__base_query."base_table.part_id_2") AS "base_table.part_id_2" , 
+                   "__row_id" FROM 
+            (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.work_id" AS "base_table.work_id", __base_query."base_table.part_id_2" AS "base_table.part_id_2", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.work_id" AS "base_table.work_id", __base_query."base_table.part_id_2" AS "base_table.part_id_2", row_number() OVER () AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2" FROM (SELECT base_table.part_id_1 AS "base_table.part_id_1", base_table.random_column AS "base_table.random_column", base_table.work_id AS "base_table.work_id", base_table.part_id_2 AS "base_table.part_id_2", * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) 
+      order by __row_id
+    `;
 
-    // The SQL should use underscore notation
-    expect(sql).toContain('base_table__part_id_1');
-    expect(sql).toContain('base_table__random_column');
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
   });
 
-  it('Resolution Config Missing Table Schema with dot notation', async () => {
+  it('Resolution Config Missing Table Schema', async () => {
     const query = {
       measures: [],
       dimensions: [
@@ -488,85 +500,22 @@ describe('Resolution Tests (useDotNotation: false for resolution pipeline)', () 
     ).rejects.toThrow('Table schema not found for dim_part');
   });
 
-  it('options with resolution generates valid SQL', async () => {
+  it('With Resolution Config', async () => {
+    // Note: Resolution with join lookups uses underscore notation internally.
+    // This test uses empty columnConfigs to verify dot notation in base SQL.
     const query = {
       measures: [],
-      dimensions: ['base_table.part_id_1', 'base_table.random_column'],
+      dimensions: [
+        'base_table.part_id_1',
+        'base_table.random_column',
+        'base_table.work_id',
+        'base_table.part_id_2',
+      ],
     };
 
     const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
-      resolutionConfig: {
-        columnConfigs: [
-          {
-            name: 'base_table.part_id_1',
-            type: 'string' as const,
-            source: 'dim_part',
-            joinColumn: 'id',
-            resolutionColumns: ['display_id'],
-          },
-        ],
-        tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
-      },
-      options,
-    });
-
-    // Verify SQL is generated successfully with options
-    expect(sql).toBeDefined();
-    expect(typeof sql).toBe('string');
-    expect(sql.length).toBeGreaterThan(0);
-
-    // The SQL should contain appropriate aliases
-    expect(sql).toContain('Part ID 1');
-    expect(sql).toContain('Random Column');
-  });
-
-  it('Resolution With Measures with options', async () => {
-    const query = {
-      measures: ['base_table.count'],
-      dimensions: ['base_table.part_id_1'],
-    };
-    const sql = await cubeQueryToSQLWithResolution({
-      query,
-      tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
-      resolutionConfig: {
-        columnConfigs: [
-          {
-            name: 'base_table.part_id_1',
-            type: 'string' as const,
-            source: 'dim_part',
-            joinColumn: 'id',
-            resolutionColumns: ['display_id'],
-          },
-        ],
-        tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
-      },
-      options,
-    });
-
-    // Verify SQL is generated successfully
-    expect(sql).toBeDefined();
-    expect(typeof sql).toBe('string');
-
-    // The SQL should contain appropriate aliases
-    expect(sql).toContain('Count');
-    expect(sql).toContain('Part ID 1');
-  });
-});
-
-describe('Resolution Tests (useDotNotation: true)', () => {
-  const options = { useDotNotation: true };
-
-  it('generates dot-notation aliases when resolution is skipped', async () => {
-    const query = {
-      measures: [],
-      dimensions: ['base_table.part_id_1', 'base_table.random_column'],
-    };
-
-    const sql = await cubeQueryToSQLWithResolution({
-      query,
-      tableSchemas: [BASE_TABLE_SCHEMA],
       resolutionConfig: {
         columnConfigs: [],
         tableSchemas: [],
@@ -574,9 +523,111 @@ describe('Resolution Tests (useDotNotation: true)', () => {
       options,
     });
 
-    expect(sql).toContain('"base_table.part_id_1"');
-    expect(sql).toContain('"base_table.random_column"');
-    expect(sql).not.toContain('base_table__part_id_1');
-    expect(sql).not.toContain('base_table__random_column');
+    const expectedSQL = `
+      select * exclude(__row_id) 
+        from (SELECT "__row_id", 
+                 "Part ID 1", 
+                 "Random Column", 
+                 "Work ID", 
+                 "Part ID 2" 
+          FROM (SELECT __base_query."__row_id" AS "__row_id", 
+                   __base_query."base_table.part_id_1" AS "Part ID 1", 
+                   __base_query."base_table.random_column" AS "Random Column", 
+                   __base_query."base_table.work_id" AS "Work ID", 
+                   __base_query."base_table.part_id_2" AS "Part ID 2", * 
+            FROM (SELECT MAX(__base_query."base_table.part_id_1") AS "base_table.part_id_1" , 
+                     MAX(__base_query."base_table.random_column") AS "base_table.random_column" , 
+                     MAX(__base_query."base_table.work_id") AS "base_table.work_id" , 
+                     MAX(__base_query."base_table.part_id_2") AS "base_table.part_id_2" , 
+                     "__row_id" 
+              FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.work_id" AS "base_table.work_id", __base_query."base_table.part_id_2" AS "base_table.part_id_2", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.work_id" AS "base_table.work_id", __base_query."base_table.part_id_2" AS "base_table.part_id_2", row_number() OVER () AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2" FROM (SELECT base_table.part_id_1 AS "base_table.part_id_1", base_table.random_column AS "base_table.random_column", base_table.work_id AS "base_table.work_id", base_table.part_id_2 AS "base_table.part_id_2", * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
+    `;
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
+  });
+
+  it('Resolution With Measures', async () => {
+    // Note: Resolution with join lookups uses underscore notation internally.
+    // This test uses empty columnConfigs to verify dot notation in base SQL.
+    const query = {
+      measures: ['base_table.count'],
+      dimensions: ['base_table.part_id_1'],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
+      resolutionConfig: {
+        columnConfigs: [],
+        tableSchemas: [],
+      },
+      options,
+    });
+
+    const expectedSQL = `
+      select * exclude(__row_id) from (SELECT "__row_id", "Part ID 1", "Count" FROM (SELECT __base_query."__row_id" AS "__row_id", __base_query."base_table.part_id_1" AS "Part ID 1", __base_query."base_table.count" AS "Count", * FROM (SELECT MAX(__base_query."base_table.part_id_1") AS "base_table.part_id_1" , MAX(__base_query."base_table.count") AS "base_table.count" , "__row_id" FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.count", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.count" AS "base_table.count", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.count", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.count" AS "base_table.count", row_number() OVER () AS "__row_id", * FROM (SELECT count(*) AS "base_table.count" , "base_table.part_id_1" FROM (SELECT base_table.part_id_1 AS "base_table.part_id_1", * FROM (select * from base_table) AS base_table) AS base_table GROUP BY "base_table.part_id_1") AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
+    `;
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
+  });
+
+  it('Resolution With Aliases', async () => {
+    // Note: Resolution with join lookups uses underscore notation internally.
+    // This test uses empty columnConfigs to verify dot notation in base SQL.
+    const query = {
+      measures: [],
+      dimensions: [
+        'base_table.part_id_1',
+        'base_table.random_column',
+        'base_table.part_id_2',
+      ],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
+      resolutionConfig: {
+        columnConfigs: [],
+        tableSchemas: [],
+      },
+      options,
+    });
+
+    const expectedSQL = `
+      select * exclude(__row_id) from (SELECT "__row_id", "Part ID 1", "Random Column", "Part ID 2" FROM (SELECT __base_query."__row_id" AS "__row_id", __base_query."base_table.part_id_1" AS "Part ID 1", __base_query."base_table.random_column" AS "Random Column", __base_query."base_table.part_id_2" AS "Part ID 2", * FROM (SELECT MAX(__base_query."base_table.part_id_1") AS "base_table.part_id_1" , MAX(__base_query."base_table.random_column") AS "base_table.random_column" , MAX(__base_query."base_table.part_id_2") AS "base_table.part_id_2" , "__row_id" FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.part_id_2", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.part_id_2" AS "base_table.part_id_2", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.part_id_2", "__row_id" FROM (SELECT __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.part_id_2" AS "base_table.part_id_2", row_number() OVER () AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.part_id_2" FROM (SELECT base_table.part_id_1 AS "base_table.part_id_1", base_table.random_column AS "base_table.random_column", base_table.part_id_2 AS "base_table.part_id_2", * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
+    `;
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
+  });
+
+  it('Resolution With Column Projections', async () => {
+    // Note: Resolution with join lookups uses underscore notation internally.
+    // This test uses empty columnConfigs to verify dot notation in base SQL.
+    const query = {
+      measures: [],
+      dimensions: [
+        'base_table.part_id_1',
+        'base_table.random_column',
+        'base_table.work_id',
+        'base_table.part_id_2',
+      ],
+    };
+
+    const sql = await cubeQueryToSQLWithResolution({
+      query,
+      tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
+      resolutionConfig: {
+        columnConfigs: [],
+        tableSchemas: [],
+      },
+      columnProjections: ['base_table.random_column', 'base_table.part_id_1'],
+      options,
+    });
+
+    const expectedSQL = `
+      select * exclude(__row_id) from (SELECT "__row_id", "Random Column", "Part ID 1" FROM (SELECT __base_query."__row_id" AS "__row_id", __base_query."base_table.random_column" AS "Random Column", __base_query."base_table.part_id_1" AS "Part ID 1", * FROM (SELECT MAX(__base_query."base_table.random_column") AS "base_table.random_column" , MAX(__base_query."base_table.part_id_1") AS "base_table.part_id_1" , "__row_id" FROM (SELECT __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.random_column", "base_table.part_id_1", "__row_id" FROM (SELECT __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.part_id_1" AS "base_table.part_id_1", __base_query."__row_id" AS "__row_id", * FROM (SELECT "base_table.random_column", "base_table.part_id_1", "__row_id" FROM (SELECT __base_query."base_table.random_column" AS "base_table.random_column", __base_query."base_table.part_id_1" AS "base_table.part_id_1", row_number() OVER () AS "__row_id", * FROM (SELECT "base_table.part_id_1", "base_table.random_column", "base_table.work_id", "base_table.part_id_2" FROM (SELECT base_table.part_id_1 AS "base_table.part_id_1", base_table.random_column AS "base_table.random_column", base_table.work_id AS "base_table.work_id", base_table.part_id_2 AS "base_table.part_id_2", * FROM (select * from base_table) AS base_table) AS base_table) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query) AS __base_query GROUP BY __row_id) AS __base_query) AS __base_query) order by __row_id
+    `;
+
+    expect(normalizeSQL(sql)).toBe(normalizeSQL(expectedSQL));
   });
 });
