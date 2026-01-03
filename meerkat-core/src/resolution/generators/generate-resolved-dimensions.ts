@@ -6,7 +6,7 @@ export const generateResolvedDimensions = (
   baseDataSourceName: string,
   query: Query,
   config: ResolutionConfig,
-  columnProjections: string[] | undefined
+  columnProjections?: string[]
 ): Member[] => {
   const options = { useDotNotation: false };
   // If column projections are provided, use those.

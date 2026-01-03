@@ -58,12 +58,25 @@ describe('context-param-tests', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
-        TABLE_NAME: 'orders',
-      }, options: { useDotNotation: false }});
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        contextParams: {
+          TABLE_NAME: 'orders',
+        },
+        options: { useDotNotation: false },
+      });
       console.info('SQL: ', sql);
       const output: any = await duckdbExec(sql);
-      expect(output).toHaveLength(1);
+      expect(output).toEqual([
+        {
+          amount: 120,
+          date: new Date('2022-02-15'),
+          id: 6,
+          orders__status: 'pending',
+          status: 'pending',
+        },
+      ]);
     });
   });
 
@@ -80,12 +93,25 @@ describe('context-param-tests', () => {
         ],
         dimensions: [],
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [SCHEMA], contextParams: {
-        TABLE_NAME: 'orders',
-      }, options: { useDotNotation: true }});
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+        contextParams: {
+          TABLE_NAME: 'orders',
+        },
+        options: { useDotNotation: true },
+      });
       console.info('SQL (dot notation): ', sql);
       const output: any = await duckdbExec(sql);
-      expect(output).toHaveLength(1);
+      expect(output).toEqual([
+        {
+          amount: 120,
+          date: new Date('2022-02-15'),
+          id: 6,
+          'orders.status': 'pending',
+          status: 'pending',
+        },
+      ]);
     });
   });
 });

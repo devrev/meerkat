@@ -454,27 +454,4 @@ describe('resolution-step', () => {
       expect(result.measures[0].name).toBe('orders__total');
     });
   });
-
-  // Note: The resolution pipeline internally uses underscore notation for lookups,
-  // so base table dimension names must use underscore notation.
-  // The config option affects the join paths 'on' field and 'right' field.
-  const createMockTableSchema = (
-    name: string,
-    dimensions: {
-      name: string;
-      sql?: string;
-      alias?: string;
-      type?: string;
-    }[] = []
-  ): TableSchema => ({
-    name,
-    sql: `SELECT * FROM ${name}`,
-    dimensions: dimensions.map((d) => ({
-      name: d.name,
-      sql: d.sql || `${name}.${d.name}`,
-      type: d.type || 'string',
-      alias: d.alias,
-    })),
-    measures: [],
-  });
 });

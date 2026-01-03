@@ -19,8 +19,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual(['__base_query.orders__customer_id']);
@@ -47,8 +46,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual([
@@ -70,8 +68,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual([
@@ -114,8 +111,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual(['__base_query.orders__customer__nested_id']);
@@ -142,8 +138,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual([
@@ -165,8 +160,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual([]);
@@ -184,8 +178,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual(['__base_query.orders__total']);
@@ -219,8 +212,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual([
@@ -242,8 +234,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual([
@@ -297,12 +288,7 @@ describe('generate-resolved-dimensions', () => {
         tableSchemas: [],
       };
 
-      const result = generateResolvedDimensions(
-        customBaseName,
-        query,
-        config,
-        undefined
-      );
+      const result = generateResolvedDimensions(customBaseName, query, config);
 
       expect(result).toEqual(['custom_base.orders__customer_id']);
     });
@@ -349,8 +335,7 @@ describe('generate-resolved-dimensions', () => {
       const result = generateResolvedDimensions(
         baseDataSourceName,
         query,
-        config,
-        undefined
+        config
       );
 
       expect(result).toEqual([

@@ -3,22 +3,22 @@ import { ResolutionConfig } from '../../types';
 import { generateResolutionJoinPaths } from '../generate-resolution-join-paths';
 
 describe('generate-resolution-join-paths', () => {
-  const createMockTableSchema = (
-    name: string,
-    dimensions: { name: string; alias?: string }[] = []
-  ): TableSchema => ({
-    name,
-    sql: `SELECT * FROM ${name}`,
-    dimensions: dimensions.map((d) => ({
-      name: d.name,
-      sql: `${name}.${d.name}`,
-      type: 'string',
-      alias: d.alias,
-    })),
-    measures: [],
-  });
+  describe('generateResolutionJoinPaths', () => {
+    const createMockTableSchema = (
+      name: string,
+      dimensions: { name: string; alias?: string }[] = []
+    ): TableSchema => ({
+      name,
+      sql: `SELECT * FROM ${name}`,
+      dimensions: dimensions.map((d) => ({
+        name: d.name,
+        sql: `${name}.${d.name}`,
+        type: 'string',
+        alias: d.alias,
+      })),
+      measures: [],
+    });
 
-  describe('generateResolutionJoinPaths (useDotNotation: false)', () => {
     it('should generate join paths for single column config without alias', () => {
       const baseDataSourceName = 'base';
       const resolutionConfig: ResolutionConfig = {
