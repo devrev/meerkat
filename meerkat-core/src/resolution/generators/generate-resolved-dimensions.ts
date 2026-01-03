@@ -1,5 +1,4 @@
 import { getNamespacedKey, memberKeyToSafeKey } from '../../member-formatters';
-import { QueryOptions } from '../../member-formatters/get-alias';
 import { Member, Query } from '../../types/cube-types/query';
 import { ResolutionConfig } from '../types';
 
@@ -7,9 +6,9 @@ export const generateResolvedDimensions = (
   baseDataSourceName: string,
   query: Query,
   config: ResolutionConfig,
-  columnProjections: string[] | undefined,
-  options: QueryOptions
+  columnProjections: string[] | undefined
 ): Member[] => {
+  const options = { useDotNotation: false };
   // If column projections are provided, use those.
   // Otherwise, use all measures and dimensions from the original query.
   const aggregatedDimensions = columnProjections

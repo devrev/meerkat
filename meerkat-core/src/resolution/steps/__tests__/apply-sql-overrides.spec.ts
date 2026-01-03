@@ -1,13 +1,9 @@
-import { QueryOptions } from '../../../member-formatters/get-alias';
 import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { applySqlOverrides } from '../apply-sql-overrides';
 
-const defaultOptions: QueryOptions = { useDotNotation: false };
-const dotNotationOptions: QueryOptions = { useDotNotation: true };
-
 describe('apply-sql-overrides', () => {
-  describe('applySqlOverrides (useDotNotation: false)', () => {
+  describe('applySqlOverrides', () => {
     const createBaseSchema = (
       dimensions: { name: string; sql: string; type: string }[] = [],
       measures: { name: string; sql: string; type: string }[] = []
@@ -27,7 +23,7 @@ describe('apply-sql-overrides', () => {
         tableSchemas: [],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result).toBe(baseSchema);
     });
@@ -42,7 +38,7 @@ describe('apply-sql-overrides', () => {
         sqlOverrideConfigs: [],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result).toBe(baseSchema);
     });
@@ -64,7 +60,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].sql).toBe(
         "CASE WHEN issues__priority = 1 THEN 'P0' WHEN issues__priority = 2 THEN 'P1' END"
@@ -89,7 +85,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.measures[0].sql).toBe('ROUND(orders__total, 2)');
     });
@@ -116,7 +112,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].sql).toBe('issues__priority * 10');
       expect(result.measures[0].sql).toBe('orders__total + 100');
@@ -138,7 +134,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].sql).toBe(
         'issues__priority + issues__priority + issues__priority'
@@ -165,7 +161,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].sql).toBe('issues__nested__priority * 2');
     });
@@ -186,7 +182,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      applySqlOverrides(baseSchema, config, defaultOptions);
+      applySqlOverrides(baseSchema, config);
 
       expect(baseSchema.dimensions[0].sql).toBe('priority');
       expect(baseSchema.dimensions[0].type).toBe('number');
@@ -209,7 +205,7 @@ describe('apply-sql-overrides', () => {
           ],
         };
 
-        expect(() => applySqlOverrides(baseSchema, config, defaultOptions)).toThrow(
+        expect(() => applySqlOverrides(baseSchema, config)).toThrow(
           "SQL override for field 'issues.priority' must reference the field in the SQL"
         );
       });
@@ -231,7 +227,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       // Original schema should be unchanged (field not found)
       expect(result.dimensions[0].sql).toBe('priority');
@@ -253,7 +249,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].name).toBe('issues__priority');
     });
@@ -275,7 +271,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.measures[0].name).toBe('orders__total');
     });
@@ -302,7 +298,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.name).toBe('__base_query');
       expect(result.sql).toBe('SELECT * FROM base');
@@ -325,7 +321,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       // Should only replace exact matches, not partial matches like priority_extra
       expect(result.dimensions[0].sql).toBe(
@@ -350,7 +346,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].sql).toBe(
         "CASE WHEN orders__status = 0 THEN 'Draft' WHEN orders__status = 1 THEN 'Pending' WHEN orders__status = 2 THEN 'Completed' ELSE 'Unknown' END"
@@ -374,7 +370,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].sql).toBe(
         'list_transform(issues__tags, x -> upper(x))'
@@ -400,7 +396,7 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result.dimensions[0].sql).toBe('priority');
       expect(result.dimensions[1].sql).toBe('issues__status * 2');
@@ -423,62 +419,11 @@ describe('apply-sql-overrides', () => {
         ],
       };
 
-      const result = applySqlOverrides(baseSchema, config, defaultOptions);
+      const result = applySqlOverrides(baseSchema, config);
 
       expect(result).not.toBe(baseSchema);
       expect(result.dimensions).not.toBe(baseSchema.dimensions);
       expect(result.measures).not.toBe(baseSchema.measures);
-    });
-  });
-
-  describe('applySqlOverrides (useDotNotation: true)', () => {
-    const createBaseSchema = (
-      dimensions: { name: string; sql: string; type: string }[] = [],
-      measures: { name: string; sql: string; type: string }[] = []
-    ): TableSchema => ({
-      name: '__base_query',
-      sql: 'SELECT * FROM base',
-      dimensions,
-      measures,
-    });
-
-    it('should override dimension SQL keeping dot notation', () => {
-      const baseSchema = createBaseSchema([
-        { name: 'issues.priority', sql: 'priority', type: 'number' },
-      ]);
-      const config: ResolutionConfig = {
-        columnConfigs: [],
-        tableSchemas: [],
-        sqlOverrideConfigs: [
-          {
-            fieldName: 'issues.priority',
-            overrideSql:
-              "CASE WHEN issues.priority = 1 THEN 'P0' WHEN issues.priority = 2 THEN 'P1' END",
-            type: 'string',
-          },
-        ],
-      };
-
-      const result = applySqlOverrides(baseSchema, config, dotNotationOptions);
-
-      expect(result.dimensions[0].sql).toBe(
-        "CASE WHEN issues.priority = 1 THEN 'P0' WHEN issues.priority = 2 THEN 'P1' END"
-      );
-      expect(result.dimensions[0].type).toBe('string');
-    });
-
-    it('should return base schema when no override configs with dot notation', () => {
-      const baseSchema = createBaseSchema([
-        { name: 'issues.priority', sql: 'priority', type: 'number' },
-      ]);
-      const config: ResolutionConfig = {
-        columnConfigs: [],
-        tableSchemas: [],
-      };
-
-      const result = applySqlOverrides(baseSchema, config, dotNotationOptions);
-
-      expect(result).toBe(baseSchema);
     });
   });
 });

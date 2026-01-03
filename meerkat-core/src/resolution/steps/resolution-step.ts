@@ -8,7 +8,6 @@ import {
   getNamespacedKey,
   memberKeyToSafeKey,
   Query,
-  QueryOptions,
   ResolutionConfig,
   TableSchema,
 } from '../../index';
@@ -28,7 +27,6 @@ export const getResolvedTableSchema = async ({
   columnProjections,
   contextParams,
   cubeQueryToSQL,
-  config,
 }: {
   baseTableSchema: TableSchema;
   resolutionConfig: ResolutionConfig;
@@ -39,18 +37,17 @@ export const getResolvedTableSchema = async ({
     tableSchemas: TableSchema[];
     contextParams?: ContextParams;
   }) => Promise<string>;
-  config: QueryOptions;
 }): Promise<TableSchema> => {
+  const config = { useDotNotation: false };
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
   // Generate resolution schemas for fields that need resolution
-  const resolutionSchemas = generateResolutionSchemas(resolutionConfig, config);
+  const resolutionSchemas = generateResolutionSchemas(resolutionConfig);
 
   const joinPaths = generateResolutionJoinPaths(
     updatedBaseTableSchema.name,
     resolutionConfig,
-    [updatedBaseTableSchema],
-    config
+    [updatedBaseTableSchema]
   );
 
   const tempQuery: Query = {
@@ -68,8 +65,7 @@ export const getResolvedTableSchema = async ({
     updatedBaseTableSchema.name,
     tempQuery,
     resolutionConfig,
-    updatedColumnProjections,
-    config
+    updatedColumnProjections
   );
 
   // Create query and generate SQL
@@ -101,11 +97,11 @@ export const getResolvedTableSchema = async ({
   });
 
   // Build the dimension map using the pre-indexed schemas
-  resolutionConfig.columnConfigs.forEach((config) => {
-    const resSchema = resolutionSchemaByConfigName.get(config.name);
+  resolutionConfig.columnConfigs.forEach((colConfig) => {
+    const resSchema = resolutionSchemaByConfigName.get(colConfig.name);
     if (resSchema) {
       resolutionDimensionsByColumnName.set(
-        config.name,
+        colConfig.name,
         resSchema.dimensions.map((dim) => ({
           name: dim.name,
           sql: getColumnReference(resolvedTableSchema.name, dim),

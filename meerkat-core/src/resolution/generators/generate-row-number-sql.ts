@@ -1,5 +1,4 @@
 import { memberKeyToSafeKey } from '../../member-formatters';
-import { QueryOptions } from '../../member-formatters/get-alias';
 
 /**
  * Generates row_number() OVER (ORDER BY ...) SQL based on query order.
@@ -8,15 +7,14 @@ import { QueryOptions } from '../../member-formatters/get-alias';
  * @param query - The query object that may contain an order clause
  * @param dimensions - The dimensions array from the base table schema
  * @param baseTableName - The base table name to use in column references
- * @param options - Query options including useDotNotation flag
  * @returns SQL expression for row_number() OVER (ORDER BY ...)
  */
 export const generateRowNumberSql = (
   query: { order?: Record<string, string> },
   dimensions: { name: string; alias?: string }[],
-  baseTableName: string,
-  options: QueryOptions
+  baseTableName: string
 ): string => {
+  const options = { useDotNotation: false };
   let rowNumberSql = 'row_number() OVER (';
   if (query.order && Object.keys(query.order).length > 0) {
     const orderClauses = Object.entries(query.order).map(

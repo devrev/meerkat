@@ -1,7 +1,4 @@
-import {
-  QueryOptions,
-  constructCompoundAlias,
-} from '../../member-formatters/get-alias';
+import { constructCompoundAlias } from '../../member-formatters/get-alias';
 import { getNamespacedKey } from '../../member-formatters/get-namespaced-key';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import { Query } from '../../types/cube-types/query';
@@ -13,7 +10,6 @@ export interface ApplyAliasesParams {
   originalTableSchemas: TableSchema[];
   resolutionConfig: ResolutionConfig;
   contextParams?: ContextParams;
-  config: QueryOptions;
   cubeQueryToSQL: (params: {
     query: Query;
     tableSchemas: TableSchema[];
@@ -45,7 +41,6 @@ export const applyAliases = async ({
   originalTableSchemas,
   resolutionConfig,
   contextParams,
-  config,
   cubeQueryToSQL,
 }: ApplyAliasesParams): Promise<string> => {
   // Restore aliases from original tableSchemas to get nice column names in final output
@@ -63,7 +58,7 @@ export const applyAliases = async ({
     resolutionConfig.tableSchemas.map((schema) => [schema.name, schema])
   );
 
-  const safeKeyOptions = { useDotNotation: config.useDotNotation };
+  const safeKeyOptions = { useDotNotation: false };
 
   // Helper function to process dimensions or measures and populate the alias map
   const processMembers = (

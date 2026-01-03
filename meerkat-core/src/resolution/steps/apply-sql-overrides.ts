@@ -1,5 +1,4 @@
 import { memberKeyToSafeKey } from '../../member-formatters';
-import { QueryOptions } from '../../member-formatters/get-alias';
 import { TableSchema } from '../../types/cube-types/table';
 import { ResolutionConfig } from '../types';
 
@@ -14,11 +13,10 @@ import { ResolutionConfig } from '../types';
  * This function will apply memberKeyToSafeKey internally.
  *
  * The overrideSql should reference fields in datasource.fieldname format (same as fieldName),
- * which will be automatically converted to the safe format based on options.useDotNotation.
+ * which will be automatically converted to the safe format.
  *
  * @param baseSchema - The base table schema to apply overrides to
  * @param resolutionConfig - Resolution config containing SQL overrides
- * @param options - Query options including useDotNotation flag
  * @returns A new TableSchema with SQL overrides applied
  *
  * @example
@@ -29,8 +27,7 @@ import { ResolutionConfig } from '../types';
  *   overrideSql: `CASE WHEN issues.priority = 1 THEN 'P0' WHEN issues.priority = 2 THEN 'P1' END`,
  *   type: 'string'
  * }
- * // With useDotNotation: false, issues.priority gets replaced with issues__priority
- * // With useDotNotation: true, issues.priority remains as issues.priority
+ * // issues.priority gets replaced with issues__priority
  *
  * // For array fields:
  * {
@@ -42,9 +39,9 @@ import { ResolutionConfig } from '../types';
  */
 export const applySqlOverrides = (
   baseSchema: TableSchema,
-  resolutionConfig: ResolutionConfig,
-  options: QueryOptions
+  resolutionConfig: ResolutionConfig
 ): TableSchema => {
+  const options = { useDotNotation: false };
   if (
     !resolutionConfig.sqlOverrideConfigs ||
     resolutionConfig.sqlOverrideConfigs.length === 0

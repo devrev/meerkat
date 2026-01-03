@@ -1,5 +1,4 @@
 import {
-  QueryOptions,
   constructAliasForAST,
   constructAliasForSQL,
 } from '../member-formatters/get-alias';
@@ -50,14 +49,15 @@ export const shouldSkipResolution = (
   );
 };
 
-const constructBaseDimension = (
-  name: string,
-  schema: Measure | Dimension,
-  config: QueryOptions
-) => {
+const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
+  const config = { useDotNotation: false };
   return {
-    name: memberKeyToSafeKey(name, { useDotNotation: config.useDotNotation }),
-    sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(name, schema.alias, config)}`,
+    name: memberKeyToSafeKey(name, { useDotNotation: false }),
+    sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
+      name,
+      schema.alias,
+      config
+    )}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
     alias: constructAliasForAST(name, schema.alias, config),
@@ -69,9 +69,9 @@ export const createBaseTableSchema = (
   tableSchemas: TableSchema[],
   resolutionConfig: ResolutionConfig,
   measures: Member[],
-  dimensions: Member[] | undefined,
-  config: QueryOptions
+  dimensions: Member[] | undefined
 ) => {
+  const config = { useDotNotation: false };
   const schemaByName: Record<string, Measure | Dimension> = {};
   tableSchemas.forEach((tableSchema) => {
     tableSchema.dimensions.forEach((dimension) => {
@@ -90,14 +90,14 @@ export const createBaseTableSchema = (
     dimensions: [...measures, ...(dimensions || [])].map((member) => {
       const schema = schemaByName[member];
       if (schema) {
-        return constructBaseDimension(member, schema, config);
+        return constructBaseDimension(member, schema);
       } else {
         throw new Error(`Not found: ${member}`);
       }
     }),
     joins: resolutionConfig.columnConfigs.map((columnConfig) => {
       const targetTable = memberKeyToSafeKey(columnConfig.name, {
-        useDotNotation: config.useDotNotation,
+        useDotNotation: false,
       });
       // Quote the table name if it contains dots (useDotNotation mode)
       const quotedTargetTable = targetTable.includes('.')

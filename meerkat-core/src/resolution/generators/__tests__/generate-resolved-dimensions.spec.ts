@@ -1,13 +1,9 @@
-import { QueryOptions } from '../../../member-formatters/get-alias';
 import { Query } from '../../../types/cube-types/query';
 import { ResolutionConfig } from '../../types';
 import { generateResolvedDimensions } from '../generate-resolved-dimensions';
 
-const defaultOptions: QueryOptions = { useDotNotation: false };
-const dotNotationOptions: QueryOptions = { useDotNotation: true };
-
 describe('generate-resolved-dimensions', () => {
-  describe('generateResolvedDimensions (useDotNotation: false)', () => {
+  describe('generateResolvedDimensions', () => {
     const baseDataSourceName = '__base_query';
 
     it('should generate dimension key with underscores when no column config', () => {
@@ -24,8 +20,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual(['__base_query.orders__customer_id']);
@@ -53,8 +48,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual([
@@ -77,8 +71,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual([
@@ -102,8 +95,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        columnProjections,
-        defaultOptions
+        columnProjections
       );
 
       expect(result).toEqual(['__base_query.orders__status']);
@@ -123,8 +115,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual(['__base_query.orders__customer__nested_id']);
@@ -152,8 +143,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual([
@@ -176,8 +166,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual([]);
@@ -196,8 +185,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual(['__base_query.orders__total']);
@@ -232,8 +220,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual([
@@ -256,8 +243,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual([
@@ -291,8 +277,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        columnProjections,
-        defaultOptions
+        columnProjections
       );
 
       expect(result).toEqual([
@@ -316,8 +301,7 @@ describe('generate-resolved-dimensions', () => {
         customBaseName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual(['custom_base.orders__customer_id']);
@@ -338,8 +322,7 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        columnProjections,
-        defaultOptions
+        columnProjections
       );
 
       expect(result).toEqual([]);
@@ -367,95 +350,13 @@ describe('generate-resolved-dimensions', () => {
         baseDataSourceName,
         query,
         config,
-        undefined,
-        defaultOptions
+        undefined
       );
 
       expect(result).toEqual([
         'orders__owner_id.orders__owner_id__first_name',
         'orders__owner_id.orders__owner_id__last_name',
         'orders__owner_id.orders__owner_id__email',
-      ]);
-    });
-  });
-
-  describe('generateResolvedDimensions (useDotNotation: true)', () => {
-    const baseDataSourceName = '__base_query';
-
-    it('should generate dimension key with dots when no column config', () => {
-      const query: Query = {
-        measures: [],
-        dimensions: ['orders.customer_id'],
-      };
-      const config: ResolutionConfig = {
-        columnConfigs: [],
-        tableSchemas: [],
-      };
-
-      const result = generateResolvedDimensions(
-        baseDataSourceName,
-        query,
-        config,
-        undefined,
-        dotNotationOptions
-      );
-
-      expect(result).toEqual(['__base_query.orders.customer_id']);
-    });
-
-    it('should generate resolved dimension keys with dots', () => {
-      const query: Query = {
-        measures: [],
-        dimensions: ['orders.customer_id'],
-      };
-      const config: ResolutionConfig = {
-        columnConfigs: [
-          {
-            name: 'orders.customer_id',
-            type: 'string',
-            source: 'customers',
-            joinColumn: 'id',
-            resolutionColumns: ['display_name', 'email'],
-          },
-        ],
-        tableSchemas: [],
-      };
-
-      const result = generateResolvedDimensions(
-        baseDataSourceName,
-        query,
-        config,
-        undefined,
-        dotNotationOptions
-      );
-
-      expect(result).toEqual([
-        'orders.customer_id.orders.customer_id.display_name',
-        'orders.customer_id.orders.customer_id.email',
-      ]);
-    });
-
-    it('should handle measures and dimensions together with dot notation', () => {
-      const query: Query = {
-        measures: ['orders.total'],
-        dimensions: ['orders.customer_id'],
-      };
-      const config: ResolutionConfig = {
-        columnConfigs: [],
-        tableSchemas: [],
-      };
-
-      const result = generateResolvedDimensions(
-        baseDataSourceName,
-        query,
-        config,
-        undefined,
-        dotNotationOptions
-      );
-
-      expect(result).toEqual([
-        '__base_query.orders.total',
-        '__base_query.orders.customer_id',
       ]);
     });
   });

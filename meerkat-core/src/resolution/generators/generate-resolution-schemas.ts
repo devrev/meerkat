@@ -1,13 +1,10 @@
 import { getNamespacedKey, memberKeyToSafeKey } from '../../member-formatters';
-import { QueryOptions } from '../../member-formatters/get-alias';
 import { TableSchema } from '../../types/cube-types/table';
 import { findInDimensionSchemas } from '../../utils/find-in-table-schema';
 import { ResolutionConfig } from '../types';
 
-export const generateResolutionSchemas = (
-  config: ResolutionConfig,
-  options: QueryOptions
-) => {
+export const generateResolutionSchemas = (config: ResolutionConfig) => {
+  const options = { useDotNotation: false };
   const resolutionSchemas: TableSchema[] = [];
   config.columnConfigs.forEach((colConfig) => {
     const tableSchema = config.tableSchemas.find(
