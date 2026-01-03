@@ -5,6 +5,61 @@ export type Graph = {
   [key: string]: { [key: string]: { [key: string]: string } };
 };
 
+/**
+ * Quotes an identifier if it contains dots or other special characters.
+ * Used for table aliases in SQL that may contain dots when useDotNotation is true.
+ *
+ * @param identifier - The identifier to potentially quote
+ * @returns The identifier, quoted if it contains dots
+ */
+export function quoteIdentifierIfNeeded(identifier: string): string {
+  return identifier.includes('.') ? `"${identifier}"` : identifier;
+}
+
+/**
+ * Parses a table.column reference that may include quoted identifiers.
+ * Handles formats like:
+ * - `tableName.columnName` (simple)
+ * - `"tableName".columnName` (quoted table)
+ * - `"table.name".columnName` (quoted table with dots)
+ *
+ * @param reference - The full table.column reference string
+ * @returns An object with the table name and column name
+ */
+export function parseTableColumnReference(reference: string): {
+  tableName: string;
+  columnName: string;
+} {
+  const trimmed = reference.trim();
+
+  // Check if the table name is quoted (starts with ")
+  if (trimmed.startsWith('"')) {
+    // Find the closing quote
+    const closeQuoteIndex = trimmed.indexOf('"', 1);
+    if (closeQuoteIndex === -1) {
+      throw new Error(`Invalid quoted identifier: ${reference}`);
+    }
+
+    // Extract the table name (without quotes)
+    const tableName = trimmed.substring(1, closeQuoteIndex);
+    // The column name comes after the closing quote and a dot
+    const columnName = trimmed.substring(closeQuoteIndex + 2);
+
+    return { tableName, columnName };
+  }
+
+  // Simple case: no quotes, just split by first dot
+  const dotIndex = trimmed.indexOf('.');
+  if (dotIndex === -1) {
+    throw new Error(`Invalid table.column reference: ${reference}`);
+  }
+
+  return {
+    tableName: trimmed.substring(0, dotIndex),
+    columnName: trimmed.substring(dotIndex + 1),
+  };
+}
+
 export function generateSqlQuery(
   path: JoinPath[],
   tableSchemaSqlMap: { [key: string]: string },
@@ -58,8 +113,10 @@ export function generateSqlQuery(
       // If visitedFrom is undefined, this is the first visit to the node
       visitedNodes.set(currentEdge.right, currentEdge);
 
+      // Quote the alias if it contains dots (useDotNotation mode)
+      const quotedAlias = quoteIdentifierIfNeeded(currentEdge.right);
       query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
-        currentEdge.right
+        quotedAlias
       }  ON ${
         directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
       }`;
@@ -100,20 +157,25 @@ export const createDirectedGraph = (
    * The edges are added based on the join conditions provided in the table schema.
    * The SQL is split by the '=' sign and the tables columns involved in the joins are extracted.
    * The tables are then added as edges to the directed graph.
+   * Supports quoted identifiers for table names that contain dots (e.g., "table.name".column).
    */
   tableSchema.forEach((schema) => {
     schema?.joins?.forEach((join) => {
-      const tables = join.sql.split('=').map((str) => str.split('.')[0].trim());
-      const conditions = join.sql
-        .split('=')
-        .map((str) => str.split('.')[1].trim());
+      const parts = join.sql.split('=');
 
       /**
-       * If the join SQL does not contain exactly 2 tables, then the join is invalid.
+       * If the join SQL does not contain exactly 2 parts (left = right), then the join is invalid.
        */
-      if (tables.length !== 2) {
+      if (parts.length !== 2) {
         throw new Error(`Invalid join SQL: ${join.sql}`);
       }
+
+      // Parse the table and column from each side of the join condition
+      const leftRef = parseTableColumnReference(parts[0]);
+      const rightRef = parseTableColumnReference(parts[1]);
+
+      const tables = [leftRef.tableName, rightRef.tableName];
+      const conditions = [leftRef.columnName, rightRef.columnName];
 
       /**
        * If the tables are the same, then the join is invalid.

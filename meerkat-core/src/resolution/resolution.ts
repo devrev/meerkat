@@ -95,15 +95,22 @@ export const createBaseTableSchema = (
         throw new Error(`Not found: ${member}`);
       }
     }),
-    joins: resolutionConfig.columnConfigs.map((columnConfig) => ({
-      sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
-        columnConfig.name,
-        schemaByName[columnConfig.name]?.alias,
-        config
-      )} = ${memberKeyToSafeKey(columnConfig.name, {
+    joins: resolutionConfig.columnConfigs.map((columnConfig) => {
+      const targetTable = memberKeyToSafeKey(columnConfig.name, {
         useDotNotation: config.useDotNotation,
-      })}.${columnConfig.joinColumn}`,
-    })),
+      });
+      // Quote the table name if it contains dots (useDotNotation mode)
+      const quotedTargetTable = targetTable.includes('.')
+        ? `"${targetTable}"`
+        : targetTable;
+      return {
+        sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
+          columnConfig.name,
+          schemaByName[columnConfig.name]?.alias,
+          config
+        )} = ${quotedTargetTable}.${columnConfig.joinColumn}`,
+      };
+    }),
   };
 };
 

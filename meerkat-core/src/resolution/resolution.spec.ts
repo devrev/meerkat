@@ -430,10 +430,10 @@ describe('Create base table schema (useDotNotation: true)', () => {
       ],
       joins: [
         {
-          sql: '__base_query."base_table.column1" = base_table.column1.id',
+          sql: '__base_query."base_table.column1" = "base_table.column1".id',
         },
         {
-          sql: '__base_query."base_table.column2" = base_table.column2.id',
+          sql: '__base_query."base_table.column2" = "base_table.column2".id',
         },
       ],
     });
@@ -546,10 +546,10 @@ describe('Create base table schema (useDotNotation: true)', () => {
       ],
       joins: [
         {
-          sql: '__base_query."Column 1" = base_table.column1.id',
+          sql: '__base_query."Column 1" = "base_table.column1".id',
         },
         {
-          sql: '__base_query."Column 2" = base_table.column2.id',
+          sql: '__base_query."Column 2" = "base_table.column2".id',
         },
       ],
     });
