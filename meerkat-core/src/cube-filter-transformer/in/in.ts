@@ -1,18 +1,22 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
-import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import { Dimension, Measure } from '../../types/cube-types/table';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
-import { valueBuilder } from '../base-condition-builder/base-condition-builder';
+import {
+  createColumnRef,
+  CreateColumnRefOptions,
+  valueBuilder,
+} from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 const inDuckDbCondition = (
   columnName: string,
   values: string[],
-  memberInfo: Measure | Dimension
+  memberInfo: Measure | Dimension,
+  options: CreateColumnRefOptions
 ) => {
   const sqlTreeValues = values.map((value) => {
     return {
@@ -22,12 +26,9 @@ const inDuckDbCondition = (
       value: valueBuilder(value, memberInfo),
     };
   });
-  const columnRef = {
-    class: 'COLUMN_REF',
-    type: 'COLUMN_REF',
-    alias: '',
-    column_names: columnName.split(COLUMN_NAME_DELIMITER),
-  };
+  const columnRef = createColumnRef(columnName, {
+    isAlias: options.isAlias,
+  });
   switch (memberInfo.type) {
     case 'number_array':
     case 'string_array': {
@@ -68,12 +69,12 @@ const inDuckDbCondition = (
   }
 };
 
-export const inTransform: CubeToParseExpressionTransform = (query) => {
+export const inTransform: CubeToParseExpressionTransform = (query, options) => {
   const { member, memberInfo } = query;
 
   // Check if this is a SQL expression
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'in');
+    return getSQLExpressionAST(member, query.sqlExpression, 'in', options);
   }
 
   // Otherwise, use values
@@ -81,5 +82,5 @@ export const inTransform: CubeToParseExpressionTransform = (query) => {
     throw new Error('In filter must have at least one value');
   }
 
-  return inDuckDbCondition(member, query.values, memberInfo);
+  return inDuckDbCondition(member, query.values, memberInfo, options);
 };

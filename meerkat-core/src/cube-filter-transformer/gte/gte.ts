@@ -1,16 +1,22 @@
 import { isQueryOperatorsWithSQLInfo } from '../../cube-to-duckdb/cube-filter-to-duckdb';
 import { ExpressionType } from '../../types/duckdb-serialization-types/serialization/Expression';
-import { baseDuckdbCondition } from '../base-condition-builder/base-condition-builder';
+import {
+  baseDuckdbCondition,
+  CreateColumnRefOptions,
+} from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
-export const gteTransform: CubeToParseExpressionTransform = (query) => {
+export const gteTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member } = query;
 
   // SQL expressions not supported for gte operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'gte');
+    return getSQLExpressionAST(member, query.sqlExpression, 'gte', options);
   }
 
   // Otherwise, use values
@@ -28,7 +34,8 @@ export const gteTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_GREATERTHANOREQUALTO,
       values[0],
-      query.memberInfo
+      query.memberInfo,
+      options
     );
   }
 
@@ -42,7 +49,8 @@ export const gteTransform: CubeToParseExpressionTransform = (query) => {
         member,
         ExpressionType.COMPARE_GREATERTHANOREQUALTO,
         value,
-        query.memberInfo
+        query.memberInfo,
+        options
       )
     );
   });

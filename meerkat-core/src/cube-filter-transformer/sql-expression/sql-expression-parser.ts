@@ -1,10 +1,13 @@
-import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import { FilterOperator } from '../../types/cube-types/query';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ParsedExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
+import {
+  createColumnRef,
+  CreateColumnRefOptions,
+} from '../base-condition-builder/base-condition-builder';
 
 /**
  * Encode a string to base64 (works in both browser and Node.js)
@@ -36,15 +39,13 @@ const getSQLPlaceholder = (sqlExpression: string): string => {
 
 const createInOperatorAST = (
   member: string,
-  sqlExpression: string
+  sqlExpression: string,
+  options: CreateColumnRefOptions
 ): ParsedExpression => {
   const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
-  const columnRef: ParsedExpression = {
-    class: ExpressionClass.COLUMN_REF,
-    type: ExpressionType.COLUMN_REF,
-    alias: '',
-    column_names: member.split(COLUMN_NAME_DELIMITER),
-  };
+  const columnRef = createColumnRef(member, {
+    isAlias: options.isAlias,
+  });
 
   // Create a placeholder constant node for the SQL expression
   // This will be replaced with actual SQL during query generation
@@ -65,16 +66,12 @@ const createInOperatorAST = (
 
 const createNotInOperatorAST = (
   member: string,
-  sqlExpression: string
+  sqlExpression: string,
+  options: CreateColumnRefOptions
 ): ParsedExpression => {
   const sqlPlaceholder = getSQLPlaceholder(sqlExpression);
 
-  const columnRef: ParsedExpression = {
-    class: ExpressionClass.COLUMN_REF,
-    type: ExpressionType.COLUMN_REF,
-    alias: '',
-    column_names: member.split(COLUMN_NAME_DELIMITER),
-  };
+  const columnRef = createColumnRef(member, options);
 
   // Create a placeholder constant node for the SQL expression
   // This will be replaced with actual SQL during query generation
@@ -96,13 +93,14 @@ const createNotInOperatorAST = (
 export const getSQLExpressionAST = (
   member: string,
   sqlExpression: string,
-  operator: FilterOperator
+  operator: FilterOperator,
+  options: CreateColumnRefOptions
 ): ParsedExpression => {
   switch (operator) {
     case 'in':
-      return createInOperatorAST(member, sqlExpression);
+      return createInOperatorAST(member, sqlExpression, options);
     case 'notIn':
-      return createNotInOperatorAST(member, sqlExpression);
+      return createNotInOperatorAST(member, sqlExpression, options);
     default:
       throw new Error(
         `SQL expressions are not supported for ${operator} operator. Only "in" and "notIn" operators support SQL expressions.`

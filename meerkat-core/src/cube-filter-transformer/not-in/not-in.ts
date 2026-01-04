@@ -3,17 +3,21 @@ import { Dimension, Measure } from '../../types/cube-types/table';
 import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
-import { COLUMN_NAME_DELIMITER } from '../../member-formatters/constants';
 import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
-import { valueBuilder } from '../base-condition-builder/base-condition-builder';
+import {
+  createColumnRef,
+  CreateColumnRefOptions,
+  valueBuilder,
+} from '../base-condition-builder/base-condition-builder';
 
 const notInDuckDbCondition = (
   columnName: string,
   values: string[],
-  memberInfo: Measure | Dimension
+  memberInfo: Measure | Dimension,
+  options: CreateColumnRefOptions
 ) => {
   const sqlTreeValues = values.map((value) => {
     return {
@@ -23,12 +27,9 @@ const notInDuckDbCondition = (
       value: valueBuilder(value, memberInfo),
     };
   });
-  const columnRef = {
-    class: 'COLUMN_REF',
-    type: 'COLUMN_REF',
-    alias: '',
-    column_names: columnName.split(COLUMN_NAME_DELIMITER),
-  };
+  const columnRef = createColumnRef(columnName, {
+    isAlias: options.isAlias,
+  });
   switch (memberInfo.type) {
     case 'number_array':
     case 'string_array': {
@@ -76,17 +77,20 @@ const notInDuckDbCondition = (
   }
 };
 
-export const notInTransform: CubeToParseExpressionTransform = (query) => {
+export const notInTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member, memberInfo } = query;
 
   // Check if this is a SQL expression
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'notIn');
+    return getSQLExpressionAST(member, query.sqlExpression, 'notIn', options);
   }
 
   if (!query.values) {
     throw new Error('Not in filter must have at least one value');
   }
 
-  return notInDuckDbCondition(member, query.values, memberInfo);
+  return notInDuckDbCondition(member, query.values, memberInfo, options);
 };

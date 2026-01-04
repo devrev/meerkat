@@ -4,6 +4,9 @@ import {
   getFilterMeasureProjection,
 } from '../get-aliased-columns-from-filters';
 
+const defaultConfig = { useDotNotation: false };
+const dotNotationConfig = { useDotNotation: true };
+
 const TABLE_SCHEMA: TableSchema = {
   dimensions: [
     { name: 'a', sql: 'others', type: 'number' },
@@ -27,6 +30,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         measures: ['test.a'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: 'test__x',
@@ -41,6 +45,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         measures: ['test.x'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -60,6 +65,7 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema,
         measures: ['test.b'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -78,11 +84,42 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: tableSchema,
         measures: ['test.a'],
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: '"test x"',
         foundMember: { name: 'x', sql: 'x', type: 'number', alias: 'test x' },
         sql: 'test.x AS "test x"',
+      });
+    });
+
+    it('should return dot-notation alias when useDotNotation is true', () => {
+      const key = 'test.x';
+      const result = getFilterMeasureProjection({
+        key,
+        tableSchema: TABLE_SCHEMA,
+        measures: ['test.a'],
+        config: dotNotationConfig,
+      });
+      expect(result).toEqual({
+        aliasKey: '"test.x"',
+        foundMember: { name: 'x', sql: 'x', type: 'number' },
+        sql: 'test.x AS "test.x"',
+      });
+    });
+
+    it('should not create alias when measure already selected (dot notation)', () => {
+      const key = 'test.x';
+      const result = getFilterMeasureProjection({
+        key,
+        tableSchema: TABLE_SCHEMA,
+        measures: ['test.x'],
+        config: dotNotationConfig,
+      });
+      expect(result).toEqual({
+        aliasKey: undefined,
+        foundMember: undefined,
+        sql: undefined,
       });
     });
   });
@@ -95,6 +132,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: TABLE_SCHEMA,
         modifiers: [],
+        query: { measures: [], dimensions: [] },
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: 'test__a',
@@ -114,6 +153,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema,
         modifiers: [],
+        query: { measures: [], dimensions: [] },
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: undefined,
@@ -135,6 +176,8 @@ describe('get-aliased-columns-from-filters', () => {
         key,
         tableSchema: tableSchema,
         modifiers: [],
+        query: { measures: [], dimensions: [] },
+        config: defaultConfig,
       });
       expect(result).toEqual({
         aliasKey: '"test a"',
@@ -145,6 +188,23 @@ describe('get-aliased-columns-from-filters', () => {
           alias: 'test a',
         },
         sql: 'others AS "test a"',
+      });
+    });
+
+    it('should return dot-notation alias when useDotNotation is true', () => {
+      const key = 'test.a';
+
+      const result = getDimensionProjection({
+        key,
+        tableSchema: TABLE_SCHEMA,
+        modifiers: [],
+        query: { measures: [], dimensions: [] },
+        config: dotNotationConfig,
+      });
+      expect(result).toEqual({
+        aliasKey: '"test.a"',
+        foundMember: { name: 'a', sql: 'others', type: 'number' },
+        sql: 'others AS "test.a"',
       });
     });
   });

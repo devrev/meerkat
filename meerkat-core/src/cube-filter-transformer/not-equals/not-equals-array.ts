@@ -4,7 +4,8 @@ import { CubeToParseExpressionTransform } from '../factory';
 import { notDuckdbCondition } from '../not/not';
 
 export const notEqualsArrayTransform: CubeToParseExpressionTransform = (
-  query
+  query,
+  options
 ) => {
   // SQL expressions not supported for notEquals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
@@ -18,7 +19,7 @@ export const notEqualsArrayTransform: CubeToParseExpressionTransform = (
   }
 
   const notWrapper = notDuckdbCondition();
-  const equalsCondition = equalsArrayTransform(query);
+  const equalsCondition = equalsArrayTransform(query, options);
   /**
    * We need to wrap the equals condition in a not condition
    * Which basically means ! of ANY of the values

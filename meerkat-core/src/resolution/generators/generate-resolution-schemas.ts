@@ -4,6 +4,7 @@ import { findInDimensionSchemas } from '../../utils/find-in-table-schema';
 import { ResolutionConfig } from '../types';
 
 export const generateResolutionSchemas = (config: ResolutionConfig) => {
+  const options = { useDotNotation: false };
   const resolutionSchemas: TableSchema[] = [];
   config.columnConfigs.forEach((colConfig) => {
     const tableSchema = config.tableSchemas.find(
@@ -13,7 +14,7 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
       throw new Error(`Table schema not found for ${colConfig.source}`);
     }
 
-    const baseName = memberKeyToSafeKey(colConfig.name);
+    const baseName = memberKeyToSafeKey(colConfig.name, options);
 
     // For each column that needs to be resolved, create a copy of the relevant table schema.
     // We use the name of the column in the base query as the table schema name
@@ -33,10 +34,16 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
         return {
           // Need to create a new name due to limitations with how
           // CubeToSql handles duplicate dimension names between different sources.
-          name: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
+          name: memberKeyToSafeKey(
+            getNamespacedKey(colConfig.name, col),
+            options
+          ),
           sql: `${baseName}.${col}`,
           type: dimension.type,
-          alias: memberKeyToSafeKey(getNamespacedKey(colConfig.name, col)),
+          alias: memberKeyToSafeKey(
+            getNamespacedKey(colConfig.name, col),
+            options
+          ),
         };
       }),
     };

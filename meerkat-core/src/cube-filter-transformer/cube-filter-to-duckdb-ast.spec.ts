@@ -1,5 +1,7 @@
 import { getBaseAST } from '../utils/base-ast';
+import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { cubeFilterToDuckdbAST } from './factory';
+
 describe('CubeFilterToDuckDBAST', () => {
   const cubeFilter = [
     {
@@ -39,149 +41,309 @@ describe('CubeFilterToDuckDBAST', () => {
     },
   ];
 
-  it('should return a duckdb AST', () => {
-    const ast = getBaseAST();
+  describe('isAlias: false (base column refs)', () => {
+    const options: CreateColumnRefOptions = {
+      isAlias: false,
+    };
 
-    const output = cubeFilterToDuckdbAST(cubeFilter, ast);
-    expect(output).toEqual({
-      class: 'CONJUNCTION',
-      type: 'CONJUNCTION_AND',
-      alias: '',
-      children: [
-        {
-          class: 'COMPARISON',
-          type: 'COMPARE_EQUAL',
-          alias: '',
-          left: {
-            class: 'COLUMN_REF',
-            type: 'COLUMN_REF',
+    it('should return a duckdb AST', () => {
+      const ast = getBaseAST();
+
+      const output = cubeFilterToDuckdbAST(cubeFilter, ast, options);
+      expect(output).toEqual({
+        class: 'CONJUNCTION',
+        type: 'CONJUNCTION_AND',
+        alias: '',
+        children: [
+          {
+            class: 'COMPARISON',
+            type: 'COMPARE_EQUAL',
             alias: '',
-            column_names: ['name'],
+            left: {
+              class: 'COLUMN_REF',
+              type: 'COLUMN_REF',
+              alias: '',
+              column_names: ['name'],
+            },
+            right: {
+              class: 'CONSTANT',
+              type: 'VALUE_CONSTANT',
+              alias: '',
+              value: {
+                type: {
+                  id: 'DECIMAL',
+                  type_info: {
+                    type: 'DECIMAL_TYPE_INFO',
+                    alias: '',
+                    width: 1,
+                    scale: 0,
+                  },
+                },
+                is_null: false,
+                value: 1,
+              },
+            },
           },
-          right: {
-            class: 'CONSTANT',
-            type: 'VALUE_CONSTANT',
+          {
+            class: 'CONJUNCTION',
+            type: 'CONJUNCTION_OR',
             alias: '',
-            value: {
-              type: {
-                id: 'DECIMAL',
-                type_info: {
-                  type: 'DECIMAL_TYPE_INFO',
+            children: [
+              {
+                class: 'COMPARISON',
+                type: 'COMPARE_EQUAL',
+                alias: '',
+                left: {
+                  class: 'COLUMN_REF',
+                  type: 'COLUMN_REF',
                   alias: '',
-                  width: 1,
-                  scale: 0,
+                  column_names: ['dev_oid'],
+                },
+                right: {
+                  class: 'CONSTANT',
+                  type: 'VALUE_CONSTANT',
+                  alias: '',
+                  value: {
+                    type: {
+                      id: 'VARCHAR',
+                      type_info: null,
+                    },
+                    is_null: false,
+                    value: 'DEV-0',
+                  },
                 },
               },
-              is_null: false,
-              value: 1,
+              {
+                class: 'COMPARISON',
+                type: 'COMPARE_EQUAL',
+                alias: '',
+                left: {
+                  class: 'COLUMN_REF',
+                  type: 'COLUMN_REF',
+                  alias: '',
+                  column_names: ['dev_oid'],
+                },
+                right: {
+                  class: 'CONSTANT',
+                  type: 'VALUE_CONSTANT',
+                  alias: '',
+                  value: {
+                    type: {
+                      id: 'VARCHAR',
+                      type_info: null,
+                    },
+                    is_null: false,
+                    value: 'DEV-1',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('Simple filter without and/or', () => {
+      const ast = getBaseAST();
+
+      const output = cubeFilterToDuckdbAST(
+        [
+          {
+            member: 'name',
+            operator: 'equals',
+            values: ['1'],
+            memberInfo: {
+              sql: 'name',
+              type: 'number',
             },
           },
-        },
-        {
-          class: 'CONJUNCTION',
-          type: 'CONJUNCTION_OR',
+        ],
+        ast,
+        options
+      );
+
+      expect(output).toEqual({
+        class: 'COMPARISON',
+        type: 'COMPARE_EQUAL',
+        alias: '',
+        left: {
+          class: 'COLUMN_REF',
+          type: 'COLUMN_REF',
           alias: '',
-          children: [
-            {
-              class: 'COMPARISON',
-              type: 'COMPARE_EQUAL',
-              alias: '',
-              left: {
-                class: 'COLUMN_REF',
-                type: 'COLUMN_REF',
-                alias: '',
-                column_names: ['dev_oid'],
-              },
-              right: {
-                class: 'CONSTANT',
-                type: 'VALUE_CONSTANT',
-                alias: '',
-                value: {
-                  type: {
-                    id: 'VARCHAR',
-                    type_info: null,
-                  },
-                  is_null: false,
-                  value: 'DEV-0',
-                },
-              },
-            },
-            {
-              class: 'COMPARISON',
-              type: 'COMPARE_EQUAL',
-              alias: '',
-              left: {
-                class: 'COLUMN_REF',
-                type: 'COLUMN_REF',
-                alias: '',
-                column_names: ['dev_oid'],
-              },
-              right: {
-                class: 'CONSTANT',
-                type: 'VALUE_CONSTANT',
-                alias: '',
-                value: {
-                  type: {
-                    id: 'VARCHAR',
-                    type_info: null,
-                  },
-                  is_null: false,
-                  value: 'DEV-1',
-                },
-              },
-            },
-          ],
+          column_names: ['name'],
         },
-      ],
+        right: {
+          class: 'CONSTANT',
+          type: 'VALUE_CONSTANT',
+          alias: '',
+          value: {
+            type: {
+              id: 'DECIMAL',
+              type_info: {
+                type: 'DECIMAL_TYPE_INFO',
+                alias: '',
+                width: 1,
+                scale: 0,
+              },
+            },
+            is_null: false,
+            value: 1,
+          },
+        },
+      });
     });
   });
 
-  it('Simple filter without and/or', () => {
-    const ast = getBaseAST();
+  describe('isAlias: true (projection alias refs)', () => {
+    const options: CreateColumnRefOptions = {
+      isAlias: true,
+    };
 
-    const output = cubeFilterToDuckdbAST(
-      [
-        {
-          member: 'name',
-          operator: 'equals',
-          values: ['1'],
-          memberInfo: {
-            sql: 'name',
-            type: 'number',
-          },
-        },
-      ],
-      ast
-    );
+    it('should return a duckdb AST with alias column names', () => {
+      const ast = getBaseAST();
 
-    expect(output).toEqual({
-      class: 'COMPARISON',
-      type: 'COMPARE_EQUAL',
-      alias: '',
-      left: {
-        class: 'COLUMN_REF',
-        type: 'COLUMN_REF',
+      const output = cubeFilterToDuckdbAST(cubeFilter, ast, options);
+      expect(output).toEqual({
+        class: 'CONJUNCTION',
+        type: 'CONJUNCTION_AND',
         alias: '',
-        column_names: ['name'],
-      },
-      right: {
-        class: 'CONSTANT',
-        type: 'VALUE_CONSTANT',
-        alias: '',
-        value: {
-          type: {
-            id: 'DECIMAL',
-            type_info: {
-              type: 'DECIMAL_TYPE_INFO',
+        children: [
+          {
+            class: 'COMPARISON',
+            type: 'COMPARE_EQUAL',
+            alias: '',
+            left: {
+              class: 'COLUMN_REF',
+              type: 'COLUMN_REF',
               alias: '',
-              width: 1,
-              scale: 0,
+              column_names: ['name'],
+            },
+            right: {
+              class: 'CONSTANT',
+              type: 'VALUE_CONSTANT',
+              alias: '',
+              value: {
+                type: {
+                  id: 'DECIMAL',
+                  type_info: {
+                    type: 'DECIMAL_TYPE_INFO',
+                    alias: '',
+                    width: 1,
+                    scale: 0,
+                  },
+                },
+                is_null: false,
+                value: 1,
+              },
             },
           },
-          is_null: false,
-          value: 1,
+          {
+            class: 'CONJUNCTION',
+            type: 'CONJUNCTION_OR',
+            alias: '',
+            children: [
+              {
+                class: 'COMPARISON',
+                type: 'COMPARE_EQUAL',
+                alias: '',
+                left: {
+                  class: 'COLUMN_REF',
+                  type: 'COLUMN_REF',
+                  alias: '',
+                  column_names: ['dev_oid'],
+                },
+                right: {
+                  class: 'CONSTANT',
+                  type: 'VALUE_CONSTANT',
+                  alias: '',
+                  value: {
+                    type: {
+                      id: 'VARCHAR',
+                      type_info: null,
+                    },
+                    is_null: false,
+                    value: 'DEV-0',
+                  },
+                },
+              },
+              {
+                class: 'COMPARISON',
+                type: 'COMPARE_EQUAL',
+                alias: '',
+                left: {
+                  class: 'COLUMN_REF',
+                  type: 'COLUMN_REF',
+                  alias: '',
+                  column_names: ['dev_oid'],
+                },
+                right: {
+                  class: 'CONSTANT',
+                  type: 'VALUE_CONSTANT',
+                  alias: '',
+                  value: {
+                    type: {
+                      id: 'VARCHAR',
+                      type_info: null,
+                    },
+                    is_null: false,
+                    value: 'DEV-1',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('Simple filter without and/or', () => {
+      const ast = getBaseAST();
+
+      const output = cubeFilterToDuckdbAST(
+        [
+          {
+            member: 'name',
+            operator: 'equals',
+            values: ['1'],
+            memberInfo: {
+              sql: 'name',
+              type: 'number',
+            },
+          },
+        ],
+        ast,
+        options
+      );
+
+      expect(output).toEqual({
+        class: 'COMPARISON',
+        type: 'COMPARE_EQUAL',
+        alias: '',
+        left: {
+          class: 'COLUMN_REF',
+          type: 'COLUMN_REF',
+          alias: '',
+          column_names: ['name'],
         },
-      },
+        right: {
+          class: 'CONSTANT',
+          type: 'VALUE_CONSTANT',
+          alias: '',
+          value: {
+            type: {
+              id: 'DECIMAL',
+              type_info: {
+                type: 'DECIMAL_TYPE_INFO',
+                alias: '',
+                width: 1,
+                scale: 0,
+              },
+            },
+            is_null: false,
+            value: 1,
+          },
+        },
+      });
     });
   });
 });

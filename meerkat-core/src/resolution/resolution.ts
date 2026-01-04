@@ -1,8 +1,9 @@
 import {
-  constructAlias,
-  getNamespacedKey,
-  memberKeyToSafeKey,
-} from '../member-formatters';
+  constructAliasForAST,
+  constructAliasForSQL,
+} from '../member-formatters/get-alias';
+import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
+import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key';
 import { Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import { isArrayTypeMember } from '../utils/is-array-member-type';
@@ -49,20 +50,17 @@ export const shouldSkipResolution = (
 };
 
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
+  const config = { useDotNotation: false };
   return {
-    name: memberKeyToSafeKey(name),
-    sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
+    name: memberKeyToSafeKey(name, { useDotNotation: false }),
+    sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
       name,
-      alias: schema.alias,
-      shouldWrapAliasWithQuotes: true,
-    })}`,
+      schema.alias,
+      config
+    )}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
-    alias: constructAlias({
-      name,
-      alias: schema.alias,
-      shouldWrapAliasWithQuotes: false, // Internal schema reference
-    }),
+    alias: constructAliasForAST(name, schema.alias, config),
   };
 };
 
@@ -71,8 +69,9 @@ export const createBaseTableSchema = (
   tableSchemas: TableSchema[],
   resolutionConfig: ResolutionConfig,
   measures: Member[],
-  dimensions?: Member[]
+  dimensions: Member[] | undefined
 ) => {
+  const config = { useDotNotation: false };
   const schemaByName: Record<string, Measure | Dimension> = {};
   tableSchemas.forEach((tableSchema) => {
     tableSchema.dimensions.forEach((dimension) => {
@@ -96,13 +95,22 @@ export const createBaseTableSchema = (
         throw new Error(`Not found: ${member}`);
       }
     }),
-    joins: resolutionConfig.columnConfigs.map((config) => ({
-      sql: `${BASE_DATA_SOURCE_NAME}.${constructAlias({
-        name: config.name,
-        alias: schemaByName[config.name]?.alias,
-        shouldWrapAliasWithQuotes: true,
-      })} = ${memberKeyToSafeKey(config.name)}.${config.joinColumn}`,
-    })),
+    joins: resolutionConfig.columnConfigs.map((columnConfig) => {
+      const targetTable = memberKeyToSafeKey(columnConfig.name, {
+        useDotNotation: false,
+      });
+      // Quote the table name if it contains dots (useDotNotation mode)
+      const quotedTargetTable = targetTable.includes('.')
+        ? `"${targetTable}"`
+        : targetTable;
+      return {
+        sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
+          columnConfig.name,
+          schemaByName[columnConfig.name]?.alias,
+          config
+        )} = ${quotedTargetTable}.${columnConfig.joinColumn}`,
+      };
+    }),
   };
 };
 

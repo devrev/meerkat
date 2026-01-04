@@ -8,6 +8,7 @@ export const generateResolvedDimensions = (
   config: ResolutionConfig,
   columnProjections?: string[]
 ): Member[] => {
+  const options = { useDotNotation: false };
   // If column projections are provided, use those.
   // Otherwise, use all measures and dimensions from the original query.
   const aggregatedDimensions = columnProjections
@@ -22,13 +23,19 @@ export const generateResolvedDimensions = (
 
       if (!columnConfig) {
         return [
-          getNamespacedKey(baseDataSourceName, memberKeyToSafeKey(dimension)),
+          getNamespacedKey(
+            baseDataSourceName,
+            memberKeyToSafeKey(dimension, options)
+          ),
         ];
       } else {
         return columnConfig.resolutionColumns.map((col) =>
           getNamespacedKey(
-            memberKeyToSafeKey(dimension),
-            memberKeyToSafeKey(getNamespacedKey(columnConfig.name, col))
+            memberKeyToSafeKey(dimension, options),
+            memberKeyToSafeKey(
+              getNamespacedKey(columnConfig.name, col),
+              options
+            )
           )
         );
       }

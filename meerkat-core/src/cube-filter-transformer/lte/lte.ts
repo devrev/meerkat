@@ -5,12 +5,15 @@ import { CubeToParseExpressionTransform } from '../factory';
 import { orDuckdbCondition } from '../or/or';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
-export const lteTransform: CubeToParseExpressionTransform = (query) => {
+export const lteTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member } = query;
 
   // SQL expressions not supported for lte operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'lte');
+    return getSQLExpressionAST(member, query.sqlExpression, 'lte', options);
   }
 
   // Otherwise, use values
@@ -28,7 +31,8 @@ export const lteTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_LESSTHANOREQUALTO,
       values[0],
-      query.memberInfo
+      query.memberInfo,
+      options
     );
   }
 
@@ -42,7 +46,8 @@ export const lteTransform: CubeToParseExpressionTransform = (query) => {
         member,
         ExpressionType.COMPARE_LESSTHANOREQUALTO,
         value,
-        query.memberInfo
+        query.memberInfo,
+        options
       )
     );
   });

@@ -325,49 +325,112 @@ const SQL_EXPRESSION_TEST_DATA = [
 ];
 
 describe('SQL Expression Filters', () => {
-  SQL_EXPRESSION_TEST_DATA.forEach((testCase) => {
-    it(testCase.testName, async () => {
-      const sql = await cubeQueryToSQL({
-        query: testCase.cubeInput,
-        tableSchemas: [SCHEMA],
+  describe('useDotNotation: false (default)', () => {
+    SQL_EXPRESSION_TEST_DATA.forEach((testCase) => {
+      it(testCase.testName, async () => {
+        const sql = await cubeQueryToSQL({
+          query: testCase.cubeInput,
+          tableSchemas: [SCHEMA],
+          options: { useDotNotation: false },
+        });
+
+        // Compare generated SQL with expected SQL
+        expect(sql).toBe(testCase.expectedSQL);
+
+        // Execute query and validate results
+        const output = await duckdbExec(sql);
+
+        // Sort both actual and expected output by user name for consistent comparison
+        const sortedOutput = [...output].sort((a, b) =>
+          a.users__name.localeCompare(b.users__name)
+        );
+        const sortedExpected = [...testCase.expectedOutput].sort((a, b) =>
+          a.users__name.localeCompare(b.users__name)
+        );
+
+        // Compare output with expected output (use toEqual for BigInt compatibility)
+        expect(sortedOutput).toEqual(sortedExpected);
       });
+    });
 
-      // Compare generated SQL with expected SQL
-      expect(sql).toBe(testCase.expectedSQL);
+    it('should throw error for unsupported operators with SQL expression', async () => {
+      const query: Query = {
+        measures: ['users.count'],
+        dimensions: ['users.name'],
+        filters: [
+          {
+            member: 'users.age',
+            operator: 'gt',
+            sqlExpression: '28',
+          } as any,
+        ],
+      };
 
-      // Execute query and validate results
-      const output = await duckdbExec(sql);
-
-      // Sort both actual and expected output by user name for consistent comparison
-      const sortedOutput = [...output].sort((a, b) =>
-        a.users__name.localeCompare(b.users__name)
+      await expect(
+        cubeQueryToSQL({
+          query,
+          tableSchemas: [SCHEMA],
+          options: { useDotNotation: false },
+        })
+      ).rejects.toThrow(
+        'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
       );
-      const sortedExpected = [...testCase.expectedOutput].sort((a, b) =>
-        a.users__name.localeCompare(b.users__name)
-      );
-
-      // Compare output with expected output (use toEqual for BigInt compatibility)
-      expect(sortedOutput).toEqual(sortedExpected);
     });
   });
 
-  it('should throw error for unsupported operators with SQL expression', async () => {
-    const query: Query = {
-      measures: ['users.count'],
-      dimensions: ['users.name'],
-      filters: [
-        {
-          member: 'users.age',
-          operator: 'gt',
-          sqlExpression: '28',
-        } as any,
-      ],
-    };
+  describe('useDotNotation: true (parity)', () => {
+    const toDotNotation = (rows: any[]) =>
+      rows.map((row) =>
+        Object.fromEntries(
+          Object.entries(row).map(([k, v]) => [k.replace(/__/g, '.'), v])
+        )
+      );
 
-    await expect(
-      cubeQueryToSQL({ query, tableSchemas: [SCHEMA] })
-    ).rejects.toThrow(
-      'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
-    );
+    SQL_EXPRESSION_TEST_DATA.forEach((testCase) => {
+      it(testCase.testName, async () => {
+        const sql = await cubeQueryToSQL({
+          query: testCase.cubeInput,
+          tableSchemas: [SCHEMA],
+          options: { useDotNotation: true },
+        });
+
+        // Basic SQL sanity for dot notation aliases
+        expect(sql).toContain('"users.count"');
+        expect(sql).toContain('"users.name"');
+
+        const output = await duckdbExec(sql);
+        const sortedOutput = [...output].sort((a: any, b: any) =>
+          a['users.name'].localeCompare(b['users.name'])
+        );
+        const expected = toDotNotation(testCase.expectedOutput).sort((a, b) =>
+          a['users.name'].localeCompare(b['users.name'])
+        );
+        expect(sortedOutput).toEqual(expected);
+      });
+    });
+
+    it('should throw error for unsupported operators with SQL expression', async () => {
+      const query: Query = {
+        measures: ['users.count'],
+        dimensions: ['users.name'],
+        filters: [
+          {
+            member: 'users.age',
+            operator: 'gt',
+            sqlExpression: '28',
+          } as any,
+        ],
+      };
+
+      await expect(
+        cubeQueryToSQL({
+          query,
+          tableSchemas: [SCHEMA],
+          options: { useDotNotation: true },
+        })
+      ).rejects.toThrow(
+        'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
+      );
+    });
   });
 });

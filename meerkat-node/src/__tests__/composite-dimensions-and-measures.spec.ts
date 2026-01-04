@@ -57,46 +57,89 @@ describe('composite-dimensions-and-measures', () => {
     await duckdbExec(INPUT_DATA_QUERY);
   });
 
-  it('should handle composite dimensions and measures with multiple dots in their names', async () => {
-    // First, let's check the raw data
-    const rawData = await duckdbExec('SELECT * FROM orders');
-    console.log('Raw data:', JSON.stringify(rawData, null, 2));
+  describe('useDotNotation: false (default)', () => {
+    it('should handle composite dimensions and measures with multiple dots in their names', async () => {
+      // First, let's check the raw data
+      const rawData = await duckdbExec('SELECT * FROM orders');
+      console.log('Raw data:', JSON.stringify(rawData, null, 2));
 
-    const query: Query = {
-      measures: ['orders.total.order.amount'],
-      dimensions: [
-        'orders.customer.region.name',
-        'orders.customer.preferences.category',
-      ],
-      filters: [
-        {
-          member: 'orders.customer.region.code',
-          operator: 'equals',
-          values: ['N1'],
+      const query: Query = {
+        measures: ['orders.total.order.amount'],
+        dimensions: [
+          'orders.customer.region.name',
+          'orders.customer.preferences.category',
+        ],
+        filters: [
+          {
+            member: 'orders.customer.region.code',
+            operator: 'equals',
+            values: ['N1'],
+          },
+        ],
+        order: {
+          'orders.total.order.amount': 'desc',
         },
-      ],
-      order: {
-        'orders.total.order.amount': 'desc',
-      },
-      limit: 2,
-    };
+        limit: 2,
+      };
 
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-    console.info(`SQL for Composite Dimensions and Measures: `, sql);
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+      console.info(`SQL for Composite Dimensions and Measures: `, sql);
 
-    const output = await duckdbExec(sql);
+      const output = await duckdbExec(sql);
 
-    expect(output).toEqual([
-      {
-        orders__customer__preferences__category: 'clothing',
-        orders__customer__region__name: 'North',
-        orders__total__order__amount: BigInt(200),
-      },
-      {
-        orders__customer__preferences__category: 'electronics',
-        orders__customer__region__name: 'North',
-        orders__total__order__amount: BigInt(100),
-      },
-    ]);
+      expect(output).toEqual([
+        {
+          orders__customer__preferences__category: 'clothing',
+          orders__customer__region__name: 'North',
+          orders__total__order__amount: BigInt(200),
+        },
+        {
+          orders__customer__preferences__category: 'electronics',
+          orders__customer__region__name: 'North',
+          orders__total__order__amount: BigInt(100),
+        },
+      ]);
+    });
+  });
+
+  describe('useDotNotation: true', () => {
+    it('should handle composite dimensions and measures with multiple dots in their names', async () => {
+      const query: Query = {
+        measures: ['orders.total.order.amount'],
+        dimensions: [
+          'orders.customer.region.name',
+          'orders.customer.preferences.category',
+        ],
+        filters: [
+          {
+            member: 'orders.customer.region.code',
+            operator: 'equals',
+            values: ['N1'],
+          },
+        ],
+        order: {
+          'orders.total.order.amount': 'desc',
+        },
+        limit: 2,
+      };
+
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
+      console.info(`SQL for Composite Dimensions and Measures (dot notation): `, sql);
+
+      const output = await duckdbExec(sql);
+
+      expect(output).toEqual([
+        {
+          'orders.customer.preferences.category': 'clothing',
+          'orders.customer.region.name': 'North',
+          'orders.total.order.amount': BigInt(200),
+        },
+        {
+          'orders.customer.preferences.category': 'electronics',
+          'orders.customer.region.name': 'North',
+          'orders.total.order.amount': BigInt(100),
+        },
+      ]);
+    });
   });
 });

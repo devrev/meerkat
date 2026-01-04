@@ -7,12 +7,15 @@ import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { equalsArrayTransform } from './equals-array';
 
-export const equalsTransform: CubeToParseExpressionTransform = (query) => {
+export const equalsTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member, memberInfo } = query;
 
   // SQL expressions not supported for equals operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'equals');
+    return getSQLExpressionAST(member, query.sqlExpression, 'equals', options);
   }
 
   const values = query.values;
@@ -21,7 +24,7 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
    * If the member is an array, we need to use the array transform
    */
   if (isArrayTypeMember(memberInfo.type)) {
-    return equalsArrayTransform(query);
+    return equalsArrayTransform(query, options);
   }
   if (!values || values.length === 0) {
     throw new Error('Equals filter must have at least one value');
@@ -34,7 +37,8 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_EQUAL,
       values[0],
-      query.memberInfo
+      query.memberInfo,
+      options
     );
   }
 
@@ -48,7 +52,8 @@ export const equalsTransform: CubeToParseExpressionTransform = (query) => {
         member,
         ExpressionType.COMPARE_EQUAL,
         value,
-        query.memberInfo
+        query.memberInfo,
+        options
       )
     );
   });

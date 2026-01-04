@@ -73,103 +73,211 @@ describe('cube-to-sql', () => {
 `);
   });
 
-  it('Should construct the SQL query and apply filter on projections', async () => {
-    const sql = await cubeQueryToSQL({ query: QUERY, tableSchemas: [SCHEMA] });
-    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE ((person__ticket_prioritized != 'no')) GROUP BY person__other_dimension`;
-    expect(sql).toBe(expectedSQL);
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    const expectQueryResult = [
-      {
-        person__count_star: BigInt(2),
-        person__other_dimension: 'dashboard_others',
-      },
-    ];
-    expect(output).toEqual(expectQueryResult);
+  describe('useDotNotation: false (default)', () => {
+    it('Should construct the SQL query and apply filter on projections', async () => {
+      const sql = await cubeQueryToSQL({ query: QUERY, tableSchemas: [SCHEMA], options: { useDotNotation: false } });
+      const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE ((person__ticket_prioritized != 'no')) GROUP BY person__other_dimension`;
+      expect(sql).toBe(expectedSQL);
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      const expectQueryResult = [
+        {
+          person__count_star: BigInt(2),
+          person__other_dimension: 'dashboard_others',
+        },
+      ];
+      expect(output).toEqual(expectQueryResult);
+    });
+
+    it('Should be able to handle multi level filters', async () => {
+      const sql = await cubeQueryToSQL({
+        query: {
+          ...QUERY,
+          filters: [
+            {
+              and: [
+                {
+                  or: [
+                    {
+                      member: 'person.id',
+                      operator: 'notEquals',
+                      values: ['1'],
+                    },
+                    {
+                      member: 'person.ticket_prioritized',
+                      operator: 'notEquals',
+                      values: ['no'],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
+      const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE (((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
+      expect(sql).toBe(expectedSQL);
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      const expectQueryResult = [
+        {
+          person__count_star: BigInt(4),
+          person__other_dimension: 'dashboard_others',
+        },
+      ];
+      expect(output).toEqual(expectQueryResult);
+    });
+
+    it('Should be able to handle same projection on multiple levels in filter', async () => {
+      const sql = await cubeQueryToSQL({
+        query: {
+          ...QUERY,
+          filters: [
+            {
+              and: [
+                {
+                  member: 'person.id',
+                  operator: 'notEquals',
+                  values: ['2'],
+                },
+                {
+                  or: [
+                    {
+                      member: 'person.id',
+                      operator: 'notEquals',
+                      values: ['1'],
+                    },
+                    {
+                      member: 'person.ticket_prioritized',
+                      operator: 'notEquals',
+                      values: ['no'],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: false },
+      });
+      const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE ((person__id != '2') AND ((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
+      expect(sql).toBe(expectedSQL);
+      console.info('SQL: ', sql);
+      const output: any = await duckdbExec(sql);
+      const expectQueryResult = [
+        {
+          person__count_star: BigInt(3),
+          person__other_dimension: 'dashboard_others',
+        },
+      ];
+      expect(output).toEqual(expectQueryResult);
+    });
   });
 
-  it('Should be able to handle multi level filters', async () => {
-    const sql = await cubeQueryToSQL({
-      query: {
-        ...QUERY,
-        filters: [
-          {
-            and: [
-              {
-                or: [
-                  {
-                    member: 'person.id',
-                    operator: 'notEquals',
-                    values: ['1'],
-                  },
-                  {
-                    member: 'person.ticket_prioritized',
-                    operator: 'notEquals',
-                    values: ['no'],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      tableSchemas: [SCHEMA],
+  describe('useDotNotation: true', () => {
+    it('Should construct the SQL query and apply filter on projections', async () => {
+      const sql = await cubeQueryToSQL({ query: QUERY, tableSchemas: [SCHEMA], options: { useDotNotation: true } });
+      const expectedSQL = `SELECT COUNT(DISTINCT id) AS "person.count_star" ,   "person.other_dimension" FROM (SELECT CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS "person.ticket_prioritized", 'dashboard_others' AS "person.other_dimension", * FROM (SELECT * FROM person) AS person) AS person WHERE (("person.ticket_prioritized" != 'no')) GROUP BY "person.other_dimension"`;
+      expect(sql).toBe(expectedSQL);
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      const expectQueryResult = [
+        {
+          'person.count_star': BigInt(2),
+          'person.other_dimension': 'dashboard_others',
+        },
+      ];
+      expect(output).toEqual(expectQueryResult);
     });
-    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE (((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
-    expect(sql).toBe(expectedSQL);
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    const expectQueryResult = [
-      {
-        person__count_star: BigInt(4),
-        person__other_dimension: 'dashboard_others',
-      },
-    ];
-    expect(output).toEqual(expectQueryResult);
-  });
 
-  it('Should be able to handle same projection on multiple levels in filter', async () => {
-    const sql = await cubeQueryToSQL({
-      query: {
-        ...QUERY,
-        filters: [
-          {
-            and: [
-              {
-                member: 'person.id',
-                operator: 'notEquals',
-                values: ['2'],
-              },
-              {
-                or: [
-                  {
-                    member: 'person.id',
-                    operator: 'notEquals',
-                    values: ['1'],
-                  },
-                  {
-                    member: 'person.ticket_prioritized',
-                    operator: 'notEquals',
-                    values: ['no'],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      tableSchemas: [SCHEMA],
+    it('Should be able to handle multi level filters', async () => {
+      const sql = await cubeQueryToSQL({
+        query: {
+          ...QUERY,
+          filters: [
+            {
+              and: [
+                {
+                  or: [
+                    {
+                      member: 'person.id',
+                      operator: 'notEquals',
+                      values: ['1'],
+                    },
+                    {
+                      member: 'person.ticket_prioritized',
+                      operator: 'notEquals',
+                      values: ['no'],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
+      const expectedSQL = `SELECT COUNT(DISTINCT id) AS "person.count_star" ,   "person.other_dimension" FROM (SELECT id AS "person.id", CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS "person.ticket_prioritized", 'dashboard_others' AS "person.other_dimension", * FROM (SELECT * FROM person) AS person) AS person WHERE ((("person.id" != '1') OR ("person.ticket_prioritized" != 'no'))) GROUP BY "person.other_dimension"`;
+      expect(sql).toBe(expectedSQL);
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      const expectQueryResult = [
+        {
+          'person.count_star': BigInt(4),
+          'person.other_dimension': 'dashboard_others',
+        },
+      ];
+      expect(output).toEqual(expectQueryResult);
     });
-    const expectedSQL = `SELECT COUNT(DISTINCT id) AS person__count_star ,   person__other_dimension FROM (SELECT id AS person__id, CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS person__ticket_prioritized, 'dashboard_others' AS person__other_dimension, * FROM (SELECT * FROM person) AS person) AS person WHERE ((person__id != '2') AND ((person__id != '1') OR (person__ticket_prioritized != 'no'))) GROUP BY person__other_dimension`;
-    expect(sql).toBe(expectedSQL);
-    console.info('SQL: ', sql);
-    const output: any = await duckdbExec(sql);
-    const expectQueryResult = [
-      {
-        person__count_star: BigInt(3),
-        person__other_dimension: 'dashboard_others',
-      },
-    ];
-    expect(output).toEqual(expectQueryResult);
+
+    it('Should be able to handle same projection on multiple levels in filter', async () => {
+      const sql = await cubeQueryToSQL({
+        query: {
+          ...QUERY,
+          filters: [
+            {
+              and: [
+                {
+                  member: 'person.id',
+                  operator: 'notEquals',
+                  values: ['2'],
+                },
+                {
+                  or: [
+                    {
+                      member: 'person.id',
+                      operator: 'notEquals',
+                      values: ['1'],
+                    },
+                    {
+                      member: 'person.ticket_prioritized',
+                      operator: 'notEquals',
+                      values: ['no'],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        tableSchemas: [SCHEMA],
+        options: { useDotNotation: true },
+      });
+      const expectedSQL = `SELECT COUNT(DISTINCT id) AS "person.count_star" ,   "person.other_dimension" FROM (SELECT id AS "person.id", CASE WHEN primary_part_id LIKE '%enhancement%' THEN 'yes' ELSE 'no' END AS "person.ticket_prioritized", 'dashboard_others' AS "person.other_dimension", * FROM (SELECT * FROM person) AS person) AS person WHERE (("person.id" != '2') AND (("person.id" != '1') OR ("person.ticket_prioritized" != 'no'))) GROUP BY "person.other_dimension"`;
+      expect(sql).toBe(expectedSQL);
+      console.info('SQL (dot notation): ', sql);
+      const output: any = await duckdbExec(sql);
+      const expectQueryResult = [
+        {
+          'person.count_star': BigInt(3),
+          'person.other_dimension': 'dashboard_others',
+        },
+      ];
+      expect(output).toEqual(expectQueryResult);
+    });
   });
 });

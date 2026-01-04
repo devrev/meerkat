@@ -14,12 +14,13 @@ export const generateRowNumberSql = (
   dimensions: { name: string; alias?: string }[],
   baseTableName: string
 ): string => {
+  const options = { useDotNotation: false };
   let rowNumberSql = 'row_number() OVER (';
   if (query.order && Object.keys(query.order).length > 0) {
     const orderClauses = Object.entries(query.order).map(
       ([member, direction]) => {
         // Find the actual column name/alias in the base table dimensions
-        const safeMember = memberKeyToSafeKey(member);
+        const safeMember = memberKeyToSafeKey(member, options);
         const dimension = dimensions.find(
           (d) => d.name === safeMember || d.alias === safeMember
         );

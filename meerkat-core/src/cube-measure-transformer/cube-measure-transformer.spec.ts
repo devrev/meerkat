@@ -6,6 +6,9 @@ import {
   getAllColumnUsedInMeasures,
 } from './cube-measure-transformer';
 
+const defaultConfig = { useDotNotation: false };
+const dotNotationConfig = { useDotNotation: true };
+
 describe('cubeMeasureToSQLSelectString', () => {
   let tableSchema: TableSchema, tableSchemaWithAliases: TableSchema;
   const cube = 'cube_test';
@@ -49,90 +52,214 @@ describe('cubeMeasureToSQLSelectString', () => {
     };
   });
 
-  it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
-    const measures: Member[] = ['temp.measure1'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 `);
+  describe('useDotNotation: false', () => {
+    it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
+      const measures: Member[] = ['temp.measure1'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchema,
+        defaultConfig
+      );
+      expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 `);
+    });
+
+    it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
+      const measures: Member[] = ['temp.measure2'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchema,
+        defaultConfig
+      );
+      expect(result).toBe(`SELECT SUM(total) AS temp__measure2 `);
+    });
+
+    it('should substitute "*" for all columns in the cube', () => {
+      const measures: Member[] = ['*'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchema,
+        defaultConfig
+      );
+      expect(result).toBe(`SELECT test.*`);
+    });
+
+    it('should use alias for measures when provided', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchemaWithAliases,
+        defaultConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
+      );
+    });
+
+    it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const sqlToReplace = 'SELECT * FROM my_table';
+      const result = applyProjectionToSQLQuery(
+        [],
+        measures,
+        tableSchema,
+        sqlToReplace,
+        defaultConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM my_table`
+      );
+    });
+
+    it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 2', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
+      const result = applyProjectionToSQLQuery(
+        [],
+        measures,
+        tableSchema,
+        sqlToReplace,
+        defaultConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
+      );
+    });
+
+    it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure & dimension', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const dimensions: Member[] = ['temp.dimension1', 'temp.dimension2'];
+      const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
+      const result = applyProjectionToSQLQuery(
+        dimensions,
+        measures,
+        tableSchema,
+        sqlToReplace,
+        defaultConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
+      );
+    });
+
+    it('should use aliases when provided', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const sqlToReplace = 'SELECT * FROM my_table';
+      const result = applyProjectionToSQLQuery(
+        [],
+        measures,
+        tableSchemaWithAliases,
+        sqlToReplace,
+        defaultConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`
+      );
+    });
   });
 
-  it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
-    const measures: Member[] = ['temp.measure2'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT SUM(total) AS temp__measure2 `);
-  });
+  describe('useDotNotation: true', () => {
+    it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
+      const measures: Member[] = ['temp.measure1'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchema,
+        dotNotationConfig
+      );
+      expect(result).toBe(`SELECT COUNT(*) AS "temp.measure1" `);
+    });
 
-  it('should substitute "*" for all columns in the cube', () => {
-    const measures: Member[] = ['*'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
-    expect(result).toBe(`SELECT test.*`);
-  });
+    it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
+      const measures: Member[] = ['temp.measure2'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchema,
+        dotNotationConfig
+      );
+      expect(result).toBe(`SELECT SUM(total) AS "temp.measure2" `);
+    });
 
-  it('should use alias for measures when provided', () => {
-    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const result = cubeMeasureToSQLSelectString(
-      measures,
-      tableSchemaWithAliases
-    );
-    expect(result).toBe(
-      `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
-    );
-  });
+    it('should substitute "*" for all columns in the cube', () => {
+      const measures: Member[] = ['*'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchema,
+        dotNotationConfig
+      );
+      expect(result).toBe(`SELECT test.*`);
+    });
 
-  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
-    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const sqlToReplace = 'SELECT * FROM my_table';
-    const result = applyProjectionToSQLQuery(
-      [],
-      measures,
-      tableSchema,
-      sqlToReplace
-    );
-    expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM my_table`
-    );
-  });
+    it('should use alias for measures when provided', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const result = cubeMeasureToSQLSelectString(
+        measures,
+        tableSchemaWithAliases,
+        dotNotationConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
+      );
+    });
 
-  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 2', () => {
-    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
-    const result = applyProjectionToSQLQuery(
-      [],
-      measures,
-      tableSchema,
-      sqlToReplace
-    );
-    expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
-    );
-  });
+    it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const sqlToReplace = 'SELECT * FROM my_table';
+      const result = applyProjectionToSQLQuery(
+        [],
+        measures,
+        tableSchema,
+        sqlToReplace,
+        dotNotationConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS "temp.measure1" ,  SUM(total) AS "temp.measure2"  FROM my_table`
+      );
+    });
 
-  it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure & dimension', () => {
-    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const dimensions: Member[] = ['temp.dimension1', 'temp.dimension2'];
-    const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
-    const result = applyProjectionToSQLQuery(
-      dimensions,
-      measures,
-      tableSchema,
-      sqlToReplace
-    );
-    expect(result).toBe(
-      `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
-    );
-  });
+    it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 2', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
+      const result = applyProjectionToSQLQuery(
+        [],
+        measures,
+        tableSchema,
+        sqlToReplace,
+        dotNotationConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS "temp.measure1" ,  SUM(total) AS "temp.measure2"  FROM (SELECT * FROM TABLE_1)`
+      );
+    });
 
-  it('should use aliases when provided', () => {
-    const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const sqlToReplace = 'SELECT * FROM my_table';
-    const result = applyProjectionToSQLQuery(
-      [],
-      measures,
-      tableSchemaWithAliases,
-      sqlToReplace
-    );
-    expect(result).toBe(
-      `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`
-    );
+    it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure & dimension', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const dimensions: Member[] = ['temp.dimension1', 'temp.dimension2'];
+      const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
+      const result = applyProjectionToSQLQuery(
+        dimensions,
+        measures,
+        tableSchema,
+        sqlToReplace,
+        dotNotationConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS "temp.measure1" ,  SUM(total) AS "temp.measure2" ,   "temp.dimension1",  "temp.dimension2" FROM (SELECT * FROM TABLE_1)`
+      );
+    });
+
+    it('should use aliases when provided', () => {
+      const measures: Member[] = ['temp.measure1', 'temp.measure2'];
+      const sqlToReplace = 'SELECT * FROM my_table';
+      const result = applyProjectionToSQLQuery(
+        [],
+        measures,
+        tableSchemaWithAliases,
+        sqlToReplace,
+        dotNotationConfig
+      );
+      expect(result).toBe(
+        `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`
+      );
+    });
   });
 });
 
@@ -228,5 +355,111 @@ describe('getAllColumnUsedInMeasures', () => {
       'test.total_first_resp_breaches_ever',
       'test.total_resolution_breaches_ever',
     ]);
+  });
+
+  describe('regex behavior - should not match quoted aliases', () => {
+    it('should NOT match already-quoted dot notation aliases', () => {
+      const tableSchema: TableSchema = {
+        name: 'orders',
+        sql: 'orders',
+        measures: [
+          {
+            name: 'total',
+            sql: 'SUM("orders.amount")',
+            type: 'number',
+          },
+        ],
+        dimensions: [],
+      };
+      const result = getAllColumnUsedInMeasures(
+        tableSchema.measures,
+        tableSchema
+      );
+      // Should NOT match "orders.amount" because it's quoted
+      expect(result).toEqual([]);
+    });
+
+    it('should match unquoted table.column references', () => {
+      const tableSchema: TableSchema = {
+        name: 'orders',
+        sql: 'orders',
+        measures: [
+          {
+            name: 'total',
+            sql: 'SUM(orders.amount)',
+            type: 'number',
+          },
+        ],
+        dimensions: [],
+      };
+      const result = getAllColumnUsedInMeasures(
+        tableSchema.measures,
+        tableSchema
+      );
+      // Should match orders.amount because it's NOT quoted
+      expect(result).toEqual(['orders.amount']);
+    });
+
+    it('should match unquoted but not quoted in mixed SQL', () => {
+      const tableSchema: TableSchema = {
+        name: 'orders',
+        sql: 'orders',
+        measures: [
+          {
+            name: 'total',
+            sql: 'SUM(orders.amount) + AVG("orders.discount")',
+            type: 'number',
+          },
+        ],
+        dimensions: [],
+      };
+      const result = getAllColumnUsedInMeasures(
+        tableSchema.measures,
+        tableSchema
+      );
+      // Should only match orders.amount (unquoted), not orders.discount (quoted)
+      expect(result).toEqual(['orders.amount']);
+    });
+
+    it('should handle multiple unquoted columns', () => {
+      const tableSchema: TableSchema = {
+        name: 'orders',
+        sql: 'orders',
+        measures: [
+          {
+            name: 'ratio',
+            sql: 'orders.amount / orders.quantity',
+            type: 'number',
+          },
+        ],
+        dimensions: [],
+      };
+      const result = getAllColumnUsedInMeasures(
+        tableSchema.measures,
+        tableSchema
+      );
+      expect(result).toEqual(['orders.amount', 'orders.quantity']);
+    });
+
+    it('should not match columns from different tables', () => {
+      const tableSchema: TableSchema = {
+        name: 'orders',
+        sql: 'orders',
+        measures: [
+          {
+            name: 'total',
+            sql: 'SUM(orders.amount) + SUM(customers.balance)',
+            type: 'number',
+          },
+        ],
+        dimensions: [],
+      };
+      const result = getAllColumnUsedInMeasures(
+        tableSchema.measures,
+        tableSchema
+      );
+      // Should only match orders.amount, not customers.balance
+      expect(result).toEqual(['orders.amount']);
+    });
   });
 });

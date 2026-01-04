@@ -5,12 +5,20 @@ import { baseDuckdbCondition } from '../base-condition-builder/base-condition-bu
 import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
-export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
+export const inDataRangeTransform: CubeToParseExpressionTransform = (
+  query,
+  options
+) => {
   const { member } = query;
 
   // SQL expressions not supported for inDateRange operator
   if (isQueryOperatorsWithSQLInfo(query)) {
-    return getSQLExpressionAST(member, query.sqlExpression, 'inDateRange');
+    return getSQLExpressionAST(
+      member,
+      query.sqlExpression,
+      'inDateRange',
+      options
+    );
   }
 
   // Otherwise, use values
@@ -30,7 +38,8 @@ export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_GREATERTHANOREQUALTO,
       values[0],
-      query.memberInfo
+      query.memberInfo,
+      options
     )
   );
 
@@ -39,7 +48,8 @@ export const inDataRangeTransform: CubeToParseExpressionTransform = (query) => {
       member,
       ExpressionType.COMPARE_LESSTHANOREQUALTO,
       values[1],
-      query.memberInfo
+      query.memberInfo,
+      options
     )
   );
 

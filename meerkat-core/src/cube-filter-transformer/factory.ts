@@ -15,6 +15,7 @@ import {
   isQueryFilter,
 } from '../utils/type-guards';
 import { andDuckdbCondition } from './and/and';
+import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { containsTransform } from './contains/contains';
 import { equalsTransform } from './equals/equals';
 import { gtTransform } from './gt/gt';
@@ -32,41 +33,45 @@ import { orDuckdbCondition } from './or/or';
 import { setTransform } from './set/set';
 
 export type CubeToParseExpressionTransform = (
-  query: QueryOperatorsWithInfo
+  query: QueryOperatorsWithInfo,
+  options: CreateColumnRefOptions
 ) => ParsedExpression;
 
 // Comparison operators
-const cubeFilterOperatorsToDuckdb = (cubeFilter: QueryOperatorsWithInfo) => {
+const cubeFilterOperatorsToDuckdb = (
+  cubeFilter: QueryOperatorsWithInfo,
+  options: CreateColumnRefOptions
+) => {
   switch (cubeFilter.operator) {
     case 'equals':
-      return equalsTransform(cubeFilter);
+      return equalsTransform(cubeFilter, options);
     case 'notEquals':
-      return notEqualsTransform(cubeFilter);
+      return notEqualsTransform(cubeFilter, options);
     case 'in':
-      return inTransform(cubeFilter);
+      return inTransform(cubeFilter, options);
     case 'notIn':
-      return notInTransform(cubeFilter);
+      return notInTransform(cubeFilter, options);
     case 'contains':
-      return containsTransform(cubeFilter);
+      return containsTransform(cubeFilter, options);
     case 'notContains':
-      return notContainsTransform(cubeFilter);
+      return notContainsTransform(cubeFilter, options);
     case 'gt':
-      return gtTransform(cubeFilter);
+      return gtTransform(cubeFilter, options);
     case 'gte':
-      return gteTransform(cubeFilter);
+      return gteTransform(cubeFilter, options);
     case 'lt':
-      return ltTransform(cubeFilter);
+      return ltTransform(cubeFilter, options);
     case 'lte':
-      return lteTransform(cubeFilter);
+      return lteTransform(cubeFilter, options);
     case 'inDateRange':
-      return inDataRangeTransform(cubeFilter);
+      return inDataRangeTransform(cubeFilter, options);
     case 'notInDateRange':
-      return notInDataRangeTransform(cubeFilter);
+      return notInDataRangeTransform(cubeFilter, options);
     case 'notSet': {
-      return notSetTransform(cubeFilter);
+      return notSetTransform(cubeFilter, options);
     }
     case 'set': {
-      return setTransform(cubeFilter);
+      return setTransform(cubeFilter, options);
     }
     default:
       throw new Error('Could not transform the filter');
@@ -75,13 +80,14 @@ const cubeFilterOperatorsToDuckdb = (cubeFilter: QueryOperatorsWithInfo) => {
 
 const cubeFilterLogicalAndOrToDuckdb = (
   cubeFilter: QueryFilterWithInfo,
-  whereObj: ParsedExpression | null
+  whereObj: ParsedExpression | null,
+  options: CreateColumnRefOptions
 ): ParsedExpression | null => {
   /**
    * This condition is true when you are at the leaf most level of the filter
    */
   if (!isFilterArray(cubeFilter) && isQueryFilter(cubeFilter)) {
-    const data = cubeFilterOperatorsToDuckdb(cubeFilter);
+    const data = cubeFilterOperatorsToDuckdb(cubeFilter, options);
     if (!data) {
       throw new Error('Could not transform the filter');
     }
@@ -96,7 +102,8 @@ const cubeFilterLogicalAndOrToDuckdb = (
     const andDuckdbExpression = andDuckdbCondition();
     const data = cubeFilterLogicalAndOrToDuckdb(
       cubeFilter.and,
-      andDuckdbExpression
+      andDuckdbExpression,
+      options
     );
     return data;
   }
@@ -109,14 +116,15 @@ const cubeFilterLogicalAndOrToDuckdb = (
     const orDuckdbExpression = orDuckdbCondition();
     const data = cubeFilterLogicalAndOrToDuckdb(
       cubeFilter.or,
-      orDuckdbExpression
+      orDuckdbExpression,
+      options
     );
     return data;
   }
 
   if (isFilterArray(cubeFilter)) {
     for (const filter of cubeFilter) {
-      const data = cubeFilterLogicalAndOrToDuckdb(filter, whereObj);
+      const data = cubeFilterLogicalAndOrToDuckdb(filter, whereObj, options);
       if (data) {
         if (hasChildren(whereObj)) {
           whereObj.children.push(data);
@@ -132,7 +140,8 @@ const cubeFilterLogicalAndOrToDuckdb = (
 
 export const cubeFilterToDuckdbAST = (
   cubeFilter: QueryFiltersWithInfo,
-  ast: SelectStatement
+  ast: SelectStatement,
+  options: CreateColumnRefOptions
 ) => {
   let whereObj: ParsedExpression | null | undefined =
     (ast.node as SelectNode).where_clause || null;
@@ -145,12 +154,16 @@ export const cubeFilterToDuckdbAST = (
   const filter = cubeFilter[0];
 
   if (isQueryFilter(filter)) {
-    whereObj = cubeFilterOperatorsToDuckdb(filter);
+    whereObj = cubeFilterOperatorsToDuckdb(filter, options);
   }
 
   if (isLogicalAndOR(filter)) {
     // And or Or we need to recurse
-    whereObj = cubeFilterLogicalAndOrToDuckdb(filter, whereObj || null);
+    whereObj = cubeFilterLogicalAndOrToDuckdb(
+      filter,
+      whereObj || null,
+      options
+    );
   }
 
   return whereObj;

@@ -84,118 +84,239 @@ describe('cube-to-sql', () => {
     //Get SQL from cube query
   });
 
-  it('Apply aliases for measures and dimensions', async () => {
-    const query: Query = {
-      measures: ['orders.total_order_amount'],
-      dimensions: ['orders.customer_id'],
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders GROUP BY "Customer ID"`
-    );
-    const output = await duckdbExec(sql);
-    expect(output.length).toEqual(7);
-  });
-
-  it('Should apply aliases in filters', async () => {
-    const query: Query = {
-      measures: ['orders.total_order_amount'],
-      filters: [
-        {
-          member: 'orders.total_order_amount',
-          operator: 'equals',
-          values: ['100'],
-        },
-        {
-          member: 'orders.customer_id',
-          operator: 'equals',
-          values: ['2'],
-        },
-      ],
-      dimensions: ['orders.customer_id'],
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders WHERE ("Customer ID" = '2') GROUP BY "Customer ID" HAVING ("Total Order Amount" = 100)`
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        'Customer ID': '2',
-        'Total Order Amount': 100,
-      },
-    ]);
-  });
-
-  it('Should apply aliases in order by', async () => {
-    const query: Query = {
-      measures: ['orders.total_order_amount'],
-      filters: [
-        {
-          member: 'orders.customer_id',
-          operator: 'equals',
-          values: ['2'],
-        },
-      ],
-      dimensions: ['orders.customer_id'],
-      order: {
-        'orders.total_order_amount': 'desc',
-      },
-    };
-    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders WHERE ("Customer ID" = '2') GROUP BY "Customer ID" ORDER BY "Total Order Amount" DESC`
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        'Customer ID': '2',
-        'Total Order Amount': 100,
-      },
-    ]);
-  });
-
-  it('Should handle alias that conflicts with another column', async () => {
-    const tableSchemaWithConflict = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        {
-          name: 'customer_id',
-          sql: 'customer_id',
-          type: 'string',
-          alias: 'order_id', // This conflicts with the orderr_id dimension
-        },
-      ],
-    };
-
-    const query: Query = {
-      measures: ['orders.total_order_amount'],
-      filters: [
-        {
-          member: 'orders.customer_id',
-          operator: 'equals',
-          values: ['2'],
-        },
-      ],
-      dimensions: ['orders.customer_id'],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [tableSchemaWithConflict],
+  describe('useDotNotation: false (default)', () => {
+    it('Apply aliases for measures and dimensions', async () => {
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        dimensions: ['orders.customer_id'],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders GROUP BY "Customer ID"`
+      );
+      const output = await duckdbExec(sql);
+      expect(output.length).toEqual(7);
     });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      `SELECT SUM(order_amount) AS "Total Order Amount" ,   "order_id" FROM (SELECT customer_id AS "order_id", * FROM (select * from orders) AS orders) AS orders WHERE (order_id = '2') GROUP BY order_id`
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        order_id: '2',
-        'Total Order Amount': 100,
-      },
-    ]);
+
+    it('Should apply aliases in filters', async () => {
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        filters: [
+          {
+            member: 'orders.total_order_amount',
+            operator: 'equals',
+            values: ['100'],
+          },
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: ['orders.customer_id'],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders WHERE ("Customer ID" = '2') GROUP BY "Customer ID" HAVING ("Total Order Amount" = 100)`
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          'Customer ID': '2',
+          'Total Order Amount': 100,
+        },
+      ]);
+    });
+
+    it('Should apply aliases in order by', async () => {
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        filters: [
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: ['orders.customer_id'],
+        order: {
+          'orders.total_order_amount': 'desc',
+        },
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders WHERE ("Customer ID" = '2') GROUP BY "Customer ID" ORDER BY "Total Order Amount" DESC`
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          'Customer ID': '2',
+          'Total Order Amount': 100,
+        },
+      ]);
+    });
+
+    it('Should handle alias that conflicts with another column', async () => {
+      const tableSchemaWithConflict = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          {
+            name: 'customer_id',
+            sql: 'customer_id',
+            type: 'string',
+            alias: 'order_id', // This conflicts with the orderr_id dimension
+          },
+        ],
+      };
+
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        filters: [
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: ['orders.customer_id'],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [tableSchemaWithConflict],
+        options: { useDotNotation: false },
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "order_id" FROM (SELECT customer_id AS "order_id", * FROM (select * from orders) AS orders) AS orders WHERE (order_id = '2') GROUP BY order_id`
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          order_id: '2',
+          'Total Order Amount': 100,
+        },
+      ]);
+    });
+  });
+
+  describe('useDotNotation: true', () => {
+    it('Apply aliases for measures and dimensions', async () => {
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        dimensions: ['orders.customer_id'],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
+      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders GROUP BY "Customer ID"`
+      );
+      const output = await duckdbExec(sql);
+      expect(output.length).toEqual(7);
+    });
+
+    it('Should apply aliases in filters', async () => {
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        filters: [
+          {
+            member: 'orders.total_order_amount',
+            operator: 'equals',
+            values: ['100'],
+          },
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: ['orders.customer_id'],
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
+      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders WHERE ("Customer ID" = '2') GROUP BY "Customer ID" HAVING ("Total Order Amount" = 100)`
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          'Customer ID': '2',
+          'Total Order Amount': 100,
+        },
+      ]);
+    });
+
+    it('Should apply aliases in order by', async () => {
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        filters: [
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: ['orders.customer_id'],
+        order: {
+          'orders.total_order_amount': 'desc',
+        },
+      };
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
+      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "Customer ID" FROM (SELECT customer_id AS "Customer ID", * FROM (select * from orders) AS orders) AS orders WHERE ("Customer ID" = '2') GROUP BY "Customer ID" ORDER BY "Total Order Amount" DESC`
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          'Customer ID': '2',
+          'Total Order Amount': 100,
+        },
+      ]);
+    });
+
+    it('Should handle alias that conflicts with another column', async () => {
+      const tableSchemaWithConflict = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          {
+            name: 'customer_id',
+            sql: 'customer_id',
+            type: 'string',
+            alias: 'order_id', // This conflicts with the orderr_id dimension
+          },
+        ],
+      };
+
+      const query: Query = {
+        measures: ['orders.total_order_amount'],
+        filters: [
+          {
+            member: 'orders.customer_id',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: ['orders.customer_id'],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [tableSchemaWithConflict],
+        options: { useDotNotation: true },
+      });
+      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
+      expect(sql).toBe(
+        `SELECT SUM(order_amount) AS "Total Order Amount" ,   "order_id" FROM (SELECT customer_id AS "order_id", * FROM (select * from orders) AS orders) AS orders WHERE (order_id = '2') GROUP BY order_id`
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          order_id: '2',
+          'Total Order Amount': 100,
+        },
+      ]);
+    });
   });
 });

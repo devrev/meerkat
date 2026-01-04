@@ -20,12 +20,13 @@ app.get('/api', async (req, res) => {
 });
 
 app.post('/api-v1', async (req, res) => {
-  const { cube, table_schema } = req.body;
+  const { cube, table_schema, options } = req.body;
   // const query = await cubeQueryToSQL(sql, cube);
 
   const data = await cubeQueryToSQL({
     query: cube,
     tableSchemas: table_schema,
+    options: options || { useDotNotation: false },
   });
 
   res.json({ data });
