@@ -18,11 +18,11 @@
     "lodash": "^4.17.21",
     "lodash.isnil": "^4.0.0",
     "loglevel": "^1.8.1",
-    "next": "15.4.8",
+    "next": "15.4.10",
     "puppeteer": "24.32.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-router-dom": "^6.19.0",
+    "react-router-dom": "^6.30.3",
     "tslib": "^2.3.0",
     "uuid": "^9.0.1",
     "vite-plugin-singlefile": "^0.13.5"
@@ -106,6 +106,7 @@
       "node-gyp": {
         "glob": "10.5.0"
       }
-    }
+    },
+    "qs": ">=6.14.1"
   }
 }
