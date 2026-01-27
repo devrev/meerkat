@@ -30,10 +30,23 @@ const notInDuckDbCondition = (
   const columnRef = createColumnRef(columnName, {
     isAlias: options.isAlias,
   });
+
+  // Create IS NULL condition to include nulls in the result
+  const isNullCondition = {
+    class: ExpressionClass.OPERATOR,
+    type: ExpressionType.OPERATOR_IS_NULL,
+    alias: '',
+    children: [
+      createColumnRef(columnName, {
+        isAlias: options.isAlias,
+      }),
+    ],
+  };
+
   switch (memberInfo.type) {
     case 'number_array':
     case 'string_array': {
-      return {
+      const notInArrayCondition = {
         class: ExpressionClass.OPERATOR,
         type: ExpressionType.OPERATOR_NOT,
         alias: '',
@@ -65,13 +78,27 @@ const notInDuckDbCondition = (
           },
         ],
       };
+      // Wrap with OR IS NULL to include nulls
+      return {
+        class: ExpressionClass.CONJUNCTION,
+        type: ExpressionType.CONJUNCTION_OR,
+        alias: '',
+        children: [notInArrayCondition, isNullCondition],
+      };
     }
     default: {
-      return {
+      const notInCondition = {
         class: ExpressionClass.OPERATOR,
         type: ExpressionType.COMPARE_NOT_IN,
         alias: '',
         children: [columnRef, ...sqlTreeValues],
+      };
+      // Wrap with OR IS NULL to include nulls
+      return {
+        class: ExpressionClass.CONJUNCTION,
+        type: ExpressionType.CONJUNCTION_OR,
+        alias: '',
+        children: [notInCondition, isNullCondition],
       };
     }
   }
