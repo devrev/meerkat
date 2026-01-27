@@ -31,26 +31,46 @@ describe('Not In transforms Tests', () => {
         children: [
           {
             alias: '',
-            class: 'COLUMN_REF',
-            column_names: ['country'],
-            type: 'COLUMN_REF',
+            children: [
+              {
+                alias: '',
+                class: 'COLUMN_REF',
+                column_names: ['country'],
+                type: 'COLUMN_REF',
+              },
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'VARCHAR',
+                    type_info: null,
+                  },
+                  value: 'US',
+                },
+              },
+            ],
+            class: 'OPERATOR',
+            type: 'COMPARE_NOT_IN',
           },
           {
             alias: '',
-            class: 'CONSTANT',
-            type: 'VALUE_CONSTANT',
-            value: {
-              is_null: false,
-              type: {
-                id: 'VARCHAR',
-                type_info: null,
+            children: [
+              {
+                alias: '',
+                class: 'COLUMN_REF',
+                column_names: ['country'],
+                type: 'COLUMN_REF',
               },
-              value: 'US',
-            },
+            ],
+            class: 'OPERATOR',
+            type: 'OPERATOR_IS_NULL',
           },
         ],
-        class: 'OPERATOR',
-        type: 'COMPARE_NOT_IN',
+        class: 'CONJUNCTION',
+        type: 'CONJUNCTION_OR',
       };
       expect(
         notInTransform(
@@ -88,7 +108,83 @@ describe('Not In transforms Tests', () => {
         children: [
           {
             alias: '',
-            catalog: '',
+            children: [
+              {
+                alias: '',
+                catalog: '',
+                children: [
+                  {
+                    alias: '',
+                    class: 'COLUMN_REF',
+                    column_names: ['country'],
+                    type: 'COLUMN_REF',
+                  },
+                  {
+                    alias: '',
+                    children: [
+                      {
+                        alias: '',
+                        class: 'CONSTANT',
+                        type: 'VALUE_CONSTANT',
+                        value: {
+                          is_null: false,
+                          type: {
+                            id: 'VARCHAR',
+                            type_info: null,
+                          },
+                          value: 'US',
+                        },
+                      },
+                      {
+                        alias: '',
+                        class: 'CONSTANT',
+                        type: 'VALUE_CONSTANT',
+                        value: {
+                          is_null: false,
+                          type: {
+                            id: 'VARCHAR',
+                            type_info: null,
+                          },
+                          value: 'Germany',
+                        },
+                      },
+                      {
+                        alias: '',
+                        class: 'CONSTANT',
+                        type: 'VALUE_CONSTANT',
+                        value: {
+                          is_null: false,
+                          type: {
+                            id: 'VARCHAR',
+                            type_info: null,
+                          },
+                          value: 'Israel',
+                        },
+                      },
+                    ],
+                    class: 'OPERATOR',
+                    type: 'ARRAY_CONSTRUCTOR',
+                  },
+                ],
+                class: 'FUNCTION',
+                distinct: false,
+                export_state: false,
+                filter: null,
+                function_name: '&&',
+                is_operator: true,
+                order_bys: {
+                  orders: [],
+                  type: 'ORDER_MODIFIER',
+                },
+                schema: '',
+                type: 'FUNCTION',
+              },
+            ],
+            class: 'OPERATOR',
+            type: 'OPERATOR_NOT',
+          },
+          {
+            alias: '',
             children: [
               {
                 alias: '',
@@ -96,69 +192,13 @@ describe('Not In transforms Tests', () => {
                 column_names: ['country'],
                 type: 'COLUMN_REF',
               },
-              {
-                alias: '',
-                children: [
-                  {
-                    alias: '',
-                    class: 'CONSTANT',
-                    type: 'VALUE_CONSTANT',
-                    value: {
-                      is_null: false,
-                      type: {
-                        id: 'VARCHAR',
-                        type_info: null,
-                      },
-                      value: 'US',
-                    },
-                  },
-                  {
-                    alias: '',
-                    class: 'CONSTANT',
-                    type: 'VALUE_CONSTANT',
-                    value: {
-                      is_null: false,
-                      type: {
-                        id: 'VARCHAR',
-                        type_info: null,
-                      },
-                      value: 'Germany',
-                    },
-                  },
-                  {
-                    alias: '',
-                    class: 'CONSTANT',
-                    type: 'VALUE_CONSTANT',
-                    value: {
-                      is_null: false,
-                      type: {
-                        id: 'VARCHAR',
-                        type_info: null,
-                      },
-                      value: 'Israel',
-                    },
-                  },
-                ],
-                class: 'OPERATOR',
-                type: 'ARRAY_CONSTRUCTOR',
-              },
             ],
-            class: 'FUNCTION',
-            distinct: false,
-            export_state: false,
-            filter: null,
-            function_name: '&&',
-            is_operator: true,
-            order_bys: {
-              orders: [],
-              type: 'ORDER_MODIFIER',
-            },
-            schema: '',
-            type: 'FUNCTION',
+            class: 'OPERATOR',
+            type: 'OPERATOR_IS_NULL',
           },
         ],
-        class: 'OPERATOR',
-        type: 'OPERATOR_NOT',
+        class: 'CONJUNCTION',
+        type: 'CONJUNCTION_OR',
       });
     });
   });
@@ -191,26 +231,46 @@ describe('Not In transforms Tests', () => {
         children: [
           {
             alias: '',
-            class: 'COLUMN_REF',
-            column_names: ['country'],
-            type: 'COLUMN_REF',
+            children: [
+              {
+                alias: '',
+                class: 'COLUMN_REF',
+                column_names: ['country'],
+                type: 'COLUMN_REF',
+              },
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'VARCHAR',
+                    type_info: null,
+                  },
+                  value: 'US',
+                },
+              },
+            ],
+            class: 'OPERATOR',
+            type: 'COMPARE_NOT_IN',
           },
           {
             alias: '',
-            class: 'CONSTANT',
-            type: 'VALUE_CONSTANT',
-            value: {
-              is_null: false,
-              type: {
-                id: 'VARCHAR',
-                type_info: null,
+            children: [
+              {
+                alias: '',
+                class: 'COLUMN_REF',
+                column_names: ['country'],
+                type: 'COLUMN_REF',
               },
-              value: 'US',
-            },
+            ],
+            class: 'OPERATOR',
+            type: 'OPERATOR_IS_NULL',
           },
         ],
-        class: 'OPERATOR',
-        type: 'COMPARE_NOT_IN',
+        class: 'CONJUNCTION',
+        type: 'CONJUNCTION_OR',
       };
       expect(
         notInTransform(
@@ -248,7 +308,83 @@ describe('Not In transforms Tests', () => {
         children: [
           {
             alias: '',
-            catalog: '',
+            children: [
+              {
+                alias: '',
+                catalog: '',
+                children: [
+                  {
+                    alias: '',
+                    class: 'COLUMN_REF',
+                    column_names: ['country'],
+                    type: 'COLUMN_REF',
+                  },
+                  {
+                    alias: '',
+                    children: [
+                      {
+                        alias: '',
+                        class: 'CONSTANT',
+                        type: 'VALUE_CONSTANT',
+                        value: {
+                          is_null: false,
+                          type: {
+                            id: 'VARCHAR',
+                            type_info: null,
+                          },
+                          value: 'US',
+                        },
+                      },
+                      {
+                        alias: '',
+                        class: 'CONSTANT',
+                        type: 'VALUE_CONSTANT',
+                        value: {
+                          is_null: false,
+                          type: {
+                            id: 'VARCHAR',
+                            type_info: null,
+                          },
+                          value: 'Germany',
+                        },
+                      },
+                      {
+                        alias: '',
+                        class: 'CONSTANT',
+                        type: 'VALUE_CONSTANT',
+                        value: {
+                          is_null: false,
+                          type: {
+                            id: 'VARCHAR',
+                            type_info: null,
+                          },
+                          value: 'Israel',
+                        },
+                      },
+                    ],
+                    class: 'OPERATOR',
+                    type: 'ARRAY_CONSTRUCTOR',
+                  },
+                ],
+                class: 'FUNCTION',
+                distinct: false,
+                export_state: false,
+                filter: null,
+                function_name: '&&',
+                is_operator: true,
+                order_bys: {
+                  orders: [],
+                  type: 'ORDER_MODIFIER',
+                },
+                schema: '',
+                type: 'FUNCTION',
+              },
+            ],
+            class: 'OPERATOR',
+            type: 'OPERATOR_NOT',
+          },
+          {
+            alias: '',
             children: [
               {
                 alias: '',
@@ -256,69 +392,13 @@ describe('Not In transforms Tests', () => {
                 column_names: ['country'],
                 type: 'COLUMN_REF',
               },
-              {
-                alias: '',
-                children: [
-                  {
-                    alias: '',
-                    class: 'CONSTANT',
-                    type: 'VALUE_CONSTANT',
-                    value: {
-                      is_null: false,
-                      type: {
-                        id: 'VARCHAR',
-                        type_info: null,
-                      },
-                      value: 'US',
-                    },
-                  },
-                  {
-                    alias: '',
-                    class: 'CONSTANT',
-                    type: 'VALUE_CONSTANT',
-                    value: {
-                      is_null: false,
-                      type: {
-                        id: 'VARCHAR',
-                        type_info: null,
-                      },
-                      value: 'Germany',
-                    },
-                  },
-                  {
-                    alias: '',
-                    class: 'CONSTANT',
-                    type: 'VALUE_CONSTANT',
-                    value: {
-                      is_null: false,
-                      type: {
-                        id: 'VARCHAR',
-                        type_info: null,
-                      },
-                      value: 'Israel',
-                    },
-                  },
-                ],
-                class: 'OPERATOR',
-                type: 'ARRAY_CONSTRUCTOR',
-              },
             ],
-            class: 'FUNCTION',
-            distinct: false,
-            export_state: false,
-            filter: null,
-            function_name: '&&',
-            is_operator: true,
-            order_bys: {
-              orders: [],
-              type: 'ORDER_MODIFIER',
-            },
-            schema: '',
-            type: 'FUNCTION',
+            class: 'OPERATOR',
+            type: 'OPERATOR_IS_NULL',
           },
         ],
-        class: 'OPERATOR',
-        type: 'OPERATOR_NOT',
+        class: 'CONJUNCTION',
+        type: 'CONJUNCTION_OR',
       });
     });
   });
