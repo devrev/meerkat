@@ -112,10 +112,14 @@ export class DBMParallel extends TableLockManager {
       if (runner) {
         // Send cancel message to iframe
         runner.communication.sendRequestWithoutResponse({
-          type: BROWSER_RUNNER_TYPE.CANCEL_QUERY,
           payload: { queryId },
+          type: BROWSER_RUNNER_TYPE.CANCEL_QUERY,
         });
       }
+
+      // Clean up tracking
+      this.activeQueries.delete(queryId);
+      signal.removeEventListener('abort', abortHandler);
 
       reject(new Error('Query aborted by user'));
     };
@@ -232,7 +236,7 @@ export class DBMParallel extends TableLockManager {
 
       return response.message.data;
     } catch (error) {
-      // If the query is aborted, don't log the error
+      // Only log the error if the query is not aborted
       if (!signal?.aborted) {
         this.logger.error('Error while executing query', error);
       }
