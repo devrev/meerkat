@@ -79,6 +79,9 @@ describe('DBMParallel', () => {
           query: 'SELECT * FROM table',
           tables: [],
           queryId: expect.any(String),
+          options: {
+            signal: undefined,
+          },
         }),
       })
     );
@@ -434,6 +437,64 @@ describe('DBMParallel', () => {
           message: { isError: false, data: [{ data: 1 }] },
         });
       }
+    });
+
+    it('should strip signal from options when passing to iframe', async () => {
+      const abortController = new AbortController();
+
+      runnerMock.communication.sendRequest.mockResolvedValue({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+
+      await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal },
+      });
+
+      // Verify that signal is undefined in the options passed to iframe
+      expect(runnerMock.communication.sendRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: BROWSER_RUNNER_TYPE.EXEC_QUERY,
+          payload: expect.objectContaining({
+            options: expect.objectContaining({
+              signal: undefined,
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should not log error when query is aborted by user', async () => {
+      const abortController = new AbortController();
+
+      // Mock a long-running query that never resolves
+      runnerMock.communication.sendRequest.mockImplementation(
+        () =>
+          new Promise(() => {
+            // Never resolves
+          })
+      );
+
+      const queryPromise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal },
+      });
+
+      // Give a small delay to ensure the query has started
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Clear any previous error logs
+      (loggerMock.error as jest.Mock).mockClear();
+
+      // Abort the query
+      abortController.abort();
+
+      await expect(queryPromise).rejects.toThrow('Query aborted by user');
+
+      // Logger should not have been called since it was a user-initiated abort
+      expect(loggerMock.error).not.toHaveBeenCalled();
     });
   });
 });

@@ -106,30 +106,30 @@ export class DBMParallel extends TableLockManager {
   ): void {
     if (!signal) return;
 
-    const signalHandler = async () => {
+    const abortHandler = () => {
       const runner = this.iFrameRunnerManager.iFrameManagers.get(runnerId);
 
       if (runner) {
         // Send cancel message to iframe
         runner.communication.sendRequestWithoutResponse({
-          type: BROWSER_RUNNER_TYPE.CANCEL_QUERY,
           payload: { queryId },
+          type: BROWSER_RUNNER_TYPE.CANCEL_QUERY,
         });
       }
 
       // Clean up tracking
       this.activeQueries.delete(queryId);
-      signal.removeEventListener('abort', signalHandler);
+      signal.removeEventListener('abort', abortHandler);
 
       reject(new Error('Query aborted by user'));
     };
 
-    signal.addEventListener('abort', signalHandler);
+    signal.addEventListener('abort', abortHandler);
 
     // Store the handler for cleanup
     const queryInfo = this.activeQueries.get(queryId);
     if (queryInfo) {
-      queryInfo.abortHandler = signalHandler;
+      queryInfo.abortHandler = abortHandler;
     }
   }
 
@@ -143,6 +143,7 @@ export class DBMParallel extends TableLockManager {
     options?: QueryOptions;
   }) {
     const queryId = uuidv4();
+    const signal = options?.signal;
 
     // Deduplicate tables by name
     const tables = uniqBy(_tables, 'name');
@@ -180,16 +181,11 @@ export class DBMParallel extends TableLockManager {
 
       this.activeQueries.set(queryId, {
         runnerId: runners[this.counter],
-        signal: options?.signal,
+        signal,
       });
 
       const abortPromise = new Promise<never>((_, reject) => {
-        this._signalListener(
-          queryId,
-          runners[this.counter],
-          reject,
-          options?.signal
-        );
+        this._signalListener(queryId, runners[this.counter], reject, signal);
       });
 
       /**
@@ -240,7 +236,11 @@ export class DBMParallel extends TableLockManager {
 
       return response.message.data;
     } catch (error) {
-      this.logger.error('Error while executing query', error);
+      // Only log the error if the query is not aborted
+      if (!signal?.aborted) {
+        this.logger.error('Error while executing query', error);
+      }
+
       throw error;
     } finally {
       /**
