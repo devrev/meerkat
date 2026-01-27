@@ -106,7 +106,7 @@ export class DBMParallel extends TableLockManager {
   ): void {
     if (!signal) return;
 
-    const signalHandler = async () => {
+    const abortHandler = () => {
       const runner = this.iFrameRunnerManager.iFrameManagers.get(runnerId);
 
       if (runner) {
@@ -117,19 +117,15 @@ export class DBMParallel extends TableLockManager {
         });
       }
 
-      // Clean up tracking
-      this.activeQueries.delete(queryId);
-      signal.removeEventListener('abort', signalHandler);
-
       reject(new Error('Query aborted by user'));
     };
 
-    signal.addEventListener('abort', signalHandler);
+    signal.addEventListener('abort', abortHandler);
 
     // Store the handler for cleanup
     const queryInfo = this.activeQueries.get(queryId);
     if (queryInfo) {
-      queryInfo.abortHandler = signalHandler;
+      queryInfo.abortHandler = abortHandler;
     }
   }
 
@@ -143,6 +139,7 @@ export class DBMParallel extends TableLockManager {
     options?: QueryOptions;
   }) {
     const queryId = uuidv4();
+    const signal = options?.signal;
 
     // Deduplicate tables by name
     const tables = uniqBy(_tables, 'name');
@@ -180,16 +177,11 @@ export class DBMParallel extends TableLockManager {
 
       this.activeQueries.set(queryId, {
         runnerId: runners[this.counter],
-        signal: options?.signal,
+        signal,
       });
 
       const abortPromise = new Promise<never>((_, reject) => {
-        this._signalListener(
-          queryId,
-          runners[this.counter],
-          reject,
-          options?.signal
-        );
+        this._signalListener(queryId, runners[this.counter], reject, signal);
       });
 
       /**
@@ -240,7 +232,11 @@ export class DBMParallel extends TableLockManager {
 
       return response.message.data;
     } catch (error) {
-      this.logger.error('Error while executing query', error);
+      // If the query is aborted, don't log the error
+      if (!signal?.aborted) {
+        this.logger.error('Error while executing query', error);
+      }
+
       throw error;
     } finally {
       /**
