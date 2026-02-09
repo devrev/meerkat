@@ -35,6 +35,30 @@ describe('Table schema functions', () => {
     });
   });
 
+  it('should create a directed graph from the table schema using CONTAINS join', () => {
+    const sqlQueryMap = {
+      table1: 'select * from table1',
+      table2: 'select * from table2',
+    };
+    const tableSchema = [
+      {
+        name: 'table1',
+        sql: 'select * from table1',
+        joins: [{ sql: 'CONTAINS(table1.items, table2.id)' }],
+      },
+      {
+        name: 'table2',
+        sql: 'select * from table2',
+        joins: [],
+      },
+    ];
+    const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
+
+    expect(directedGraph).toEqual({
+      table1: { table2: { items: 'CONTAINS(table1.items, table2.id)' } },
+    });
+  });
+
   it('should ignore a directed graph edge from the table schema if not present in query map', () => {
     const sqlQueryMap = {
       table1: 'select * from table1',

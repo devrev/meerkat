@@ -115,9 +115,9 @@ export function generateSqlQuery(
 
       // Quote the alias if it contains dots (useDotNotation mode)
       const quotedAlias = quoteIdentifierIfNeeded(currentEdge.right);
-      query += ` LEFT JOIN (${tableSchemaSqlMap[currentEdge.right]}) AS ${
-        quotedAlias
-      }  ON ${
+      query += ` LEFT JOIN (${
+        tableSchemaSqlMap[currentEdge.right]
+      }) AS ${quotedAlias}  ON ${
         directedGraph[currentEdge.left][currentEdge.right][currentEdge.on]
       }`;
     }
@@ -133,6 +133,54 @@ export const createDirectedGraph = (
   const directedGraph: {
     [key: string]: { [key: string]: { [key: string]: string } };
   } = {};
+
+  /**
+   * Parses a join SQL condition and extracts the table and column names
+   * from each side of the binary operator.
+   *
+   * Supported forms (whitespace and case-insensitive for operators):
+   * - tableA.column = tableB.column
+   * - CONTAINS(tableA.column, tableB.column)
+   *
+   * The full, original join SQL string is still stored as the join condition
+   * in the directed graph; this helper is only responsible for figuring out
+   * which tables and columns participate in the join.
+   */
+  function parseJoinSqlColumns(joinSql: string): {
+    tables: [string, string];
+    conditions: [string, string];
+  } {
+    let leftPart: string;
+    let rightPart: string;
+
+    // Check for CONTAINS function syntax: CONTAINS(tableA.col, tableB.col)
+    const containsFnMatch = joinSql.match(
+      /^\s*CONTAINS\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*$/i
+    );
+
+    if (containsFnMatch) {
+      // CONTAINS function syntax
+      leftPart = containsFnMatch[1];
+      rightPart = containsFnMatch[2];
+    } else {
+      // Try equality join: tableA.col = tableB.col
+      const equalsParts = joinSql.split('=');
+
+      if (equalsParts.length === 2) {
+        [leftPart, rightPart] = equalsParts;
+      } else {
+        throw new Error(`Invalid join SQL: ${joinSql}`);
+      }
+    }
+
+    const leftRef = parseTableColumnReference(leftPart);
+    const rightRef = parseTableColumnReference(rightPart);
+
+    return {
+      tables: [leftRef.tableName, rightRef.tableName],
+      conditions: [leftRef.columnName, rightRef.columnName],
+    };
+  }
 
   function addEdge(
     table1: string,
@@ -155,27 +203,17 @@ export const createDirectedGraph = (
   /**
    * Iterate through the table schema and add the edges to the directed graph.
    * The edges are added based on the join conditions provided in the table schema.
-   * The SQL is split by the '=' sign and the tables columns involved in the joins are extracted.
+   * The SQL is parsed to extract the tables and columns involved in the joins,
+   * supporting both '=' equality joins and CONTAINS(arg1, arg2) function syntax.
    * The tables are then added as edges to the directed graph.
    * Supports quoted identifiers for table names that contain dots (e.g., "table.name".column).
    */
   tableSchema.forEach((schema) => {
     schema?.joins?.forEach((join) => {
-      const parts = join.sql.split('=');
-
-      /**
-       * If the join SQL does not contain exactly 2 parts (left = right), then the join is invalid.
-       */
-      if (parts.length !== 2) {
-        throw new Error(`Invalid join SQL: ${join.sql}`);
-      }
-
-      // Parse the table and column from each side of the join condition
-      const leftRef = parseTableColumnReference(parts[0]);
-      const rightRef = parseTableColumnReference(parts[1]);
-
-      const tables = [leftRef.tableName, rightRef.tableName];
-      const conditions = [leftRef.columnName, rightRef.columnName];
+      // Parse the table and column from each side of the join condition.
+      // Supports both equality joins (tableA.col = tableB.col) and
+      // CONTAINS-style joins (tableA.col contains tableB.col).
+      const { tables, conditions } = parseJoinSqlColumns(join.sql);
 
       /**
        * If the tables are the same, then the join is invalid.
