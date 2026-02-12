@@ -35,6 +35,130 @@ describe('Table schema functions', () => {
     });
   });
 
+  it('should create a directed graph from the table schema using CONTAINS join', () => {
+    const sqlQueryMap = {
+      table1: 'select * from table1',
+      table2: 'select * from table2',
+    };
+    const tableSchema = [
+      {
+        name: 'table1',
+        sql: 'select * from table1',
+        joins: [{ sql: 'CONTAINS(table1.items, table2.id)' }],
+      },
+      {
+        name: 'table2',
+        sql: 'select * from table2',
+        joins: [],
+      },
+    ];
+    const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
+
+    expect(directedGraph).toEqual({
+      table1: { table2: { items: 'CONTAINS(table1.items, table2.id)' } },
+    });
+  });
+
+  it('should throw an error for invalid CONTAINS argument (missing table.column format)', () => {
+    const sqlQueryMap = {
+      table1: 'select * from table1',
+      table2: 'select * from table2',
+    };
+    const tableSchema = [
+      {
+        name: 'table1',
+        sql: 'select * from table1',
+        joins: [{ sql: 'CONTAINS(invalid_expr, table2.id)' }],
+      },
+      {
+        name: 'table2',
+        sql: 'select * from table2',
+        joins: [],
+      },
+    ];
+
+    expect(() => createDirectedGraph(tableSchema, sqlQueryMap)).toThrow(
+      'Invalid CONTAINS argument: "invalid_expr". Expected format: table.column'
+    );
+  });
+
+  it('should throw an error for CONTAINS with invalid second argument', () => {
+    const sqlQueryMap = {
+      table1: 'select * from table1',
+      table2: 'select * from table2',
+    };
+    const tableSchema = [
+      {
+        name: 'table1',
+        sql: 'select * from table1',
+        joins: [{ sql: 'CONTAINS(table1.items, just_a_column)' }],
+      },
+      {
+        name: 'table2',
+        sql: 'select * from table2',
+        joins: [],
+      },
+    ];
+
+    expect(() => createDirectedGraph(tableSchema, sqlQueryMap)).toThrow(
+      'Invalid CONTAINS argument: "just_a_column". Expected format: table.column'
+    );
+  });
+
+  it('should support CONTAINS with quoted table names', () => {
+    const sqlQueryMap = {
+      'table.name': 'select * from "table.name"',
+      table2: 'select * from table2',
+    };
+    const tableSchema = [
+      {
+        name: 'table.name',
+        sql: 'select * from "table.name"',
+        joins: [{ sql: 'CONTAINS("table.name".items, table2.id)' }],
+      },
+      {
+        name: 'table2',
+        sql: 'select * from table2',
+        joins: [],
+      },
+    ];
+    const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
+
+    expect(directedGraph).toEqual({
+      'table.name': {
+        table2: { items: 'CONTAINS("table.name".items, table2.id)' },
+      },
+    });
+  });
+
+  it('should support CONTAINS with composite fields (multiple dots)', () => {
+    const sqlQueryMap = {
+      table1: 'select * from table1',
+      table2: 'select * from table2',
+    };
+    const tableSchema = [
+      {
+        name: 'table1',
+        sql: 'select * from table1',
+        joins: [{ sql: 'CONTAINS(table1.nested.items, table2.data.id)' }],
+      },
+      {
+        name: 'table2',
+        sql: 'select * from table2',
+        joins: [],
+      },
+    ];
+    const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
+
+    expect(directedGraph).toEqual({
+      table1: {
+        table2: {
+          'nested.items': 'CONTAINS(table1.nested.items, table2.data.id)',
+        },
+      },
+    });
+  });
+
   it('should ignore a directed graph edge from the table schema if not present in query map', () => {
     const sqlQueryMap = {
       table1: 'select * from table1',
