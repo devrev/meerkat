@@ -1,6 +1,57 @@
 import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
 import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
 
+/**
+ * Regex pattern to match a CONTAINS function call in join SQL.
+ *
+ * Matches: CONTAINS(arg1, arg2)
+ *
+ * Pattern breakdown:
+ * - ^\s*           : Start of string, optional leading whitespace
+ * - CONTAINS       : Literal "CONTAINS" (case-insensitive due to 'i' flag)
+ * - \s*\(\s*       : Opening parenthesis with optional whitespace
+ * - (.+?)         : Capture group 1 - first argument (non-greedy)
+ * - \s*,\s*        : Comma separator with optional whitespace
+ * - (.+?)         : Capture group 2 - second argument (non-greedy)
+ * - \s*\)\s*$      : Closing parenthesis with optional whitespace, end of string
+ *
+ * Examples that match:
+ * - "CONTAINS(table1.col, table2.col)"
+ * - "  contains( table1.items , table2.id )  "
+ * - "CONTAINS(\"quoted.table\".col, other.col)"
+ */
+const CONTAINS_FUNCTION_REGEX = /^\s*CONTAINS\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*$/i;
+
+/**
+ * Regex pattern to validate table.column reference format.
+ *
+ * Matches: tableName.columnName or "quotedTableName".columnName
+ * Also supports composite fields with multiple dots (e.g., table.field.subfield)
+ *
+ * Pattern breakdown:
+ * - ^               : Start of string
+ * - (?:             : Non-capturing group for table name alternatives:
+ *   - "[^"]+"       : Quoted identifier (e.g., "table.name")
+ *   - |             : OR
+ *   - [^.]+         : Unquoted identifier (any chars except dot)
+ * - )               : End of non-capturing group
+ * - \.              : Literal dot separator
+ * - .+              : Column/field path (one or more chars, allows dots for composite fields)
+ * - $               : End of string
+ *
+ * Examples that match:
+ * - "table1.column"
+ * - "myTable.myColumn"
+ * - "\"quoted.table\".column"
+ * - "table.field.subfield" (composite field)
+ * - "table.nested.deep.field" (deeply nested composite field)
+ *
+ * Examples that do NOT match:
+ * - "just_a_column" (no dot)
+ * - ".column" (empty table name)
+ */
+const TABLE_COLUMN_REFERENCE_REGEX = /^(?:"[^"]+"|[^.]+)\..+$/;
+
 export type Graph = {
   [key: string]: { [key: string]: { [key: string]: string } };
 };
@@ -153,15 +204,23 @@ export const createDirectedGraph = (
     let leftPart: string;
     let rightPart: string;
 
-    // Check for CONTAINS function syntax: CONTAINS(tableA.col, tableB.col)
-    const containsFnMatch = joinSql.match(
-      /^\s*CONTAINS\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*$/i
-    );
+    const containsFnMatch = joinSql.match(CONTAINS_FUNCTION_REGEX);
 
     if (containsFnMatch) {
-      // CONTAINS function syntax
       leftPart = containsFnMatch[1];
       rightPart = containsFnMatch[2];
+
+      // Validate that both arguments follow the table.column structure
+      if (!TABLE_COLUMN_REFERENCE_REGEX.test(leftPart.trim())) {
+        throw new Error(
+          `Invalid CONTAINS argument: "${leftPart}". Expected format: table.column`
+        );
+      }
+      if (!TABLE_COLUMN_REFERENCE_REGEX.test(rightPart.trim())) {
+        throw new Error(
+          `Invalid CONTAINS argument: "${rightPart}". Expected format: table.column`
+        );
+      }
     } else {
       // Try equality join: tableA.col = tableB.col
       const equalsParts = joinSql.split('=');
