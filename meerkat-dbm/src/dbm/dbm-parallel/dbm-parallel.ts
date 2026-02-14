@@ -121,7 +121,7 @@ export class DBMParallel extends TableLockManager {
       this.activeQueries.delete(queryId);
       signal.removeEventListener('abort', abortHandler);
 
-      reject(new Error('Query aborted by user'));
+      reject(new DOMException('Query aborted by user', 'AbortError'));
     };
 
     signal.addEventListener('abort', abortHandler);
