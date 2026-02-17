@@ -2,9 +2,6 @@ import { Database } from 'duckdb';
 import { TableSchema } from '../types/cube-types';
 import { getFinalBaseSQL } from './get-final-base-sql';
 
-const defaultConfig = { useDotNotation: false };
-const dotNotationConfig = { useDotNotation: true };
-
 const getQueryOutput = async (sql: string) => {
   const db = new Database(':memory:');
   return new Promise((resolve, reject) => {
@@ -30,191 +27,92 @@ const TABLE_SCHEMA: TableSchema = {
 };
 
 describe('get final base sql', () => {
-  describe('useDotNotation: false', () => {
-    it('should not return measures in the projected base sql when filter param passed', async () => {
-      const result = await getFinalBaseSQL({
-        query: {
-          measures: ['orders.count'],
-          filters: [
-            {
-              and: [
-                { member: 'orders.amount', operator: 'notSet' },
-                { member: 'orders.status', operator: 'set' },
-              ],
-            },
-          ],
-          dimensions: ['orders.status'],
-        },
-        tableSchema: TABLE_SCHEMA,
-        getQueryOutput,
-        config: defaultConfig,
-      });
-      expect(result).toEqual(
-        'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
-      );
-    });
-
-    it('should not return measures in the projected base sql when filter param not passed', async () => {
-      const result = await getFinalBaseSQL({
-        query: {
-          measures: ['orders.count'],
-          filters: [
-            {
-              and: [{ member: 'orders.amount', operator: 'notSet' }],
-            },
-          ],
-          dimensions: ['orders.status'],
-        },
-        tableSchema: TABLE_SCHEMA,
-        getQueryOutput,
-        config: defaultConfig,
-      });
-      expect(result).toEqual(
-        'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE TRUE) AS orders'
-      );
-    });
-
-    it('should use aliases', async () => {
-      const tableSchema: TableSchema = {
-        ...TABLE_SCHEMA,
-        measures: [
+  it('should not return measures in the projected base sql when filter param passed', async () => {
+    const result = await getFinalBaseSQL({
+      query: {
+        measures: ['orders.count'],
+        filters: [
           {
-            name: 'count',
-            sql: 'COUNT(*)',
-            type: 'number',
-            alias: 'total orders',
+            and: [
+              { member: 'orders.amount', operator: 'notSet' },
+              { member: 'orders.status', operator: 'set' },
+            ],
           },
         ],
-        dimensions: [
-          {
-            name: 'status',
-            sql: 'status',
-            type: 'string',
-            alias: 'order status',
-          },
-          {
-            name: 'amount',
-            sql: 'amount',
-            type: 'number',
-            alias: 'order amount',
-          },
-        ],
-      };
-
-      const result = await getFinalBaseSQL({
-        query: {
-          measures: ['orders.count'],
-          filters: [
-            {
-              and: [
-                { member: 'orders.amount', operator: 'notSet' },
-                { member: 'orders.status', operator: 'set' },
-              ],
-            },
-          ],
-          dimensions: ['orders.status'],
-        },
-        tableSchema: tableSchema,
-        getQueryOutput,
-        config: defaultConfig,
-      });
-      expect(result).toEqual(
-        'SELECT amount AS "order amount", status AS "order status", * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
-      );
+        dimensions: ['orders.status'],
+      },
+      tableSchema: TABLE_SCHEMA,
+      getQueryOutput,
     });
+    expect(result).toEqual(
+      'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
+    );
   });
 
-  describe('useDotNotation: true', () => {
-    it('should not return measures in the projected base sql when filter param passed', async () => {
-      const result = await getFinalBaseSQL({
-        query: {
-          measures: ['orders.count'],
-          filters: [
-            {
-              and: [
-                { member: 'orders.amount', operator: 'notSet' },
-                { member: 'orders.status', operator: 'set' },
-              ],
-            },
-          ],
-          dimensions: ['orders.status'],
-        },
-        tableSchema: TABLE_SCHEMA,
-        getQueryOutput,
-        config: dotNotationConfig,
-      });
-      expect(result).toEqual(
-        'SELECT amount AS "orders.amount", status AS "orders.status", * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
-      );
-    });
-
-    it('should not return measures in the projected base sql when filter param not passed', async () => {
-      const result = await getFinalBaseSQL({
-        query: {
-          measures: ['orders.count'],
-          filters: [
-            {
-              and: [{ member: 'orders.amount', operator: 'notSet' }],
-            },
-          ],
-          dimensions: ['orders.status'],
-        },
-        tableSchema: TABLE_SCHEMA,
-        getQueryOutput,
-        config: dotNotationConfig,
-      });
-      expect(result).toEqual(
-        'SELECT amount AS "orders.amount", status AS "orders.status", * FROM (select * from orders WHERE TRUE) AS orders'
-      );
-    });
-
-    it('should use aliases', async () => {
-      const tableSchema: TableSchema = {
-        ...TABLE_SCHEMA,
-        measures: [
+  it('should not return measures in the projected base sql when filter param not passed', async () => {
+    const result = await getFinalBaseSQL({
+      query: {
+        measures: ['orders.count'],
+        filters: [
           {
-            name: 'count',
-            sql: 'COUNT(*)',
-            type: 'number',
-            alias: 'total orders',
+            and: [{ member: 'orders.amount', operator: 'notSet' }],
           },
         ],
-        dimensions: [
+        dimensions: ['orders.status'],
+      },
+      tableSchema: TABLE_SCHEMA,
+      getQueryOutput,
+    });
+    expect(result).toEqual(
+      'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE TRUE) AS orders'
+    );
+  });
+
+  it('should use aliases', async () => {
+    const tableSchema: TableSchema = {
+      ...TABLE_SCHEMA,
+      measures: [
+        {
+          name: 'count',
+          sql: 'COUNT(*)',
+          type: 'number',
+          alias: 'total orders',
+        },
+      ],
+      dimensions: [
+        {
+          name: 'status',
+          sql: 'status',
+          type: 'string',
+          alias: 'order status',
+        },
+        {
+          name: 'amount',
+          sql: 'amount',
+          type: 'number',
+          alias: 'order amount',
+        },
+      ],
+    };
+
+    const result = await getFinalBaseSQL({
+      query: {
+        measures: ['orders.count'],
+        filters: [
           {
-            name: 'status',
-            sql: 'status',
-            type: 'string',
-            alias: 'order status',
-          },
-          {
-            name: 'amount',
-            sql: 'amount',
-            type: 'number',
-            alias: 'order amount',
+            and: [
+              { member: 'orders.amount', operator: 'notSet' },
+              { member: 'orders.status', operator: 'set' },
+            ],
           },
         ],
-      };
-
-      const result = await getFinalBaseSQL({
-        query: {
-          measures: ['orders.count'],
-          filters: [
-            {
-              and: [
-                { member: 'orders.amount', operator: 'notSet' },
-                { member: 'orders.status', operator: 'set' },
-              ],
-            },
-          ],
-          dimensions: ['orders.status'],
-        },
-        tableSchema: tableSchema,
-        getQueryOutput,
-        config: dotNotationConfig,
-      });
-      expect(result).toEqual(
-        'SELECT amount AS "order amount", status AS "order status", * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
-      );
+        dimensions: ['orders.status'],
+      },
+      tableSchema: tableSchema,
+      getQueryOutput,
     });
+    expect(result).toEqual(
+      'SELECT amount AS "order amount", status AS "order status", * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
+    );
   });
 });

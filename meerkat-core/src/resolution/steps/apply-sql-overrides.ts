@@ -41,7 +41,6 @@ export const applySqlOverrides = (
   baseSchema: TableSchema,
   resolutionConfig: ResolutionConfig
 ): TableSchema => {
-  const options = { useDotNotation: false };
   if (
     !resolutionConfig.sqlOverrideConfigs ||
     resolutionConfig.sqlOverrideConfigs.length === 0
@@ -69,9 +68,8 @@ export const applySqlOverrides = (
 
   resolutionConfig.sqlOverrideConfigs.forEach((overrideConfig) => {
     // Convert natural field name to safe key for matching
-    // e.g., with useDotNotation: false, 'issues.priority' -> 'issues__priority'
-    // e.g., with useDotNotation: true, 'issues.priority' -> 'issues.priority'
-    const safeFieldName = memberKeyToSafeKey(overrideConfig.fieldName, options);
+    // e.g., 'issues.priority' -> 'issues__priority'
+    const safeFieldName = memberKeyToSafeKey(overrideConfig.fieldName);
 
     // Check dimensions in base schema
     const dimensionIndex = updatedSchema.dimensions.findIndex(

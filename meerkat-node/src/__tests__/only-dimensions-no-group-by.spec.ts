@@ -72,13 +72,12 @@ describe('cube-to-sql', () => {
     //Get SQL from cube query
   });
 
-  describe('useDotNotation: false (default)', () => {
-    it('Should not append group by when no measures selected', async () => {
-      const query: Query = {
-        measures: [],
-        dimensions: ['orders.customer_id'],
-      };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+  it('Should not append group by when no measures selected', async () => {
+    const query: Query = {
+      measures: [],
+      dimensions: ['orders.customer_id'],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         'SELECT  orders__customer_id FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders'
@@ -107,13 +106,13 @@ describe('cube-to-sql', () => {
           orders__customer_id: '4',
         },
       ]);
-    });
-    it('Should append group by when some measures are selected', async () => {
-      const query: Query = {
-        measures: ['orders.total_order_amount'],
-        dimensions: ['orders.customer_id'],
-      };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+  });
+  it('Should append group by when some measures are selected', async () => {
+    const query: Query = {
+      measures: ['orders.total_order_amount'],
+      dimensions: ['orders.customer_id'],
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         'SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders GROUP BY orders__customer_id'
@@ -137,74 +136,5 @@ describe('cube-to-sql', () => {
           orders__total_order_amount: 135,
         },
       ]);
-    });
-  });
-
-  describe('useDotNotation: true', () => {
-    it('Should not append group by when no measures selected', async () => {
-      const query: Query = {
-        measures: [],
-        dimensions: ['orders.customer_id'],
-      };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      expect(sql).toBe(
-        'SELECT  "orders.customer_id" FROM (SELECT customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders'
-      );
-      const output = await duckdbExec(sql);
-      expect(output).toEqual([
-        {
-          'orders.customer_id': '1',
-        },
-        {
-          'orders.customer_id': '1',
-        },
-        {
-          'orders.customer_id': '2',
-        },
-        {
-          'orders.customer_id': '2',
-        },
-        {
-          'orders.customer_id': '3',
-        },
-        {
-          'orders.customer_id': '4',
-        },
-        {
-          'orders.customer_id': '4',
-        },
-      ]);
-    });
-    it('Should append group by when some measures are selected', async () => {
-      const query: Query = {
-        measures: ['orders.total_order_amount'],
-        dimensions: ['orders.customer_id'],
-      };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      expect(sql).toBe(
-        'SELECT SUM(order_amount) AS "orders.total_order_amount" ,   "orders.customer_id" FROM (SELECT customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders GROUP BY "orders.customer_id"'
-      );
-      const output = await duckdbExec(sql);
-      expect(output).toEqual([
-        {
-          'orders.customer_id': '1',
-          'orders.total_order_amount': 130,
-        },
-        {
-          'orders.customer_id': '2',
-          'orders.total_order_amount': 100,
-        },
-        {
-          'orders.customer_id': '3',
-          'orders.total_order_amount': 100,
-        },
-        {
-          'orders.customer_id': '4',
-          'orders.total_order_amount': 135,
-        },
-      ]);
-    });
   });
 });

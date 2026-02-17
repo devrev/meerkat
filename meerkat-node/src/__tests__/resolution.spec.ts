@@ -180,7 +180,6 @@ describe('Resolution Tests', () => {
         columnConfigs: [],
         tableSchemas: [],
       },
-      options: { useDotNotation: false },
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -232,7 +231,6 @@ describe('Resolution Tests', () => {
           ],
           tableSchemas: [],
         },
-        options: { useDotNotation: false },
       })
     ).rejects.toThrow('Table schema not found for dim_part');
   });
@@ -280,7 +278,6 @@ describe('Resolution Tests', () => {
           DIM_WORK_SCHEMA_WITH_ALIASES,
         ],
       },
-      options: { useDotNotation: false },
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -330,7 +327,6 @@ describe('Resolution Tests', () => {
         ],
         tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
       },
-      options: { useDotNotation: false },
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -373,7 +369,6 @@ describe('Resolution Tests', () => {
         ],
         tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
       },
-      options: { useDotNotation: false },
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `
@@ -411,7 +406,6 @@ describe('Resolution Tests', () => {
         tableSchemas: [DIM_PART_SCHEMA_WITH_ALIASES],
       },
       columnProjections: ['base_table.random_column', 'base_table.part_id_1'],
-      options: { useDotNotation: false },
     });
     console.info(`SQL: `, sql);
     const expectedSQL = `

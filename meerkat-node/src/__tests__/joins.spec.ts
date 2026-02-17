@@ -399,23 +399,21 @@ describe('Joins Tests', () => {
     await duckdbExec(INPUT_CHILD_ITEMS_DATA);
   });
 
-  describe('useDotNotation: false (default)', () => {
-    it('Loops in Graph', async () => {
-      const query = {
-        measures: ['books.total_book_count'],
-        filters: [],
-        dimensions: ['authors.author_name'],
-      };
-      await expect(
-        cubeQueryToSQL({
-          query: query,
-          tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
-          options: { useDotNotation: false },
-        })
-      ).rejects.toThrow(
-        'Invalid path, multiple data sources are present without a join path.'
-      );
-    });
+  it('Loops in Graph', async () => {
+    const query = {
+      measures: ['books.total_book_count'],
+      filters: [],
+      dimensions: ['authors.author_name'],
+    };
+    await expect(
+      cubeQueryToSQL({
+        query: query,
+        tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
+      })
+    ).rejects.toThrow(
+      'Invalid path, multiple data sources are present without a join path.'
+    );
+  });
 
     it('Loops in the join paths', async () => {
       const query = {
@@ -441,7 +439,6 @@ describe('Joins Tests', () => {
         cubeQueryToSQL({
           query,
           tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
-          options: { useDotNotation: false },
         })
       ).rejects.toThrow(`A loop was detected in the joins.`);
     });
@@ -479,7 +476,6 @@ describe('Joins Tests', () => {
             ORDER_SCHEMA,
             AUTHOR_SCHEMA,
           ],
-          options: { useDotNotation: false },
         })
       ).rejects.toThrow(
         'Invalid path, starting node is not the same for all paths.'
@@ -503,7 +499,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [AUTHOR_SCHEMA, ORDER_SCHEMA],
-        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -513,10 +508,10 @@ describe('Joins Tests', () => {
         'SELECT  orders__order_id FROM (SELECT orders.order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS MEERKAT_GENERATED_TABLE'
       );
       expect(parsedOutput).toHaveLength(11);
-    });
+  });
 
-    it('Three tables join - Direct', async () => {
-      const DEMO_SCHEMA = structuredClone(ORDER_SCHEMA);
+  it('Three tables join - Direct', async () => {
+    const DEMO_SCHEMA = structuredClone(ORDER_SCHEMA);
 
       DEMO_SCHEMA.joins = [
         {
@@ -565,16 +560,15 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [DEMO_SCHEMA, CUSTOMER_SCHEMA, PRODUCT_SCHEMA],
-        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
       console.info('parsedOutput', parsedOutput);
       expect(parsedOutput).toHaveLength(3);
-    });
+  });
 
-    it('Three tables join - Indirect', async () => {
+  it('Three tables join - Indirect', async () => {
       const DEMO_SCHEMA = structuredClone(CUSTOMER_SCHEMA);
 
       DEMO_SCHEMA.joins.push({
@@ -624,7 +618,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [ORDER_SCHEMA, DEMO_SCHEMA, PRODUCT_SCHEMA],
-        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -635,9 +628,9 @@ describe('Joins Tests', () => {
       expect(parsedOutput[0].products__product_id).toBe('1');
       expect(parsedOutput[0].orders__product_id).toBe('2');
       expect(parsedOutput[0].orders__total_order_amount).toBe(80);
-    });
+  });
 
-    it('Joins with Different Paths', async () => {
+  it('Joins with Different Paths', async () => {
       const query1 = {
         measures: ['orders.total_order_amount'],
         joinPaths: [
@@ -679,7 +672,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query: query1,
         tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -730,16 +722,15 @@ describe('Joins Tests', () => {
       const sql2 = await cubeQueryToSQL({
         query: query2,
         tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output2 = await duckdbExec(sql2);
       const parsedOutput2 = JSON.parse(JSON.stringify(output2));
       expect(parsedOutput2).toHaveLength(1);
       expect(parsedOutput2[0].customers__customer_id).toBe('2');
       expect(parsedOutput2[0].customers__order_id).toBe('2');
-    });
+  });
 
-    it('Success Join with filters', async () => {
+  it('Success Join with filters', async () => {
       const query = {
         measures: ['orders.total_order_amount'],
         joinPaths: [
@@ -776,7 +767,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        options: { useDotNotation: false },
       });
       console.info(`SQL for Simple Cube Query: `, sql);
       const output = await duckdbExec(sql);
@@ -789,409 +779,10 @@ describe('Joins Tests', () => {
       expect(parsedOutput[1].customers__customer_name).toContain('Doe');
       expect(parsedOutput[0].orders__customer_id).toBe('1');
       expect(parsedOutput[1].orders__customer_id).toBe('2');
-    });
-  });
-
-  describe('useDotNotation: true', () => {
-    it('Loops in Graph', async () => {
-      const query = {
-        measures: ['books.total_book_count'],
-        filters: [],
-        dimensions: ['authors.author_name'],
-      };
-      await expect(
-        cubeQueryToSQL({
-          query: query,
-          tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
-          options: { useDotNotation: true },
-        })
-      ).rejects.toThrow(
-        'Invalid path, multiple data sources are present without a join path.'
-      );
-    });
-
-    it('Loops in the join paths', async () => {
-      const query = {
-        measures: ['books.total_book_count'],
-        filters: [],
-        joinPaths: [
-          [
-            {
-              left: 'authors',
-              right: 'books',
-              on: 'author_id',
-            },
-            {
-              left: 'books',
-              right: 'authors',
-              on: 'id',
-            },
-          ],
-        ],
-        dimensions: ['authors.author_name'],
-      };
-      await expect(
-        cubeQueryToSQL({
-          query,
-          tableSchemas: [BOOK_SCHEMA, AUTHOR_SCHEMA],
-          options: { useDotNotation: true },
-        })
-      ).rejects.toThrow(`A loop was detected in the joins.`);
-    });
-
-    it('Discrete Islands on data graph', async () => {
-      const BOOK_SCHEMA_COPY = structuredClone(BOOK_SCHEMA);
-      BOOK_SCHEMA_COPY.joins = [];
-      const query = {
-        measures: ['books.total_book_count', 'authors.total_author_count'],
-        joinPaths: [
-          [
-            {
-              left: 'authors',
-              right: 'books',
-              on: 'author_id',
-            },
-          ],
-          [
-            {
-              left: 'customers',
-              right: 'orders',
-              on: 'customer_id',
-            },
-          ],
-        ],
-
-        filters: [],
-        dimensions: ['customers.customer_id', 'orders.customer_id'],
-      };
-      await expect(
-        cubeQueryToSQL({
-          query,
-          tableSchemas: [
-            BOOK_SCHEMA_COPY,
-            CUSTOMER_SCHEMA,
-            ORDER_SCHEMA,
-            AUTHOR_SCHEMA,
-          ],
-          options: { useDotNotation: true },
-        })
-      ).rejects.toThrow(
-        'Invalid path, starting node is not the same for all paths.'
-      );
-    });
-
-    it('Single node in the path', async () => {
-      const query = {
-        measures: [],
-        filters: [],
-        dimensions: ['orders.order_id'],
-        joinPaths: [
-          [
-            {
-              left: 'orders',
-              on: 'order_id',
-            },
-          ],
-        ],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [AUTHOR_SCHEMA, ORDER_SCHEMA],
-        options: { useDotNotation: true },
-      });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      const output = await duckdbExec(sql);
-      const parsedOutput = JSON.parse(JSON.stringify(output));
-      console.info('parsedOutput', parsedOutput);
-      expect(sql).toEqual(
-        'SELECT  "orders.order_id" FROM (SELECT orders.order_id AS "orders.order_id", * FROM (select * from orders) AS orders) AS MEERKAT_GENERATED_TABLE'
-      );
-      expect(parsedOutput).toHaveLength(11);
-    });
-
-    it('Three tables join - Direct with dot notation', async () => {
-      const DEMO_SCHEMA = structuredClone(ORDER_SCHEMA);
-
-      DEMO_SCHEMA.joins = [
-        {
-          sql: 'products.product_id = orders.product_id',
-        },
-      ];
-
-      const query = {
-        measures: ['orders.total_order_amount'],
-        joinPaths: [
-          [
-            {
-              left: 'customers',
-              right: 'orders',
-              on: 'customer_id',
-            },
-            {
-              left: 'orders',
-              right: 'products',
-              on: 'product_id',
-            },
-          ],
-        ],
-        filters: [
-          {
-            and: [
-              {
-                member: 'orders.order_amount',
-                operator: 'gt',
-                values: ['40'],
-              },
-              {
-                member: 'customers.customer_name',
-                operator: 'contains',
-                values: ['Doe'],
-              },
-            ],
-          },
-        ],
-        dimensions: [
-          'products.product_id',
-          'orders.product_id',
-          'customers.customer_id',
-        ],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [DEMO_SCHEMA, CUSTOMER_SCHEMA, PRODUCT_SCHEMA],
-        options: { useDotNotation: true },
-      });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      const output = await duckdbExec(sql);
-      const parsedOutput = JSON.parse(JSON.stringify(output));
-      console.info('parsedOutput', parsedOutput);
-      expect(parsedOutput).toHaveLength(3);
-      // Verify dot notation keys - use array notation to check literal keys with dots
-      expect(parsedOutput[0]).toHaveProperty(['orders.total_order_amount']);
-      expect(parsedOutput[0]).toHaveProperty(['products.product_id']);
-      expect(parsedOutput[0]).toHaveProperty(['customers.customer_id']);
-    });
-
-    it('Three tables join - Indirect with dot notation', async () => {
-      const DEMO_SCHEMA = structuredClone(CUSTOMER_SCHEMA);
-
-      DEMO_SCHEMA.joins.push({
-        sql: 'products.product_id = customers.customer_id',
-      });
-
-      const query = {
-        measures: ['orders.total_order_amount'],
-        joinPaths: [
-          [
-            {
-              left: 'customers',
-              right: 'orders',
-              on: 'customer_id',
-            },
-          ],
-          [
-            {
-              left: 'customers',
-              right: 'products',
-              on: 'customer_id',
-            },
-          ],
-        ],
-        filters: [
-          {
-            and: [
-              {
-                member: 'orders.order_amount',
-                operator: 'gt',
-                values: ['79'],
-              },
-              {
-                member: 'customers.customer_name',
-                operator: 'contains',
-                values: ['Doe'],
-              },
-            ],
-          },
-        ],
-        dimensions: [
-          'products.product_id',
-          'orders.product_id',
-          'customers.customer_id',
-        ],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [ORDER_SCHEMA, DEMO_SCHEMA, PRODUCT_SCHEMA],
-        options: { useDotNotation: true },
-      });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      const output = await duckdbExec(sql);
-      const parsedOutput = JSON.parse(JSON.stringify(output));
-      console.info('parsedOutput', parsedOutput);
-      expect(parsedOutput).toHaveLength(1);
-      expect(parsedOutput[0]['customers.customer_id']).toBe('1');
-      expect(parsedOutput[0]['products.product_id']).toBe('1');
-      expect(parsedOutput[0]['orders.product_id']).toBe('2');
-      expect(parsedOutput[0]['orders.total_order_amount']).toBe(80);
-    });
-
-    it('Joins with Different Paths with dot notation', async () => {
-      const query1 = {
-        measures: ['orders.total_order_amount'],
-        joinPaths: [
-          [
-            {
-              left: 'customers',
-              right: 'orders',
-              on: 'customer_id',
-            },
-          ],
-        ],
-        filters: [
-          {
-            and: [
-              {
-                member: 'orders.order_amount',
-                operator: 'gt',
-                values: ['40'],
-              },
-              {
-                member: 'customers.customer_name',
-                operator: 'contains',
-                values: ['Doe'],
-              },
-            ],
-          },
-        ],
-        dimensions: [
-          'orders.product_id',
-          'customers.customer_id',
-          'customers.order_id',
-        ],
-        order: {
-          'orders.total_order_amount': 'desc',
-          'customers.customer_id': 'asc',
-        },
-      };
-
-      const sql = await cubeQueryToSQL({
-        query: query1,
-        tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        options: { useDotNotation: true },
-      });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      const output = await duckdbExec(sql);
-      const parsedOutput = JSON.parse(JSON.stringify(output));
-      console.info('parsedOutput', parsedOutput);
-      expect(parsedOutput).toHaveLength(3);
-      expect(parsedOutput[0]['customers.customer_id']).toBe('1');
-      expect(parsedOutput[1]['customers.customer_id']).toBe('2');
-      expect(parsedOutput[2]['customers.customer_id']).toBe('1');
-      expect(parsedOutput[0]['customers.order_id']).toBe('3');
-      expect(parsedOutput[1]['customers.order_id']).toBe('2');
-      expect(parsedOutput[2]['customers.order_id']).toBe('3');
-
-      const query2 = {
-        measures: ['orders.total_order_amount'],
-        joinPaths: [
-          [
-            {
-              left: 'customers',
-              right: 'orders',
-              on: 'order_id',
-            },
-          ],
-        ],
-        filters: [
-          {
-            and: [
-              {
-                member: 'orders.order_amount',
-                operator: 'gt',
-                values: ['40'],
-              },
-              {
-                member: 'customers.customer_name',
-                operator: 'contains',
-                values: ['Doe'],
-              },
-            ],
-          },
-        ],
-        dimensions: [
-          'orders.product_id',
-          'customers.customer_id',
-          'customers.order_id',
-        ],
-      };
-
-      const sql2 = await cubeQueryToSQL({
-        query: query2,
-        tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        options: { useDotNotation: true },
-      });
-      const output2 = await duckdbExec(sql2);
-      const parsedOutput2 = JSON.parse(JSON.stringify(output2));
-      expect(parsedOutput2).toHaveLength(1);
-      expect(parsedOutput2[0]['customers.customer_id']).toBe('2');
-      expect(parsedOutput2[0]['customers.order_id']).toBe('2');
-    });
-
-    it('Success Join with filters and dot notation', async () => {
-      const query = {
-        measures: ['orders.total_order_amount'],
-        joinPaths: [
-          [
-            {
-              left: 'customers',
-              right: 'orders',
-              on: 'customer_id',
-            },
-          ],
-        ],
-        filters: [
-          {
-            and: [
-              {
-                member: 'orders.order_amount',
-                operator: 'gt',
-                values: ['40'],
-              },
-              {
-                member: 'customers.customer_name',
-                operator: 'contains',
-                values: ['Doe'],
-              },
-            ],
-          },
-        ],
-        dimensions: ['orders.customer_id', 'customers.customer_name'],
-        order: {
-          'orders.total_order_amount': 'desc',
-        },
-        limit: 2,
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [ORDER_SCHEMA, CUSTOMER_SCHEMA],
-        options: { useDotNotation: true },
-      });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      const output = await duckdbExec(sql);
-      const parsedOutput = JSON.parse(JSON.stringify(output));
-      console.info('parsedOutput', parsedOutput);
-      expect(parsedOutput[0]['orders.total_order_amount']).toBeGreaterThan(
-        parsedOutput[1]['orders.total_order_amount']
-      );
-      expect(parsedOutput[0]['customers.customer_name']).toContain('Doe');
-      expect(parsedOutput[1]['customers.customer_name']).toContain('Doe');
-      expect(parsedOutput[0]['orders.customer_id']).toBe('1');
-      expect(parsedOutput[1]['orders.customer_id']).toBe('2');
-    });
   });
 
   describe('CONTAINS Join Tests', () => {
-    it('Basic CONTAINS join - useDotNotation: false', async () => {
+    it('Basic CONTAINS join', async () => {
       const query = {
         measures: ['child_items.total_child_value'],
         joinPaths: [
@@ -1209,7 +800,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -1233,47 +823,6 @@ describe('Joins Tests', () => {
       expect(parent1.child_items__total_child_value).toBe(60);
       expect(parent2.child_items__total_child_value).toBe(60);
       expect(parent3.child_items__total_child_value).toBe(50);
-    });
-
-    it('Basic CONTAINS join - useDotNotation: true', async () => {
-      const query = {
-        measures: ['child_items.total_child_value'],
-        joinPaths: [
-          [
-            {
-              left: 'parent_items',
-              right: 'child_items',
-              on: 'child_ids',
-            },
-          ],
-        ],
-        filters: [],
-        dimensions: ['parent_items.parent_name'],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: true },
-      });
-      const output = await duckdbExec(sql);
-      const parsedOutput = JSON.parse(JSON.stringify(output));
-
-      expect(parsedOutput).toHaveLength(3);
-      const parent1 = parsedOutput.find(
-        (p: Record<string, unknown>) =>
-          p['parent_items.parent_name'] === 'Parent 1'
-      );
-      const parent2 = parsedOutput.find(
-        (p: Record<string, unknown>) =>
-          p['parent_items.parent_name'] === 'Parent 2'
-      );
-      const parent3 = parsedOutput.find(
-        (p: Record<string, unknown>) =>
-          p['parent_items.parent_name'] === 'Parent 3'
-      );
-      expect(parent1['child_items.total_child_value']).toBe(60);
-      expect(parent2['child_items.total_child_value']).toBe(60);
-      expect(parent3['child_items.total_child_value']).toBe(50);
     });
 
     it('CONTAINS join with filters', async () => {
@@ -1300,7 +849,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -1339,7 +887,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -1375,7 +922,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -1419,7 +965,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -1459,7 +1004,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -1507,7 +1051,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
@@ -1554,7 +1097,6 @@ describe('Joins Tests', () => {
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [PARENT_ITEMS_SCHEMA, CHILD_ITEMS_SCHEMA],
-        options: { useDotNotation: false },
       });
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));

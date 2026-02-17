@@ -10,17 +10,13 @@ export const generateResolutionJoinPaths = (
   resolutionConfig: ResolutionConfig,
   baseTableSchemas: TableSchema[]
 ): JoinPath[] => {
-  const config = { useDotNotation: false };
   return resolutionConfig.columnConfigs.map((columnConfig) => [
     {
       left: baseDataSourceName,
-      right: memberKeyToSafeKey(columnConfig.name, {
-        useDotNotation: config.useDotNotation,
-      }),
+      right: memberKeyToSafeKey(columnConfig.name),
       on: constructAliasForAST(
         columnConfig.name,
-        findInSchemas(columnConfig.name, baseTableSchemas)?.alias,
-        config
+        findInSchemas(columnConfig.name, baseTableSchemas)?.alias
       ),
     },
   ]);

@@ -38,7 +38,6 @@ export const getResolvedTableSchema = async ({
     contextParams?: ContextParams;
   }) => Promise<string>;
 }): Promise<TableSchema> => {
-  const config = { useDotNotation: false };
   const updatedBaseTableSchema: TableSchema = baseTableSchema;
 
   // Generate resolution schemas for fields that need resolution
@@ -58,7 +57,7 @@ export const getResolvedTableSchema = async ({
   };
 
   const updatedColumnProjections = columnProjections?.map((cp) =>
-    memberKeyToSafeKey(cp, config)
+    memberKeyToSafeKey(cp)
   );
   // Generate resolved dimensions using columnProjections
   const resolvedDimensions = generateResolvedDimensions(

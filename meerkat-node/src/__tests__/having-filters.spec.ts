@@ -77,8 +77,7 @@ describe('cube-to-sql', () => {
     //Get SQL from cube query
   });
 
-  describe('useDotNotation: false (default)', () => {
-    it('Should apply having/where correctly key in measure and filter', async () => {
+  it('Should apply having/where correctly key in measure and filter', async () => {
       const query: Query = {
         measures: ['orders.total_order_amount'],
         filters: [
@@ -99,7 +98,7 @@ describe('cube-to-sql', () => {
         },
         limit: 2,
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id = '2') GROUP BY orders__customer_id HAVING (orders__total_order_amount = 100) ORDER BY orders__total_order_amount DESC LIMIT 2`
@@ -129,7 +128,7 @@ describe('cube-to-sql', () => {
         },
         limit: 2,
       };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: false } });
+      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
       console.info(`SQL for Simple Cube Query: `, sql);
       expect(sql).toBe(
         `SELECT SUM(order_amount) AS orders__total_order_amount ,   orders__customer_id FROM (SELECT orders.order_amount AS orders__order_amount, customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__order_amount = 100) GROUP BY orders__customer_id ORDER BY orders__total_order_amount DESC LIMIT 2`
@@ -141,73 +140,5 @@ describe('cube-to-sql', () => {
           orders__total_order_amount: 100,
         },
       ]);
-    });
-  });
-
-  describe('useDotNotation: true', () => {
-    it('Should apply having/where correctly key in measure and filter', async () => {
-      const query: Query = {
-        measures: ['orders.total_order_amount'],
-        filters: [
-          {
-            member: 'orders.total_order_amount',
-            operator: 'equals',
-            values: ['100'],
-          },
-          {
-            member: 'orders.customer_id',
-            operator: 'equals',
-            values: ['2'],
-          },
-        ],
-        dimensions: ['orders.customer_id'],
-        order: {
-          'orders.total_order_amount': 'desc',
-        },
-        limit: 2,
-      };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      expect(sql).toBe(
-        `SELECT SUM(order_amount) AS "orders.total_order_amount" ,   "orders.customer_id" FROM (SELECT customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders WHERE ("orders.customer_id" = '2') GROUP BY "orders.customer_id" HAVING ("orders.total_order_amount" = 100) ORDER BY "orders.total_order_amount" DESC LIMIT 2`
-      );
-      const output = await duckdbExec(sql);
-      expect(output).toEqual([
-        {
-          'orders.customer_id': '2',
-          'orders.total_order_amount': 100,
-        },
-      ]);
-    });
-
-    it('Should apply having/where correctly key in filter and not in measure', async () => {
-      const query: Query = {
-        measures: ['orders.total_order_amount'],
-        filters: [
-          {
-            member: 'orders.order_amount',
-            operator: 'equals',
-            values: ['100'],
-          },
-        ],
-        dimensions: ['orders.customer_id'],
-        order: {
-          'orders.total_order_amount': 'desc',
-        },
-        limit: 2,
-      };
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA], options: { useDotNotation: true } });
-      console.info(`SQL for Simple Cube Query (dot notation): `, sql);
-      expect(sql).toBe(
-        `SELECT SUM(order_amount) AS "orders.total_order_amount" ,   "orders.customer_id" FROM (SELECT orders.order_amount AS "orders.order_amount", customer_id AS "orders.customer_id", * FROM (select * from orders) AS orders) AS orders WHERE ("orders.order_amount" = 100) GROUP BY "orders.customer_id" ORDER BY "orders.total_order_amount" DESC LIMIT 2`
-      );
-      const output = await duckdbExec(sql);
-      expect(output).toEqual([
-        {
-          'orders.customer_id': '3',
-          'orders.total_order_amount': 100,
-        },
-      ]);
-    });
   });
 });

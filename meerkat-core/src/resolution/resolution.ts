@@ -50,17 +50,12 @@ export const shouldSkipResolution = (
 };
 
 const constructBaseDimension = (name: string, schema: Measure | Dimension) => {
-  const config = { useDotNotation: false };
   return {
-    name: memberKeyToSafeKey(name, { useDotNotation: false }),
-    sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
-      name,
-      schema.alias,
-      config
-    )}`,
+    name: memberKeyToSafeKey(name),
+    sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(name, schema.alias)}`,
     type: schema.type,
     // Constructs alias to match the name in the base query.
-    alias: constructAliasForAST(name, schema.alias, config),
+    alias: constructAliasForAST(name, schema.alias),
   };
 };
 
@@ -71,7 +66,6 @@ export const createBaseTableSchema = (
   measures: Member[],
   dimensions: Member[] | undefined
 ) => {
-  const config = { useDotNotation: false };
   const schemaByName: Record<string, Measure | Dimension> = {};
   tableSchemas.forEach((tableSchema) => {
     tableSchema.dimensions.forEach((dimension) => {
@@ -96,19 +90,12 @@ export const createBaseTableSchema = (
       }
     }),
     joins: resolutionConfig.columnConfigs.map((columnConfig) => {
-      const targetTable = memberKeyToSafeKey(columnConfig.name, {
-        useDotNotation: false,
-      });
-      // Quote the table name if it contains dots (useDotNotation mode)
-      const quotedTargetTable = targetTable.includes('.')
-        ? `"${targetTable}"`
-        : targetTable;
+      const targetTable = memberKeyToSafeKey(columnConfig.name);
       return {
         sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
           columnConfig.name,
-          schemaByName[columnConfig.name]?.alias,
-          config
-        )} = ${quotedTargetTable}.${columnConfig.joinColumn}`,
+          schemaByName[columnConfig.name]?.alias
+        )} = ${targetTable}.${columnConfig.joinColumn}`,
       };
     }),
   };

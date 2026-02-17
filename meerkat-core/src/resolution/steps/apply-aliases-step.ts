@@ -58,8 +58,6 @@ export const applyAliases = async ({
     resolutionConfig.tableSchemas.map((schema) => [schema.name, schema])
   );
 
-  const safeKeyOptions = { useDotNotation: false };
-
   // Helper function to process dimensions or measures and populate the alias map
   const processMembers = (
     members: Array<{ name: string; alias?: string }>,
@@ -68,10 +66,7 @@ export const applyAliases = async ({
     members.forEach((member) => {
       if (!member.alias) return;
 
-      const columnName = memberKeyToSafeKey(
-        `${schemaName}.${member.name}`,
-        safeKeyOptions
-      );
+      const columnName = memberKeyToSafeKey(`${schemaName}.${member.name}`);
       const columnConfig = columnConfigMap.get(columnName);
 
       // No resolution config - use original alias
@@ -86,11 +81,7 @@ export const applyAliases = async ({
       if (columnConfig.resolutionColumns.length === 1) {
         aliasMap.set(
           memberKeyToSafeKey(
-            getNamespacedKey(
-              joinedTableName,
-              columnConfig.resolutionColumns[0]
-            ),
-            safeKeyOptions
+            getNamespacedKey(joinedTableName, columnConfig.resolutionColumns[0])
           ),
           member.alias
         );
@@ -119,8 +110,7 @@ export const applyAliases = async ({
 
         aliasMap.set(
           memberKeyToSafeKey(
-            getNamespacedKey(joinedTableName, resolutionColumn),
-            safeKeyOptions
+            getNamespacedKey(joinedTableName, resolutionColumn)
           ),
           constructCompoundAlias(member.alias, sourceFieldAlias)
         );
