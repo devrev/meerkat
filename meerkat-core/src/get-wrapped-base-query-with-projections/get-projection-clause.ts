@@ -34,7 +34,7 @@ export const getProjectionClause = (
   tableSchema: TableSchema,
   aliasedColumnSet: Set<string>
 ) => {
-  const { measures, dimensions = [] } = query;
+  const { measures, dimensions = [], order } = query;
   const filteredDimensions = dimensions.filter((dimension) => {
     const [dimensionDataSource] = splitIntoDataSourceAndFields(dimension);
     return dimensionDataSource === tableSchema.name;
@@ -85,6 +85,33 @@ export const getProjectionClause = (
 
   const measureProjections = measureProjectionsArr.join(', ');
 
+  // Project order fields that are in the schema but not already in dimensions/measures
+  const orderKeys = order ? Object.keys(order) : [];
+  const filteredOrderKeys = orderKeys.filter((orderKey) => {
+    const [orderDataSource] = splitIntoDataSourceAndFields(orderKey);
+    return orderDataSource === tableSchema.name;
+  });
+  const orderProjectionsArr = filteredOrderKeys.reduce(
+    (acc, member, currentIndex, members) => {
+      const { sql: memberSql } = getDimensionProjection({
+        key: member,
+        tableSchema,
+        modifiers: MODIFIERS,
+        query,
+      });
+      return memberClauseAggregator({
+        member: getAliasForSQL(member, tableSchema),
+        aliasedColumnSet,
+        acc,
+        currentIndex,
+        members,
+        sql: memberSql,
+      });
+    },
+    [] as string[]
+  );
+  const orderProjections = orderProjectionsArr.join(', ');
+
   const usedMeasureObjects = tableSchema.measures.filter((measure) => {
     return (
       measures.findIndex((key) => {
@@ -110,6 +137,7 @@ export const getProjectionClause = (
   const combinedStr = [
     dimensionsProjections,
     measureProjections,
+    orderProjections,
     columnsUsedInMeasuresInProjection,
   ];
 
