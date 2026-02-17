@@ -149,29 +149,6 @@ describe('cube-to-sql', () => {
     );
   });
 
-  it('Should handle order by schema field not present in query dimensions or measures', async () => {
-    // order_date exists in schema as a dimension, but is NOT in the query's dimensions or measures
-    // Test that the order field is properly aliased in the inner SELECT
-    const query = {
-      measures: ['orders.total_order_amount'],
-      filters: [],
-      dimensions: ['orders.customer_id'],
-      order: {
-        'orders.order_date': 'desc',
-      },
-      limit: 5,
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA],
-    });
-    console.info(`SQL for order by field not in query: `, sql);
-    // The order field should be projected in the inner query so ORDER BY works
-    expect(sql).toContain('ORDER BY orders__order_date DESC');
-    // The order field should be aliased in the inner SELECT
-    expect(sql).toContain('order_date AS orders__order_date');
-  });
-
   it('Should order by field not in dimensions and verify sorting', async () => {
     // Dimensions: customer_id - projected in inner query
     // Order by: order_date - NOT in dimensions, but should be projected for ORDER BY
