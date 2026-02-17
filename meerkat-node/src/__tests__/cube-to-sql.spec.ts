@@ -153,9 +153,9 @@ describe('cube-to-sql', () => {
     // order_date exists in schema as a dimension, but is NOT in the query's dimensions or measures
     // Test that the order field is properly aliased in the inner SELECT
     const query = {
-      measures: ['*'],
+      measures: ['orders.total_order_amount'],
       filters: [],
-      dimensions: [],
+      dimensions: ['orders.customer_id'],
       order: {
         'orders.order_date': 'desc',
       },
@@ -170,18 +170,49 @@ describe('cube-to-sql', () => {
     expect(sql).toContain('ORDER BY orders__order_date DESC');
     // The order field should be aliased in the inner SELECT
     expect(sql).toContain('order_date AS orders__order_date');
-    // Query should execute successfully
+  });
+
+  it('Should order by field not in dimensions and verify sorting', async () => {
+    // Dimensions: customer_id - projected in inner query
+    // Order by: order_date - NOT in dimensions, but should be projected for ORDER BY
+    const query = {
+      measures: [],
+      filters: [],
+      dimensions: ['orders.customer_id'],
+      order: {
+        'orders.order_date': 'desc',
+      },
+      limit: 5,
+    };
+    const sql = await cubeQueryToSQL({
+      query,
+      tableSchemas: [TABLE_SCHEMA],
+    });
+    console.info(`SQL for dimensions order by different field: `, sql);
+    // The order field should be projected in the inner query
+    expect(sql).toContain('ORDER BY orders__order_date DESC');
+    expect(sql).toContain('order_date AS orders__order_date');
+    // The dimension should also be projected
+    expect(sql).toContain('customer_id AS orders__customer_id');
+    // Execute the query and verify ordering
     const output = await duckdbExec(sql);
     const parsedOutput = JSON.parse(JSON.stringify(output));
     console.info('Output:', parsedOutput);
-    // Should return results ordered by order_date desc
+    // Should return results
     expect(parsedOutput.length).toBeGreaterThan(0);
     expect(parsedOutput.length).toBeLessThanOrEqual(5);
-    // Verify the results are actually ordered by order_date descending
-    for (let i = 0; i < parsedOutput.length - 1; i++) {
-      const currentDate = new Date(parsedOutput[i].order_date).getTime();
-      const nextDate = new Date(parsedOutput[i + 1].order_date).getTime();
-      expect(currentDate).toBeGreaterThanOrEqual(nextDate);
+    // Verify the results match source table data sorted by order_date descending
+    // Source data (INPUT_DATA_QUERY) sorted by order_date DESC, limit 5:
+    // (14, '8', '1', '2024-09-01', 50, NULL)
+    // (13, '7', '6', '2024-08-01', 100, ['swiggy''s'])
+    // (12, NULL, '3', '2024-07-01', 100, ['flipkart'])
+    // (11, '6aa6', '3', '2024-06-01', 0, ['amazon'])
+    // (10, '6', '3', '2022-06-01', 120, ['myntra', 'amazon'])
+    const expectedCustomerIds = ['8', '7', null, '6aa6', '6'];
+    // Verify customer_ids match expected order from source table (sorted by order_date desc)
+    // This proves the ORDER BY is working correctly even though order_date is not in dimensions
+    for (let i = 0; i < parsedOutput.length; i++) {
+      expect(parsedOutput[i].orders__customer_id).toBe(expectedCustomerIds[i]);
     }
   });
 });
