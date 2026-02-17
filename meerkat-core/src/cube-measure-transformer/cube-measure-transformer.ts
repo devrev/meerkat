@@ -1,4 +1,4 @@
-import { QueryOptions, getAliasForSQL } from '../member-formatters/get-alias';
+import { getAliasForSQL } from '../member-formatters/get-alias';
 import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
@@ -7,8 +7,7 @@ import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replace
 
 export const cubeMeasureToSQLSelectString = (
   measures: Member[],
-  tableSchema: TableSchema,
-  config: QueryOptions
+  tableSchema: TableSchema
 ) => {
   let base = 'SELECT';
   for (let i = 0; i < measures.length; i++) {
@@ -20,7 +19,7 @@ export const cubeMeasureToSQLSelectString = (
     const [tableSchemaName, measureKeyWithoutTable] =
       splitIntoDataSourceAndFields(measure);
 
-    const aliasKey = getAliasForSQL(measure, tableSchema, config);
+    const aliasKey = getAliasForSQL(measure, tableSchema);
     const measureSchema = tableSchema.measures.find(
       (m) => m.name === measureKeyWithoutTable
     );
@@ -36,8 +35,7 @@ export const cubeMeasureToSQLSelectString = (
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
       tableSchemaName,
-      tableSchema,
-      config
+      tableSchema
     );
 
     /**
@@ -55,7 +53,7 @@ export const cubeMeasureToSQLSelectString = (
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [_, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = getNamespacedKey(tableSchemaName, column);
-      const columnKey = getAliasForSQL(memberKey, tableSchema, config);
+      const columnKey = getAliasForSQL(memberKey, tableSchema);
       meerkatReplacedSqlString = meerkatReplacedSqlString.replace(
         memberKey,
         columnKey
@@ -70,8 +68,7 @@ export const cubeMeasureToSQLSelectString = (
 const addDimensionToSQLProjection = (
   dimensions: Member[],
   selectString: string,
-  tableSchema: TableSchema,
-  config: QueryOptions
+  tableSchema: TableSchema
 ) => {
   if (dimensions.length === 0) {
     return selectString;
@@ -84,7 +81,7 @@ const addDimensionToSQLProjection = (
     const dimensionSchema = tableSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    const aliasKey = getAliasForSQL(dimension, tableSchema, config);
+    const aliasKey = getAliasForSQL(dimension, tableSchema);
 
     if (!dimensionSchema) {
       continue;
@@ -156,21 +153,15 @@ const getColumnsFromSQL = (sql: string, tableName: string) => {
  * @param measures
  * @param tableSchema
  * @param sqlToReplace
- * @param config
  * @returns
  */
 export const applyProjectionToSQLQuery = (
   dimensions: Member[],
   measures: Member[],
   tableSchema: TableSchema,
-  sqlToReplace: string,
-  config: QueryOptions
+  sqlToReplace: string
 ) => {
-  let measureSelectString = cubeMeasureToSQLSelectString(
-    measures,
-    tableSchema,
-    config
-  );
+  let measureSelectString = cubeMeasureToSQLSelectString(measures, tableSchema);
 
   if (measures.length > 0 && dimensions.length > 0) {
     measureSelectString += ', ';
@@ -178,8 +169,7 @@ export const applyProjectionToSQLQuery = (
   const selectString = addDimensionToSQLProjection(
     dimensions,
     measureSelectString,
-    tableSchema,
-    config
+    tableSchema
   );
 
   return getSelectReplacedSql(sqlToReplace, selectString);

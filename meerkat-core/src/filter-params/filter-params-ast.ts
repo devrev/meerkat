@@ -1,5 +1,4 @@
 import { cubeToDuckdbAST } from '../ast-builder/ast-builder';
-import { QueryOptions } from '../member-formatters/get-alias';
 import {
   FilterType,
   LogicalAndFilter,
@@ -112,8 +111,7 @@ export const detectAllFilterParamsFromSQL = (
 export const getFilterParamsAST = (
   query: Query,
   tableSchema: TableSchema,
-  filterType: FilterType,
-  config: QueryOptions
+  filterType: FilterType
 ): {
   memberKey: string;
   ast: SelectStatement | null;
@@ -135,10 +133,7 @@ export const getFilterParamsAST = (
         ast: cubeToDuckdbAST(
           { filters, measures: [], dimensions: [] },
           tableSchema,
-          {
-            filterType,
-            config,
-          }
+          { filterType }
         ),
       });
     }

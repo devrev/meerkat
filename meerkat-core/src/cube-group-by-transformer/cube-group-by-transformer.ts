@@ -1,4 +1,4 @@
-import { QueryOptions, getAliasForAST } from '../member-formatters/get-alias';
+import { getAliasForAST } from '../member-formatters/get-alias';
 import { TableSchema } from '../types/cube-types';
 import { Member } from '../types/cube-types/query';
 import {
@@ -8,15 +8,14 @@ import {
 
 export const cubeDimensionToGroupByAST = (
   dimensions: Member[],
-  tableSchema: TableSchema,
-  config: QueryOptions
+  tableSchema: TableSchema
 ) => {
   const groupByAST = dimensions.map((dimension) => {
     const dimensionAST = {
       class: ExpressionClass.COLUMN_REF,
       type: ExpressionType.COLUMN_REF,
       alias: '',
-      column_names: [getAliasForAST(dimension, tableSchema, config)],
+      column_names: [getAliasForAST(dimension, tableSchema)],
     };
 
     return dimensionAST;

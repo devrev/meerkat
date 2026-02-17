@@ -13,7 +13,6 @@ describe('Not Contains Transform Tests', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
-      useDotNotation: false,
     };
 
     it('Should throw error if values are empty', () => {

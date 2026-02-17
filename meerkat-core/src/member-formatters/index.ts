@@ -7,11 +7,7 @@ export {
   getAliasForAST,
   getAliasForSQL,
   getAliasFromSchema,
-  QueryOptions,
 } from './get-alias';
 export { getNamespacedKey } from './get-namespaced-key';
-export {
-  memberKeyToSafeKey,
-  MemberKeyToSafeKeyOptions,
-} from './member-key-to-safe-key';
+export { memberKeyToSafeKey } from './member-key-to-safe-key';
 export { splitIntoDataSourceAndFields } from './split-into-data-source-and-fields';
