@@ -103,6 +103,7 @@ export class DBM extends TableLockManager {
   private async _getConnection() {
     if (!this.connection) {
       const db = await this.instanceManager.getDB();
+
       this.connection = await db.connect();
       if (this.onCreateConnection) {
         await this.onCreateConnection(this.connection);
