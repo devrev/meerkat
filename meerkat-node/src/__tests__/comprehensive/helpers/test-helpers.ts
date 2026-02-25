@@ -88,7 +88,7 @@ export class BatchErrorReporter {
 export function compareNumbers(
   actual: number,
   expected: number,
-  tolerance: number = 0.0001
+  tolerance = 0.0001
 ): boolean {
   return Math.abs(actual - expected) <= tolerance;
 }
@@ -257,7 +257,7 @@ export function generateTestCases<T>(
 /**
  * Format SQL for error messages (truncate if too long)
  */
-export function formatSQL(sql: string, maxLength: number = 200): string {
+export function formatSQL(sql: string, maxLength = 200): string {
   if (sql.length <= maxLength) {
     return sql;
   }
