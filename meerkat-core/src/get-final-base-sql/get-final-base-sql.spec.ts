@@ -1,7 +1,6 @@
 import { Database } from 'duckdb';
 import { TableSchema } from '../types/cube-types';
 import { getFinalBaseSQL } from './get-final-base-sql';
-
 const getQueryOutput = async (sql: string) => {
   const db = new Database(':memory:');
   return new Promise((resolve, reject) => {
@@ -13,7 +12,6 @@ const getQueryOutput = async (sql: string) => {
     });
   });
 };
-
 const TABLE_SCHEMA: TableSchema = {
   name: 'orders',
   sql: "select * from orders WHERE ${FILTER_PARAMS.orders.status.filter('status')}",
@@ -25,7 +23,6 @@ const TABLE_SCHEMA: TableSchema = {
     { name: 'amount', sql: 'amount', type: 'number' },
   ],
 };
-
 describe('get final base sql', () => {
   it('should not return measures in the projected base sql when filter param passed', async () => {
     const result = await getFinalBaseSQL({
@@ -48,7 +45,6 @@ describe('get final base sql', () => {
       'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE  ((orders.status IS NOT NULL))) AS orders'
     );
   });
-
   it('should not return measures in the projected base sql when filter param not passed', async () => {
     const result = await getFinalBaseSQL({
       query: {
@@ -67,7 +63,6 @@ describe('get final base sql', () => {
       'SELECT amount AS orders__amount, status AS orders__status, * FROM (select * from orders WHERE TRUE) AS orders'
     );
   });
-
   it('should use aliases', async () => {
     const tableSchema: TableSchema = {
       ...TABLE_SCHEMA,
@@ -94,7 +89,6 @@ describe('get final base sql', () => {
         },
       ],
     };
-
     const result = await getFinalBaseSQL({
       query: {
         measures: ['orders.count'],

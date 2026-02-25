@@ -1,12 +1,14 @@
 import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { generateResolutionSchemas } from '../generate-resolution-schemas';
-
 describe('generate-resolution-schemas', () => {
   describe('generateResolutionSchemas', () => {
     const createMockTableSchema = (
       name: string,
-      dimensions: { name: string; type?: string }[] = []
+      dimensions: {
+        name: string;
+        type?: string;
+      }[] = []
     ): TableSchema => ({
       name,
       sql: `SELECT * FROM ${name}`,
@@ -17,7 +19,6 @@ describe('generate-resolution-schemas', () => {
       })),
       measures: [],
     });
-
     it('should create resolution schema with converted name (dots to underscores)', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -35,13 +36,10 @@ describe('generate-resolution-schemas', () => {
           ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('orders__customer_id');
     });
-
     it('should create dimensions with converted names and aliases', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -60,9 +58,7 @@ describe('generate-resolution-schemas', () => {
           ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].dimensions).toHaveLength(2);
       expect(result[0].dimensions[0].name).toBe(
         'orders__customer_id__display_name'
@@ -73,7 +69,6 @@ describe('generate-resolution-schemas', () => {
       expect(result[0].dimensions[1].name).toBe('orders__customer_id__email');
       expect(result[0].dimensions[1].alias).toBe('orders__customer_id__email');
     });
-
     it('should generate correct SQL references', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -91,14 +86,11 @@ describe('generate-resolution-schemas', () => {
           ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].dimensions[0].sql).toBe(
         'orders__customer_id.display_name'
       );
     });
-
     it('should handle multiple column configs', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -126,14 +118,11 @@ describe('generate-resolution-schemas', () => {
           ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result).toHaveLength(2);
       expect(result[0].name).toBe('orders__customer_id');
       expect(result[1].name).toBe('orders__product_id');
     });
-
     it('should handle nested dot notation in column names', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -146,18 +135,17 @@ describe('generate-resolution-schemas', () => {
           },
         ],
         tableSchemas: [
-          createMockTableSchema('customers', [{ name: 'name', type: 'string' }]),
+          createMockTableSchema('customers', [
+            { name: 'name', type: 'string' },
+          ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].name).toBe('orders__customer__nested_id');
       expect(result[0].dimensions[0].name).toBe(
         'orders__customer__nested_id__name'
       );
     });
-
     describe('error handling', () => {
       it('should throw error when table schema not found', () => {
         const config: ResolutionConfig = {
@@ -172,12 +160,10 @@ describe('generate-resolution-schemas', () => {
           ],
           tableSchemas: [],
         };
-
         expect(() => generateResolutionSchemas(config)).toThrow(
           'Table schema not found for nonexistent'
         );
       });
-
       it('should throw error when dimension not found in source schema', () => {
         const config: ResolutionConfig = {
           columnConfigs: [
@@ -195,24 +181,19 @@ describe('generate-resolution-schemas', () => {
             ]),
           ],
         };
-
         expect(() => generateResolutionSchemas(config)).toThrow(
           'Dimension not found: nonexistent_column'
         );
       });
     });
-
     it('should return empty array when no column configs provided', () => {
       const config: ResolutionConfig = {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result).toEqual([]);
     });
-
     it('should preserve dimension type from source schema', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -228,12 +209,9 @@ describe('generate-resolution-schemas', () => {
           createMockTableSchema('customers', [{ name: 'age', type: 'number' }]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].dimensions[0].type).toBe('number');
     });
-
     it('should copy SQL from source table schema', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -249,17 +227,16 @@ describe('generate-resolution-schemas', () => {
           {
             name: 'customers',
             sql: 'SELECT * FROM customers WHERE active = true',
-            dimensions: [{ name: 'name', sql: 'customers.name', type: 'string' }],
+            dimensions: [
+              { name: 'name', sql: 'customers.name', type: 'string' },
+            ],
             measures: [],
           },
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].sql).toBe('SELECT * FROM customers WHERE active = true');
     });
-
     it('should have empty measures array in resolution schema', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -272,15 +249,14 @@ describe('generate-resolution-schemas', () => {
           },
         ],
         tableSchemas: [
-          createMockTableSchema('customers', [{ name: 'name', type: 'string' }]),
+          createMockTableSchema('customers', [
+            { name: 'name', type: 'string' },
+          ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].measures).toEqual([]);
     });
-
     it('should handle array type column configs', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -296,14 +272,11 @@ describe('generate-resolution-schemas', () => {
           createMockTableSchema('tags', [{ name: 'tag_name', type: 'string' }]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].name).toBe('orders__tag_ids');
       expect(result[0].dimensions[0].name).toBe('orders__tag_ids__tag_name');
       expect(result[0].dimensions[0].sql).toBe('orders__tag_ids.tag_name');
     });
-
     it('should handle multiple resolution columns from same source', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -323,9 +296,7 @@ describe('generate-resolution-schemas', () => {
           ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].dimensions).toHaveLength(3);
       expect(result[0].dimensions[0]).toEqual({
         name: 'orders__user_id__first_name',
@@ -346,7 +317,6 @@ describe('generate-resolution-schemas', () => {
         alias: 'orders__user_id__email',
       });
     });
-
     it('should handle column config with number type dimension', () => {
       const config: ResolutionConfig = {
         columnConfigs: [
@@ -365,9 +335,7 @@ describe('generate-resolution-schemas', () => {
           ]),
         ],
       };
-
       const result = generateResolutionSchemas(config);
-
       expect(result[0].dimensions[0].type).toBe('number');
       expect(result[0].dimensions[1].type).toBe('number');
     });

@@ -5,11 +5,9 @@ import {
   cubeMeasureToSQLSelectString,
   getAllColumnUsedInMeasures,
 } from './cube-measure-transformer';
-
 describe('cubeMeasureToSQLSelectString', () => {
   let tableSchema: TableSchema, tableSchemaWithAliases: TableSchema;
   const cube = 'cube_test';
-
   beforeEach(() => {
     tableSchema = {
       name: 'test',
@@ -27,7 +25,6 @@ describe('cubeMeasureToSQLSelectString', () => {
         },
       ],
     };
-
     tableSchemaWithAliases = {
       name: 'test_with_aliases',
       sql: cube,
@@ -48,25 +45,21 @@ describe('cubeMeasureToSQLSelectString', () => {
       dimensions: [],
     };
   });
-
   it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure1'];
     const result = cubeMeasureToSQLSelectString(measures, tableSchema);
     expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 `);
   });
-
   it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure2'];
     const result = cubeMeasureToSQLSelectString(measures, tableSchema);
     expect(result).toBe(`SELECT SUM(total) AS temp__measure2 `);
   });
-
   it('should substitute "*" for all columns in the cube', () => {
     const measures: Member[] = ['*'];
     const result = cubeMeasureToSQLSelectString(measures, tableSchema);
     expect(result).toBe(`SELECT test.*`);
   });
-
   it('should use alias for measures when provided', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const result = cubeMeasureToSQLSelectString(
@@ -77,7 +70,6 @@ describe('cubeMeasureToSQLSelectString', () => {
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
     );
   });
-
   it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 1', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM my_table';
@@ -91,7 +83,6 @@ describe('cubeMeasureToSQLSelectString', () => {
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM my_table`
     );
   });
-
   it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure 2', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
@@ -105,7 +96,6 @@ describe('cubeMeasureToSQLSelectString', () => {
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2  FROM (SELECT * FROM TABLE_1)`
     );
   });
-
   it('should replace the select portion of a SQL string using replaceSelectWithCubeMeasure & dimension', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const dimensions: Member[] = ['temp.dimension1', 'temp.dimension2'];
@@ -120,7 +110,6 @@ describe('cubeMeasureToSQLSelectString', () => {
       `SELECT COUNT(*) AS temp__measure1 ,  SUM(total) AS temp__measure2 ,   temp__dimension1,  temp__dimension2 FROM (SELECT * FROM TABLE_1)`
     );
   });
-
   it('should use aliases when provided', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM my_table';
@@ -135,7 +124,6 @@ describe('cubeMeasureToSQLSelectString', () => {
     );
   });
 });
-
 describe('getAllColumnUsedInMeasures', () => {
   it('should return all columns used in measures', () => {
     const tableSchema: TableSchema = {
@@ -160,7 +148,6 @@ describe('getAllColumnUsedInMeasures', () => {
     );
     expect(result).toEqual(['test.total']);
   });
-
   it('should return all columns used in measures with no measures', () => {
     const tableSchema: TableSchema = {
       name: 'test',
@@ -188,7 +175,6 @@ describe('getAllColumnUsedInMeasures', () => {
     );
     expect(result).toEqual(['test.total', 'test.amount']);
   });
-
   it('should return all columns with complex case', () => {
     const tableSchema: TableSchema = {
       name: 'test',
@@ -229,7 +215,6 @@ describe('getAllColumnUsedInMeasures', () => {
       'test.total_resolution_breaches_ever',
     ]);
   });
-
   describe('regex behavior - should not match quoted aliases', () => {
     it('should NOT match already-quoted dot notation aliases', () => {
       const tableSchema: TableSchema = {
@@ -251,7 +236,6 @@ describe('getAllColumnUsedInMeasures', () => {
       // Should NOT match "orders.amount" because it's quoted
       expect(result).toEqual([]);
     });
-
     it('should match unquoted table.column references', () => {
       const tableSchema: TableSchema = {
         name: 'orders',
@@ -272,7 +256,6 @@ describe('getAllColumnUsedInMeasures', () => {
       // Should match orders.amount because it's NOT quoted
       expect(result).toEqual(['orders.amount']);
     });
-
     it('should match unquoted but not quoted in mixed SQL', () => {
       const tableSchema: TableSchema = {
         name: 'orders',
@@ -293,7 +276,6 @@ describe('getAllColumnUsedInMeasures', () => {
       // Should only match orders.amount (unquoted), not orders.discount (quoted)
       expect(result).toEqual(['orders.amount']);
     });
-
     it('should handle multiple unquoted columns', () => {
       const tableSchema: TableSchema = {
         name: 'orders',
@@ -313,7 +295,6 @@ describe('getAllColumnUsedInMeasures', () => {
       );
       expect(result).toEqual(['orders.amount', 'orders.quantity']);
     });
-
     it('should not match columns from different tables', () => {
       const tableSchema: TableSchema = {
         name: 'orders',

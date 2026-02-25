@@ -1,7 +1,6 @@
 import { TableSchema } from '../../../types/cube-types';
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from '../../types';
 import { getResolvedTableSchema } from '../resolution-step';
-
 describe('resolution-step', () => {
   describe('getResolvedTableSchema', () => {
     const createMockTableSchema = (
@@ -23,7 +22,6 @@ describe('resolution-step', () => {
       })),
       measures: [],
     });
-
     it('should call cubeQueryToSQL with query containing all dimensions namespaced', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -37,7 +35,6 @@ describe('resolution-step', () => {
         tableSchemas: [],
       };
       const contextParams = { userId: '123' };
-
       await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
@@ -45,10 +42,8 @@ describe('resolution-step', () => {
         cubeQueryToSQL: mockCubeQueryToSQL,
         contextParams,
       });
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
-
       expect(calledParams.contextParams).toEqual({ userId: '123' });
       expect(calledParams.query.measures).toEqual([]);
       expect(calledParams.query.dimensions).toEqual([
@@ -58,7 +53,6 @@ describe('resolution-step', () => {
       expect(calledParams.tableSchemas).toHaveLength(1);
       expect(calledParams.tableSchemas[0].name).toBe(BASE_DATA_SOURCE_NAME);
     });
-
     it('should return table schema with dimensions from column projections', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -71,14 +65,12 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.customer_id', 'orders.status'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       expect(result.name).toBe(BASE_DATA_SOURCE_NAME);
       expect(result.sql).toBe('SELECT col1, col2 FROM resolved');
       expect(result.dimensions).toHaveLength(2);
@@ -96,7 +88,6 @@ describe('resolution-step', () => {
         alias: 'Status',
       });
     });
-
     it('should return empty dimensions when column projections is empty', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -108,17 +99,14 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: [],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       expect(result.dimensions).toEqual([]);
     });
-
     it('should throw error when column projection not found in base schema', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -130,7 +118,6 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       await expect(
         getResolvedTableSchema({
           baseTableSchema,
@@ -142,7 +129,6 @@ describe('resolution-step', () => {
         "Column projection 'orders__nonexistent' not found in base table schema dimensions"
       );
     });
-
     it('should generate resolution schemas and join paths when column configs provided', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -166,14 +152,12 @@ describe('resolution-step', () => {
           ]),
         ],
       };
-
       await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.owner_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       // Should have called cubeQueryToSQL with join paths
       const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
       expect(calledParams.query.joinPaths).toBeDefined();
@@ -183,12 +167,10 @@ describe('resolution-step', () => {
         right: 'orders__owner_id',
         on: 'orders__owner_id', // Uses safe key when no alias found in baseTableSchemas
       });
-
       // Should have resolution schema in tableSchemas
       expect(calledParams.tableSchemas).toHaveLength(2);
       expect(calledParams.tableSchemas[0].name).toBe(BASE_DATA_SOURCE_NAME);
       expect(calledParams.tableSchemas[1].name).toBe('orders__owner_id');
-
       // Resolution schema should have correct dimension
       const resolutionSchema = calledParams.tableSchemas[1];
       expect(resolutionSchema.dimensions).toHaveLength(1);
@@ -199,7 +181,6 @@ describe('resolution-step', () => {
         'orders__owner_id.display_name'
       );
     });
-
     it('should maintain order of dimensions matching column projections', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -213,7 +194,6 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
@@ -224,13 +204,11 @@ describe('resolution-step', () => {
         ],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       expect(result.dimensions).toHaveLength(3);
       expect(result.dimensions[0].name).toBe('orders__amount');
       expect(result.dimensions[1].name).toBe('orders__customer_id');
       expect(result.dimensions[2].name).toBe('orders__status');
     });
-
     it('should handle undefined context params', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -242,19 +220,16 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.customer_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
       expect(calledParams.contextParams).toBeUndefined();
     });
-
     it('should handle multiple resolution configs for different columns', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -289,26 +264,21 @@ describe('resolution-step', () => {
           ]),
         ],
       };
-
       await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.customer_id', 'orders.product_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
-
       // Should have 3 table schemas: base + 2 resolution schemas
       expect(calledParams.tableSchemas).toHaveLength(3);
       expect(calledParams.tableSchemas[0].name).toBe(BASE_DATA_SOURCE_NAME);
       expect(calledParams.tableSchemas[1].name).toBe('orders__customer_id');
       expect(calledParams.tableSchemas[2].name).toBe('orders__product_id');
-
       // Should have 2 join paths
       expect(calledParams.query.joinPaths).toHaveLength(2);
     });
-
     it('should preserve dimension types from base schema', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -322,19 +292,16 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.amount', 'orders.date', 'orders.tags'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       expect(result.dimensions[0].type).toBe('number');
       expect(result.dimensions[1].type).toBe('time');
       expect(result.dimensions[2].type).toBe('string_array');
     });
-
     it('should use SQL from cubeQueryToSQL in result schema', async () => {
       const expectedSql = 'SELECT a, b, c FROM complex_query WHERE x > 5';
       const mockCubeQueryToSQL = jest.fn().mockResolvedValue(expectedSql);
@@ -345,17 +312,14 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.customer_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       expect(result.sql).toBe(expectedSql);
     });
-
     it('should generate resolved dimensions for resolution columns', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -380,17 +344,14 @@ describe('resolution-step', () => {
           ]),
         ],
       };
-
       await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.user_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       const calledParams = mockCubeQueryToSQL.mock.calls[0][0];
       const resolutionSchema = calledParams.tableSchemas[1];
-
       expect(resolutionSchema.dimensions).toHaveLength(2);
       expect(resolutionSchema.dimensions[0].name).toBe(
         'orders__user_id__first_name'
@@ -399,7 +360,6 @@ describe('resolution-step', () => {
         'orders__user_id__last_name'
       );
     });
-
     it('should handle nested dot notation in column projections', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -411,18 +371,15 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.customer.nested_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       expect(result.dimensions).toHaveLength(1);
       expect(result.dimensions[0].name).toBe('orders__customer__nested_id');
     });
-
     it('should preserve measures from base table schema in result', async () => {
       const mockCubeQueryToSQL = jest
         .fn()
@@ -441,14 +398,12 @@ describe('resolution-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const result = await getResolvedTableSchema({
         baseTableSchema,
         resolutionConfig,
         columnProjections: ['orders.customer_id'],
         cubeQueryToSQL: mockCubeQueryToSQL,
       });
-
       // Measures are preserved from the base table schema
       expect(result.measures).toHaveLength(1);
       expect(result.measures[0].name).toBe('orders__total');

@@ -1,12 +1,14 @@
 import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { generateResolutionJoinPaths } from '../generate-resolution-join-paths';
-
 describe('generate-resolution-join-paths', () => {
   describe('generateResolutionJoinPaths', () => {
     const createMockTableSchema = (
       name: string,
-      dimensions: { name: string; alias?: string }[] = []
+      dimensions: {
+        name: string;
+        alias?: string;
+      }[] = []
     ): TableSchema => ({
       name,
       sql: `SELECT * FROM ${name}`,
@@ -18,7 +20,6 @@ describe('generate-resolution-join-paths', () => {
       })),
       measures: [],
     });
-
     it('should generate join paths for single column config without alias', () => {
       const baseDataSourceName = 'base';
       const resolutionConfig: ResolutionConfig = {
@@ -40,13 +41,11 @@ describe('generate-resolution-join-paths', () => {
       const baseTableSchemas: TableSchema[] = [
         createMockTableSchema('orders', [{ name: 'customer_id' }]),
       ];
-
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
         baseTableSchemas
       );
-
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual([
         {
@@ -56,7 +55,6 @@ describe('generate-resolution-join-paths', () => {
         },
       ]);
     });
-
     it('should generate join paths for single column config with custom alias', () => {
       const baseDataSourceName = 'base';
       const resolutionConfig: ResolutionConfig = {
@@ -80,13 +78,11 @@ describe('generate-resolution-join-paths', () => {
           { name: 'customer_id', alias: 'Customer ID' },
         ]),
       ];
-
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
         baseTableSchemas
       );
-
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual([
         {
@@ -96,7 +92,6 @@ describe('generate-resolution-join-paths', () => {
         },
       ]);
     });
-
     it('should generate join paths for multiple column configs', () => {
       const baseDataSourceName = 'base';
       const resolutionConfig: ResolutionConfig = {
@@ -129,34 +124,28 @@ describe('generate-resolution-join-paths', () => {
           { name: 'product_id', alias: 'Product ID' },
         ]),
       ];
-
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
         baseTableSchemas
       );
-
       expect(result).toHaveLength(2);
       expect(result[0][0].on).toBe('orders__customer_id');
       expect(result[1][0].on).toBe('Product ID');
     });
-
     it('should return empty array when no column configs provided', () => {
       const baseDataSourceName = 'base';
       const resolutionConfig: ResolutionConfig = {
         columnConfigs: [],
       };
       const baseTableSchemas: TableSchema[] = [];
-
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
         baseTableSchemas
       );
-
       expect(result).toEqual([]);
     });
-
     it('should use memberKeyToSafeKey for right side of join', () => {
       const baseDataSourceName = 'base';
       const resolutionConfig: ResolutionConfig = {
@@ -174,13 +163,11 @@ describe('generate-resolution-join-paths', () => {
         ],
       };
       const baseTableSchemas: TableSchema[] = [];
-
       const result = generateResolutionJoinPaths(
         baseDataSourceName,
         resolutionConfig,
         baseTableSchemas
       );
-
       expect(result[0][0].right).toBe('orders__nested__field');
     });
   });

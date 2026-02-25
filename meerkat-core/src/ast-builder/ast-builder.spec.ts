@@ -8,15 +8,12 @@ import {
 } from '../types/duckdb-serialization-types';
 import { isSelectNode } from '../types/utils';
 import { cubeToDuckdbAST } from './ast-builder';
-
 const defaultOptions = {
   filterType: 'PROJECTION_FILTER' as const,
 };
-
 const baseFilterOptions = {
   filterType: 'BASE_FILTER' as const,
 };
-
 describe('cubeToDuckdbAST', () => {
   const mockTableSchema: TableSchema = {
     name: 'test_table',
@@ -36,7 +33,6 @@ describe('cubeToDuckdbAST', () => {
       },
     ],
   };
-
   it('should return null if table schema is null', () => {
     const result = cubeToDuckdbAST(
       {} as Query,
@@ -45,13 +41,11 @@ describe('cubeToDuckdbAST', () => {
     );
     expect(result).toBeNull();
   });
-
   it('should handle basic query', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
       dimensions: ['test_table.dimension1'],
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
@@ -65,7 +59,6 @@ describe('cubeToDuckdbAST', () => {
       },
     ]);
   });
-
   it('should handle filters for dimensions (WHERE clause)', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
@@ -78,7 +71,6 @@ describe('cubeToDuckdbAST', () => {
         },
       ],
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
@@ -107,7 +99,6 @@ describe('cubeToDuckdbAST', () => {
       type: 'COMPARE_EQUAL',
     });
   });
-
   it('should handle filters for measures (HAVING clause)', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
@@ -120,7 +111,6 @@ describe('cubeToDuckdbAST', () => {
         },
       ],
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.having).toEqual({
@@ -154,7 +144,6 @@ describe('cubeToDuckdbAST', () => {
       type: 'COMPARE_GREATERTHAN',
     });
   });
-
   it('should handle order by clause', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
@@ -163,7 +152,6 @@ describe('cubeToDuckdbAST', () => {
         'test_table.dimension1': 'asc',
       },
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
@@ -178,7 +166,6 @@ describe('cubeToDuckdbAST', () => {
       });
     }
   });
-
   it('should handle limit and offset', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
@@ -186,7 +173,6 @@ describe('cubeToDuckdbAST', () => {
       limit: 10,
       offset: 5,
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
@@ -224,7 +210,6 @@ describe('cubeToDuckdbAST', () => {
       });
     }
   });
-
   it('should handle complex query', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
@@ -248,7 +233,6 @@ describe('cubeToDuckdbAST', () => {
       limit: 10,
       offset: 5,
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, defaultOptions);
     expect(result).not.toBeNull();
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
@@ -353,7 +337,6 @@ describe('cubeToDuckdbAST', () => {
       type: 'LIMIT_MODIFIER',
     });
   });
-
   it('should handle dimensions with multiple dots in their names', () => {
     const complexTableSchema: TableSchema = {
       name: 'test_table',
@@ -373,12 +356,10 @@ describe('cubeToDuckdbAST', () => {
         },
       ],
     };
-
     const query: Query = {
       measures: ['test_table.measure.with.dots'],
       dimensions: ['test_table.dimension.with.dots'],
     };
-
     const result = cubeToDuckdbAST(query, complexTableSchema, defaultOptions);
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.group_expressions).toHaveLength(1);
@@ -389,7 +370,6 @@ describe('cubeToDuckdbAST', () => {
       type: 'COLUMN_REF',
     });
   });
-
   it('should handle aliases', () => {
     const tableSchema: TableSchema = {
       name: 'test_table',
@@ -411,12 +391,10 @@ describe('cubeToDuckdbAST', () => {
         },
       ],
     };
-
     const query: Query = {
       measures: ['test_table.measure'],
       dimensions: ['test_table.dimension'],
     };
-
     const result = cubeToDuckdbAST(query, tableSchema, defaultOptions);
     expect(result.node.type).toBe(QueryNodeType.SELECT_NODE);
     expect(result.node.group_expressions).toHaveLength(1);
@@ -428,7 +406,6 @@ describe('cubeToDuckdbAST', () => {
     });
   });
 });
-
 describe('cubeToDuckdbAST (BASE_FILTER)', () => {
   const mockTableSchema: TableSchema = {
     name: 'test_table',
@@ -448,7 +425,6 @@ describe('cubeToDuckdbAST (BASE_FILTER)', () => {
       },
     ],
   };
-
   it('should keep base column refs for WHERE with base filters', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
@@ -461,7 +437,6 @@ describe('cubeToDuckdbAST (BASE_FILTER)', () => {
         },
       ],
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, baseFilterOptions);
     expect(result).not.toBeNull();
     expect(result?.node.where_clause).toEqual({
@@ -489,7 +464,6 @@ describe('cubeToDuckdbAST (BASE_FILTER)', () => {
       type: 'COMPARE_EQUAL',
     });
   });
-
   it('should keep base column refs for HAVING with base filters', () => {
     const query: Query = {
       measures: ['test_table.measure1'],
@@ -502,7 +476,6 @@ describe('cubeToDuckdbAST (BASE_FILTER)', () => {
         },
       ],
     };
-
     const result = cubeToDuckdbAST(query, mockTableSchema, baseFilterOptions);
     expect(result).not.toBeNull();
     expect(result?.node.having).toEqual({

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import TAXI_JSON_DATA from '../../../public/data-sets/taxi.json';
 import { useDBM } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { TAXI_FILE_URL } from './constants';
@@ -15,6 +14,8 @@ export const NativeAppFileLoader = ({
   useClassicEffect(() => {
     (async () => {
       const url = TAXI_FILE_URL;
+      const taxiJsonResponse = await fetch('/data-sets/taxi.json');
+      const taxiJsonData = await taxiJsonResponse.json();
 
       await fileManager.registerFileUrl?.({
         tableName: 'taxi',
@@ -23,7 +24,7 @@ export const NativeAppFileLoader = ({
       });
 
       await fileManager.registerJSON({
-        json: TAXI_JSON_DATA,
+        json: taxiJsonData,
         tableName: 'taxi_json',
         fileName: 'taxi_json',
       });

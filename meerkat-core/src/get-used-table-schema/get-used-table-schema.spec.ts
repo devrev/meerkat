@@ -1,6 +1,5 @@
 import { Query, TableSchema } from '../types/cube-types';
 import { getUsedTableSchema } from './get-used-table-schema';
-
 describe('getUsedTableSchema', () => {
   const sampleTableSchema: TableSchema[] = [
     {
@@ -99,7 +98,6 @@ describe('getUsedTableSchema', () => {
       joins: [],
     },
   ];
-
   it('should filter tables based on simple filter', () => {
     const query: Query = {
       filters: [
@@ -115,7 +113,6 @@ describe('getUsedTableSchema', () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('table1');
   });
-
   it('should filter tables based on AND conditions', () => {
     const query: Query = {
       filters: [
@@ -143,7 +140,6 @@ describe('getUsedTableSchema', () => {
       'table2',
     ]);
   });
-
   it('should filter tables based on OR conditions', () => {
     const query: Query = {
       filters: [
@@ -171,7 +167,6 @@ describe('getUsedTableSchema', () => {
       'table3',
     ]);
   });
-
   it('should handle nested AND-OR conditions', () => {
     const query: Query = {
       filters: [
@@ -209,7 +204,6 @@ describe('getUsedTableSchema', () => {
       'table3',
     ]);
   });
-
   it('should handle multiple top-level filters', () => {
     const query: Query = {
       filters: [
@@ -233,7 +227,6 @@ describe('getUsedTableSchema', () => {
       'table2',
     ]);
   });
-
   it('should handle complex nested filters', () => {
     const query: Query = {
       filters: [
@@ -271,7 +264,6 @@ describe('getUsedTableSchema', () => {
       'table3',
     ]);
   });
-
   it('should filter tables based on measures', () => {
     const query: Query = {
       measures: ['table1.measure1', 'table2.measure2'],
@@ -283,7 +275,6 @@ describe('getUsedTableSchema', () => {
       'table2',
     ]);
   });
-
   it('should filter tables based on dimensions', () => {
     const query: Query = {
       measures: [],
@@ -296,7 +287,6 @@ describe('getUsedTableSchema', () => {
       'table3',
     ]);
   });
-
   it('should filter tables based on order', () => {
     const query: Query = {
       measures: [],
@@ -312,7 +302,6 @@ describe('getUsedTableSchema', () => {
       'table2',
     ]);
   });
-
   it('should return all tables when joinPaths are present', () => {
     const query: Query = {
       measures: [],
@@ -354,7 +343,6 @@ describe('getUsedTableSchema', () => {
       'table5',
     ]);
   });
-
   it('should return all tables when measures contains wildcard "*"', () => {
     const query: Query = {
       measures: ['*'],
@@ -369,7 +357,6 @@ describe('getUsedTableSchema', () => {
       'table5',
     ]);
   });
-
   it('should filter tables when dimensions contain table-level wildcards', () => {
     const query: Query = {
       measures: [],
@@ -382,7 +369,6 @@ describe('getUsedTableSchema', () => {
       'table2',
     ]);
   });
-
   it('should filter tables when dimensions contain mix of wildcards and specific dimensions', () => {
     const query: Query = {
       measures: [],
@@ -395,7 +381,6 @@ describe('getUsedTableSchema', () => {
       'table3',
     ]);
   });
-
   it('should return same table schemas when called multiple times with same joinPaths', () => {
     const query: Query = {
       measures: [],
@@ -407,7 +392,6 @@ describe('getUsedTableSchema', () => {
       ],
     };
     const result1 = getUsedTableSchema(sampleTableSchema, query);
-
     expect(result1).toEqual(sampleTableSchema);
   });
 });

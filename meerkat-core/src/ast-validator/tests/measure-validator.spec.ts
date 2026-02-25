@@ -9,7 +9,6 @@ import {
   validateMeasure,
 } from '../measure-validator';
 import { DIMENSION_TEST_CASES, MEASURE_TEST_CASES } from './test-data';
-
 describe('validateMeasure', () => {
   it('should throw error if the statement if there is no statement', () => {
     expect(() =>
@@ -23,7 +22,6 @@ describe('validateMeasure', () => {
       )
     ).toThrow('No statement found');
   });
-
   it('should return true if the statement is valid', () => {
     expect(
       validateMeasure(
@@ -59,7 +57,6 @@ describe('validateMeasure', () => {
     ).toBe(true);
   });
 });
-
 describe('validateExpressionNode for measure expressions', () => {
   for (const data of MEASURE_TEST_CASES) {
     it(`should return ${data.expected} for measure expression: ${data.description}`, () => {
@@ -85,7 +82,6 @@ describe('validateExpressionNode for measure expressions', () => {
     });
   }
 });
-
 describe('containsAggregation', () => {
   for (const data of DIMENSION_TEST_CASES) {
     it(`should return false for dimension expression: ${data.description}`, () => {
@@ -94,7 +90,6 @@ describe('containsAggregation', () => {
       );
     });
   }
-
   it('should return true for aggregation expression', () => {
     expect(
       containsAggregation(MEASURE_TEST_CASES[1].node, new Set(['sum']))

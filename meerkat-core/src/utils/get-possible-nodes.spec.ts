@@ -1,6 +1,17 @@
-import { BASIC_JOIN_PATH, CIRCULAR_JOIN_PATH, CIRCULAR_TABLE_SCHEMA, CIRCULAR_TABLE_SCHEMA_SINGLE_JOIN_PATH, COMPLEX_JOIN_PATH, EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH, EXPECTED_OUTPUT_WITH_ONE_DEPTH, EXPECTED_OUTPUT_WITH_TWO_DEPTH, INTERMEDIATE_JOIN_PATH, LINEAR_TABLE_SCHEMA, SINGLE_NODE_JOIN_PATH } from './__fixtures__/joins.fixtures';
+import {
+  BASIC_JOIN_PATH,
+  CIRCULAR_JOIN_PATH,
+  CIRCULAR_TABLE_SCHEMA,
+  CIRCULAR_TABLE_SCHEMA_SINGLE_JOIN_PATH,
+  COMPLEX_JOIN_PATH,
+  EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH,
+  EXPECTED_OUTPUT_WITH_ONE_DEPTH,
+  EXPECTED_OUTPUT_WITH_TWO_DEPTH,
+  INTERMEDIATE_JOIN_PATH,
+  LINEAR_TABLE_SCHEMA,
+  SINGLE_NODE_JOIN_PATH,
+} from './__fixtures__/joins.fixtures';
 import { getNestedTableSchema } from './get-possible-nodes';
-
 describe('Table schema functions', () => {
   describe('graph with no loops', () => {
     it('Test single node join path', async () => {
@@ -9,7 +20,6 @@ describe('Table schema functions', () => {
         SINGLE_NODE_JOIN_PATH,
         1
       );
-
       expect(nestedSchema).toEqual({
         name: 'node1',
         measures: [],
@@ -71,14 +81,12 @@ describe('Table schema functions', () => {
         ],
       });
     });
-
     it('Test basic join path with depth 0 (should return original graph)', async () => {
       const nestedSchema = await getNestedTableSchema(
         LINEAR_TABLE_SCHEMA,
         BASIC_JOIN_PATH,
         0
       );
-
       expect(nestedSchema).toEqual({
         name: 'node1',
         measures: [],
@@ -114,14 +122,12 @@ describe('Table schema functions', () => {
         ],
       });
     });
-
     it('Test basic join path with depth 1', async () => {
       const nestedSchema = await getNestedTableSchema(
         LINEAR_TABLE_SCHEMA,
         BASIC_JOIN_PATH,
         1
       );
-
       expect(nestedSchema).toEqual({
         name: 'node1',
         measures: [],
@@ -211,14 +217,12 @@ describe('Table schema functions', () => {
         ],
       });
     });
-
     it('Test basic join path with depth 2', async () => {
       const nestedSchema = await getNestedTableSchema(
         LINEAR_TABLE_SCHEMA,
         BASIC_JOIN_PATH,
         2
       );
-
       expect(nestedSchema).toEqual({
         name: 'node1',
         measures: [],
@@ -376,14 +380,12 @@ describe('Table schema functions', () => {
         ],
       });
     });
-
     it('Test intermediate join path with depth 0 (should return original graph)', async () => {
       const nestedSchema = await getNestedTableSchema(
         LINEAR_TABLE_SCHEMA,
         INTERMEDIATE_JOIN_PATH,
         0
       );
-
       expect(nestedSchema).toEqual({
         name: 'node1',
         measures: [],
@@ -446,14 +448,12 @@ describe('Table schema functions', () => {
         ],
       });
     });
-
     it('Test intermediate join path with depth 1', async () => {
       const nestedSchema = await getNestedTableSchema(
         LINEAR_TABLE_SCHEMA,
         INTERMEDIATE_JOIN_PATH,
         1
       );
-
       expect(nestedSchema).toEqual({
         name: 'node1',
         measures: [],
@@ -597,28 +597,23 @@ describe('Table schema functions', () => {
         ],
       });
     });
-
     it('Test complex join path with depth 1', async () => {
       const nestedSchema = await getNestedTableSchema(
         LINEAR_TABLE_SCHEMA,
         COMPLEX_JOIN_PATH,
         1
       );
-
       expect(nestedSchema).toEqual(EXPECTED_OUTPUT_WITH_ONE_DEPTH);
     });
-
     it('Test complex complex join path with depth 2', async () => {
       const nestedSchema = await getNestedTableSchema(
         LINEAR_TABLE_SCHEMA,
         COMPLEX_JOIN_PATH,
         2
       );
-
       expect(nestedSchema).toEqual(EXPECTED_OUTPUT_WITH_TWO_DEPTH);
     });
-  })
-
+  });
   describe('graph with loops', () => {
     it('Test circular graphs', async () => {
       const nestedSchema = getNestedTableSchema(
@@ -634,12 +629,14 @@ describe('Table schema functions', () => {
         INTERMEDIATE_JOIN_PATH,
         2
       );
-      expect(nestedSchema).toEqual(EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH);
+      expect(nestedSchema).toEqual(
+        EXPECTED_CIRCULAR_TABLE_SCHEMA_INTERMEDIATE_JOIN_PATH
+      );
     });
     it('Should fail for circular selection path', () => {
-      expect(() => getNestedTableSchema(CIRCULAR_TABLE_SCHEMA, CIRCULAR_JOIN_PATH, 2)).toThrow('A loop was detected in the joins paths')
+      expect(() =>
+        getNestedTableSchema(CIRCULAR_TABLE_SCHEMA, CIRCULAR_JOIN_PATH, 2)
+      ).toThrow('A loop was detected in the joins paths');
     });
-  })
+  });
 });
-
-

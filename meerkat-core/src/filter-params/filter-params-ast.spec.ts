@@ -10,7 +10,6 @@ describe('getFilterByMemberKey', () => {
     const result = getFilterByMemberKey(undefined, 'memberKey');
     expect(result).toEqual([]);
   });
-
   it('should return correct filters that match with member key', () => {
     const filters = [
       { member: 'memberKey', operator: 'equals', values: ['value1'] },
@@ -30,7 +29,6 @@ describe('getFilterByMemberKey', () => {
     const result = getFilterByMemberKey(filters, 'memberKey');
     expect(result).toEqual(expectedOutput);
   });
-
   it('should return correct filters that match with member key with OR in different key', () => {
     const filters = [
       { member: 'memberKey', operator: 'equals', values: ['value1'] },
@@ -53,7 +51,6 @@ describe('getFilterByMemberKey', () => {
     const result = getFilterByMemberKey(filters, 'memberKey');
     expect(result).toEqual(expectedOutput);
   });
-
   it('should return an empty array when no filters match with member key', () => {
     const filters = [
       { member: 'differentMember', operator: 'equals', values: ['value1'] },
@@ -72,7 +69,6 @@ describe('getFilterByMemberKey', () => {
     expect(result).toEqual([]);
   });
 });
-
 describe('detectAllFilterParamsFromSQL function', () => {
   it('should extract all FILTER_PARAMS from SQL string', () => {
     const sql =
@@ -91,7 +87,6 @@ describe('detectAllFilterParamsFromSQL function', () => {
     ];
     expect(detectAllFilterParamsFromSQL(sql)).toEqual(expected);
   });
-
   it('should return an array with a single FILTER_PARAM when only one is present', () => {
     const sql =
       "SELECT * FROM orders WHERE ${FILTER_PARAMS.order_facts.date.filter('date')}";
@@ -104,12 +99,10 @@ describe('detectAllFilterParamsFromSQL function', () => {
     ];
     expect(detectAllFilterParamsFromSQL(sql)).toEqual(expected);
   });
-
   it('should return an empty array when no FILTER_PARAMS are present', () => {
     const sql = "SELECT * FROM orders WHERE date > '2000-01-01'";
     expect(detectAllFilterParamsFromSQL(sql)).toEqual([]);
   });
-
   it('should handle multiple instances of the same FILTER_PARAM', () => {
     const sql =
       "SELECT * FROM orders WHERE ${FILTER_PARAMS.order_facts.date.filter('date')} AND ${FILTER_PARAMS.order_facts.date.filter('another_date')}";
@@ -128,7 +121,6 @@ describe('detectAllFilterParamsFromSQL function', () => {
     expect(detectAllFilterParamsFromSQL(sql)).toEqual(expected);
   });
 });
-
 describe('applyFilterParamsToBaseSQL function', () => {
   it('should replace filter params in base SQL with corresponding SQL expressions', () => {
     const baseSQL =
@@ -149,14 +141,12 @@ describe('applyFilterParamsToBaseSQL function', () => {
       "SELECT * FROM orders WHERE  date > '2022-01-01' AND  status = 'completed'";
     expect(applyFilterParamsToBaseSQL(baseSQL, filterParamsSQL)).toBe(expected);
   });
-
   it('should return the base SQL unchanged if no filterParamsSQL are provided', () => {
     const baseSQL =
       "SELECT * FROM orders WHERE date > '2022-01-01' AND status = 'completed'";
     const filterParamsSQL = [];
     expect(applyFilterParamsToBaseSQL(baseSQL, filterParamsSQL)).toBe(baseSQL);
   });
-
   it('should handle cases where the base SQL does not include the matchKey', () => {
     const baseSQL =
       "SELECT * FROM orders WHERE date > '2022-01-01' AND status = 'completed'";
@@ -169,17 +159,14 @@ describe('applyFilterParamsToBaseSQL function', () => {
     ];
     expect(applyFilterParamsToBaseSQL(baseSQL, filterParamsSQL)).toBe(baseSQL);
   });
-
   it('Should handle the case if the filter params is not getting replaced filterParamsSQL with true', () => {
     const baseSQL =
       "SELECT * FROM orders WHERE ${FILTER_PARAMS.order_facts.date.filter('date')}";
     const filterParamsSQL = [];
-
     const expected = 'SELECT * FROM orders WHERE TRUE';
     expect(applyFilterParamsToBaseSQL(baseSQL, filterParamsSQL)).toBe(expected);
   });
 });
-
 describe('traverseMeerkatQueryFilter function', () => {
   it('should traverse the MeerkatQueryFilter JSON and call the callback for each leaf type', () => {
     const filters: MeerkatQueryFilter[] = [
@@ -193,11 +180,8 @@ describe('traverseMeerkatQueryFilter function', () => {
       },
       { or: [{ member: 'memberKey', operator: 'equals', values: ['value1'] }] },
     ];
-
     const callbackFn = jest.fn();
-
     traverseMeerkatQueryFilter(filters as MeerkatQueryFilter[], callbackFn);
-
     expect(callbackFn).toHaveBeenCalledTimes(5);
     expect(callbackFn).toHaveBeenCalledWith({
       member: 'memberKey',

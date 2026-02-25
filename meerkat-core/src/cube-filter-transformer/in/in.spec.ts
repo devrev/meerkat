@@ -1,13 +1,11 @@
 import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
 import { inTransform } from './in';
-
 describe('In transforms Tests', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
-
     it('Should throw error if values are undefined', () => {
       expect(() =>
         inTransform(
@@ -24,7 +22,6 @@ describe('In transforms Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should return the correct value for string member', () => {
       const expectedOutput = {
         alias: '',
@@ -68,7 +65,6 @@ describe('In transforms Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should return the correct value for string_array member', () => {
       const output = inTransform(
         {
@@ -155,12 +151,10 @@ describe('In transforms Tests', () => {
       });
     });
   });
-
   describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };
-
     it('Should throw error if values are undefined', () => {
       expect(() =>
         inTransform(
@@ -177,7 +171,6 @@ describe('In transforms Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should return the correct value for string member', () => {
       const expectedOutput = {
         alias: '',
@@ -221,7 +214,6 @@ describe('In transforms Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should return the correct value for string_array member', () => {
       const output = inTransform(
         {

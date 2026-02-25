@@ -1,7 +1,5 @@
 import { Field, Type, vectorFromArray } from 'apache-arrow';
-
 import { convertArrowValueToJS } from '../duck-type-convertor';
-
 const FIELD = {
   metadata: {},
   name: 'null',
@@ -12,37 +10,30 @@ const FIELD = {
     ],
   },
 };
-
 const NULL_FIELD = {
   ...FIELD,
   typeId: Type.Null,
 } as Field;
-
 const UTF8_FIELD = {
   ...FIELD,
   typeId: Type.Utf8,
 } as Field;
-
 const FLOAT_FIELD = {
   ...FIELD,
   typeId: Type.Float,
 } as Field;
-
 const INT_FIELD = {
   ...FIELD,
   typeId: Type.Int,
 } as Field;
-
 const INT64_FIELD = {
   ...FIELD,
   typeId: Type.Int64,
 } as Field;
-
 const DECIMAL_FIELD = {
   ...FIELD,
   typeId: Type.Decimal,
 } as Field;
-
 const LIST_INT_FIELD = {
   ...FIELD,
   type: {
@@ -52,7 +43,6 @@ const LIST_INT_FIELD = {
   },
   typeId: Type.List,
 } as Field;
-
 const LIST_UTF8_FIELD = {
   ...FIELD,
   type: {
@@ -62,7 +52,6 @@ const LIST_UTF8_FIELD = {
   },
   typeId: Type.List,
 } as Field;
-
 const duckDbSimpleTypeConvertorArray = [
   {
     field: NULL_FIELD,
@@ -100,7 +89,6 @@ const duckDbSimpleTypeConvertorArray = [
     output: 1.234234234,
   },
 ];
-
 const duckDBComplexTypeConvertorArray = [
   {
     field: LIST_INT_FIELD,
@@ -113,7 +101,6 @@ const duckDBComplexTypeConvertorArray = [
     output: ['1', '2', '3'],
   },
 ];
-
 describe('DuckDBTypeConvertor', () => {
   it('should convert to duckdb to check for simple types', () => {
     duckDbSimpleTypeConvertorArray.forEach((item) => {
@@ -122,7 +109,6 @@ describe('DuckDBTypeConvertor', () => {
       );
     });
   });
-
   it('should convert to duckdb to check for complex types', () => {
     duckDBComplexTypeConvertorArray.forEach((item) => {
       expect(convertArrowValueToJS(item.field, item.input)).toStrictEqual(
