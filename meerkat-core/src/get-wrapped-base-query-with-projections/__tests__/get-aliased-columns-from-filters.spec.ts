@@ -3,7 +3,6 @@ import {
   getDimensionProjection,
   getFilterMeasureProjection,
 } from '../get-aliased-columns-from-filters';
-
 const TABLE_SCHEMA: TableSchema = {
   dimensions: [
     { name: 'a', sql: 'others', type: 'number' },
@@ -18,7 +17,6 @@ const TABLE_SCHEMA: TableSchema = {
   name: 'test',
   sql: 'SELECT * from test',
 };
-
 describe('get-aliased-columns-from-filters', () => {
   describe('getFilterMeasureProjection', () => {
     it('should return the member projection when the key exists in the table schema', () => {
@@ -34,7 +32,6 @@ describe('get-aliased-columns-from-filters', () => {
         sql: 'test.x AS test__x',
       });
     });
-
     it('should not create alias when item in measure list', () => {
       const key = 'test.x';
       const result = getFilterMeasureProjection({
@@ -48,14 +45,12 @@ describe('get-aliased-columns-from-filters', () => {
         sql: undefined,
       });
     });
-
     it("should return the object with undefined values when the key doesn't exist in the table schema", () => {
       const key = 'test.a';
       const tableSchema: TableSchema = {
         ...TABLE_SCHEMA,
         measures: [{ name: 'b', sql: 'others', type: 'number' }],
       };
-
       const result = getFilterMeasureProjection({
         key,
         tableSchema,
@@ -67,7 +62,6 @@ describe('get-aliased-columns-from-filters', () => {
         sql: undefined,
       });
     });
-
     it('should use aliases', () => {
       const key = 'test.x';
       const tableSchema: TableSchema = {
@@ -86,11 +80,9 @@ describe('get-aliased-columns-from-filters', () => {
       });
     });
   });
-
   describe('getDimensionProjection', () => {
     it('should return the member projection when the key exists in the table schema', () => {
       const key = 'test.a';
-
       const result = getDimensionProjection({
         key,
         tableSchema: TABLE_SCHEMA,
@@ -103,14 +95,12 @@ describe('get-aliased-columns-from-filters', () => {
         sql: 'others AS test__a',
       });
     });
-
     it("should return the object with undefined values when the key doesn't exist in the table schema", () => {
       const key = 'test.a';
       const tableSchema: TableSchema = {
         ...TABLE_SCHEMA,
         dimensions: [{ name: 'b', sql: 'others', type: 'number' }],
       };
-
       const result = getDimensionProjection({
         key,
         tableSchema,
@@ -123,7 +113,6 @@ describe('get-aliased-columns-from-filters', () => {
         sql: undefined,
       });
     });
-
     it('should use aliases', () => {
       const key = 'test.a';
       const tableSchema: TableSchema = {
@@ -132,7 +121,6 @@ describe('get-aliased-columns-from-filters', () => {
           { name: 'a', sql: 'others', type: 'number', alias: 'test a' },
         ],
       };
-
       const result = getDimensionProjection({
         key,
         tableSchema: tableSchema,

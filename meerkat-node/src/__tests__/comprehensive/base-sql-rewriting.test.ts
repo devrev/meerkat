@@ -1,6 +1,6 @@
 /**
  * Comprehensive Base SQL Rewriting Tests
- * 
+ *
  * Tests how the engine rewrites base SQL with various query operations:
  * - Simple SELECT * rewriting
  * - Complex base SQL with subqueries
@@ -12,7 +12,6 @@
  * - Adding grouping to base SQL
  * - Adding ordering to base SQL
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { cubeQueryToSQL } from '../../cube-to-sql/cube-to-sql';
 import { duckdbExec } from '../../duckdb-exec';
@@ -21,7 +20,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Base SQL Rewriting', () => {
   beforeAll(async () => {
     console.log('🚀 Starting base SQL rewriting tests...');
@@ -29,7 +27,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('Simple Base SQL', () => {
     it('should rewrite simple SELECT *', async () => {
       const schema = {
@@ -50,23 +47,18 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: [],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       expect(sql).toContain('fact_all_types');
-
       const result = await duckdbExec(sql);
       expect(Number(result[0].fact__count)).toBe(1000000);
     });
-
     it('should add WHERE clause to simple base SQL', async () => {
       const schema = {
         name: 'fact',
@@ -86,7 +78,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: [],
@@ -98,19 +89,15 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       // high priority is 20% of 1M = 200K
       expect(Number(result[0].fact__count)).toBeGreaterThan(190000);
       expect(Number(result[0].fact__count)).toBeLessThan(210000);
     });
-
     it.fails('should add GROUP BY to simple base SQL', async () => {
       const schema = {
         name: 'fact',
@@ -130,28 +117,22 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.status'],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       // 3 statuses: open, in_progress, closed
       expect(result.length).toBe(3);
-      
       result.forEach((row) => {
         expect(Number(row.fact__count)).toBeGreaterThan(300000);
       });
     });
   });
-
   describe('Complex Base SQL with Subqueries', () => {
     it('should rewrite base SQL with subquery', async () => {
       const schema = {
@@ -179,24 +160,19 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: [],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       // is_active = true is 50% of 1M = 500K
       expect(Number(result[0].fact__count)).toBeGreaterThan(490000);
       expect(Number(result[0].fact__count)).toBeLessThan(510000);
     });
-
     it('should add filters to base SQL with existing WHERE', async () => {
       const schema = {
         name: 'fact',
@@ -220,7 +196,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: [],
@@ -232,20 +207,16 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       // is_active (50%) AND high priority (20%) = 10% of 1M = 100K
       expect(Number(result[0].fact__count)).toBeGreaterThan(95000);
       expect(Number(result[0].fact__count)).toBeLessThan(105000);
     });
   });
-
   describe('Base SQL with Aggregates', () => {
     it('should use aggregates defined in base SQL', async () => {
       const schema = {
@@ -271,28 +242,22 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.avg_metric', 'fact.sum_ids'],
         dimensions: ['fact.priority'],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(5); // 5 priorities
-      
       result.forEach((row) => {
         expect(Number(row.fact__avg_metric)).toBeGreaterThan(0);
         expect(Number(row.fact__sum_ids)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Base SQL with JOINs', () => {
     it('should preserve JOINs in base SQL', async () => {
       const schema = {
@@ -320,28 +285,22 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.user_segment'],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       // 3 segments
       expect(result.length).toBe(3);
-      
       const segments = result.map((r) => r.fact__user_segment);
       expect(segments).toContain('enterprise');
       expect(segments).toContain('pro');
       expect(segments).toContain('free');
     });
-
     it('should add filters to base SQL with JOINs', async () => {
       const schema = {
         name: 'fact',
@@ -372,7 +331,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.user_segment'],
@@ -384,16 +342,12 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(3);
-      
       // high priority (20%) across 3 segments = ~66K each
       result.forEach((row) => {
         expect(Number(row.fact__count)).toBeGreaterThan(60000);
@@ -401,7 +355,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
       });
     });
   });
-
   describe('Base SQL with UNION', () => {
     it.fails('should handle base SQL with UNION ALL', async () => {
       const schema = {
@@ -426,28 +379,25 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.status'],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(3); // 3 statuses
-      
       // high (20%) + critical (20%) = 40% of 1M = 400K total
-      const totalCount = result.reduce((sum, row) => sum + Number(row.fact__count), 0);
+      const totalCount = result.reduce(
+        (sum, row) => sum + Number(row.fact__count),
+        0
+      );
       expect(totalCount).toBeGreaterThan(380000);
       expect(totalCount).toBeLessThan(420000);
     });
   });
-
   describe('Base SQL with Date Functions', () => {
     it('should rewrite base SQL with DATE_TRUNC', async () => {
       const schema = {
@@ -473,28 +423,22 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.month'],
         limit: 5,
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(5);
-      
       result.forEach((row) => {
         expect(row.fact__month).toBeTruthy();
         expect(Number(row.fact__count)).toBeGreaterThan(0);
       });
     });
-
     it('should add filters to base SQL with date functions', async () => {
       const schema = {
         name: 'fact',
@@ -524,7 +468,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.year'],
@@ -536,23 +479,18 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBeGreaterThan(0);
-      
       result.forEach((row) => {
         expect(Number(row.fact__year)).toBeGreaterThan(2019);
         expect(Number(row.fact__count)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Complex Rewriting Scenarios', () => {
     it('should handle base SQL with CTEs', async () => {
       const schema = {
@@ -578,28 +516,22 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.priority'],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(5);
-      
       // Each priority with is_active filter = ~100K
       result.forEach((row) => {
         expect(Number(row.fact__count)).toBeGreaterThan(95000);
         expect(Number(row.fact__count)).toBeLessThan(105000);
       });
     });
-
     it('should rewrite base SQL with window functions', async () => {
       const schema = {
         name: 'fact',
@@ -624,26 +556,20 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.priority'],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(5);
-      
       result.forEach((row) => {
         expect(Number(row.fact__count)).toBeGreaterThan(190000);
       });
     });
-
     it.fails('should add ordering to base SQL result', async () => {
       const schema = {
         name: 'fact',
@@ -663,22 +589,17 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.priority'],
         order: [['fact.count', 'desc']],
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(5);
-      
       // Verify descending order
       for (let i = 1; i < result.length; i++) {
         expect(Number(result[i].fact__count)).toBeLessThanOrEqual(
@@ -686,7 +607,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
         );
       }
     });
-
     it('should add LIMIT to base SQL result', async () => {
       const schema = {
         name: 'fact',
@@ -706,24 +626,19 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.status'],
         limit: 2,
       };
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       const result = await duckdbExec(sql);
-      
       expect(result.length).toBe(2);
     });
   });
-
   describe('Performance', () => {
     it.fails('should rewrite complex base SQL quickly (< 500ms)', async () => {
       const schema = {
@@ -758,7 +673,6 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const query = {
         measures: ['fact.count'],
         dimensions: ['fact.user_segment', 'fact.product_category'],
@@ -770,19 +684,14 @@ describe('Comprehensive: Base SQL Rewriting', () => {
           },
         ],
       };
-
       const start = Date.now();
-
       const sql = await cubeQueryToSQL({
         query,
         tableSchemas: [schema],
       });
-
       await duckdbExec(sql);
-      
       const duration = Date.now() - start;
       expect(duration).toBeLessThan(500);
     });
   });
 });
-

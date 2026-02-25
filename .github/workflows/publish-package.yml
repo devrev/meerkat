@@ -12,12 +12,12 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18.17
+          node-version: 22
           registry-url: https://registry.npmjs.org/
           scope: '@devrev'
-      - run: npm install
+      - run: npm ci
       - run: npx nx run-many --target=build --all --parallel
       - run: |
           cd ./dist/meerkat-dbm

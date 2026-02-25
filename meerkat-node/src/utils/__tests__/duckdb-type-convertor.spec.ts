@@ -3,7 +3,6 @@ import {
   convertDuckDBValueToJS,
   convertTableDataToJSON,
 } from '../duckdb-type-convertor';
-
 const duckDbSimpleTypeConvertorArray: {
   type: TypeInfo;
   input: unknown;
@@ -90,7 +89,6 @@ const duckDbSimpleTypeConvertorArray: {
     output: 'test',
   },
 ];
-
 const duckDBComplexTypeConvertorArray: {
   columnTypes: ColumnInfo[];
   data: TableData;
@@ -154,7 +152,6 @@ const duckDBComplexTypeConvertorArray: {
     ],
   },
 ];
-
 describe('DuckDBTypeConvertor', () => {
   it('should convert simple types correctly', () => {
     duckDbSimpleTypeConvertorArray.forEach((item) => {
@@ -163,7 +160,6 @@ describe('DuckDBTypeConvertor', () => {
       );
     });
   });
-
   it('should convert complex types correctly', () => {
     duckDBComplexTypeConvertorArray.forEach((item) => {
       expect(convertTableDataToJSON(item.data, item.columnTypes)).toStrictEqual(

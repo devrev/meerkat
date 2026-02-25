@@ -230,7 +230,7 @@ export async function validateAgainstReference(
     ignoreFields?: string[];
   }
 ): Promise<void> {
-  const referenceResult = await duckdbExec(referenceSQL);
+  const referenceResult = (await duckdbExec(referenceSQL)) as any[];
   const comparison = compareResults(meerkatResult, referenceResult, options);
   
   if (!comparison.match) {

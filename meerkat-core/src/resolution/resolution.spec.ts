@@ -12,7 +12,6 @@ import {
   withArrayFlattenModifier,
 } from './resolution';
 import { BASE_DATA_SOURCE_NAME, ResolutionConfig } from './types';
-
 describe('Create base table schema', () => {
   it('dimensions and measures are converted to dimensions', () => {
     const sql =
@@ -48,7 +47,6 @@ describe('Create base table schema', () => {
     };
     const measures = ['base_table.count'];
     const dimensions = ['base_table.column1', 'base_table.column2'];
-
     const baseTableSchema = createBaseTableSchema(
       sql,
       tableSchemas,
@@ -56,7 +54,6 @@ describe('Create base table schema', () => {
       measures,
       dimensions
     );
-
     expect(baseTableSchema).toEqual({
       name: '__base_query',
       sql: 'SELECT COUNT(*), column1, column2 FROM base_table GROUP BY column1, column2',
@@ -84,7 +81,6 @@ describe('Create base table schema', () => {
       joins: [],
     });
   });
-
   it('create join config', () => {
     const sql = 'SELECT * FROM base_table';
     const tableSchemas = [
@@ -126,7 +122,6 @@ describe('Create base table schema', () => {
       tableSchemas: [],
     };
     const dimensions = ['base_table.column1', 'base_table.column2'];
-
     const baseTableSchema = createBaseTableSchema(
       sql,
       tableSchemas,
@@ -134,7 +129,6 @@ describe('Create base table schema', () => {
       [],
       dimensions
     );
-
     expect(baseTableSchema).toEqual({
       name: '__base_query',
       sql: 'SELECT * FROM base_table',
@@ -163,7 +157,6 @@ describe('Create base table schema', () => {
       ],
     });
   });
-
   it('dimension not found', () => {
     const sql = 'SELECT * FROM base_table';
     const tableSchemas = [
@@ -185,7 +178,6 @@ describe('Create base table schema', () => {
       tableSchemas: [],
     };
     const dimensions = ['base_table.column1', 'base_table.column2']; // column2 does not exist
-
     expect(() => {
       createBaseTableSchema(
         sql,
@@ -196,7 +188,6 @@ describe('Create base table schema', () => {
       );
     }).toThrow('Not found: base_table.column2');
   });
-
   it('handle aliases', () => {
     const sql = 'SELECT * FROM base_table';
     const tableSchemas = [
@@ -240,7 +231,6 @@ describe('Create base table schema', () => {
       tableSchemas: [],
     };
     const dimensions = ['base_table.column1', 'base_table.column2'];
-
     const baseTableSchema = createBaseTableSchema(
       sql,
       tableSchemas,
@@ -248,7 +238,6 @@ describe('Create base table schema', () => {
       [],
       dimensions
     );
-
     expect(baseTableSchema).toEqual({
       name: '__base_query',
       sql: 'SELECT * FROM base_table',
@@ -278,7 +267,6 @@ describe('Create base table schema', () => {
     });
   });
 });
-
 describe('Generate resolution schemas', () => {
   it('multiple columns using same table', () => {
     const baseTableSchemas = [
@@ -300,7 +288,6 @@ describe('Generate resolution schemas', () => {
         ],
       },
     ];
-
     const resolutionConfig = {
       columnConfigs: [
         {
@@ -343,9 +330,7 @@ describe('Generate resolution schemas', () => {
         },
       ],
     };
-
     const schemas = generateResolutionSchemas(resolutionConfig);
-
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
@@ -381,7 +366,6 @@ describe('Generate resolution schemas', () => {
       },
     ]);
   });
-
   it('table does not exist', () => {
     const resolutionConfig = {
       columnConfigs: [
@@ -395,7 +379,7 @@ describe('Generate resolution schemas', () => {
         {
           name: 'base_table.column2',
           type: 'string' as const,
-          source: 'resolution_table1', // does not exist
+          source: 'resolution_table1',
           joinColumn: 'id',
           resolutionColumns: ['id', 'display_name'],
         },
@@ -425,12 +409,10 @@ describe('Generate resolution schemas', () => {
         },
       ],
     };
-
     expect(() => {
       generateResolutionSchemas(resolutionConfig);
     }).toThrow('Table schema not found for resolution_table1');
   });
-
   it('resolution column does not exist', () => {
     const resolutionConfig = {
       columnConfigs: [
@@ -463,12 +445,10 @@ describe('Generate resolution schemas', () => {
         },
       ],
     };
-
     expect(() => {
       generateResolutionSchemas(resolutionConfig);
     }).toThrow('Dimension not found: display_id');
   });
-
   it('column does not exist in base query', () => {
     const resolutionConfig = {
       columnConfigs: [
@@ -500,7 +480,6 @@ describe('Generate resolution schemas', () => {
         },
       ],
     };
-
     const schemas = generateResolutionSchemas(resolutionConfig);
     expect(schemas).toEqual([
       {
@@ -518,7 +497,6 @@ describe('Generate resolution schemas', () => {
       },
     ]);
   });
-
   it('handle aliases', () => {
     const baseTableSchemas = [
       {
@@ -535,7 +513,6 @@ describe('Generate resolution schemas', () => {
         ],
       },
     ];
-
     const resolutionConfig = {
       columnConfigs: [
         {
@@ -568,7 +545,6 @@ describe('Generate resolution schemas', () => {
         },
       ],
     };
-
     const schemas = generateResolutionSchemas(resolutionConfig);
     expect(schemas).toEqual([
       {
@@ -587,7 +563,6 @@ describe('Generate resolution schemas', () => {
     ]);
   });
 });
-
 describe('Generate resolved dimensions', () => {
   it('resolves dimensions based on resolution config', () => {
     const query = {
@@ -613,19 +588,16 @@ describe('Generate resolved dimensions', () => {
       ],
       tableSchemas: [],
     };
-
     const resolvedDimensions = generateResolvedDimensions(
       BASE_DATA_SOURCE_NAME,
       query,
       resolutionConfig
     );
-
     expect(resolvedDimensions).toEqual([
       'base_table__column1.base_table__column1__display_id',
       'base_table__column2.base_table__column2__display_name',
     ]);
   });
-
   it('unresolved columns', () => {
     const query = {
       measures: ['base_table.count'],
@@ -643,19 +615,16 @@ describe('Generate resolved dimensions', () => {
       ],
       tableSchemas: [],
     };
-
     const resolvedDimensions = generateResolvedDimensions(
       BASE_DATA_SOURCE_NAME,
       query,
       resolutionConfig
     );
-
     expect(resolvedDimensions).toEqual([
       '__base_query.base_table__count',
       '__base_query.base_table__column1',
     ]);
   });
-
   it('only include projected columns', () => {
     const query = {
       measures: ['base_table.count', 'base_table.total'],
@@ -685,14 +654,12 @@ describe('Generate resolved dimensions', () => {
       'base_table.column2',
       'base_table.total',
     ];
-
     const resolvedDimensions = generateResolvedDimensions(
       BASE_DATA_SOURCE_NAME,
       query,
       resolutionConfig,
       projections
     );
-
     expect(resolvedDimensions).toEqual([
       '__base_query.base_table__count',
       'base_table__column2.base_table__column2__id',
@@ -701,7 +668,6 @@ describe('Generate resolved dimensions', () => {
     ]);
   });
 });
-
 describe('Generate resolution join paths', () => {
   it('generate join paths for resolution columns', () => {
     const resolutionConfig = {
@@ -723,13 +689,11 @@ describe('Generate resolution join paths', () => {
       ],
       tableSchemas: [],
     };
-
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
       resolutionConfig,
       []
     );
-
     expect(joinPaths).toEqual([
       [
         {
@@ -747,7 +711,6 @@ describe('Generate resolution join paths', () => {
       ],
     ]);
   });
-
   it('join paths with aliases', () => {
     const baseTableSchemas = [
       {
@@ -770,7 +733,6 @@ describe('Generate resolution join paths', () => {
         ],
       },
     ];
-
     const resolutionConfig = {
       columnConfigs: [
         {
@@ -783,7 +745,6 @@ describe('Generate resolution join paths', () => {
       ],
       tableSchemas: [],
     };
-
     const joinPaths = generateResolutionJoinPaths(
       BASE_DATA_SOURCE_NAME,
       resolutionConfig,
@@ -800,7 +761,6 @@ describe('Generate resolution join paths', () => {
     ]);
   });
 });
-
 describe('createWrapperTableSchema', () => {
   it('should create wrapper schema with correct structure', () => {
     const sql = 'SELECT * FROM base_table';
@@ -835,9 +795,7 @@ describe('createWrapperTableSchema', () => {
         },
       ],
     } as any;
-
     const result = createWrapperTableSchema(sql, baseTableSchema);
-
     expect(result).toEqual({
       name: '__base_query',
       sql: 'SELECT * FROM base_table',
@@ -870,7 +828,6 @@ describe('createWrapperTableSchema', () => {
       ],
     });
   });
-
   it('should handle dimensions without aliases', () => {
     const sql = 'SELECT column1 FROM base_table';
     const baseTableSchema = {
@@ -886,12 +843,9 @@ describe('createWrapperTableSchema', () => {
       measures: [],
       joins: [],
     } as any;
-
     const result = createWrapperTableSchema(sql, baseTableSchema);
-
     expect(result.dimensions[0].sql).toBe('__base_query."column1"');
   });
-
   it('should handle empty dimensions and measures', () => {
     const sql = 'SELECT * FROM base_table';
     const baseTableSchema = {
@@ -901,9 +855,7 @@ describe('createWrapperTableSchema', () => {
       measures: [],
       joins: [],
     } as any;
-
     const result = createWrapperTableSchema(sql, baseTableSchema);
-
     expect(result).toEqual({
       name: '__base_query',
       sql: 'SELECT * FROM base_table',
@@ -913,7 +865,6 @@ describe('createWrapperTableSchema', () => {
     });
   });
 });
-
 describe('getArrayTypeResolutionColumnConfigs', () => {
   it('should filter and return only array type column configs', () => {
     const resolutionConfig: ResolutionConfig = {
@@ -942,15 +893,12 @@ describe('getArrayTypeResolutionColumnConfigs', () => {
       ],
       tableSchemas: [],
     };
-
     const result = getArrayTypeResolutionColumnConfigs(resolutionConfig);
-
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe('table.array_column');
     expect(result[1].name).toBe('table.another_array');
     expect(result.every((config) => isArrayTypeMember(config.type))).toBe(true);
   });
-
   it('should return empty array when no array type configs exist', () => {
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [
@@ -971,24 +919,18 @@ describe('getArrayTypeResolutionColumnConfigs', () => {
       ],
       tableSchemas: [],
     };
-
     const result = getArrayTypeResolutionColumnConfigs(resolutionConfig);
-
     expect(result).toEqual([]);
   });
-
   it('should return empty array when columnConfigs is empty', () => {
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [],
       tableSchemas: [],
     };
-
     const result = getArrayTypeResolutionColumnConfigs(resolutionConfig);
-
     expect(result).toEqual([]);
   });
 });
-
 describe('withArrayFlattenModifier', () => {
   it('should add shouldFlattenArray modifier to array columns', () => {
     const baseTableSchema = {
@@ -1008,7 +950,6 @@ describe('withArrayFlattenModifier', () => {
       ],
       measures: [],
     } as any;
-
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [
         {
@@ -1021,9 +962,7 @@ describe('withArrayFlattenModifier', () => {
       ],
       tableSchemas: [],
     };
-
     const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
-
     expect(result.dimensions[0].modifier).toEqual({
       shouldFlattenArray: true,
     });
@@ -1031,7 +970,6 @@ describe('withArrayFlattenModifier', () => {
     // Verify immutability
     expect(baseTableSchema.dimensions[0].modifier).toBeUndefined();
   });
-
   it('should handle multiple array columns', () => {
     const baseTableSchema = {
       name: 'base_table',
@@ -1055,7 +993,6 @@ describe('withArrayFlattenModifier', () => {
       ],
       measures: [],
     } as any;
-
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [
         {
@@ -1075,9 +1012,7 @@ describe('withArrayFlattenModifier', () => {
       ],
       tableSchemas: [],
     };
-
     const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
-
     expect(result.dimensions[0].modifier).toEqual({
       shouldFlattenArray: true,
     });
@@ -1088,7 +1023,6 @@ describe('withArrayFlattenModifier', () => {
     // Verify immutability
     expect(baseTableSchema.dimensions[0].modifier).toBeUndefined();
   });
-
   it('should not modify dimensions when no array columns in config', () => {
     const baseTableSchema = {
       name: 'base_table',
@@ -1107,7 +1041,6 @@ describe('withArrayFlattenModifier', () => {
       ],
       measures: [],
     } as any;
-
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [
         {
@@ -1120,13 +1053,10 @@ describe('withArrayFlattenModifier', () => {
       ],
       tableSchemas: [],
     };
-
     const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
-
     expect(result.dimensions[0].modifier).toBeUndefined();
     expect(result.dimensions[1].modifier).toBeUndefined();
   });
-
   it('should handle empty dimensions array', () => {
     const baseTableSchema = {
       name: 'base_table',
@@ -1134,7 +1064,6 @@ describe('withArrayFlattenModifier', () => {
       dimensions: [],
       measures: [],
     } as any;
-
     const resolutionConfig: ResolutionConfig = {
       columnConfigs: [
         {
@@ -1147,17 +1076,14 @@ describe('withArrayFlattenModifier', () => {
       ],
       tableSchemas: [],
     };
-
     // Should not throw error
     expect(() => {
       withArrayFlattenModifier(baseTableSchema, resolutionConfig);
     }).not.toThrow();
-
     const result = withArrayFlattenModifier(baseTableSchema, resolutionConfig);
     expect(result.dimensions).toEqual([]);
   });
 });
-
 describe('generateRowNumberSql', () => {
   it('should generate row_number with ORDER BY for single column', () => {
     const query = {
@@ -1173,16 +1099,13 @@ describe('generateRowNumberSql', () => {
         alias: 'Name',
       },
     ];
-
     const result = generateRowNumberSql(
       query,
       dimensions,
       BASE_DATA_SOURCE_NAME
     );
-
     expect(result).toBe('row_number() OVER (ORDER BY __base_query."ID" ASC)');
   });
-
   it('should generate row_number with ORDER BY for multiple columns', () => {
     const query = {
       order: { 'table.id': 'asc', 'table.name': 'desc' },
@@ -1197,18 +1120,15 @@ describe('generateRowNumberSql', () => {
         alias: 'Name',
       },
     ];
-
     const result = generateRowNumberSql(
       query,
       dimensions,
       BASE_DATA_SOURCE_NAME
     );
-
     expect(result).toBe(
       'row_number() OVER (ORDER BY __base_query."ID" ASC, __base_query."Name" DESC)'
     );
   });
-
   it('should generate row_number without ORDER BY when query has no order', () => {
     const query = {};
     const dimensions = [
@@ -1217,16 +1137,13 @@ describe('generateRowNumberSql', () => {
         alias: 'ID',
       },
     ];
-
     const result = generateRowNumberSql(
       query,
       dimensions,
       BASE_DATA_SOURCE_NAME
     );
-
     expect(result).toBe('row_number() OVER ()');
   });
-
   it('should generate row_number without ORDER BY when order is empty', () => {
     const query = {
       order: {},
@@ -1237,16 +1154,13 @@ describe('generateRowNumberSql', () => {
         alias: 'ID',
       },
     ];
-
     const result = generateRowNumberSql(
       query,
       dimensions,
       BASE_DATA_SOURCE_NAME
     );
-
     expect(result).toBe('row_number() OVER ()');
   });
-
   it('should use dimension name when alias is not present', () => {
     const query = {
       order: { 'table.id': 'asc' },
@@ -1256,18 +1170,15 @@ describe('generateRowNumberSql', () => {
         name: 'table__id',
       },
     ];
-
     const result = generateRowNumberSql(
       query,
       dimensions,
       BASE_DATA_SOURCE_NAME
     );
-
     expect(result).toBe(
       'row_number() OVER (ORDER BY __base_query."table__id" ASC)'
     );
   });
-
   it('should handle dimension not found by using safe member name', () => {
     const query = {
       order: { 'table.unknown_column': 'desc' },
@@ -1278,18 +1189,15 @@ describe('generateRowNumberSql', () => {
         alias: 'ID',
       },
     ];
-
     const result = generateRowNumberSql(
       query,
       dimensions,
       BASE_DATA_SOURCE_NAME
     );
-
     expect(result).toBe(
       'row_number() OVER (ORDER BY __base_query."table__unknown_column" DESC)'
     );
   });
-
   it('should handle mixed case order directions', () => {
     const query = {
       order: { 'table.id': 'asc', 'table.name': 'desc' },
@@ -1304,18 +1212,15 @@ describe('generateRowNumberSql', () => {
         alias: 'Name',
       },
     ];
-
     const result = generateRowNumberSql(
       query,
       dimensions,
       BASE_DATA_SOURCE_NAME
     );
-
     expect(result).toBe(
       'row_number() OVER (ORDER BY __base_query."ID" ASC, __base_query."Name" DESC)'
     );
   });
-
   it('should use custom base table name', () => {
     const query = {
       order: { 'table.id': 'asc' },
@@ -1327,9 +1232,7 @@ describe('generateRowNumberSql', () => {
       },
     ];
     const customBaseTableName = 'custom_table';
-
     const result = generateRowNumberSql(query, dimensions, customBaseTableName);
-
     expect(result).toBe('row_number() OVER (ORDER BY custom_table."ID" ASC)');
   });
 });

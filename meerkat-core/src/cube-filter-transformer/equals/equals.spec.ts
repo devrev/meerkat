@@ -8,13 +8,11 @@ import {
   CreateColumnRefOptions,
 } from '../base-condition-builder/base-condition-builder';
 import { equalsTransform } from './equals'; // replace with your module name
-
 describe('Equals Transform Tests', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
-
     it('Should throw error if values are empty', () => {
       expect(() =>
         equalsTransform(
@@ -31,7 +29,6 @@ describe('Equals Transform Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should create a simple equals condition if there is only one value', () => {
       const expectedOutput = baseDuckdbCondition(
         'country',
@@ -58,7 +55,6 @@ describe('Equals Transform Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should create an OR condition if there are multiple values', () => {
       const output = equalsTransform(
         {
@@ -77,12 +73,10 @@ describe('Equals Transform Tests', () => {
       expect(output.children.length).toEqual(3);
     });
   });
-
   describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };
-
     it('Should throw error if values are empty', () => {
       expect(() =>
         equalsTransform(
@@ -99,7 +93,6 @@ describe('Equals Transform Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should create a simple equals condition if there is only one value', () => {
       const expectedOutput = baseDuckdbCondition(
         'country',
@@ -126,7 +119,6 @@ describe('Equals Transform Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should create an OR condition if there are multiple values', () => {
       const output = equalsTransform(
         {

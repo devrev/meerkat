@@ -3,6 +3,7 @@
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "meerkat-dbm/src",
   "projectType": "library",
+  "tags": [],
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
@@ -30,6 +31,7 @@
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "meerkat-dbm/jest.config.ts",
+        "runInBand": true,
         "passWithNoTests": true
       },
       "configurations": {
@@ -39,6 +41,5 @@
         }
       }
     }
-  },
-  "tags": []
+  }
 }

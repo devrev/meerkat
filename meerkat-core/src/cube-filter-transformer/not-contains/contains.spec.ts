@@ -8,13 +8,11 @@ import {
   notContainsDuckdbCondition,
   notContainsTransform,
 } from './not-contains';
-
 describe('Not Contains Transform Tests', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
-
     it('Should throw error if values are empty', () => {
       expect(() =>
         notContainsTransform(
@@ -32,7 +30,6 @@ describe('Not Contains Transform Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should create a simple Contains condition if there is only one value', () => {
       const expectedOutput = notContainsDuckdbCondition(
         'country',
@@ -60,7 +57,6 @@ describe('Not Contains Transform Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should create an OR condition if there are multiple values', () => {
       const output = notContainsTransform(
         {
@@ -80,12 +76,10 @@ describe('Not Contains Transform Tests', () => {
       expect(output.children.length).toEqual(3);
     });
   });
-
   describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };
-
     it('Should throw error if values are empty', () => {
       expect(() =>
         notContainsTransform(
@@ -103,7 +97,6 @@ describe('Not Contains Transform Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should create a simple Contains condition if there is only one value', () => {
       const expectedOutput = notContainsDuckdbCondition(
         'country',
@@ -131,7 +124,6 @@ describe('Not Contains Transform Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should create an OR condition if there are multiple values', () => {
       const output = notContainsTransform(
         {

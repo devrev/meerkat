@@ -1,6 +1,6 @@
 /**
  * Comprehensive Error Scenarios Tests
- * 
+ *
  * Tests error handling and edge cases:
  * - Division by zero
  * - Out-of-range values
@@ -11,7 +11,6 @@
  * - Constraint violations
  * - Resource limits
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -19,7 +18,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Error Scenarios', () => {
   beforeAll(async () => {
     console.log('🚀 Starting error scenario tests...');
@@ -27,7 +25,6 @@ describe('Comprehensive: Error Scenarios', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('Division by Zero', () => {
     it('should handle division by zero gracefully', async () => {
       try {
@@ -39,7 +36,6 @@ describe('Comprehensive: Error Scenarios', () => {
         expect(error).toBeDefined();
       }
     });
-
     it('should handle division by zero in SELECT with NULL check', async () => {
       const sql = `
         SELECT 
@@ -53,11 +49,9 @@ describe('Comprehensive: Error Scenarios', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       // Should execute without error
     });
-
     it('should use NULLIF to prevent division by zero', async () => {
       const sql = `
         SELECT 
@@ -68,7 +62,6 @@ describe('Comprehensive: Error Scenarios', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (Number(row.metric_numeric) === 0) {
@@ -79,7 +72,6 @@ describe('Comprehensive: Error Scenarios', () => {
       });
     });
   });
-
   describe('NULL Propagation', () => {
     it('should propagate NULL in arithmetic operations', async () => {
       const sql = `
@@ -94,7 +86,6 @@ describe('Comprehensive: Error Scenarios', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (row.resolved_by === null) {
@@ -104,7 +95,6 @@ describe('Comprehensive: Error Scenarios', () => {
         }
       });
     });
-
     it('should propagate NULL in string operations', async () => {
       const sql = `
         SELECT 
@@ -116,7 +106,6 @@ describe('Comprehensive: Error Scenarios', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (row.resolved_by === null) {
@@ -124,7 +113,6 @@ describe('Comprehensive: Error Scenarios', () => {
         }
       });
     });
-
     it('should handle NULL in comparisons', async () => {
       const sql = `
         SELECT 
@@ -138,7 +126,6 @@ describe('Comprehensive: Error Scenarios', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (row.is_null) {
@@ -149,7 +136,6 @@ describe('Comprehensive: Error Scenarios', () => {
       });
     });
   });
-
   describe('Type Mismatches', () => {
     it('should handle incompatible type comparisons', async () => {
       try {
@@ -167,7 +153,6 @@ describe('Comprehensive: Error Scenarios', () => {
         expect(error).toBeDefined();
       }
     });
-
     it('should handle string to number conversion errors gracefully', async () => {
       try {
         const sql = `SELECT CAST('not a number' AS INTEGER) as result`;
@@ -179,7 +164,6 @@ describe('Comprehensive: Error Scenarios', () => {
       }
     });
   });
-
   describe('Date/Time Errors', () => {
     it('should handle invalid date values', async () => {
       try {
@@ -191,7 +175,6 @@ describe('Comprehensive: Error Scenarios', () => {
         expect(error.message || error.toString()).toMatch(/date|invalid/i);
       }
     });
-
     it('should handle invalid timestamp values', async () => {
       try {
         const sql = `SELECT TIMESTAMP '2024-02-30 25:99:99' as invalid_ts`;
@@ -201,14 +184,12 @@ describe('Comprehensive: Error Scenarios', () => {
         expect(error).toBeDefined();
       }
     });
-
     it('should handle date arithmetic overflow', async () => {
       const sql = `
         SELECT 
           DATE '9999-12-31' as max_date,
           DATE '9999-12-31' + INTERVAL '1 day' as overflow_date
       `;
-      
       try {
         await duckdbExec(sql);
         // May succeed or error depending on DuckDB behavior
@@ -218,7 +199,6 @@ describe('Comprehensive: Error Scenarios', () => {
       }
     });
   });
-
   describe('Aggregate Errors', () => {
     it('should handle empty aggregates', async () => {
       const sql = `
@@ -230,12 +210,10 @@ describe('Comprehensive: Error Scenarios', () => {
         WHERE id_bigint < 0
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBe(0);
       expect(result[0].avg_metric).toBeNull();
       expect(result[0].sum_metric).toBeNull();
     });
-
     it('should handle aggregates with all NULL values', async () => {
       const sql = `
         SELECT 
@@ -247,13 +225,11 @@ describe('Comprehensive: Error Scenarios', () => {
           AND id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count_resolved)).toBe(0);
       expect(result[0].avg_resolved).toBeNull();
       expect(result[0].sum_resolved).toBeNull();
     });
   });
-
   describe('Function Argument Errors', () => {
     it('should handle negative SUBSTRING length', async () => {
       try {
@@ -265,7 +241,6 @@ describe('Comprehensive: Error Scenarios', () => {
         expect(error).toBeDefined();
       }
     });
-
     it('should handle ROUND with invalid precision', async () => {
       const sql = `
         SELECT 
@@ -276,11 +251,9 @@ describe('Comprehensive: Error Scenarios', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
     });
   });
-
   describe('NULL in Functions', () => {
     it('should handle NULL in string functions', async () => {
       const sql = `
@@ -291,12 +264,10 @@ describe('Comprehensive: Error Scenarios', () => {
           LENGTH(NULL) as length_null
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].upper_null).toBeNull();
       expect(result[0].lower_null).toBeNull();
       expect(result[0].length_null).toBeNull();
     });
-
     it.fails('should handle NULL in date functions', async () => {
       const sql = `
         SELECT 
@@ -304,11 +275,9 @@ describe('Comprehensive: Error Scenarios', () => {
           EXTRACT(YEAR FROM CAST(NULL AS DATE)) as extract_null
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].trunc_null).toBeNull();
       expect(result[0].extract_null).toBeNull();
     });
-
     it('should handle NULL in math functions', async () => {
       const sql = `
         SELECT 
@@ -317,13 +286,11 @@ describe('Comprehensive: Error Scenarios', () => {
           SQRT(NULL) as sqrt_null
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].abs_null).toBeNull();
       expect(result[0].round_null).toBeNull();
       expect(result[0].sqrt_null).toBeNull();
     });
   });
-
   describe('Edge Case Values', () => {
     it('should handle very large numbers', async () => {
       const sql = `
@@ -332,11 +299,9 @@ describe('Comprehensive: Error Scenarios', () => {
           999999999999999.99 as large_double
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].large_int)).toBeGreaterThan(0);
       expect(Number(result[0].large_double)).toBeGreaterThan(0);
     });
-
     it('should handle very small (negative) numbers', async () => {
       const sql = `
         SELECT 
@@ -344,11 +309,9 @@ describe('Comprehensive: Error Scenarios', () => {
           -999999999999999.99 as small_double
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].small_int)).toBeLessThan(0);
       expect(Number(result[0].small_double)).toBeLessThan(0);
     });
-
     it('should handle zero values in various operations', async () => {
       const sql = `
         SELECT 
@@ -358,14 +321,12 @@ describe('Comprehensive: Error Scenarios', () => {
           1000 - 1000 as result_zero
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].zero)).toBe(0);
       expect(Number(result[0].zero_times)).toBe(0);
       expect(Number(result[0].zero_plus)).toBe(1000);
       expect(Number(result[0].result_zero)).toBe(0);
     });
   });
-
   describe('Empty String Handling', () => {
     it('should handle empty strings in operations', async () => {
       const sql = `
@@ -376,13 +337,11 @@ describe('Comprehensive: Error Scenarios', () => {
           UPPER('') as upper_empty
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].empty_string).toBe('');
       expect(Number(result[0].empty_length)).toBe(0);
       expect(result[0].concat_empty).toBe('test');
       expect(result[0].upper_empty).toBe('');
     });
-
     it('should distinguish between empty string and NULL', async () => {
       const sql = `
         SELECT 
@@ -393,7 +352,6 @@ describe('Comprehensive: Error Scenarios', () => {
           '' = '' as empty_equals_empty
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].empty_string).toBe('');
       expect(result[0].null_value).toBeNull();
       expect(result[0].empty_is_null).toBe(false);
@@ -401,7 +359,6 @@ describe('Comprehensive: Error Scenarios', () => {
       expect(result[0].empty_equals_empty).toBe(true);
     });
   });
-
   describe('Complex Error Scenarios', () => {
     it('should handle errors in subqueries gracefully', async () => {
       const sql = `
@@ -413,10 +370,8 @@ describe('Comprehensive: Error Scenarios', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
     });
-
     it('should handle CASE with all NULL results', async () => {
       const sql = `
         SELECT 
@@ -428,11 +383,9 @@ describe('Comprehensive: Error Scenarios', () => {
         WHERE id_bigint = 0
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].result).toBeNull();
     });
   });
-
   describe('Performance with Errors', () => {
     it('should handle large result sets without errors', async () => {
       const sql = `
@@ -441,13 +394,10 @@ describe('Comprehensive: Error Scenarios', () => {
         WHERE id_bigint < 500000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should handle complex queries without timeout', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           priority,
@@ -460,13 +410,10 @@ describe('Comprehensive: Error Scenarios', () => {
         GROUP BY priority, status
         ORDER BY priority, status
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBeGreaterThan(0);
       expect(duration).toBeLessThan(5000); // Should complete in < 5s
     });
   });
 });
-

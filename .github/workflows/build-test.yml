@@ -13,9 +13,9 @@ jobs:
           with:
             lfs: true
         - name: Use Node.js
-          uses: actions/setup-node@v2
+          uses: actions/setup-node@v4
           with:
-            node-version: '18'
+            node-version: '22'
         - run: npm ci
         - run: npx nx run-many --target=build --all --parallel
         - run: npx nx run-many --target=test --all --parallel

@@ -1,5 +1,4 @@
 import { cubeQueryToSQLWithResolution } from '../cube-to-sql-with-resolution/cube-to-sql-with-resolution';
-
 export const BASE_TABLE_SCHEMA = {
   name: 'base_table',
   sql: 'select * from base_table',
@@ -33,7 +32,6 @@ export const BASE_TABLE_SCHEMA = {
     },
   ],
 };
-
 export const DIM_WORK_SCHEMA = {
   name: 'dim_work',
   sql: 'select id, display_id, title from system.dim_issue',
@@ -56,7 +54,6 @@ export const DIM_WORK_SCHEMA = {
     },
   ],
 };
-
 export const DIM_PART_SCHEMA = {
   name: 'dim_part',
   sql: 'select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product',
@@ -74,7 +71,6 @@ export const DIM_PART_SCHEMA = {
     },
   ],
 };
-
 export const BASE_TABLE_SCHEMA_WITH_ALIASES = {
   name: 'base_table',
   sql: 'select * from base_table',
@@ -113,7 +109,6 @@ export const BASE_TABLE_SCHEMA_WITH_ALIASES = {
     },
   ],
 };
-
 export const DIM_PART_SCHEMA_WITH_ALIASES = {
   name: 'dim_part',
   sql: 'select id, display_id from system.dim_feature UNION ALL select id, display_id from system.dim_product',
@@ -133,7 +128,6 @@ export const DIM_PART_SCHEMA_WITH_ALIASES = {
     },
   ],
 };
-
 export const DIM_WORK_SCHEMA_WITH_ALIASES = {
   name: 'dim_work',
   sql: 'select id, display_id, title from system.dim_issue',
@@ -151,7 +145,6 @@ export const DIM_WORK_SCHEMA_WITH_ALIASES = {
       type: 'string',
       alias: 'Display ID',
     },
-
     {
       name: 'title',
       sql: 'dim_work.title',
@@ -160,7 +153,6 @@ export const DIM_WORK_SCHEMA_WITH_ALIASES = {
     },
   ],
 };
-
 describe('Resolution Tests', () => {
   it('No Resolution Config', async () => {
     const query = {
@@ -172,7 +164,6 @@ describe('Resolution Tests', () => {
         'base_table.part_id_2',
       ],
     };
-
     const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [BASE_TABLE_SCHEMA],
@@ -203,7 +194,6 @@ describe('Resolution Tests', () => {
       expectedSQL.replace(/\s+/g, ' ').trim()
     );
   });
-
   it('Resolution Config Missing Table Schema', async () => {
     const query = {
       measures: [],
@@ -214,7 +204,6 @@ describe('Resolution Tests', () => {
         'base_table.part_id_2',
       ],
     };
-
     await expect(
       cubeQueryToSQLWithResolution({
         query,
@@ -234,7 +223,6 @@ describe('Resolution Tests', () => {
       })
     ).rejects.toThrow('Table schema not found for dim_part');
   });
-
   it('With Resolution Config', async () => {
     const query = {
       measures: [],
@@ -245,7 +233,6 @@ describe('Resolution Tests', () => {
         'base_table.part_id_2',
       ],
     };
-
     const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
@@ -306,7 +293,6 @@ describe('Resolution Tests', () => {
       expectedSQL.replace(/\s+/g, ' ').trim()
     );
   });
-
   it('Resolution With Measures', async () => {
     const query = {
       measures: ['base_table.count'],
@@ -336,7 +322,6 @@ describe('Resolution Tests', () => {
       expectedSQL.replace(/\s+/g, ' ').trim()
     );
   });
-
   it('Resolution With Aliases', async () => {
     const query = {
       measures: [],
@@ -346,7 +331,6 @@ describe('Resolution Tests', () => {
         'base_table.part_id_2',
       ],
     };
-
     const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],
@@ -378,7 +362,6 @@ describe('Resolution Tests', () => {
       expectedSQL.replace(/\s+/g, ' ').trim()
     );
   });
-
   it('Resolution With Column Projections', async () => {
     const query = {
       measures: [],
@@ -389,7 +372,6 @@ describe('Resolution Tests', () => {
         'base_table.part_id_2',
       ],
     };
-
     const sql = await cubeQueryToSQLWithResolution({
       query,
       tableSchemas: [BASE_TABLE_SCHEMA_WITH_ALIASES],

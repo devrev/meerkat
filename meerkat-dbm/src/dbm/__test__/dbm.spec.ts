@@ -8,11 +8,9 @@ import { FileData, Table } from '../../types';
 import { DBM } from '../dbm';
 import { DBMConstructorOptions, TableConfig } from '../types';
 import { InstanceManager } from './mock';
-
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
   private tables: Record<string, Table> = {};
-
   async bulkRegisterFileBuffer(props: FileBufferStore[]): Promise<void> {
     for (const prop of props) {
       this.fileBufferStore[prop.fileName] = prop;
@@ -22,28 +20,23 @@ export class MockFileManager implements FileManagerType {
       this.tables[prop.tableName].files.push(...props);
     }
   }
-
   async registerFileBuffer(prop: FileBufferStore): Promise<void> {
     this.fileBufferStore[prop.fileName] = prop;
     this.tables[prop.tableName] = this.tables[prop.tableName] || { files: [] };
     this.tables[prop.tableName].files.push(prop);
   }
-
   async bulkRegisterJSON(props: FileJsonStore[]): Promise<void> {
     for (const prop of props) {
       await this.registerJSON(prop);
     }
   }
-
   async registerJSON(prop: FileJsonStore): Promise<void> {
     const { json, ...fileData } = prop;
-
     this.registerFileBuffer({
       ...fileData,
       buffer: new Uint8Array(),
     });
   }
-
   async mountFileBufferByTables(tables: TableConfig[]): Promise<void> {
     const tableNames = tables.map((table) => table.name);
     for (const tableName of tableNames) {
@@ -55,19 +48,15 @@ export class MockFileManager implements FileManagerType {
       }
     }
   }
-
   async getFilesByTableName(tableName: string): Promise<FileData[]> {
     const files: FileData[] = [];
-
     for (const key in this.fileBufferStore) {
       if (this.fileBufferStore[key].tableName === tableName) {
         files.push({ fileName: key });
       }
     }
-
     return files;
   }
-
   async dropFilesByTableName(
     tableName: string,
     fileNames: string[]
@@ -76,58 +65,46 @@ export class MockFileManager implements FileManagerType {
       delete this.fileBufferStore[fileName];
     }
   }
-
   async getFilesNameForTables(tableNames: TableConfig[]): Promise<Table[]> {
     const data: Table[] = [];
-
     for (const { name: tableName } of tableNames) {
       const files: FileData[] = [];
-
       for (const key in this.fileBufferStore) {
         if (this.fileBufferStore[key].tableName === tableName) {
           files.push({ fileName: key });
         }
       }
-
       data.push({
         tableName,
         files,
       });
     }
-
     return data;
   }
-
   async getTableData(table: TableConfig): Promise<Table | undefined> {
     return this.tables[table.name];
   }
-
   async setTableMetadata(table: string, metadata: object): Promise<void> {
     this.tables[table].metadata = metadata;
   }
-
   onDBShutdownHandler = jest.fn(async () => {
     // do nothing
   });
 }
-
 describe('DBM', () => {
   let fileManager: FileManagerType;
   let dbm: DBM;
   let instanceManager: InstanceManager;
-
   const tables = [{ name: 'table1' }];
   const onCreateConnection = jest
     .fn()
     .mockImplementation(async (connection) => {
       await connection.query('SELECT 2');
     });
-
   beforeAll(async () => {
     fileManager = new MockFileManager();
     instanceManager = new InstanceManager();
   });
-
   beforeEach(() => {
     const instanceManager = new InstanceManager();
     const options: DBMConstructorOptions = {
@@ -137,35 +114,27 @@ describe('DBM', () => {
       onEvent: (event) => {
         console.log(event);
       },
-      options: {
-        shutdownInactiveTime: 100,
-      },
       onCreateConnection,
     };
     dbm = new DBM(options);
   });
-
   afterEach(() => {
     onCreateConnection.mockClear();
   });
-
   describe('query', () => {
     it('should execute a query', async () => {
       const result = await dbm.query('SELECT 1');
       expect(result).toEqual(['SELECT 1']);
     });
   });
-
   describe('queryWithTables', () => {
     it('should call the preQuery hook', async () => {
       const preQuery = jest.fn();
-
       await fileManager.registerFileBuffer({
         fileName: 'file1',
         tableName: 'table1',
         buffer: new Uint8Array(),
       });
-
       const result = await dbm.queryWithTables({
         query: 'SELECT * FROM table1',
         tables: tables,
@@ -173,17 +142,14 @@ describe('DBM', () => {
           preQuery,
         },
       });
-
-      expect(preQuery).toBeCalledTimes(1);
-
-      expect(preQuery).toBeCalledWith([
+      expect(preQuery).toHaveBeenCalledTimes(1);
+      expect(preQuery).toHaveBeenCalledWith([
         {
           tableName: 'table1',
           files: [{ fileName: 'file1' }],
         },
       ]);
     });
-
     it('should execute a query with table names', async () => {
       const result = await dbm.queryWithTables({
         query: 'SELECT * FROM table1',
@@ -191,7 +157,6 @@ describe('DBM', () => {
       });
       expect(result).toEqual(['SELECT * FROM table1']);
     });
-
     it('should execute multiple queries with table names', async () => {
       const promise1 = dbm.queryWithTables({
         query: 'SELECT * FROM table1',
@@ -205,7 +170,6 @@ describe('DBM', () => {
        * Number of queries in the queue should be 1 as the first query is running
        */
       expect(dbm.getQueueLength()).toBe(1);
-
       /**
        * The queue should be running
        */
@@ -213,7 +177,6 @@ describe('DBM', () => {
       const [result, result1] = await Promise.all([promise1, promise2]);
       expect(result).toEqual(['SELECT * FROM table1']);
       expect(result1).toEqual(['SELECT * FROM table2']);
-
       /**
        * Number of queries in the queue should be 0 as all the queries are executed
        */
@@ -222,7 +185,6 @@ describe('DBM', () => {
        * The queue should not be running
        */
       expect(dbm.isQueryRunning()).toBe(false);
-
       /**
        * Execute another query
        */
@@ -230,17 +192,13 @@ describe('DBM', () => {
         query: 'SELECT * FROM table3',
         tables: tables,
       });
-
       /**
        * Now the queue should be running
        */
       expect(dbm.isQueryRunning()).toBe(true);
-
       const result3 = await promise3;
-
       expect(result3).toEqual(['SELECT * FROM table3']);
     });
-
     it('should deduplicate tables by name before executing query', async () => {
       const duplicateTables = [
         { name: 'table1' },
@@ -249,17 +207,14 @@ describe('DBM', () => {
         { name: 'table3' },
         { name: 'table2' },
       ];
-
       const mockMountFileBufferByTables = jest.spyOn(
         fileManager,
         'mountFileBufferByTables'
       );
-
       await dbm.queryWithTables({
         query: 'SELECT * FROM table1 JOIN table2 JOIN table3',
         tables: duplicateTables,
       });
-
       // Verify that only unique tables were passed to mountFileBufferByTables
       expect(mockMountFileBufferByTables).toHaveBeenCalledWith([
         { name: 'table1' },
@@ -268,15 +223,12 @@ describe('DBM', () => {
       ]);
     });
   });
-
   describe('shutdown the db test', () => {
     it('should shutdown the db if there are no queries in the queue', async () => {
       const instanceManager = new InstanceManager();
       // If instanceManager.terminateDB is a method
       jest.spyOn(instanceManager, 'terminateDB');
-
       const onDuckDBShutdown = jest.fn();
-
       // If instanceManager.terminateDB is a function
       instanceManager.terminateDB = jest.fn();
       const options: DBMConstructorOptions = {
@@ -292,7 +244,6 @@ describe('DBM', () => {
         },
       };
       const dbm = new DBM(options);
-
       /**
        * Execute a query
        */
@@ -300,7 +251,6 @@ describe('DBM', () => {
         query: 'SELECT * FROM table1',
         tables: tables,
       });
-
       /**
        * Execute another query
        */
@@ -308,40 +258,33 @@ describe('DBM', () => {
         query: 'SELECT * FROM table2',
         tables: tables,
       });
-
       /**
        * Wait for the queries to complete
        */
       await Promise.all([promise1, promise2]);
-
       await new Promise((resolve) => setTimeout(resolve, 10));
       /**
        * Expect instanceManager.terminateDB to not be called
        */
-      expect(instanceManager.terminateDB).not.toBeCalled();
-
+      expect(instanceManager.terminateDB).not.toHaveBeenCalled();
       /**
        * wait for 200ms
        */
       await new Promise((resolve) => setTimeout(resolve, 200));
-
       /**
        * Expect onDuckDBShutdown to be called
        */
-      expect(onDuckDBShutdown).toBeCalled();
-
+      expect(onDuckDBShutdown).toHaveBeenCalled();
       /**
        * Expect instanceManager.terminateDB to be called
        */
-      expect(fileManager.onDBShutdownHandler).toBeCalled();
-      expect(instanceManager.terminateDB).toBeCalled();
+      expect(fileManager.onDBShutdownHandler).toHaveBeenCalled();
+      expect(instanceManager.terminateDB).toHaveBeenCalled();
     });
-
     it('should not shutdown the db if option is not set', async () => {
       const instanceManager = new InstanceManager();
       // If instanceManager.terminateDB is a method
       jest.spyOn(instanceManager, 'terminateDB');
-
       // If instanceManager.terminateDB is a function
       instanceManager.terminateDB = jest.fn();
       const options: DBMConstructorOptions = {
@@ -353,7 +296,6 @@ describe('DBM', () => {
         },
       };
       const dbm = new DBM(options);
-
       /**
        * Execute a query
        */
@@ -361,7 +303,6 @@ describe('DBM', () => {
         query: 'SELECT * FROM table1',
         tables: tables,
       });
-
       /**
        * Execute another query
        */
@@ -369,18 +310,15 @@ describe('DBM', () => {
         query: 'SELECT * FROM table2',
         tables: tables,
       });
-
       /**
        * Wait for the queries to complete
        */
       await Promise.all([promise1, promise2]);
-
       await new Promise((resolve) => setTimeout(resolve, 10));
       /**
        * Expect instanceManager.terminateDB to not be called
        */
-      expect(instanceManager.terminateDB).not.toBeCalled();
-
+      expect(instanceManager.terminateDB).not.toHaveBeenCalled();
       /**
        * wait for 200ms
        */
@@ -388,17 +326,14 @@ describe('DBM', () => {
       /**
        * Expect instanceManager.terminateDB to be called
        */
-      expect(instanceManager.terminateDB).not.toBeCalled();
+      expect(instanceManager.terminateDB).not.toHaveBeenCalled();
     });
-
     it('should not shutdown the db if the shutdown lock is true', async () => {
       jest.spyOn(instanceManager, 'terminateDB');
-
       /**
        * Set the shutdown lock to true
        */
       dbm.setShutdownLock(true);
-
       /**
        * Execute a query
        */
@@ -406,23 +341,19 @@ describe('DBM', () => {
         query: 'SELECT * FROM table1',
         tables: tables,
       });
-
       /**
        * wait for 200ms
        */
       await new Promise((resolve) => setTimeout(resolve, 200));
-
       /**
        * Expect instanceManager.terminateDB to not be called
        */
-      expect(instanceManager.terminateDB).not.toBeCalled();
+      expect(instanceManager.terminateDB).not.toHaveBeenCalled();
     });
   });
-
   describe('cancel query execution', () => {
     it('should cancel the current executing query when abort is emitted', async () => {
       const abortController1 = new AbortController();
-
       // check the current query throws error abort is emitted
       try {
         const promise = dbm.queryWithTables({
@@ -432,23 +363,17 @@ describe('DBM', () => {
             signal: abortController1.signal,
           },
         });
-
         abortController1.abort();
-
         await promise;
-
         expect(promise).not.toBeDefined();
       } catch (e) {
         expect(e).toBeDefined();
       }
     });
-
     it('should cancel the query in the queue when abort is emitted', async () => {
       const abortController1 = new AbortController();
       const abortController2 = new AbortController();
-
       const mockDBMQuery = jest.spyOn(dbm, 'query');
-
       const promise1 = dbm.queryWithTables({
         query: 'SELECT * FROM table1',
         tables: tables,
@@ -456,7 +381,6 @@ describe('DBM', () => {
           signal: abortController1.signal,
         },
       });
-
       const promise2 = dbm.queryWithTables({
         query: 'SELECT * FROM table2',
         tables: [{ name: 'table2' }],
@@ -464,26 +388,20 @@ describe('DBM', () => {
           signal: abortController2.signal,
         },
       });
-
       abortController2.abort();
-
       const promises = await Promise.allSettled([promise1, promise2]);
-
       // the first query should be fulfilled
-      expect(mockDBMQuery).toBeCalledWith('SELECT * FROM table1');
+      expect(mockDBMQuery).toHaveBeenCalledWith('SELECT * FROM table1');
       expect(promises[0].status).toBe('fulfilled');
-
       // the second query should be rejected as it was aborted
-      expect(mockDBMQuery).not.toBeCalledWith('SELECT * FROM table2');
+      expect(mockDBMQuery).not.toHaveBeenCalledWith('SELECT * FROM table2');
       expect(promises[1].status).toBe('rejected');
     });
   });
-
   describe('create connection callback', () => {
     it('should call the create connection callback', async () => {
       await dbm.query('SELECT 1');
       expect(onCreateConnection).toHaveBeenCalled();
-
       expect(onCreateConnection).toHaveBeenCalledWith(
         // arguments of the mockdb connection return object
         expect.objectContaining({
@@ -492,17 +410,14 @@ describe('DBM', () => {
           close: expect.any(Function),
         })
       );
-
       /**
        * wait for 200ms
        */
       await new Promise((resolve) => setTimeout(resolve, 200));
-
       /**
        * after shutdown on new connection creation
        * also call the create connection callback
        */
-
       await dbm.query('SELECT 2');
       expect(onCreateConnection).toHaveBeenCalled();
       expect(onCreateConnection).toHaveBeenCalledWith(

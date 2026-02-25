@@ -44,36 +44,35 @@ describe('context-param-tests', () => {
              (6, DATE '2022-02-15', 'pending', 120.00),
              (7, DATE '2022-04-01', 'completed', 210.00);`);
   });
-
   it('Should apply context params to base SQL', async () => {
-      const query = {
-        measures: ['*'],
-        filters: [
-          {
-            member: 'orders.status',
-            operator: 'equals',
-            values: ['pending'],
-          },
-        ],
-        dimensions: [],
-      };
-      const sql = await cubeQueryToSQL({
-        query,
-        tableSchemas: [SCHEMA],
-        contextParams: {
-          TABLE_NAME: 'orders',
-        },
-      });
-      console.info('SQL: ', sql);
-      const output: any = await duckdbExec(sql);
-      expect(output).toEqual([
+    const query = {
+      measures: ['*'],
+      filters: [
         {
-          amount: 120,
-          date: new Date('2022-02-15'),
-          id: 6,
-          orders__status: 'pending',
-          status: 'pending',
+          member: 'orders.status',
+          operator: 'equals',
+          values: ['pending'],
         },
-      ]);
+      ],
+      dimensions: [],
+    };
+    const sql = await cubeQueryToSQL({
+      query,
+      tableSchemas: [SCHEMA],
+      contextParams: {
+        TABLE_NAME: 'orders',
+      },
+    });
+    console.info('SQL: ', sql);
+    const output: any = await duckdbExec(sql);
+    expect(output).toEqual([
+      {
+        amount: 120,
+        date: new Date('2022-02-15'),
+        id: 6,
+        orders__status: 'pending',
+        status: 'pending',
+      },
+    ]);
   });
 });

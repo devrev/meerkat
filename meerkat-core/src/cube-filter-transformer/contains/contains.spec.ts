@@ -5,13 +5,11 @@ import {
 import { ConjunctionExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
 import { containsDuckdbCondition, containsTransform } from './contains';
-
 describe('Contains Transform Tests', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
-
     it('Should throw error if values are empty', () => {
       expect(() =>
         containsTransform(
@@ -29,7 +27,6 @@ describe('Contains Transform Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should create a simple Contains condition if there is only one value', () => {
       const expectedOutput = containsDuckdbCondition(
         'country',
@@ -57,7 +54,6 @@ describe('Contains Transform Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should create an OR condition if there are multiple values', () => {
       const output = containsTransform(
         {
@@ -77,12 +73,10 @@ describe('Contains Transform Tests', () => {
       expect(output.children.length).toEqual(3);
     });
   });
-
   describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };
-
     it('Should throw error if values are empty', () => {
       expect(() =>
         containsTransform(
@@ -100,7 +94,6 @@ describe('Contains Transform Tests', () => {
         )
       ).toThrow();
     });
-
     it('Should create a simple Contains condition if there is only one value', () => {
       const expectedOutput = containsDuckdbCondition(
         'country',
@@ -128,7 +121,6 @@ describe('Contains Transform Tests', () => {
         )
       ).toEqual(expectedOutput);
     });
-
     it('Should create an OR condition if there are multiple values', () => {
       const output = containsTransform(
         {

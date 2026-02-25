@@ -5,7 +5,6 @@ import {
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { Dimension, Measure } from '../types/cube-types/table';
 import { cubeFiltersEnrichmentInternal } from './cube-filter-enrichment';
-
 describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
   const measure: Measure = {
     name: 'column1',
@@ -23,7 +22,6 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
     measures: [measure],
     dimensions: [measure2],
   };
-
   it('should enrich filters with member info', () => {
     const filters: QueryOperatorsWithInfo[] = [
       {
@@ -31,11 +29,9 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
         operator: 'equals',
       },
     ];
-
     cubeFiltersEnrichmentInternal(filters, mockTableSchema);
     expect(filters[0].memberInfo.sql).toBe(mockTableSchema.measures[0].sql);
   });
-
   it('should enrich nested logicalAnd/OR filter with member info', () => {
     const filters:
       | QueryOperatorsWithInfo
@@ -75,7 +71,6 @@ describe('cubeFiltersEnrichmentInternal and cubeFiltersEnrichment', () => {
         },
       ],
     };
-
     cubeFiltersEnrichmentInternal(filters, mockTableSchema);
     expect(filters.and[0].memberInfo.sql).toBe(mockTableSchema.measures[0].sql);
     expect(filters.and[1].or[0].memberInfo.sql).toBe(

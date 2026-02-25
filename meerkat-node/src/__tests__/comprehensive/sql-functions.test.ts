@@ -1,16 +1,15 @@
 /**
  * Comprehensive SQL Functions Tests
- * 
+ *
  * Tests SQL function support in cube queries:
  * - Date/time functions (DATE_TRUNC, EXTRACT, date arithmetic)
  * - String functions (UPPER, LOWER, CONCAT, LENGTH)
  * - Aggregation functions (COUNT DISTINCT, SUM, AVG, MIN, MAX)
  * - Type casting and conversions
- * 
+ *
  * These tests verify that common SQL functions used in widget queries
  * are correctly translated and executed.
  */
-
 import { describe, it, expect, beforeAll } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -18,7 +17,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: SQL Functions', () => {
   beforeAll(async () => {
     console.log('🚀 Starting SQL function tests...');
@@ -26,7 +24,6 @@ describe('Comprehensive: SQL Functions', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('Date/Time Functions', () => {
     it('should use DATE_TRUNC to truncate to month', async () => {
       const sql = `
@@ -39,14 +36,12 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(row.month).toBeTruthy();
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use DATE_TRUNC to truncate to day', async () => {
       const sql = `
         SELECT 
@@ -58,14 +53,12 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(row.day).toBeTruthy();
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use DATE_TRUNC to truncate to year', async () => {
       const sql = `
         SELECT 
@@ -76,14 +69,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY year
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(row.year).toBeTruthy();
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use EXTRACT to get year from date', async () => {
       const sql = `
         SELECT 
@@ -94,14 +85,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY year
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(Number(row.year)).toBeGreaterThan(2019);
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use EXTRACT to get month from date', async () => {
       const sql = `
         SELECT 
@@ -112,17 +101,14 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY month
       `;
       const result = await duckdbExec(sql);
-
       // Should have 12 months
       expect(result.length).toBe(12);
-
       result.forEach((row) => {
         expect(Number(row.month)).toBeGreaterThanOrEqual(1);
         expect(Number(row.month)).toBeLessThanOrEqual(12);
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use EXTRACT to get day of week', async () => {
       const sql = `
         SELECT 
@@ -133,16 +119,13 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY day_of_week
       `;
       const result = await duckdbExec(sql);
-
       // Should have 7 days (0=Sunday, 6=Saturday)
       expect(result.length).toBe(7);
-
       result.forEach((row) => {
         expect(Number(row.day_of_week)).toBeGreaterThanOrEqual(0);
         expect(Number(row.day_of_week)).toBeLessThanOrEqual(6);
       });
     });
-
     it('should use MONTHNAME function', async () => {
       const sql = `
         SELECT 
@@ -154,9 +137,7 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       const validMonths = [
         'January',
         'February',
@@ -171,12 +152,10 @@ describe('Comprehensive: SQL Functions', () => {
         'November',
         'December',
       ];
-
       result.forEach((row) => {
         expect(validMonths).toContain(row.month_name);
       });
     });
-
     it('should use DAYNAME function', async () => {
       const sql = `
         SELECT 
@@ -188,9 +167,7 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 7
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       const validDays = [
         'Monday',
         'Tuesday',
@@ -200,12 +177,10 @@ describe('Comprehensive: SQL Functions', () => {
         'Saturday',
         'Sunday',
       ];
-
       result.forEach((row) => {
         expect(validDays).toContain(row.day_name);
       });
     });
-
     it('should perform date arithmetic (date difference)', async () => {
       const sql = `
         SELECT 
@@ -219,13 +194,11 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use AGE function for timestamp difference', async () => {
       const sql = `
         SELECT 
@@ -236,12 +209,10 @@ describe('Comprehensive: SQL Functions', () => {
           AND identified_timestamp IS NOT NULL
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(1);
       expect(Number(result[0].count)).toBe(1000000);
     });
   });
-
   describe('String Functions', () => {
     it('should use UPPER function', async () => {
       const sql = `
@@ -253,15 +224,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY priority_upper
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row) => {
         expect(row.priority_upper).toBe(row.priority_upper.toUpperCase());
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use LOWER function', async () => {
       const sql = `
         SELECT 
@@ -272,15 +240,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY status_lower
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(row.status_lower).toBe(row.status_lower.toLowerCase());
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use LENGTH function', async () => {
       const sql = `
         SELECT 
@@ -291,15 +256,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY priority_length
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(Number(row.priority_length)).toBeGreaterThan(0);
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use CONCAT function', async () => {
       const sql = `
         SELECT 
@@ -311,15 +273,12 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(row.combined).toContain('-');
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use SUBSTRING function', async () => {
       const sql = `
         SELECT 
@@ -330,15 +289,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY priority_prefix
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(row.priority_prefix.length).toBeLessThanOrEqual(3);
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use TRIM function', async () => {
       const sql = `
         SELECT 
@@ -349,15 +305,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY priority_trimmed
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row) => {
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Aggregate Functions', () => {
     it('should use COUNT DISTINCT', async () => {
       const sql = `
@@ -367,12 +320,10 @@ describe('Comprehensive: SQL Functions', () => {
         FROM fact_all_types
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(1);
       expect(Number(result[0].distinct_users)).toBe(10000);
       expect(Number(result[0].distinct_parts)).toBe(5000);
     });
-
     it('should use SUM aggregate', async () => {
       const sql = `
         SELECT 
@@ -384,15 +335,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row) => {
         expect(Number(row.total_ids)).toBeGreaterThan(0);
         expect(Number(row.total_metric)).toBeGreaterThan(0);
       });
     });
-
     it('should use AVG aggregate', async () => {
       const sql = `
         SELECT 
@@ -404,15 +352,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY status
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(Number(row.avg_id)).toBeGreaterThan(0);
         expect(Number(row.avg_metric)).toBeGreaterThan(0);
       });
     });
-
     it.fails('should use MIN and MAX aggregates', async () => {
       const sql = `
         SELECT 
@@ -425,14 +370,12 @@ describe('Comprehensive: SQL Functions', () => {
         FROM fact_all_types
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(1);
       expect(Number(result[0].min_id)).toBe(0);
       expect(Number(result[0].max_id)).toBe(999999);
       expect(Number(result[0].min_metric)).toBeGreaterThan(0);
       expect(Number(result[0].max_metric)).toBeGreaterThan(0);
     });
-
     it('should use STDDEV aggregate', async () => {
       const sql = `
         SELECT 
@@ -443,14 +386,11 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row) => {
         expect(Number(row.stddev_metric)).toBeGreaterThanOrEqual(0);
       });
     });
-
     it('should use MEDIAN aggregate', async () => {
       const sql = `
         SELECT 
@@ -461,15 +401,12 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row) => {
         expect(Number(row.median_metric)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Type Casting and Conversions', () => {
     it('should cast numeric to string', async () => {
       const sql = `
@@ -482,14 +419,11 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY id_string
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       result.forEach((row) => {
         expect(typeof row.id_string).toBe('string');
       });
     });
-
     it('should cast date to timestamp', async () => {
       const sql = `
         SELECT 
@@ -501,14 +435,11 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(row.created_timestamp_casted).toBeTruthy();
       });
     });
-
     it('should cast string to numeric', async () => {
       const sql = `
         SELECT 
@@ -518,11 +449,9 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 1
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(1);
       expect(Number(result[0].numeric_value)).toBe(123);
     });
-
     it('should use COALESCE for NULL handling', async () => {
       const sql = `
         SELECT 
@@ -534,16 +463,13 @@ describe('Comprehensive: SQL Functions', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(row.effective_date).toBeTruthy();
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Conditional Functions', () => {
     it('should use CASE WHEN for categorization', async () => {
       const sql = `
@@ -564,20 +490,16 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY id_category
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       const categories = result.map((r) => r.id_category);
       expect(categories).toContain('low');
       expect(categories).toContain('medium');
       expect(categories).toContain('high');
-
       // Low: 100K, Medium: 400K, High: 500K
       result.forEach((row) => {
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use NULLIF function', async () => {
       const sql = `
         SELECT 
@@ -586,22 +508,17 @@ describe('Comprehensive: SQL Functions', () => {
         FROM fact_all_types
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(1);
-
       const nonLowCount = Number(result[0].non_low_count);
       const totalCount = Number(result[0].total_count);
-
       // 'low' priority is 20% of rows
       expect(nonLowCount).toBeLessThan(totalCount);
       expect(nonLowCount).toBeGreaterThan(totalCount * 0.75);
     });
   });
-
   describe('Performance', () => {
     it('should execute complex SQL functions quickly (< 1s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           DATE_TRUNC('month', created_date) as month,
@@ -614,12 +531,9 @@ describe('Comprehensive: SQL Functions', () => {
         ORDER BY month, priority
         LIMIT 50
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(1000);
     });
   });
 });
-

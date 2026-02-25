@@ -1,7 +1,6 @@
 import { Dimension, Measure } from '../../types/cube-types';
 import { CUBE_TYPE_TO_DUCKDB_TYPE } from '../../utils/cube-type-to-duckdb-type';
 import { valueBuilder } from './base-condition-builder';
-
 describe('valueBuilder', () => {
   it('should build a value for a string type', () => {
     const memberInfo: Measure | Dimension = {
@@ -20,14 +19,12 @@ describe('valueBuilder', () => {
       value: value,
     });
   });
-
   it('should build a value for a string type with single quotes', () => {
     const memberInfo: Measure | Dimension = {
       name: 'test',
       type: 'string',
       sql: 'test',
     };
-
     const value = "I'm a string with a single quote";
     const result = valueBuilder(value, memberInfo);
     expect(result).toEqual({
@@ -39,7 +36,6 @@ describe('valueBuilder', () => {
       value: "I''m a string with a single quote",
     });
   });
-
   it('should build a value for a number type', () => {
     const memberInfo: Measure | Dimension = {
       name: 'test',
@@ -48,7 +44,6 @@ describe('valueBuilder', () => {
     };
     const value = '123';
     const result = valueBuilder(value, memberInfo);
-
     expect(result).toEqual({
       type: {
         id: CUBE_TYPE_TO_DUCKDB_TYPE.number,
@@ -63,7 +58,6 @@ describe('valueBuilder', () => {
       value: 123,
     });
   });
-
   it('should build a value for a boolean type', () => {
     const memberInfo: Measure | Dimension = {
       name: 'test',
@@ -81,7 +75,6 @@ describe('valueBuilder', () => {
       value: true,
     });
   });
-
   it('should build a value for a time type', () => {
     const memberInfo: Measure | Dimension = {
       name: 'test',
@@ -99,7 +92,6 @@ describe('valueBuilder', () => {
       value: value,
     });
   });
-
   it('should default to string for unknown types', () => {
     const memberInfo: Measure | Dimension = {
       name: 'test',

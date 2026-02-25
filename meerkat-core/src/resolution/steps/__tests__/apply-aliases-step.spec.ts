@@ -1,13 +1,20 @@
 import { TableSchema } from '../../../types/cube-types';
 import { ResolutionConfig } from '../../types';
 import { applyAliases, ApplyAliasesParams } from '../apply-aliases-step';
-
 describe('apply-aliases-step', () => {
   describe('applyAliases', () => {
     const createMockTableSchema = (
       name: string,
-      dimensions: { name: string; alias?: string; sql?: string }[] = [],
-      measures: { name: string; alias?: string; sql?: string }[] = []
+      dimensions: {
+        name: string;
+        alias?: string;
+        sql?: string;
+      }[] = [],
+      measures: {
+        name: string;
+        alias?: string;
+        sql?: string;
+      }[] = []
     ): TableSchema => ({
       name,
       sql: `SELECT * FROM ${name}`,
@@ -24,15 +31,12 @@ describe('apply-aliases-step', () => {
         alias: m.alias,
       })),
     });
-
     const mockCubeQueryToSQL = jest
       .fn()
       .mockResolvedValue('SELECT * FROM test');
-
     beforeEach(() => {
       mockCubeQueryToSQL.mockClear();
     });
-
     it('should apply aliases from original schema to aggregated schema', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         { name: 'orders__customer_id', alias: 'orders__customer_id' },
@@ -46,22 +50,18 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
     });
-
     it('should use original alias for single resolution column', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         {
@@ -90,22 +90,18 @@ describe('apply-aliases-step', () => {
           ]),
         ],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
     });
-
     it('should create compound alias for multiple resolution columns', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         {
@@ -137,23 +133,19 @@ describe('apply-aliases-step', () => {
           ]),
         ],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Owner - First Name');
       expect(calledSchema.dimensions[1].alias).toBe('Owner - Last Name');
     });
-
     it('should handle nested dot notation with underscores', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         {
@@ -170,19 +162,15 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
     });
-
     it('should handle measures from original schema', async () => {
       const aggregatedTableSchema = createMockTableSchema(
         'aggregated',
@@ -200,23 +188,19 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       // Measures are converted to dimensions in the final schema
       expect(calledSchema.dimensions[0].alias).toBe('Total Revenue');
     });
-
     describe('error handling', () => {
       it('should throw error when source table schema not found', async () => {
         const aggregatedTableSchema = createMockTableSchema('aggregated', [
@@ -242,19 +226,16 @@ describe('apply-aliases-step', () => {
           ],
           tableSchemas: [], // Missing source table schema
         };
-
         const params: ApplyAliasesParams = {
           aggregatedTableSchema,
           originalTableSchemas,
           resolutionConfig,
           cubeQueryToSQL: mockCubeQueryToSQL,
         };
-
         await expect(applyAliases(params)).rejects.toThrow(
           'Source table schema not found for nonexistent'
         );
       });
-
       it('should throw error when source field alias not found', async () => {
         const aggregatedTableSchema = createMockTableSchema('aggregated', [
           {
@@ -285,20 +266,17 @@ describe('apply-aliases-step', () => {
             ]),
           ],
         };
-
         const params: ApplyAliasesParams = {
           aggregatedTableSchema,
           originalTableSchemas,
           resolutionConfig,
           cubeQueryToSQL: mockCubeQueryToSQL,
         };
-
         await expect(applyAliases(params)).rejects.toThrow(
           'Source field alias not found for first_name'
         );
       });
     });
-
     it('should skip members without aliases', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         { name: 'orders__customer_id', alias: 'orders__customer_id' },
@@ -312,23 +290,19 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       // Should keep original alias from aggregated schema
       expect(calledSchema.dimensions[0].alias).toBe('orders__customer_id');
     });
-
     it('should pass context params to cubeQueryToSQL', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         { name: 'orders__customer_id', alias: 'orders__customer_id' },
@@ -343,7 +317,6 @@ describe('apply-aliases-step', () => {
         tableSchemas: [],
       };
       const contextParams = { userId: '123', orgId: 'abc' };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
@@ -351,16 +324,13 @@ describe('apply-aliases-step', () => {
         contextParams,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       expect(mockCubeQueryToSQL).toHaveBeenCalledTimes(1);
       expect(mockCubeQueryToSQL.mock.calls[0][0].contextParams).toEqual({
         userId: '123',
         orgId: 'abc',
       });
     });
-
     it('should merge dimensions and measures into dimensions array', async () => {
       const aggregatedTableSchema = createMockTableSchema(
         'aggregated',
@@ -378,16 +348,13 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions).toHaveLength(2);
@@ -395,7 +362,6 @@ describe('apply-aliases-step', () => {
       expect(calledSchema.dimensions[1].alias).toBe('Total');
       expect(calledSchema.measures).toEqual([]);
     });
-
     it('should generate query with all dimensions namespaced', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         { name: 'orders__customer_id', alias: 'orders__customer_id' },
@@ -411,16 +377,13 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       const calledQuery = mockCubeQueryToSQL.mock.calls[0][0].query;
       expect(calledQuery.measures).toEqual([]);
       expect(calledQuery.dimensions).toEqual([
@@ -428,7 +391,6 @@ describe('apply-aliases-step', () => {
         'aggregated.orders__status',
       ]);
     });
-
     it('should handle multiple original table schemas', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         { name: 'orders__customer_id', alias: 'orders__customer_id' },
@@ -446,27 +408,22 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Customer ID');
       expect(calledSchema.dimensions[1].alias).toBe('Product Name');
     });
-
     it('should return SQL from cubeQueryToSQL', async () => {
       mockCubeQueryToSQL.mockResolvedValueOnce(
         'SELECT customer_id AS "Customer ID" FROM orders'
       );
-
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         { name: 'orders__customer_id', alias: 'orders__customer_id' },
       ]);
@@ -479,19 +436,15 @@ describe('apply-aliases-step', () => {
         columnConfigs: [],
         tableSchemas: [],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       const result = await applyAliases(params);
-
       expect(result).toBe('SELECT customer_id AS "Customer ID" FROM orders');
     });
-
     it('should handle three resolution columns', async () => {
       const aggregatedTableSchema = createMockTableSchema('aggregated', [
         {
@@ -528,16 +481,13 @@ describe('apply-aliases-step', () => {
           ]),
         ],
       };
-
       const params: ApplyAliasesParams = {
         aggregatedTableSchema,
         originalTableSchemas,
         resolutionConfig,
         cubeQueryToSQL: mockCubeQueryToSQL,
       };
-
       await applyAliases(params);
-
       const calledSchema = mockCubeQueryToSQL.mock.calls[0][0]
         .tableSchemas[0] as TableSchema;
       expect(calledSchema.dimensions[0].alias).toBe('Owner - First Name');

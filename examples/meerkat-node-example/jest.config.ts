@@ -1,5 +1,5 @@
 /* eslint-disable */
-export default {
+module.exports = {
   displayName: 'meerkat-node-example',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',

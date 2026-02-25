@@ -1,6 +1,6 @@
 /**
  * Comprehensive Window Functions Tests
- * 
+ *
  * Tests window function support in queries:
  * - ROW_NUMBER()
  * - RANK() / DENSE_RANK()
@@ -12,7 +12,6 @@
  * - ORDER BY within windows
  * - Window frames (ROWS BETWEEN, RANGE BETWEEN)
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -20,7 +19,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Window Functions', () => {
   beforeAll(async () => {
     console.log('🚀 Starting window function tests...');
@@ -28,7 +26,6 @@ describe('Comprehensive: Window Functions', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('ROW_NUMBER()', () => {
     it('should use ROW_NUMBER() without PARTITION BY', async () => {
       const sql = `
@@ -41,15 +38,12 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       // Row numbers should be 1, 2, 3, ..., 10
       result.forEach((row, index) => {
         expect(Number(row.row_num)).toBe(index + 1);
       });
     });
-
     it('should use ROW_NUMBER() with PARTITION BY', async () => {
       const sql = `
         SELECT 
@@ -61,13 +55,10 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY priority, id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(25);
-
       // Within each priority, row_num should restart at 1
       let lastPriority = null;
       let expectedRowNum = 1;
-
       result.forEach((row) => {
         if (lastPriority !== row.priority) {
           expectedRowNum = 1;
@@ -77,7 +68,6 @@ describe('Comprehensive: Window Functions', () => {
         expectedRowNum++;
       });
     });
-
     it('should filter using ROW_NUMBER() in subquery', async () => {
       const sql = `
         SELECT *
@@ -93,12 +83,10 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY priority, id_bigint
       `;
       const result = await duckdbExec(sql);
-
       // 10 rows per priority * 5 priorities = 50 rows
       expect(result.length).toBe(50);
     });
   });
-
   describe('RANK() and DENSE_RANK()', () => {
     it.fails('should use RANK() to handle ties', async () => {
       const sql = `
@@ -111,15 +99,12 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY rank
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       // Ranks should be assigned (with possible gaps if there are ties)
       result.forEach((row, index) => {
         expect(Number(row.rank)).toBeGreaterThanOrEqual(index + 1);
       });
     });
-
     it('should use DENSE_RANK() to handle ties without gaps', async () => {
       const sql = `
         SELECT 
@@ -131,15 +116,12 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY dense_rank
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       // Dense ranks should be consecutive without gaps
       result.forEach((row, index) => {
         expect(Number(row.dense_rank)).toBeLessThanOrEqual(index + 1);
       });
     });
-
     it('should compare RANK() vs DENSE_RANK()', async () => {
       const sql = `
         SELECT 
@@ -156,15 +138,12 @@ describe('Comprehensive: Window Functions', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(Number(row.dense_rank)).toBeLessThanOrEqual(Number(row.rank));
       });
     });
   });
-
   describe('LEAD() and LAG()', () => {
     it('should use LAG() to get previous row value', async () => {
       const sql = `
@@ -177,18 +156,14 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       // First row should have NULL for prev_priority
       expect(result[0].prev_priority).toBeNull();
-
       // Each subsequent row's prev_priority should match previous row's priority
       for (let i = 1; i < result.length; i++) {
         expect(result[i].prev_priority).toBe(result[i - 1].priority);
       }
     });
-
     it('should use LEAD() to get next row value', async () => {
       const sql = `
         SELECT 
@@ -200,18 +175,14 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       // Last row should have NULL for next_status
       expect(result[result.length - 1].next_status).toBeNull();
-
       // Each row's next_status should match next row's status
       for (let i = 0; i < result.length - 1; i++) {
         expect(result[i].next_status).toBe(result[i + 1].status);
       }
     });
-
     it('should use LAG() with offset and default', async () => {
       const sql = `
         SELECT 
@@ -223,17 +194,15 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       // First 2 rows should have default value (0.0)
       expect(Number(result[0].lag_2_rows)).toBe(0);
       expect(Number(result[1].lag_2_rows)).toBe(0);
-
       // Row 2 should have row 0's value
-      expect(Number(result[2].lag_2_rows)).toBe(Number(result[0].metric_double));
+      expect(Number(result[2].lag_2_rows)).toBe(
+        Number(result[0].metric_double)
+      );
     });
-
     it('should use LEAD() with PARTITION BY', async () => {
       const sql = `
         SELECT 
@@ -245,25 +214,23 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY priority, id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(50);
-
       // Verify LEAD resets per partition
       let lastPriority = null;
       result.forEach((row, index) => {
         if (lastPriority !== row.priority) {
           lastPriority = row.priority;
         }
-
         // If not the last row in this partition and there's a next row with same priority
         const nextRow = result[index + 1];
         if (nextRow && nextRow.priority === row.priority) {
-          expect(Number(row.next_id_in_priority)).toBe(Number(nextRow.id_bigint));
+          expect(Number(row.next_id_in_priority)).toBe(
+            Number(nextRow.id_bigint)
+          );
         }
       });
     });
   });
-
   describe('FIRST_VALUE() and LAST_VALUE()', () => {
     it('should use FIRST_VALUE()', async () => {
       const sql = `
@@ -277,13 +244,10 @@ describe('Comprehensive: Window Functions', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(20);
-
       // Within each priority, first_id should be the same
       let lastPriority = null;
       let firstIdInPartition = null;
-
       result.forEach((row) => {
         if (lastPriority !== row.priority) {
           firstIdInPartition = Number(row.first_id);
@@ -292,7 +256,6 @@ describe('Comprehensive: Window Functions', () => {
         expect(Number(row.first_id)).toBe(firstIdInPartition);
       });
     });
-
     it('should use LAST_VALUE() with proper frame', async () => {
       const sql = `
         SELECT 
@@ -309,13 +272,10 @@ describe('Comprehensive: Window Functions', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(20);
-
       // Within each priority, last_id should be the same (largest value)
       let lastPriority = null;
       let lastIdInPartition = null;
-
       result.forEach((row) => {
         if (lastPriority !== row.priority) {
           lastIdInPartition = Number(row.last_id);
@@ -325,7 +285,6 @@ describe('Comprehensive: Window Functions', () => {
       });
     });
   });
-
   describe('Aggregate Window Functions', () => {
     it('should use SUM() OVER as running total', async () => {
       const sql = `
@@ -338,9 +297,7 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       // Verify running total
       let expectedTotal = 0;
       result.forEach((row) => {
@@ -348,7 +305,6 @@ describe('Comprehensive: Window Functions', () => {
         expect(Number(row.running_total)).toBe(expectedTotal);
       });
     });
-
     it('should use AVG() OVER with PARTITION BY', async () => {
       const sql = `
         SELECT 
@@ -361,22 +317,21 @@ describe('Comprehensive: Window Functions', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(20);
-
       // Within each priority, avg should be the same
       let lastPriority = null;
       let avgForPartition = null;
-
       result.forEach((row) => {
         if (lastPriority !== row.priority) {
           avgForPartition = Number(row.avg_metric_per_priority);
           lastPriority = row.priority;
         }
-        expect(Number(row.avg_metric_per_priority)).toBeCloseTo(avgForPartition, 5);
+        expect(Number(row.avg_metric_per_priority)).toBeCloseTo(
+          avgForPartition,
+          5
+        );
       });
     });
-
     it('should use COUNT() OVER with moving window', async () => {
       const sql = `
         SELECT 
@@ -390,16 +345,13 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       // First few and last few rows should have smaller windows
       expect(Number(result[0].count_in_window)).toBeLessThanOrEqual(3); // 0, 1, 2
       expect(Number(result[1].count_in_window)).toBeLessThanOrEqual(4); // 0, 1, 2, 3
       expect(Number(result[4].count_in_window)).toBe(5); // 2, 3, 4, 5, 6 (full window)
     });
   });
-
   describe('NTILE()', () => {
     it('should use NTILE() to divide into quartiles', async () => {
       const sql = `
@@ -411,9 +363,7 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(100);
-
       // Check that we have 4 quartiles
       const quartiles = new Set(result.map((r) => Number(r.quartile)));
       expect(quartiles.size).toBe(4);
@@ -421,15 +371,15 @@ describe('Comprehensive: Window Functions', () => {
       expect(quartiles.has(2)).toBe(true);
       expect(quartiles.has(3)).toBe(true);
       expect(quartiles.has(4)).toBe(true);
-
       // Each quartile should have approximately 25 rows
       [1, 2, 3, 4].forEach((q) => {
-        const countInQuartile = result.filter((r) => Number(r.quartile) === q).length;
+        const countInQuartile = result.filter(
+          (r) => Number(r.quartile) === q
+        ).length;
         expect(countInQuartile).toBeGreaterThanOrEqual(24);
         expect(countInQuartile).toBeLessThanOrEqual(26);
       });
     });
-
     it('should use NTILE() with PARTITION BY', async () => {
       const sql = `
         SELECT 
@@ -441,9 +391,7 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY priority, id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(300);
-
       // Within each priority, should have 3 terciles
       const priorityGroups = {};
       result.forEach((row) => {
@@ -452,13 +400,11 @@ describe('Comprehensive: Window Functions', () => {
         }
         priorityGroups[row.priority].add(Number(row.tercile));
       });
-
       Object.values(priorityGroups).forEach((terciles: Set<number>) => {
         expect(terciles.size).toBe(3);
       });
     });
   });
-
   describe('Complex Window Scenarios', () => {
     it('should use multiple window functions in same query', async () => {
       const sql = `
@@ -473,15 +419,12 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY priority, id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(50);
-
       result.forEach((row) => {
         expect(Number(row.row_num)).toBeGreaterThan(0);
         expect(Number(row.rank)).toBeGreaterThan(0);
       });
     });
-
     it('should use window functions with aggregates and GROUP BY', async () => {
       const sql = `
         SELECT 
@@ -494,15 +437,14 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY rank_by_count
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       // Verify descending order by count
       for (let i = 1; i < result.length; i++) {
-        expect(Number(result[i].count)).toBeLessThanOrEqual(Number(result[i - 1].count));
+        expect(Number(result[i].count)).toBeLessThanOrEqual(
+          Number(result[i - 1].count)
+        );
       }
     });
-
     it('should use window functions with JOINs', async () => {
       const sql = `
         SELECT 
@@ -517,13 +459,10 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY u.user_segment, rank_in_segment
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       // Each segment should have priorities ranked
       let lastSegment = null;
       let lastRank = 0;
-
       result.forEach((row) => {
         if (lastSegment !== row.user_segment) {
           lastSegment = row.user_segment;
@@ -534,11 +473,9 @@ describe('Comprehensive: Window Functions', () => {
       });
     });
   });
-
   describe('Performance', () => {
     it('should execute window functions efficiently (< 1s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           priority,
@@ -550,12 +487,9 @@ describe('Comprehensive: Window Functions', () => {
         ORDER BY priority, id_bigint
         LIMIT 100
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(1000);
     });
   });
 });
-

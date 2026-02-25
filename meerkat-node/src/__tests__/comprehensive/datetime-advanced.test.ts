@@ -1,6 +1,6 @@
 /**
  * Advanced Date/Time Operations Tests
- * 
+ *
  * Tests advanced date/time functionality:
  * - INTERVAL arithmetic
  * - AGE function
@@ -11,7 +11,6 @@
  * - Date overlap calculations
  * - Date range queries
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -19,7 +18,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Advanced Date/Time Operations', () => {
   beforeAll(async () => {
     console.log('🚀 Starting advanced date/time tests...');
@@ -27,7 +25,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('INTERVAL Arithmetic', () => {
     it('should add days using INTERVAL', async () => {
       const sql = `
@@ -40,21 +37,18 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         const original = new Date(row.created_date);
         const plus7 = new Date(row.plus_7_days);
         const plus1week = new Date(row.plus_1_week);
-        
-        const diffDays = (plus7.getTime() - original.getTime()) / (1000 * 60 * 60 * 24);
+        const diffDays =
+          (plus7.getTime() - original.getTime()) / (1000 * 60 * 60 * 24);
         expect(Math.abs(diffDays - 7)).toBeLessThan(1);
-        
         // plus_7_days and plus_1_week should be the same
         expect(plus7.getTime()).toBe(plus1week.getTime());
       });
     });
-
     it('should subtract months using INTERVAL', async () => {
       const sql = `
         SELECT 
@@ -66,19 +60,16 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         const original = new Date(row.created_date);
         const minus1month = new Date(row.minus_1_month);
         const minus30days = new Date(row.minus_30_days);
-        
         // Both should be earlier than original
         expect(minus1month.getTime()).toBeLessThan(original.getTime());
         expect(minus30days.getTime()).toBeLessThan(original.getTime());
       });
     });
-
     it('should use INTERVAL in WHERE clause', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -87,10 +78,8 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
           AND created_date < DATE '2020-01-01' + INTERVAL '90 days'
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should add hours and minutes to timestamps', async () => {
       const sql = `
         SELECT 
@@ -102,7 +91,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         expect(row.created_timestamp).toBeTruthy();
@@ -111,7 +99,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
       });
     });
   });
-
   describe('AGE Function', () => {
     it('should calculate age between two timestamps', async () => {
       const sql = `
@@ -127,13 +114,11 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(row.time_diff).toBeTruthy();
       });
     });
-
     it('should calculate age from current time', async () => {
       const sql = `
         SELECT 
@@ -144,14 +129,12 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.age_from_now).toBeTruthy();
       });
     });
   });
-
   describe('Current Date/Time Functions', () => {
     it('should use CURRENT_DATE', async () => {
       const sql = `
@@ -163,11 +146,9 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
           AND id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].today).toBeTruthy();
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use NOW() and CURRENT_TIMESTAMP', async () => {
       const sql = `
         SELECT 
@@ -179,12 +160,10 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
           AND id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].current_time).toBeTruthy();
       expect(result[0].current_ts).toBeTruthy();
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should calculate days since using CURRENT_DATE', async () => {
       const sql = `
         SELECT 
@@ -195,7 +174,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         // days_since should be a positive number
@@ -203,7 +181,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
       });
     });
   });
-
   describe('Date Part Extraction', () => {
     it('should extract EPOCH (Unix timestamp)', async () => {
       const sql = `
@@ -215,13 +192,11 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(Number(row.epoch_seconds)).toBeGreaterThan(0);
       });
     });
-
     it('should extract DOY (day of year)', async () => {
       const sql = `
         SELECT 
@@ -232,7 +207,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const doy = Number(row.day_of_year);
@@ -240,7 +214,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         expect(doy).toBeLessThanOrEqual(366);
       });
     });
-
     it('should extract QUARTER', async () => {
       const sql = `
         SELECT 
@@ -251,7 +224,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(100);
       result.forEach((row) => {
         const quarter = Number(row.quarter);
@@ -259,7 +231,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         expect(quarter).toBeLessThanOrEqual(4);
       });
     });
-
     it('should extract WEEK', async () => {
       const sql = `
         SELECT 
@@ -270,7 +241,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const week = Number(row.week_number);
@@ -279,7 +249,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
       });
     });
   });
-
   describe('String to Date/Time Conversions', () => {
     it('should convert string to DATE using CAST', async () => {
       const sql = `
@@ -291,11 +260,9 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
           AND id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].parsed_date).toBeTruthy();
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should convert string to TIMESTAMP', async () => {
       const sql = `
         SELECT 
@@ -306,21 +273,17 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
           AND id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].parsed_ts).toBeTruthy();
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use STRPTIME for custom date formats', async () => {
       const sql = `
         SELECT STRPTIME('15-06-2024', '%d-%m-%Y') as parsed_date
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].parsed_date).toBeTruthy();
     });
   });
-
   describe('Date Range and Overlap Queries', () => {
     it('should find records within date range', async () => {
       const sql = `
@@ -329,10 +292,8 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         WHERE created_date BETWEEN DATE '2020-03-01' AND DATE '2020-06-30'
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should calculate date ranges using INTERVAL', async () => {
       const sql = `
         SELECT 
@@ -344,12 +305,10 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
           AND created_date < DATE '2020-01-01' + INTERVAL '90 days'
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].start_date).toBeTruthy();
       expect(result[0].end_date).toBeTruthy();
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should find overlapping date periods', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -365,11 +324,9 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         )
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].count).toBeDefined();
     });
   });
-
   describe('Complex Date Calculations', () => {
     it('should calculate business days (weekdays)', async () => {
       const sql = `
@@ -386,7 +343,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(20);
       result.forEach((row) => {
         const dow = Number(row.day_of_week);
@@ -395,7 +351,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         expect(['Weekend', 'Weekday']).toContain(row.day_type);
       });
     });
-
     it('should group by calendar quarter', async () => {
       const sql = `
         SELECT 
@@ -408,7 +363,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY year, quarter
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(Number(row.year)).toBeGreaterThanOrEqual(2020);
@@ -417,7 +371,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should calculate date differences in various units', async () => {
       const sql = `
         SELECT 
@@ -433,7 +386,6 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(row.diff_seconds).toBeDefined();
@@ -442,11 +394,9 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
       });
     });
   });
-
   describe('Performance', () => {
     it('should execute INTERVAL queries efficiently (< 500ms)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT COUNT(*) as count
         FROM fact_all_types
@@ -454,16 +404,12 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
           AND created_date < DATE '2020-01-01' + INTERVAL '6 months'
           AND id_bigint < 100000
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(500);
     });
-
     it('should execute complex date calculations efficiently (< 1s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           EXTRACT(YEAR FROM created_date) as year,
@@ -475,12 +421,9 @@ describe('Comprehensive: Advanced Date/Time Operations', () => {
         GROUP BY year, quarter
         ORDER BY year, quarter
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(1000);
     });
   });
 });
-

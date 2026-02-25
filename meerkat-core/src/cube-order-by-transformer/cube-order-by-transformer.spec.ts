@@ -6,11 +6,16 @@ import {
 import { OrderType } from '../types/duckdb-serialization-types/serialization/Nodes';
 import { ResultModifierType } from '../types/duckdb-serialization-types/serialization/ResultModifier';
 import { cubeOrderByToAST } from './cube-order-by-transformer';
-
 describe('cube-order-by-transformer', () => {
   const createMockTableSchema = (
-    dimensions: { name: string; alias?: string }[] = [],
-    measures: { name: string; alias?: string }[] = []
+    dimensions: {
+      name: string;
+      alias?: string;
+    }[] = [],
+    measures: {
+      name: string;
+      alias?: string;
+    }[] = []
   ): TableSchema => ({
     name: 'orders',
     sql: 'SELECT * FROM orders',
@@ -27,7 +32,6 @@ describe('cube-order-by-transformer', () => {
       alias: m.alias,
     })),
   });
-
   describe('cubeOrderByToAST', () => {
     it('should generate order by AST for ascending order without alias', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
@@ -35,7 +39,6 @@ describe('cube-order-by-transformer', () => {
         { 'orders.customer_id': 'asc' },
         tableSchema
       );
-
       expect(result.type).toBe(ResultModifierType.ORDER_MODIFIER);
       expect(result.orders).toHaveLength(1);
       expect(result.orders[0]).toEqual({
@@ -49,20 +52,17 @@ describe('cube-order-by-transformer', () => {
         },
       });
     });
-
     it('should generate order by AST for descending order without alias', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
       const result = cubeOrderByToAST(
         { 'orders.customer_id': 'desc' },
         tableSchema
       );
-
       expect(result.orders[0].type).toBe(OrderType.DESCENDING);
       expect(result.orders[0].expression.column_names).toEqual([
         'orders__customer_id',
       ]);
     });
-
     it('should generate order by AST with custom alias', () => {
       const tableSchema = createMockTableSchema([
         { name: 'customer_id', alias: 'Customer ID' },
@@ -71,11 +71,9 @@ describe('cube-order-by-transformer', () => {
         { 'orders.customer_id': 'asc' },
         tableSchema
       );
-
       // Should NOT have quotes - AST handles quoting automatically
       expect(result.orders[0].expression.column_names).toEqual(['Customer ID']);
     });
-
     it('should generate order by AST for multiple columns', () => {
       const tableSchema = createMockTableSchema(
         [{ name: 'customer_id' }],
@@ -88,7 +86,6 @@ describe('cube-order-by-transformer', () => {
         },
         tableSchema
       );
-
       expect(result.orders).toHaveLength(2);
       expect(result.orders[0].type).toBe(OrderType.ASCENDING);
       expect(result.orders[0].expression.column_names).toEqual([
@@ -99,24 +96,17 @@ describe('cube-order-by-transformer', () => {
         'Total Amount',
       ]);
     });
-
     it('should return empty orders array when no order provided', () => {
       const tableSchema = createMockTableSchema([{ name: 'customer_id' }]);
       const result = cubeOrderByToAST({}, tableSchema);
-
       expect(result.type).toBe(ResultModifierType.ORDER_MODIFIER);
       expect(result.orders).toEqual([]);
     });
-
     it('should use unquoted alias for AST (DuckDB auto-quotes)', () => {
       const tableSchema = createMockTableSchema([
         { name: 'field', alias: 'Field.With.Dots' },
       ]);
-      const result = cubeOrderByToAST(
-        { 'orders.field': 'asc' },
-        tableSchema
-      );
-
+      const result = cubeOrderByToAST({ 'orders.field': 'asc' }, tableSchema);
       // Should NOT have quotes - AST handles quoting automatically
       expect(result.orders[0].expression.column_names).toEqual([
         'Field.With.Dots',

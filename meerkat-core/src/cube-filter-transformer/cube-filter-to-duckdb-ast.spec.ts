@@ -1,7 +1,6 @@
 import { getBaseAST } from '../utils/base-ast';
 import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { cubeFilterToDuckdbAST } from './factory';
-
 describe('CubeFilterToDuckDBAST', () => {
   const cubeFilter = [
     {
@@ -40,15 +39,12 @@ describe('CubeFilterToDuckDBAST', () => {
       ],
     },
   ];
-
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
-
     it('should return a duckdb AST', () => {
       const ast = getBaseAST();
-
       const output = cubeFilterToDuckdbAST(cubeFilter, ast, options);
       expect(output).toEqual({
         class: 'CONJUNCTION',
@@ -142,10 +138,8 @@ describe('CubeFilterToDuckDBAST', () => {
         ],
       });
     });
-
     it('Simple filter without and/or', () => {
       const ast = getBaseAST();
-
       const output = cubeFilterToDuckdbAST(
         [
           {
@@ -161,7 +155,6 @@ describe('CubeFilterToDuckDBAST', () => {
         ast,
         options
       );
-
       expect(output).toEqual({
         class: 'COMPARISON',
         type: 'COMPARE_EQUAL',
@@ -193,15 +186,12 @@ describe('CubeFilterToDuckDBAST', () => {
       });
     });
   });
-
   describe('isAlias: true (projection alias refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: true,
     };
-
     it('should return a duckdb AST with alias column names', () => {
       const ast = getBaseAST();
-
       const output = cubeFilterToDuckdbAST(cubeFilter, ast, options);
       expect(output).toEqual({
         class: 'CONJUNCTION',
@@ -295,10 +285,8 @@ describe('CubeFilterToDuckDBAST', () => {
         ],
       });
     });
-
     it('Simple filter without and/or', () => {
       const ast = getBaseAST();
-
       const output = cubeFilterToDuckdbAST(
         [
           {
@@ -314,7 +302,6 @@ describe('CubeFilterToDuckDBAST', () => {
         ast,
         options
       );
-
       expect(output).toEqual({
         class: 'COMPARISON',
         type: 'COMPARE_EQUAL',
