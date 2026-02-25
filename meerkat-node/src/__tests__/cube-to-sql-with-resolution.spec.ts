@@ -163,8 +163,7 @@ const CREATED_BY_LOOKUP_SCHEMA: TableSchema = {
   ],
 };
 describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
-  jest.setTimeout(1000000);
-  beforeAll(async () => {
+    beforeAll(async () => {
     // Create test tables
     await duckdbExec(CREATE_TEST_TABLE);
     await duckdbExec(INPUT_DATA_QUERY);
@@ -901,8 +900,7 @@ describe('cubeQueryToSQLWithResolution - Array field resolution', () => {
 });
 
 describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
-  jest.setTimeout(1000000);
-
+  
   const CREATE_ISSUES_TABLE = `CREATE TABLE issues (
     id INTEGER,
     title VARCHAR,
@@ -1149,7 +1147,7 @@ describe('cubeQueryToSQLWithResolution - SQL Override Config', () => {
       filters: [
         // Filter by priority >= 2 (uses integer values)
         {
-          dimension: 'issues.priority',
+          member: 'issues.priority',
           operator: 'gte',
           values: ['2'],
         },
