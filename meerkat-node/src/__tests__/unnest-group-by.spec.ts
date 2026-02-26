@@ -69,509 +69,423 @@ describe('cube-to-sql', () => {
     //Get SQL from cube query
   });
 
-  it('Should unnest group by for  type field when modifier set', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.owners'],
-      order: {
-        'tickets.count': 'desc',
-        'tickets.owners': 'desc',
-      },
-    };
-    const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        ...TABLE_SCHEMA.dimensions,
-        {
-          ...OWNERS_DIMENSION,
-          modifier: {
-            shouldUnnestGroupBy: true,
-          },
+    it('Should unnest group by for  type field when modifier set', async () => {
+      const query: Query = {
+        measures: ['tickets.count'],
+        dimensions: ['tickets.owners'],
+        order: {
+          'tickets.count': 'desc',
+          'tickets.owners': 'desc',
         },
-        TAGS_DIMENSION,
-      ],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-    });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      'SELECT COUNT(*) AS tickets__count ,   tickets__owners FROM (SELECT NULLIF(array[unnest(CASE WHEN owners IS NULL OR len(COALESCE(owners, [])) = 0 THEN [NULL] ELSE owners END)], [NULL]) AS tickets__owners, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__owners ORDER BY tickets__count DESC, tickets__owners DESC'
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        tickets__count: BigInt(3),
-        tickets__owners: ['b'],
-      },
-      {
-        tickets__count: BigInt(2),
-        tickets__owners: ['d'],
-      },
-      {
-        tickets__count: BigInt(2),
-        tickets__owners: ['c'],
-      },
-      {
-        tickets__count: BigInt(2),
-        tickets__owners: ['a'],
-      },
-      {
-        tickets__count: BigInt(2),
-        tickets__owners: null,
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__owners: ['e'],
-      },
-    ]);
-  });
-  it('Should not unnest group by for  type field when modifier unset', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.owners'],
-      order: {
-        'tickets.count': 'desc',
-        'tickets.owners': 'desc',
-      },
-    };
-    const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        ...TABLE_SCHEMA.dimensions,
-        OWNERS_DIMENSION,
-        TAGS_DIMENSION,
-      ],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-    });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      'SELECT COUNT(*) AS tickets__count ,   tickets__owners FROM (SELECT owners AS tickets__owners, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__owners ORDER BY tickets__count DESC, tickets__owners DESC'
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        tickets__count: BigInt(2),
-        tickets__owners: null,
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__owners: ['e'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__owners: ['b', 'c', 'd'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__owners: ['b', 'c'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__owners: ['a', 'd'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__owners: ['a', 'b'],
-      },
-    ]);
-  });
-  it('Should not unnest group by string field when config unset', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.created_by'],
-      order: {
-        'tickets.count': 'desc',
-        'tickets.created_by': 'desc',
-      },
-    };
-    const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        ...TABLE_SCHEMA.dimensions,
-        OWNERS_DIMENSION,
-        TAGS_DIMENSION,
-      ],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-    });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      'SELECT COUNT(*) AS tickets__count ,   tickets__created_by FROM (SELECT created_by AS tickets__created_by, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__created_by ORDER BY tickets__count DESC, tickets__created_by DESC'
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        tickets__count: BigInt(4),
-        tickets__created_by: 'z',
-      },
-      {
-        tickets__count: BigInt(2),
-        tickets__created_by: 'x',
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'y',
-      },
-    ]);
-  });
-  it('Should not unnest group by string field when config set', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.created_by'],
-      order: {
-        'tickets.count': 'desc',
-        'tickets.created_by': 'desc',
-      },
-    };
-    const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        ...TABLE_SCHEMA.dimensions,
-        { ...OWNERS_DIMENSION, modifier: { shouldUnnestGroupBy: true } },
-        TAGS_DIMENSION,
-      ],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-    });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      'SELECT COUNT(*) AS tickets__count ,   tickets__created_by FROM (SELECT created_by AS tickets__created_by, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__created_by ORDER BY tickets__count DESC, tickets__created_by DESC'
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        tickets__count: BigInt(4),
-        tickets__created_by: 'z',
-      },
-      {
-        tickets__count: BigInt(2),
-        tickets__created_by: 'x',
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'y',
-      },
-    ]);
-  });
-  it('Should unnest multiple columns', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.created_by', 'tickets.owners', 'tickets.tags'],
-      order: {
-        'tickets.count': 'desc',
-        'tickets.created_by': 'desc',
-        'tickets.tags': 'desc',
-        'tickets.owners': 'desc',
-      },
-    };
-    const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        ...TABLE_SCHEMA.dimensions,
-        {
-          ...OWNERS_DIMENSION,
-          modifier: { shouldUnnestGroupBy: true },
-        },
-        {
-          ...TAGS_DIMENSION,
-          modifier: { shouldUnnestGroupBy: true },
-        },
-      ],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-    });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      'SELECT COUNT(*) AS tickets__count ,   tickets__created_by,  tickets__owners,  tickets__tags FROM (SELECT created_by AS tickets__created_by, NULLIF(array[unnest(CASE WHEN owners IS NULL OR len(COALESCE(owners, [])) = 0 THEN [NULL] ELSE owners END)], [NULL]) AS tickets__owners, NULLIF(array[unnest(CASE WHEN tags IS NULL OR len(COALESCE(tags, [])) = 0 THEN [NULL] ELSE tags END)], [NULL]) AS tickets__tags, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__created_by, tickets__owners, tickets__tags ORDER BY tickets__count DESC, tickets__created_by DESC, tickets__tags DESC, tickets__owners DESC'
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'z',
-        tickets__owners: null,
-        tickets__tags: ['t5'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'z',
-        tickets__owners: ['a'],
-        tickets__tags: ['t4'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'z',
-        tickets__owners: null,
-        tickets__tags: ['t4'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'z',
-        tickets__owners: ['d'],
-        tickets__tags: null,
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'z',
-        tickets__owners: ['c'],
-        tickets__tags: null,
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'z',
-        tickets__owners: ['b'],
-        tickets__tags: null,
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'z',
-        tickets__owners: null,
-        tickets__tags: null,
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'y',
-        tickets__owners: null,
-        tickets__tags: ['t4'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'y',
-        tickets__owners: null,
-        tickets__tags: ['t3'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'y',
-        tickets__owners: ['e'],
-        tickets__tags: ['t1'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'x',
-        tickets__owners: ['c'],
-        tickets__tags: ['t3'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'x',
-        tickets__owners: ['b'],
-        tickets__tags: ['t2'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'x',
-        tickets__owners: ['a'],
-        tickets__tags: ['t1'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'x',
-        tickets__owners: ['d'],
-        tickets__tags: null,
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__created_by: 'x',
-        tickets__owners: ['b'],
-        tickets__tags: null,
-      },
-    ]);
-  });
-
-  it('Should not unnest for filter projections', async () => {
-    const query: Query = {
-      measures: ['tickets.count'],
-      dimensions: ['tickets.tags'],
-      order: {
-        'tickets.count': 'desc',
-        'tickets.tags': 'desc',
-      },
-      filters: [
-        {
-          and: [
-            {
-              member: 'tickets.owners',
-              operator: 'equals',
-              values: ['a'],
+      };
+      const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          ...TABLE_SCHEMA.dimensions,
+          {
+            ...OWNERS_DIMENSION,
+            modifier: {
+              shouldUnnestGroupBy: true,
             },
-          ],
-        },
-      ],
-    };
-    const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        ...TABLE_SCHEMA.dimensions,
-        {
-          ...OWNERS_DIMENSION,
-          modifier: { shouldUnnestGroupBy: true },
-        },
-        {
-          ...TAGS_DIMENSION,
-          modifier: { shouldUnnestGroupBy: true },
-        },
-      ],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
-    });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      "SELECT COUNT(*) AS tickets__count ,   tickets__tags FROM (SELECT owners AS tickets__owners, NULLIF(array[unnest(CASE WHEN tags IS NULL OR len(COALESCE(tags, [])) = 0 THEN [NULL] ELSE tags END)], [NULL]) AS tickets__tags, * FROM (select * from tickets) AS tickets) AS tickets WHERE (list_has_all(tickets__owners, main.list_value('a'))) GROUP BY tickets__tags ORDER BY tickets__count DESC, tickets__tags DESC"
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        tickets__count: BigInt(1),
-        tickets__tags: ['t4'],
-      },
-      {
-        tickets__count: BigInt(1),
-        tickets__tags: ['t1'],
-      },
-    ]);
-  });
-  it('Should not unnest without measure', async () => {
-    const query: Query = {
-      measures: [],
-      dimensions: ['tickets.owners'],
-      order: {
-        'tickets.owners': 'desc',
-      },
-    };
-    const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
-      ...TABLE_SCHEMA,
-      dimensions: [
-        ...TABLE_SCHEMA.dimensions,
-        {
-          ...OWNERS_DIMENSION,
-          modifier: {
-            shouldUnnestGroupBy: true,
           },
+          TAGS_DIMENSION,
+        ],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        'SELECT COUNT(*) AS tickets__count ,   tickets__owners FROM (SELECT array[unnest(owners)] AS tickets__owners, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__owners ORDER BY tickets__count DESC, tickets__owners DESC'
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          tickets__count: BigInt(3),
+          tickets__owners: ['b'],
         },
-        TAGS_DIMENSION,
-      ],
-    };
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+        {
+          tickets__count: BigInt(2),
+          tickets__owners: ['d'],
+        },
+        {
+          tickets__count: BigInt(2),
+          tickets__owners: ['c'],
+        },
+        {
+          tickets__count: BigInt(2),
+          tickets__owners: ['a'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__owners: ['e'],
+        },
+      ]);
     });
-    console.info(`SQL for Simple Cube Query: `, sql);
-    expect(sql).toBe(
-      'SELECT  tickets__owners FROM (SELECT owners AS tickets__owners, * FROM (select * from tickets) AS tickets) AS tickets ORDER BY tickets__owners DESC'
-    );
-    const output = await duckdbExec(sql);
-    expect(output).toEqual([
-      {
-        tickets__owners: ['e'],
-      },
-      {
-        tickets__owners: ['b', 'c', 'd'],
-      },
-      {
-        tickets__owners: ['b', 'c'],
-      },
-      {
-        tickets__owners: ['a', 'd'],
-      },
-      {
-        tickets__owners: ['a', 'b'],
-      },
-      {
-        tickets__owners: null,
-      },
-      {
-        tickets__owners: null,
-      },
-    ]);
-  });
-
-  it('Should handle empty arrays by converting to NULL when unnesting', async () => {
-    // Create a table with empty arrays to test the len() = 0 condition
-    await duckdbExec(`CREATE TABLE IF NOT EXISTS tickets_empty_test (
-        id INTEGER,
-        tags VARCHAR[]
-      )`);
-    await duckdbExec(`INSERT INTO tickets_empty_test VALUES
-        (1, ['a', 'b']),
-        (2, []),
-        (3, NULL),
-        (4, ['c'])
-      `);
-
-    const EMPTY_TEST_SCHEMA: TableSchema = {
-      name: 'tickets_empty_test',
-      sql: 'select * from tickets_empty_test',
-      measures: [
-        {
-          name: 'count',
-          sql: 'COUNT(*)',
-          type: 'number',
+    it('Should not unnest group by for  type field when modifier unset', async () => {
+      const query: Query = {
+        measures: ['tickets.count'],
+        dimensions: ['tickets.owners'],
+        order: {
+          'tickets.count': 'desc',
+          'tickets.owners': 'desc',
         },
-      ],
-      dimensions: [
+      };
+      const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          ...TABLE_SCHEMA.dimensions,
+          OWNERS_DIMENSION,
+          TAGS_DIMENSION,
+        ],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        'SELECT COUNT(*) AS tickets__count ,   tickets__owners FROM (SELECT owners AS tickets__owners, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__owners ORDER BY tickets__count DESC, tickets__owners DESC'
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
         {
-          name: 'id',
-          sql: 'id',
-          type: 'string',
+          tickets__count: BigInt(2),
+          tickets__owners: null,
         },
         {
-          name: 'tags',
-          sql: 'tags',
-          type: 'string_array',
-          modifier: {
-            shouldUnnestGroupBy: true,
+          tickets__count: BigInt(1),
+          tickets__owners: ['e'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__owners: ['b', 'c', 'd'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__owners: ['b', 'c'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__owners: ['a', 'd'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__owners: ['a', 'b'],
+        },
+      ]);
+    });
+    it('Should not unnest group by string field when config unset', async () => {
+      const query: Query = {
+        measures: ['tickets.count'],
+        dimensions: ['tickets.created_by'],
+        order: {
+          'tickets.count': 'desc',
+          'tickets.created_by': 'desc',
+        },
+      };
+      const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          ...TABLE_SCHEMA.dimensions,
+          OWNERS_DIMENSION,
+          TAGS_DIMENSION,
+        ],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        'SELECT COUNT(*) AS tickets__count ,   tickets__created_by FROM (SELECT created_by AS tickets__created_by, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__created_by ORDER BY tickets__count DESC, tickets__created_by DESC'
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          tickets__count: BigInt(4),
+          tickets__created_by: 'z',
+        },
+        {
+          tickets__count: BigInt(2),
+          tickets__created_by: 'x',
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'y',
+        },
+      ]);
+    });
+    it('Should not unnest group by string field when config set', async () => {
+      const query: Query = {
+        measures: ['tickets.count'],
+        dimensions: ['tickets.created_by'],
+        order: {
+          'tickets.count': 'desc',
+          'tickets.created_by': 'desc',
+        },
+      };
+      const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          ...TABLE_SCHEMA.dimensions,
+          { ...OWNERS_DIMENSION, modifier: { shouldUnnestGroupBy: true } },
+          TAGS_DIMENSION,
+        ],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        'SELECT COUNT(*) AS tickets__count ,   tickets__created_by FROM (SELECT created_by AS tickets__created_by, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__created_by ORDER BY tickets__count DESC, tickets__created_by DESC'
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          tickets__count: BigInt(4),
+          tickets__created_by: 'z',
+        },
+        {
+          tickets__count: BigInt(2),
+          tickets__created_by: 'x',
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'y',
+        },
+      ]);
+    });
+    it('Should unnest multiple columns', async () => {
+      const query: Query = {
+        measures: ['tickets.count'],
+        dimensions: ['tickets.created_by', 'tickets.owners', 'tickets.tags'],
+        order: {
+          'tickets.count': 'desc',
+          'tickets.created_by': 'desc',
+          'tickets.tags': 'desc',
+          'tickets.owners': 'desc',
+        },
+      };
+      const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          ...TABLE_SCHEMA.dimensions,
+          {
+            ...OWNERS_DIMENSION,
+            modifier: { shouldUnnestGroupBy: true },
           },
+          {
+            ...TAGS_DIMENSION,
+            modifier: { shouldUnnestGroupBy: true },
+          },
+        ],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        'SELECT COUNT(*) AS tickets__count ,   tickets__created_by,  tickets__owners,  tickets__tags FROM (SELECT created_by AS tickets__created_by, array[unnest(owners)] AS tickets__owners, array[unnest(tags)] AS tickets__tags, * FROM (select * from tickets) AS tickets) AS tickets GROUP BY tickets__created_by, tickets__owners, tickets__tags ORDER BY tickets__count DESC, tickets__created_by DESC, tickets__tags DESC, tickets__owners DESC'
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'z',
+          tickets__owners: ['d'],
+          tickets__tags: [null],
         },
-      ],
-    };
-
-    const query: Query = {
-      measures: ['tickets_empty_test.count'],
-      dimensions: ['tickets_empty_test.tags'],
-      order: {
-        'tickets_empty_test.tags': 'asc',
-      },
-    };
-
-    const sql = await cubeQueryToSQL({
-      query,
-      tableSchemas: [EMPTY_TEST_SCHEMA],
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'z',
+          tickets__owners: ['c'],
+          tickets__tags: [null],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'z',
+          tickets__owners: ['b'],
+          tickets__tags: [null],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'z',
+          tickets__owners: [null],
+          tickets__tags: ['t5'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'z',
+          tickets__owners: [null],
+          tickets__tags: ['t4'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'z',
+          tickets__owners: ['a'],
+          tickets__tags: ['t4'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'y',
+          tickets__owners: [null],
+          tickets__tags: ['t4'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'y',
+          tickets__owners: [null],
+          tickets__tags: ['t3'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'y',
+          tickets__owners: ['e'],
+          tickets__tags: ['t1'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'x',
+          tickets__owners: ['d'],
+          tickets__tags: [null],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'x',
+          tickets__owners: ['b'],
+          tickets__tags: [null],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'x',
+          tickets__owners: ['c'],
+          tickets__tags: ['t3'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'x',
+          tickets__owners: ['b'],
+          tickets__tags: ['t2'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__created_by: 'x',
+          tickets__owners: ['a'],
+          tickets__tags: ['t1'],
+        },
+      ]);
     });
-    console.info(`SQL for empty array handling: `, sql);
 
-    // Verify the SQL contains the NULLIF and CASE WHEN logic for NULL and empty array handling
-    expect(sql).toContain(
-      'NULLIF(array[unnest(CASE WHEN tags IS NULL OR len(COALESCE(tags, [])) = 0 THEN [NULL] ELSE tags END)], [NULL])'
-    );
-
-    const output = await duckdbExec(sql);
-
-    // Both empty array (id=2) and NULL array (id=3) should be grouped together as null
-    const nullTagRows = output.filter(
-      (row: { tickets_empty_test__tags: string[] | null }) =>
-        row.tickets_empty_test__tags === null
-    );
-
-    // Should have 2 rows combined (one from empty array, one from NULL)
-    expect(nullTagRows.length).toBe(1);
-    expect(nullTagRows[0].tickets_empty_test__count).toBe(BigInt(2));
-    expect(nullTagRows[0].tickets_empty_test__tags).toBeNull();
-
-    // Cleanup
-    await duckdbExec('DROP TABLE tickets_empty_test');
-  });
+    it('Should not unnest for filter projections', async () => {
+      const query: Query = {
+        measures: ['tickets.count'],
+        dimensions: ['tickets.tags'],
+        order: {
+          'tickets.count': 'desc',
+          'tickets.tags': 'desc',
+        },
+        filters: [
+          {
+            and: [
+              {
+                member: 'tickets.owners',
+                operator: 'equals',
+                values: ['a'],
+              },
+            ],
+          },
+        ],
+      };
+      const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          ...TABLE_SCHEMA.dimensions,
+          {
+            ...OWNERS_DIMENSION,
+            modifier: { shouldUnnestGroupBy: true },
+          },
+          {
+            ...TAGS_DIMENSION,
+            modifier: { shouldUnnestGroupBy: true },
+          },
+        ],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        "SELECT COUNT(*) AS tickets__count ,   tickets__tags FROM (SELECT owners AS tickets__owners, array[unnest(tags)] AS tickets__tags, * FROM (select * from tickets) AS tickets) AS tickets WHERE (list_has_all(tickets__owners, main.list_value('a'))) GROUP BY tickets__tags ORDER BY tickets__count DESC, tickets__tags DESC"
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          tickets__count: BigInt(1),
+          tickets__tags: ['t4'],
+        },
+        {
+          tickets__count: BigInt(1),
+          tickets__tags: ['t1'],
+        },
+      ]);
+    });
+    it('Should not unnest without measure', async () => {
+      const query: Query = {
+        measures: [],
+        dimensions: ['tickets.owners'],
+        order: {
+          'tickets.owners': 'desc',
+        },
+      };
+      const TABLE_SCHEMA_WITH_UNNEST_OWNER = {
+        ...TABLE_SCHEMA,
+        dimensions: [
+          ...TABLE_SCHEMA.dimensions,
+          {
+            ...OWNERS_DIMENSION,
+            modifier: {
+              shouldUnnestGroupBy: true,
+            },
+          },
+          TAGS_DIMENSION,
+        ],
+      };
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [TABLE_SCHEMA_WITH_UNNEST_OWNER],
+      });
+      console.info(`SQL for Simple Cube Query: `, sql);
+      expect(sql).toBe(
+        'SELECT  tickets__owners FROM (SELECT owners AS tickets__owners, * FROM (select * from tickets) AS tickets) AS tickets ORDER BY tickets__owners DESC'
+      );
+      const output = await duckdbExec(sql);
+      expect(output).toEqual([
+        {
+          tickets__owners: ['e'],
+        },
+        {
+          tickets__owners: ['b', 'c', 'd'],
+        },
+        {
+          tickets__owners: ['b', 'c'],
+        },
+        {
+          tickets__owners: ['a', 'd'],
+        },
+        {
+          tickets__owners: ['a', 'b'],
+        },
+        {
+          tickets__owners: null,
+        },
+        {
+          tickets__owners: null,
+        },
+      ]);
+    });
 });
