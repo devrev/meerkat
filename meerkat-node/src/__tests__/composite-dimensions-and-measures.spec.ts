@@ -2,7 +2,6 @@ import { Query } from 'meerkat-core/src/types/cube-types/query';
 import { TableSchema } from 'meerkat-core/src/types/cube-types/table';
 import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
 import { duckdbExec } from '../duckdb-exec';
-
 const TABLE_SCHEMA: TableSchema = {
   name: 'orders',
   sql: 'select * from orders',
@@ -31,7 +30,6 @@ const TABLE_SCHEMA: TableSchema = {
     },
   ],
 };
-
 export const CREATE_TEST_TABLE = `
 CREATE TABLE orders (
     order_id INTEGER,
@@ -39,7 +37,6 @@ CREATE TABLE orders (
     order_amount INTEGER
 );
 `;
-
 export const INPUT_DATA_QUERY = `
 INSERT INTO orders VALUES
 (1, '{"region": {"name": "North", "code": "N1"}, "preferences": {"category": "electronics"}}', 100),
@@ -47,56 +44,49 @@ INSERT INTO orders VALUES
 (3, '{"region": {"name": "South", "code": "S1"}, "preferences": {"category": "electronics"}}', 300),
 (4, '{"region": {"name": "South", "code": "S1"}, "preferences": {"category": "clothing"}}', 400)
 `;
-
 describe('composite-dimensions-and-measures', () => {
   beforeAll(async () => {
     // Create orders table
     await duckdbExec(CREATE_TEST_TABLE);
-
     // Insert data into orders table
     await duckdbExec(INPUT_DATA_QUERY);
   });
-
-    it('should handle composite dimensions and measures with multiple dots in their names', async () => {
-      // First, let's check the raw data
-      const rawData = await duckdbExec('SELECT * FROM orders');
-      console.log('Raw data:', JSON.stringify(rawData, null, 2));
-
-      const query: Query = {
-        measures: ['orders.total.order.amount'],
-        dimensions: [
-          'orders.customer.region.name',
-          'orders.customer.preferences.category',
-        ],
-        filters: [
-          {
-            member: 'orders.customer.region.code',
-            operator: 'equals',
-            values: ['N1'],
-          },
-        ],
-        order: {
-          'orders.total.order.amount': 'desc',
-        },
-        limit: 2,
-      };
-
-      const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
-      console.info(`SQL for Composite Dimensions and Measures: `, sql);
-
-      const output = await duckdbExec(sql);
-
-      expect(output).toEqual([
+  it('should handle composite dimensions and measures with multiple dots in their names', async () => {
+    // First, let's check the raw data
+    const rawData = await duckdbExec('SELECT * FROM orders');
+    console.log('Raw data:', JSON.stringify(rawData, null, 2));
+    const query: Query = {
+      measures: ['orders.total.order.amount'],
+      dimensions: [
+        'orders.customer.region.name',
+        'orders.customer.preferences.category',
+      ],
+      filters: [
         {
-          orders__customer__preferences__category: 'clothing',
-          orders__customer__region__name: 'North',
-          orders__total__order__amount: BigInt(200),
+          member: 'orders.customer.region.code',
+          operator: 'equals',
+          values: ['N1'],
         },
-        {
-          orders__customer__preferences__category: 'electronics',
-          orders__customer__region__name: 'North',
-          orders__total__order__amount: BigInt(100),
-        },
-      ]);
+      ],
+      order: {
+        'orders.total.order.amount': 'desc',
+      },
+      limit: 2,
+    };
+    const sql = await cubeQueryToSQL({ query, tableSchemas: [TABLE_SCHEMA] });
+    console.info(`SQL for Composite Dimensions and Measures: `, sql);
+    const output = await duckdbExec(sql);
+    expect(output).toEqual([
+      {
+        orders__customer__preferences__category: 'clothing',
+        orders__customer__region__name: 'North',
+        orders__total__order__amount: BigInt(200),
+      },
+      {
+        orders__customer__preferences__category: 'electronics',
+        orders__customer__region__name: 'North',
+        orders__total__order__amount: BigInt(100),
+      },
+    ]);
   });
 });

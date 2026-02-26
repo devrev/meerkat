@@ -1,6 +1,6 @@
 /**
  * Comprehensive Query Optimization Tests
- * 
+ *
  * Tests query optimization and performance:
  * - Query planning with EXPLAIN
  * - Index usage patterns
@@ -13,7 +13,6 @@
  * - Projection pushdown
  * - Performance benchmarks
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -21,7 +20,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Query Optimization', () => {
   beforeAll(async () => {
     console.log('🚀 Starting query optimization tests...');
@@ -29,7 +27,6 @@ describe('Comprehensive: Query Optimization', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('EXPLAIN Query Planning', () => {
     it('should generate query plan with EXPLAIN', async () => {
       const sql = `
@@ -39,11 +36,9 @@ describe('Comprehensive: Query Optimization', () => {
         WHERE priority = 'high'
       `;
       const result = await duckdbExec(sql);
-
       expect(result).toBeDefined();
       expect(result.length).toBeGreaterThan(0);
     });
-
     it('should show JOIN optimization in EXPLAIN', async () => {
       const sql = `
         EXPLAIN
@@ -54,10 +49,8 @@ describe('Comprehensive: Query Optimization', () => {
         GROUP BY f.priority, u.user_segment
       `;
       const result = await duckdbExec(sql);
-
       expect(result).toBeDefined();
     });
-
     it('should analyze complex query plan', async () => {
       const sql = `
         EXPLAIN ANALYZE
@@ -73,15 +66,12 @@ describe('Comprehensive: Query Optimization', () => {
         ORDER BY count DESC
       `;
       const result = await duckdbExec(sql);
-
       expect(result).toBeDefined();
     });
   });
-
   describe('Large Result Set Handling', () => {
     it('should handle 100K row result set efficiently (< 2s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           id_bigint,
@@ -92,17 +82,13 @@ describe('Comprehensive: Query Optimization', () => {
         WHERE id_bigint < 100000
         ORDER BY id_bigint
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBe(100000);
       expect(duration).toBeLessThan(2000);
     });
-
     it('should handle 500K row aggregation efficiently (< 3s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           priority,
@@ -114,17 +100,13 @@ describe('Comprehensive: Query Optimization', () => {
         WHERE id_bigint < 500000
         GROUP BY priority, status
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBeGreaterThan(0);
       expect(duration).toBeLessThan(3000);
     });
-
     it('should handle full 1M row scan efficiently (< 5s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           COUNT(*) as total_count,
@@ -132,19 +114,15 @@ describe('Comprehensive: Query Optimization', () => {
           AVG(metric_numeric) as avg_numeric
         FROM fact_all_types
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(Number(result[0].total_count)).toBe(1000000);
       expect(duration).toBeLessThan(5000);
     });
   });
-
   describe('Memory-Intensive Operations', () => {
     it('should handle large GROUP BY with many groups (< 3s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           user_id,
@@ -158,17 +136,13 @@ describe('Comprehensive: Query Optimization', () => {
         ORDER BY count DESC
         LIMIT 100
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBe(100);
       expect(duration).toBeLessThan(3000);
     });
-
     it('should handle large JOIN operation (< 5s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           u.user_segment,
@@ -180,17 +154,13 @@ describe('Comprehensive: Query Optimization', () => {
         WHERE f.id_bigint < 500000
         GROUP BY u.user_segment, p.product_category
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBeGreaterThan(0);
       expect(duration).toBeLessThan(5000);
     });
-
     it('should handle large window function operation (< 5s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           id_bigint,
@@ -202,19 +172,15 @@ describe('Comprehensive: Query Optimization', () => {
         ORDER BY id_bigint
         LIMIT 1000
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBe(1000);
       expect(duration).toBeLessThan(5000);
     });
   });
-
   describe('Filter Pushdown Optimization', () => {
     it('should push filters before JOIN', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT COUNT(*) as count
         FROM fact_all_types f
@@ -223,17 +189,13 @@ describe('Comprehensive: Query Optimization', () => {
           AND u.user_segment = 'enterprise'
           AND f.id_bigint < 100000
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
       expect(duration).toBeLessThan(2000);
     });
-
     it('should optimize multiple filter conditions', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT COUNT(*) as count
         FROM fact_all_types
@@ -242,51 +204,44 @@ describe('Comprehensive: Query Optimization', () => {
           AND is_active = true
           AND id_bigint < 500000
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result[0].count).toBeDefined();
       expect(duration).toBeLessThan(1000);
     });
   });
-
   describe('Projection Pushdown', () => {
     it('should optimize column selection (< 1s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT priority, status
         FROM fact_all_types
         WHERE id_bigint < 500000
         LIMIT 10000
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBe(10000);
       expect(duration).toBeLessThan(1000);
     });
-
     it('should compare full vs partial column selection', async () => {
       const start1 = Date.now();
-      await duckdbExec(`SELECT * FROM fact_all_types WHERE id_bigint < 10000 LIMIT 1000`);
+      await duckdbExec(
+        `SELECT * FROM fact_all_types WHERE id_bigint < 10000 LIMIT 1000`
+      );
       const duration1 = Date.now() - start1;
-
       const start2 = Date.now();
-      await duckdbExec(`SELECT id_bigint, priority FROM fact_all_types WHERE id_bigint < 10000 LIMIT 1000`);
+      await duckdbExec(
+        `SELECT id_bigint, priority FROM fact_all_types WHERE id_bigint < 10000 LIMIT 1000`
+      );
       const duration2 = Date.now() - start2;
-
       // Partial selection should be faster or equal
       expect(duration2).toBeLessThanOrEqual(duration1 + 100); // Allow 100ms tolerance
     });
   });
-
   describe('Join Order Optimization', () => {
     it('should optimize small-to-large JOIN order', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT COUNT(*) as count
         FROM dim_user u
@@ -294,17 +249,13 @@ describe('Comprehensive: Query Optimization', () => {
         WHERE u.user_segment = 'enterprise'
           AND f.id_bigint < 100000
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
       expect(duration).toBeLessThan(2000);
     });
-
     it('should handle multi-table JOIN optimization', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT COUNT(*) as count
         FROM dim_user u
@@ -314,31 +265,23 @@ describe('Comprehensive: Query Optimization', () => {
           AND p.product_category = 'frontend'
           AND f.id_bigint < 100000
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result[0].count).toBeDefined();
       expect(duration).toBeLessThan(3000);
     });
   });
-
   describe('Aggregate Optimization', () => {
     it('should optimize simple COUNT(*) (< 500ms)', async () => {
       const start = Date.now();
-
       const sql = `SELECT COUNT(*) as count FROM fact_all_types`;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(Number(result[0].count)).toBe(1000000);
       expect(duration).toBeLessThan(500);
     });
-
     it('should optimize grouped aggregates with filter (< 2s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           priority,
@@ -350,19 +293,15 @@ describe('Comprehensive: Query Optimization', () => {
         WHERE id_bigint < 500000
         GROUP BY priority
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBe(5);
       expect(duration).toBeLessThan(2000);
     });
   });
-
   describe('Subquery Optimization', () => {
     it('should optimize correlated subquery (< 2s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           u.user_id,
@@ -371,51 +310,42 @@ describe('Comprehensive: Query Optimization', () => {
         WHERE u.user_id LIKE 'user_%'
         LIMIT 100
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(result.length).toBe(100);
       expect(duration).toBeLessThan(2000);
     });
-
     it('should optimize IN subquery (< 2s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT COUNT(*) as count
         FROM fact_all_types
         WHERE user_id IN (SELECT user_id FROM dim_user WHERE user_segment = 'enterprise')
           AND id_bigint < 100000
       `;
-
       const result = await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
       expect(duration).toBeLessThan(2000);
     });
   });
-
   describe('Performance Benchmarks', () => {
     it('should benchmark simple SELECT performance', async () => {
       const iterations = 5;
       const durations = [];
-
       for (let i = 0; i < iterations; i++) {
         const start = Date.now();
-        await duckdbExec(`SELECT COUNT(*) FROM fact_all_types WHERE id_bigint < 100000`);
+        await duckdbExec(
+          `SELECT COUNT(*) FROM fact_all_types WHERE id_bigint < 100000`
+        );
         durations.push(Date.now() - start);
       }
-
       const avgDuration = durations.reduce((a, b) => a + b) / iterations;
       expect(avgDuration).toBeLessThan(1000);
     });
-
     it('should benchmark JOIN performance', async () => {
       const iterations = 3;
       const durations = [];
-
       for (let i = 0; i < iterations; i++) {
         const start = Date.now();
         await duckdbExec(`
@@ -426,15 +356,12 @@ describe('Comprehensive: Query Optimization', () => {
         `);
         durations.push(Date.now() - start);
       }
-
       const avgDuration = durations.reduce((a, b) => a + b) / iterations;
       expect(avgDuration).toBeLessThan(2000);
     });
-
     it('should benchmark aggregate performance', async () => {
       const iterations = 3;
       const durations = [];
-
       for (let i = 0; i < iterations; i++) {
         const start = Date.now();
         await duckdbExec(`
@@ -445,10 +372,8 @@ describe('Comprehensive: Query Optimization', () => {
         `);
         durations.push(Date.now() - start);
       }
-
       const avgDuration = durations.reduce((a, b) => a + b) / iterations;
       expect(avgDuration).toBeLessThan(1500);
     });
   });
 });
-

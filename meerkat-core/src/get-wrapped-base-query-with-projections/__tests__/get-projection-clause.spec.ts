@@ -1,6 +1,5 @@
 import { TableSchema } from '../../types/cube-types/table';
 import { getProjectionClause } from '../get-projection-clause';
-
 const TABLE_SCHEMA: TableSchema = {
   dimensions: [
     { name: 'a', sql: 'others', type: 'number' },
@@ -15,7 +14,6 @@ const TABLE_SCHEMA: TableSchema = {
   name: 'test',
   sql: 'SELECT * from test',
 };
-
 describe('get-projection-clause', () => {
   describe('getProjectionClause', () => {
     it('should return the projection clause when the members are present in the table schema', () => {
@@ -31,7 +29,6 @@ describe('get-projection-clause', () => {
       );
       expect(result).toEqual('others AS test__a, any AS test__c');
     });
-
     it('should skip aliased items present in already seen', () => {
       const members = ['test.a', 'test.c'];
       const aliasedColumnSet = new Set<string>(['test__c']);
@@ -45,7 +42,6 @@ describe('get-projection-clause', () => {
       );
       expect(result).toEqual('others AS test__a');
     });
-
     it('should project columns used inside the measure string', () => {
       const members = ['test.a', 'test.c'];
       const aliasedColumnSet = new Set<string>(['test__c']);
@@ -59,7 +55,6 @@ describe('get-projection-clause', () => {
       );
       expect(result).toEqual('others AS test__a, test.id AS test__id');
     });
-
     it('should apply aliases', () => {
       const members = ['test.a', 'test.c'];
       const aliasedColumnSet = new Set<string>();

@@ -1,6 +1,6 @@
 /**
  * Comprehensive JOIN Tests
- * 
+ *
  * Tests JOIN functionality with dimension tables:
  * - Simple joins (fact + single dimension)
  * - Multi-table joins (fact + multiple dimensions)
@@ -9,7 +9,6 @@
  * - Joins with ordering
  * - Performance on 1M+ rows
  */
-
 import { describe, it, expect, beforeAll } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -18,7 +17,6 @@ import {
   verifySyntheticTables,
 } from './synthetic/schema-setup';
 import { measureExecutionTime } from './helpers/test-helpers';
-
 describe('Comprehensive: JOINs', () => {
   beforeAll(async () => {
     console.log('🚀 Starting JOIN tests...');
@@ -26,7 +24,6 @@ describe('Comprehensive: JOINs', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('Simple JOIN: fact + dim_user', () => {
     it('should join fact_all_types with dim_user', async () => {
       const sql = `
@@ -42,9 +39,7 @@ describe('Comprehensive: JOINs', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       result.forEach((row) => {
         expect(row.user_id).toBeTruthy();
         expect(row.user_name).toBeTruthy();
@@ -52,7 +47,6 @@ describe('Comprehensive: JOINs', () => {
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should aggregate across join: COUNT by user_segment', async () => {
       const sql = `
         SELECT 
@@ -64,17 +58,14 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_segment
       `;
       const result = await duckdbExec(sql);
-
       // Should have 3 segments: enterprise, pro, free
       expect(result.length).toBe(3);
-
       // Each segment should have roughly 333K rows (1M / 3)
       result.forEach((row) => {
         expect(Number(row.fact_count)).toBeGreaterThan(330000);
         expect(Number(row.fact_count)).toBeLessThan(340000);
       });
     });
-
     it('should aggregate across join: SUM by user_department', async () => {
       const sql = `
         SELECT 
@@ -88,18 +79,17 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_department
       `;
       const result = await duckdbExec(sql);
-
       // Should have 4 departments
       expect(result.length).toBe(4);
-
       result.forEach((row) => {
-        expect(row.user_department).toMatch(/^(engineering|product|support|sales)$/);
+        expect(row.user_department).toMatch(
+          /^(engineering|product|support|sales)$/
+        );
         expect(Number(row.fact_count)).toBeGreaterThan(0);
         expect(Number(row.total_ids)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Simple JOIN: fact + dim_part', () => {
     it('should join fact_all_types with dim_part', async () => {
       const sql = `
@@ -115,17 +105,16 @@ describe('Comprehensive: JOINs', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       result.forEach((row) => {
         expect(row.part_id).toBeTruthy();
         expect(row.part_name).toBeTruthy();
-        expect(row.product_category).toMatch(/^(electronics|furniture|clothing|food|other)$/);
+        expect(row.product_category).toMatch(
+          /^(electronics|furniture|clothing|food|other)$/
+        );
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should aggregate across join: COUNT by product_category', async () => {
       const sql = `
         SELECT 
@@ -137,17 +126,14 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY p.product_category
       `;
       const result = await duckdbExec(sql);
-
       // Should have 5 categories
       expect(result.length).toBe(5);
-
       // Each category should have roughly 200K rows (1M / 5)
       result.forEach((row) => {
         expect(Number(row.fact_count)).toBeGreaterThan(190000);
         expect(Number(row.fact_count)).toBeLessThan(210000);
       });
     });
-
     it('should aggregate across join: AVG price by product_tier', async () => {
       const sql = `
         SELECT 
@@ -162,10 +148,8 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY p.product_tier
       `;
       const result = await duckdbExec(sql);
-
       // Should have 3 tiers: premium, standard, budget
       expect(result.length).toBe(3);
-
       result.forEach((row) => {
         expect(row.product_tier).toMatch(/^(premium|standard|budget)$/);
         expect(Number(row.fact_count)).toBeGreaterThan(0);
@@ -173,7 +157,6 @@ describe('Comprehensive: JOINs', () => {
       });
     });
   });
-
   describe('Multi-Table JOINs: fact + user + part', () => {
     it('should join fact_all_types with both dim_user and dim_part', async () => {
       const sql = `
@@ -188,19 +171,18 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_segment, p.product_category
       `;
       const result = await duckdbExec(sql);
-
       // 3 segments * 5 categories = 15 combinations
       expect(result.length).toBe(15);
-
       // Each combination should have roughly 66K rows (1M / 15)
       result.forEach((row) => {
         expect(row.user_segment).toMatch(/^(enterprise|pro|free)$/);
-        expect(row.product_category).toMatch(/^(electronics|furniture|clothing|food|other)$/);
+        expect(row.product_category).toMatch(
+          /^(electronics|furniture|clothing|food|other)$/
+        );
         expect(Number(row.fact_count)).toBeGreaterThan(60000);
         expect(Number(row.fact_count)).toBeLessThan(72000);
       });
     });
-
     it('should join with aggregates on all tables', async () => {
       const sql = `
         SELECT 
@@ -217,12 +199,10 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_segment, p.product_tier
       `;
       const result = await duckdbExec(sql);
-
       // Should have multiple segment/tier combinations
       // (data distribution depends on modulo patterns)
       expect(result.length).toBeGreaterThanOrEqual(6);
       expect(result.length).toBeLessThanOrEqual(9);
-
       result.forEach((row) => {
         expect(Number(row.fact_count)).toBeGreaterThan(0);
         expect(Number(row.avg_metric)).toBeGreaterThan(0);
@@ -230,7 +210,6 @@ describe('Comprehensive: JOINs', () => {
       });
     });
   });
-
   describe('JOINs with Filters', () => {
     it('should filter on fact table before join', async () => {
       const sql = `
@@ -244,16 +223,13 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_segment
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       // high priority is 20% of rows, so ~66K per segment
       result.forEach((row) => {
         expect(Number(row.count)).toBeGreaterThan(65000);
         expect(Number(row.count)).toBeLessThan(68000);
       });
     });
-
     it('should filter on dimension table after join', async () => {
       const sql = `
         SELECT 
@@ -266,16 +242,13 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_segment
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       // Active users are 50%, so ~166K per segment
       result.forEach((row) => {
         expect(Number(row.count)).toBeGreaterThan(160000);
         expect(Number(row.count)).toBeLessThan(172000);
       });
     });
-
     it('should filter on both fact and dimension tables', async () => {
       const sql = `
         SELECT 
@@ -289,23 +262,19 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY p.product_category
       `;
       const result = await duckdbExec(sql);
-
       // Should have at least 1 category (data distribution may vary)
       expect(result.length).toBeGreaterThanOrEqual(1);
       expect(result.length).toBeLessThanOrEqual(5);
-
       // Each returned category should have some rows
       result.forEach((row) => {
         expect(Number(row.count)).toBeGreaterThan(0);
       });
-
       // Total should be roughly 10% of 1M (high priority 20% * in_stock 50%)
       const total = result.reduce((sum, row) => sum + Number(row.count), 0);
       expect(total).toBeGreaterThan(95000);
       expect(total).toBeLessThan(105000);
     });
   });
-
   describe('JOINs with Ordering', () => {
     it('should order joined results by dimension field', async () => {
       const sql = `
@@ -318,15 +287,12 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_segment ASC
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       // Alphabetical order: enterprise, free, pro
       expect(result[0].user_segment).toBe('enterprise');
       expect(result[1].user_segment).toBe('free');
       expect(result[2].user_segment).toBe('pro');
     });
-
     it('should order by aggregate on joined data', async () => {
       const sql = `
         SELECT 
@@ -339,16 +305,15 @@ describe('Comprehensive: JOINs', () => {
         LIMIT 3
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       // Verify descending order
       for (let i = 1; i < result.length; i++) {
-        expect(Number(result[i].count)).toBeLessThanOrEqual(Number(result[i - 1].count));
+        expect(Number(result[i].count)).toBeLessThanOrEqual(
+          Number(result[i - 1].count)
+        );
       }
     });
   });
-
   describe('JOIN Performance', () => {
     it('should execute simple join quickly (< 1s on 1M rows)', async () => {
       const { result, duration } = await measureExecutionTime(async () => {
@@ -361,11 +326,9 @@ describe('Comprehensive: JOINs', () => {
           GROUP BY u.user_segment
         `);
       });
-
       expect(result.length).toBe(3);
       expect(duration).toBeLessThan(1000);
     });
-
     it('should execute multi-table join quickly (< 2s)', async () => {
       const { result, duration } = await measureExecutionTime(async () => {
         return duckdbExec(`
@@ -379,12 +342,10 @@ describe('Comprehensive: JOINs', () => {
           GROUP BY u.user_segment, p.product_category
         `);
       });
-
       expect(result.length).toBe(15);
       expect(duration).toBeLessThan(2000);
     });
   });
-
   describe('JOIN Edge Cases', () => {
     it('should handle join with LIMIT', async () => {
       const sql = `
@@ -397,10 +358,8 @@ describe('Comprehensive: JOINs', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
     });
-
     it('should handle join with distinct dimension values', async () => {
       const sql = `
         SELECT DISTINCT
@@ -411,11 +370,9 @@ describe('Comprehensive: JOINs', () => {
         ORDER BY u.user_segment, u.user_department
       `;
       const result = await duckdbExec(sql);
-
       // 3 segments * 4 departments = 12 combinations
       expect(result.length).toBe(12);
     });
-
     it('should handle LEFT JOIN (all fact rows)', async () => {
       const sql = `
         SELECT 
@@ -425,11 +382,9 @@ describe('Comprehensive: JOINs', () => {
         LEFT JOIN dim_user u ON f.user_id = u.user_id
       `;
       const result = await duckdbExec(sql);
-
       // All rows should join since user_ids exist
       expect(Number(result[0].total_rows)).toBe(1000000);
       expect(Number(result[0].joined_rows)).toBe(1000000);
     });
   });
 });
-

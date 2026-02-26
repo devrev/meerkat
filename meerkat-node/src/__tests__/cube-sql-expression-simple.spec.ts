@@ -1,7 +1,6 @@
 import { Query, TableSchema } from '@devrev/meerkat-core';
 import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
 import { duckdbExec } from '../duckdb-exec';
-
 const SCHEMA: TableSchema = {
   name: 'users',
   sql: `
@@ -38,7 +37,6 @@ const SCHEMA: TableSchema = {
   ],
   joins: [],
 };
-
 const SQL_EXPRESSION_TEST_DATA = [
   {
     testName: 'Simple IN with SQL expression',
@@ -323,54 +321,47 @@ const SQL_EXPRESSION_TEST_DATA = [
     ],
   },
 ];
-
 describe('SQL Expression Filters', () => {
-    SQL_EXPRESSION_TEST_DATA.forEach((testCase) => {
-      it(testCase.testName, async () => {
-        const sql = await cubeQueryToSQL({
-          query: testCase.cubeInput,
-          tableSchemas: [SCHEMA],
-        });
-
-        // Compare generated SQL with expected SQL
-        expect(sql).toBe(testCase.expectedSQL);
-
-        // Execute query and validate results
-        const output = await duckdbExec(sql);
-
-        // Sort both actual and expected output by user name for consistent comparison
-        const sortedOutput = [...output].sort((a, b) =>
-          a.users__name.localeCompare(b.users__name)
-        );
-        const sortedExpected = [...testCase.expectedOutput].sort((a, b) =>
-          a.users__name.localeCompare(b.users__name)
-        );
-
-        // Compare output with expected output (use toEqual for BigInt compatibility)
-        expect(sortedOutput).toEqual(sortedExpected);
+  SQL_EXPRESSION_TEST_DATA.forEach((testCase) => {
+    it(testCase.testName, async () => {
+      const sql = await cubeQueryToSQL({
+        query: testCase.cubeInput,
+        tableSchemas: [SCHEMA],
       });
-    });
-
-    it('should throw error for unsupported operators with SQL expression', async () => {
-      const query: Query = {
-        measures: ['users.count'],
-        dimensions: ['users.name'],
-        filters: [
-          {
-            member: 'users.age',
-            operator: 'gt',
-            sqlExpression: '28',
-          } as any,
-        ],
-      };
-
-      await expect(
-        cubeQueryToSQL({
-          query,
-          tableSchemas: [SCHEMA],
-        })
-      ).rejects.toThrow(
-        'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
+      // Compare generated SQL with expected SQL
+      expect(sql).toBe(testCase.expectedSQL);
+      // Execute query and validate results
+      const output = await duckdbExec(sql);
+      // Sort both actual and expected output by user name for consistent comparison
+      const sortedOutput = [...output].sort((a, b) =>
+        a.users__name.localeCompare(b.users__name)
       );
+      const sortedExpected = [...testCase.expectedOutput].sort((a, b) =>
+        a.users__name.localeCompare(b.users__name)
+      );
+      // Compare output with expected output (use toEqual for BigInt compatibility)
+      expect(sortedOutput).toEqual(sortedExpected);
     });
+  });
+  it('should throw error for unsupported operators with SQL expression', async () => {
+    const query: Query = {
+      measures: ['users.count'],
+      dimensions: ['users.name'],
+      filters: [
+        {
+          member: 'users.age',
+          operator: 'gt',
+          sqlExpression: '28',
+        } as any,
+      ],
+    };
+    await expect(
+      cubeQueryToSQL({
+        query,
+        tableSchemas: [SCHEMA],
+      })
+    ).rejects.toThrow(
+      'SQL expressions are not supported for gt operator. Only "in" and "notIn" operators support SQL expressions.'
+    );
+  });
 });

@@ -1,6 +1,6 @@
 /**
  * Comprehensive JOIN Types Tests
- * 
+ *
  * Tests different JOIN types and scenarios:
  * - LEFT JOIN / LEFT OUTER JOIN
  * - RIGHT JOIN / RIGHT OUTER JOIN
@@ -11,7 +11,6 @@
  * - JOIN with different data types
  * - Multiple JOIN chains
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -19,7 +18,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: JOIN Types', () => {
   beforeAll(async () => {
     console.log('🚀 Starting JOIN types tests...');
@@ -27,7 +25,6 @@ describe('Comprehensive: JOIN Types', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('LEFT JOIN', () => {
     it('should perform LEFT JOIN keeping all left table rows', async () => {
       const sql = `
@@ -41,9 +38,7 @@ describe('Comprehensive: JOIN Types', () => {
         ORDER BY f.id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(100);
-
       // All rows should have user_id from fact table
       result.forEach((row) => {
         expect(row.user_id).toBeTruthy();
@@ -52,10 +47,11 @@ describe('Comprehensive: JOIN Types', () => {
         expect(row.user_segment).toBeTruthy();
       });
     });
-
-    it.fails('should show NULL for unmatched RIGHT table in LEFT JOIN', async () => {
-      // Create a temporary fact row with non-existent user
-      await duckdbExec(`
+    it.fails(
+      'should show NULL for unmatched RIGHT table in LEFT JOIN',
+      async () => {
+        // Create a temporary fact row with non-existent user
+        await duckdbExec(`
         CREATE TEMPORARY TABLE fact_with_missing AS
         SELECT * FROM fact_all_types WHERE id_bigint < 10
         UNION ALL
@@ -83,8 +79,7 @@ describe('Comprehensive: JOIN Types', () => {
           ARRAY[]::VARCHAR[] as part_ids,
           '{}' as metadata_json
       `);
-
-      const sql = `
+        const sql = `
         SELECT 
           f.user_id,
           u.user_name
@@ -92,15 +87,13 @@ describe('Comprehensive: JOIN Types', () => {
         LEFT JOIN dim_user u ON f.user_id = u.user_id
         WHERE f.id_bigint = 999999
       `;
-      const result = await duckdbExec(sql);
-
-      expect(result.length).toBe(1);
-      expect(result[0].user_id).toBe('nonexistent_user');
-      expect(result[0].user_name).toBeNull();
-
-      await duckdbExec('DROP TABLE fact_with_missing');
-    });
-
+        const result = await duckdbExec(sql);
+        expect(result.length).toBe(1);
+        expect(result[0].user_id).toBe('nonexistent_user');
+        expect(result[0].user_name).toBeNull();
+        await duckdbExec('DROP TABLE fact_with_missing');
+      }
+    );
     it.fails('should aggregate with LEFT JOIN', async () => {
       const sql = `
         SELECT 
@@ -113,9 +106,7 @@ describe('Comprehensive: JOIN Types', () => {
         ORDER BY u.user_segment
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       result.forEach((row) => {
         expect(row.user_segment).toBeTruthy();
         // matched_count should equal 10000 (all users exist)
@@ -123,7 +114,6 @@ describe('Comprehensive: JOIN Types', () => {
       });
     });
   });
-
   describe('RIGHT JOIN', () => {
     it('should perform RIGHT JOIN keeping all right table rows', async () => {
       const sql = `
@@ -138,16 +128,13 @@ describe('Comprehensive: JOIN Types', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       // All rows should have user_id and user_name from dim_user
       result.forEach((row) => {
         expect(row.user_id).toBeTruthy();
         expect(row.user_name).toBeTruthy();
       });
     });
-
     it('should show NULL for unmatched LEFT table in RIGHT JOIN', async () => {
       await duckdbExec(`
         CREATE TEMPORARY TABLE dim_user_extra AS
@@ -162,7 +149,6 @@ describe('Comprehensive: JOIN Types', () => {
           DATE '2020-01-01' as user_created_date,
           true as is_active_user
       `);
-
       const sql = `
         SELECT 
           f.id_bigint,
@@ -173,21 +159,20 @@ describe('Comprehensive: JOIN Types', () => {
         WHERE u.user_id = 'user_99999'
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(row.user_id).toBe('user_99999');
         expect(row.user_name).toBe('Extra User');
         expect(row.id_bigint).toBeNull();
       });
-
       await duckdbExec('DROP TABLE dim_user_extra');
     });
   });
-
   describe('FULL OUTER JOIN', () => {
-    it.fails('should perform FULL OUTER JOIN keeping all rows from both tables', async () => {
-      const sql = `
+    it.fails(
+      'should perform FULL OUTER JOIN keeping all rows from both tables',
+      async () => {
+        const sql = `
         SELECT 
           COUNT(*) as total_rows,
           SUM(CASE WHEN f.id_bigint IS NOT NULL THEN 1 ELSE 0 END) as fact_rows,
@@ -195,21 +180,18 @@ describe('Comprehensive: JOIN Types', () => {
         FROM (SELECT * FROM fact_all_types WHERE id_bigint < 10) f
         FULL OUTER JOIN dim_user u ON f.user_id = u.user_id
       `;
-      const result = await duckdbExec(sql);
-
-      expect(result.length).toBe(1);
-
-      const totalRows = Number(result[0].total_rows);
-      const factRows = Number(result[0].fact_rows);
-      const userRows = Number(result[0].user_rows);
-
-      // Should have all 10K users plus some fact rows
-      expect(totalRows).toBeGreaterThan(10000);
-      expect(userRows).toBe(10000);
-      expect(factRows).toBeGreaterThan(0);
-    });
+        const result = await duckdbExec(sql);
+        expect(result.length).toBe(1);
+        const totalRows = Number(result[0].total_rows);
+        const factRows = Number(result[0].fact_rows);
+        const userRows = Number(result[0].user_rows);
+        // Should have all 10K users plus some fact rows
+        expect(totalRows).toBeGreaterThan(10000);
+        expect(userRows).toBe(10000);
+        expect(factRows).toBeGreaterThan(0);
+      }
+    );
   });
-
   describe('CROSS JOIN', () => {
     it('should perform CROSS JOIN creating Cartesian product', async () => {
       const sql = `
@@ -218,11 +200,9 @@ describe('Comprehensive: JOIN Types', () => {
         CROSS JOIN (SELECT DISTINCT user_segment FROM dim_user) u
       `;
       const result = await duckdbExec(sql);
-
       // 5 priorities × 3 segments = 15
       expect(Number(result[0].total)).toBe(15);
     });
-
     it('should use CROSS JOIN for combinations', async () => {
       const sql = `
         SELECT 
@@ -236,17 +216,14 @@ describe('Comprehensive: JOIN Types', () => {
         ORDER BY f.priority, u.user_segment
       `;
       const result = await duckdbExec(sql);
-
       // 5 priorities × 3 segments = 15 combinations
       expect(result.length).toBe(15);
-
       // Each combination should have the same count (100 rows / 15 combos ~ 6-7 per combo)
       result.forEach((row) => {
         expect(Number(row.combo_count)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Self-Joins', () => {
     it('should perform self-join to find related records', async () => {
       const sql = `
@@ -265,15 +242,12 @@ describe('Comprehensive: JOIN Types', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         // id1 should be less than id2
         expect(Number(row.id1)).toBeLessThan(Number(row.id2));
       });
     });
-
     it('should self-join to find previous/next records', async () => {
       const sql = `
         SELECT 
@@ -288,9 +262,7 @@ describe('Comprehensive: JOIN Types', () => {
         ORDER BY curr.id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(6); // ids 5-10
-
       result.forEach((row, index) => {
         expect(Number(row.current_id)).toBe(5 + index);
         if (Number(row.current_id) > 5) {
@@ -299,7 +271,6 @@ describe('Comprehensive: JOIN Types', () => {
       });
     });
   });
-
   describe('JOIN with NULL Keys', () => {
     it('should handle NULL keys in JOIN (NULLs do not match)', async () => {
       const sql = `
@@ -311,11 +282,9 @@ describe('Comprehensive: JOIN Types', () => {
           AND f.id_bigint < 100
       `;
       const result = await duckdbExec(sql);
-
       // resolved_by is NULL for some rows, and NULL != NULL in SQL
       expect(Number(result[0].null_resolved_count)).toBeGreaterThan(0);
     });
-
     it('should use IS NOT DISTINCT FROM for NULL-aware JOIN', async () => {
       const sql = `
         SELECT 
@@ -329,11 +298,9 @@ describe('Comprehensive: JOIN Types', () => {
         ORDER BY f1.id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
     });
   });
-
   describe('JOIN Chains', () => {
     it('should chain multiple JOINs', async () => {
       const sql = `
@@ -352,15 +319,12 @@ describe('Comprehensive: JOIN Types', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       result.forEach((row) => {
         expect(row.user_segment).toBeTruthy();
         expect(row.product_category).toBeTruthy();
       });
     });
-
     it('should mix different JOIN types in chain', async () => {
       const sql = `
         SELECT 
@@ -374,12 +338,10 @@ describe('Comprehensive: JOIN Types', () => {
         WHERE f.id_bigint < 100 OR f.id_bigint IS NULL
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(1);
       expect(Number(result[0].total_rows)).toBeGreaterThan(0);
     });
   });
-
   describe('JOIN with Different Conditions', () => {
     it('should JOIN with inequality condition', async () => {
       const sql = `
@@ -396,14 +358,11 @@ describe('Comprehensive: JOIN Types', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(Number(row.id1)).toBeLessThan(Number(row.id2));
       });
     });
-
     it('should JOIN with computed expressions', async () => {
       const sql = `
         SELECT 
@@ -418,10 +377,8 @@ describe('Comprehensive: JOIN Types', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
     });
-
     it('should JOIN with BETWEEN condition', async () => {
       const sql = `
         SELECT COUNT(*) as match_count
@@ -432,11 +389,9 @@ describe('Comprehensive: JOIN Types', () => {
           AND f2.id_bigint < 10
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].match_count)).toBeGreaterThan(0);
     });
   });
-
   describe('JOIN with Aggregates', () => {
     it('should aggregate before JOIN', async () => {
       const sql = `
@@ -456,11 +411,9 @@ describe('Comprehensive: JOIN Types', () => {
         ORDER BY agg.priority, u.user_segment
       `;
       const result = await duckdbExec(sql);
-
       // 5 priorities × 3 segments = 15
       expect(result.length).toBe(15);
     });
-
     it('should aggregate after JOIN', async () => {
       const sql = `
         SELECT 
@@ -476,21 +429,17 @@ describe('Comprehensive: JOIN Types', () => {
         ORDER BY u.user_segment, p.product_category
       `;
       const result = await duckdbExec(sql);
-
       // 3 segments × 5 categories = 15
       expect(result.length).toBe(15);
-
       result.forEach((row) => {
         expect(Number(row.fact_count)).toBeGreaterThan(0);
         expect(Number(row.avg_metric)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Performance', () => {
     it('should execute LEFT JOIN efficiently (< 1s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           u.user_segment,
@@ -500,16 +449,12 @@ describe('Comprehensive: JOIN Types', () => {
         WHERE f.id_bigint < 100000
         GROUP BY u.user_segment
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(1000);
     });
-
     it('should execute multiple JOINs efficiently (< 2s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           u.user_segment,
@@ -521,12 +466,9 @@ describe('Comprehensive: JOIN Types', () => {
         WHERE f.id_bigint < 50000
         GROUP BY u.user_segment, p.product_category
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(2000);
     });
   });
 });
-

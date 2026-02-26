@@ -1,6 +1,6 @@
 /**
  * Advanced NULL Handling Tests
- * 
+ *
  * Tests comprehensive NULL behavior:
  * - COALESCE with multiple arguments
  * - NULLIF detailed scenarios
@@ -11,7 +11,6 @@
  * - NULL in window functions
  * - IS DISTINCT FROM / IS NOT DISTINCT FROM
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -19,7 +18,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Advanced NULL Handling', () => {
   beforeAll(async () => {
     console.log('🚀 Starting advanced NULL handling tests...');
@@ -27,7 +25,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('COALESCE with Multiple Arguments', () => {
     it('should use COALESCE with 3+ arguments', async () => {
       const sql = `
@@ -42,7 +39,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         // resolved_value should never be NULL
@@ -50,7 +46,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         expect(row.effective_date).not.toBeNull();
       });
     });
-
     it('should chain COALESCE for complex fallback logic', async () => {
       const sql = `
         SELECT 
@@ -66,14 +61,12 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.complex_coalesce).not.toBeNull();
       });
     });
   });
-
   describe('NULLIF Detailed Scenarios', () => {
     it('should use NULLIF to convert specific values to NULL', async () => {
       const sql = `
@@ -87,7 +80,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (row.priority === 'low') {
@@ -98,7 +90,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         }
       });
     });
-
     it('should use NULLIF for zero-division protection', async () => {
       const sql = `
         SELECT 
@@ -115,7 +106,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (Number(row.metric_numeric) === 0) {
@@ -127,7 +117,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         }
       });
     });
-
     it('should combine NULLIF and COALESCE', async () => {
       const sql = `
         SELECT 
@@ -139,7 +128,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (row.priority === 'low') {
@@ -150,7 +138,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
       });
     });
   });
-
   describe('NULL in Aggregates', () => {
     it('should show difference between COUNT(*) and COUNT(column)', async () => {
       const sql = `
@@ -162,17 +149,14 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         WHERE id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       const countAll = Number(result[0].count_all);
       const countResolved = Number(result[0].count_resolved);
       const countDistinct = Number(result[0].count_distinct_resolved);
-
       expect(countAll).toBe(1000);
       // count_resolved should be less than count_all if there are NULLs
       expect(countResolved).toBeLessThanOrEqual(countAll);
       expect(countDistinct).toBeLessThanOrEqual(countResolved);
     });
-
     it('should handle NULL in AVG, SUM, MIN, MAX', async () => {
       const sql = `
         SELECT 
@@ -185,10 +169,8 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         WHERE id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       // Aggregates should ignore NULL values
       const countResolved = Number(result[0].count_resolved);
-      
       if (countResolved > 0) {
         expect(result[0].avg_resolved).not.toBeNull();
         expect(result[0].sum_resolved).not.toBeNull();
@@ -201,7 +183,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         expect(result[0].max_resolved).toBeNull();
       }
     });
-
     it('should use FILTER clause with NULL handling', async () => {
       const sql = `
         SELECT 
@@ -215,18 +196,15 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         const total = Number(row.total_count);
         const resolved = Number(row.resolved_count);
         const unresolved = Number(row.unresolved_count);
-        
         expect(total).toBe(resolved + unresolved);
       });
     });
   });
-
   describe('NULL in Window Functions', () => {
     it('should handle NULL in window function ordering', async () => {
       const sql = `
@@ -241,14 +219,12 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(Number(row.row_num_nulls_first)).toBeGreaterThan(0);
         expect(Number(row.row_num_nulls_last)).toBeGreaterThan(0);
       });
     });
-
     it('should handle NULL in window function aggregates', async () => {
       const sql = `
         SELECT 
@@ -261,12 +237,10 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       // moving_avg will be NULL if all values in window are NULL
     });
   });
-
   describe('IS DISTINCT FROM / IS NOT DISTINCT FROM', () => {
     it('should use IS DISTINCT FROM for NULL-safe comparison', async () => {
       const sql = `
@@ -284,7 +258,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         // IS DISTINCT FROM treats NULL as equal to NULL
@@ -295,7 +268,6 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         }
       });
     });
-
     it('should use IS NOT DISTINCT FROM for NULL-aware equality', async () => {
       const sql = `
         SELECT 
@@ -307,12 +279,10 @@ describe('Comprehensive: Advanced NULL Handling', () => {
           AND f2.id_bigint BETWEEN 10 AND 19
       `;
       const result = await duckdbExec(sql);
-
       // Should match rows where both have NULL or both have same value
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
   });
-
   describe('Three-Valued Logic', () => {
     it.fails('should demonstrate three-valued logic in WHERE', async () => {
       const sql = `
@@ -325,15 +295,12 @@ describe('Comprehensive: Advanced NULL Handling', () => {
         WHERE id_bigint < 1000
       `;
       const result = await duckdbExec(sql);
-
       const countTrue = Number(result[0].count_true);
       const countFalse = Number(result[0].count_false);
       const countUnknown = Number(result[0].count_unknown);
       const total = Number(result[0].total);
-
       // total = true + false + unknown (NULL cases)
       expect(total).toBe(countTrue + countFalse + countUnknown);
     });
   });
 });
-

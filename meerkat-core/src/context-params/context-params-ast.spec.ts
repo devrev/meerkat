@@ -3,7 +3,6 @@ import {
   detectAllContextParams,
   detectApplyContextParamsToBaseSQL,
 } from './context-params-ast';
-
 describe('detectAllContextParams function', () => {
   it('should extract all CONTEXT_PARAMS from SQL string', () => {
     const sql = 'SELECT * FROM orders WHERE ${CONTEXT_PARAMS.current_user.id}';
@@ -15,7 +14,6 @@ describe('detectAllContextParams function', () => {
     ];
     expect(detectAllContextParams(sql)).toEqual(expected);
   });
-
   it('Should match with multiple keys in the same string', () => {
     const sql =
       'SELECT * FROM orders WHERE ${CONTEXT_PARAMS.current_user.id} AND ${CONTEXT_PARAMS.current_user.name}';
@@ -31,7 +29,6 @@ describe('detectAllContextParams function', () => {
     ];
     expect(detectAllContextParams(sql)).toEqual(expected);
   });
-
   it('should work with CONTEXT_PARAMS with deeper object keys', () => {
     const sql =
       'SELECT * FROM orders WHERE ${CONTEXT_PARAMS.current_user.id} AND ${CONTEXT_PARAMS.current_user.name} AND ${CONTEXT_PARAMS.current_user.address.city}';
@@ -52,7 +49,6 @@ describe('detectAllContextParams function', () => {
     expect(detectAllContextParams(sql)).toEqual(expected);
   });
 });
-
 describe('applyContextParamsToBaseSQL function', () => {
   it('should replace all CONTEXT_PARAMS with their values', () => {
     const baseSQL =
@@ -116,7 +112,6 @@ describe('applyContextParamsToBaseSQL function', () => {
     );
   });
 });
-
 describe('detectApplyContextParamsToBaseSQL function', () => {
   it('should return an array of contextParamsSQL', () => {
     const baseSQL =
@@ -126,9 +121,7 @@ describe('detectApplyContextParamsToBaseSQL function', () => {
       'current_user.name': "'John Doe'",
       'current_user.address.city': "'New York'",
     };
-
     const expected = `SELECT * FROM orders WHERE '123' AND 'John Doe' AND 'New York'`;
-
     expect(detectApplyContextParamsToBaseSQL(baseSQL, contextParams)).toEqual(
       expected
     );

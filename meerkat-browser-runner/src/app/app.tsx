@@ -107,6 +107,7 @@ export function App() {
           case BROWSER_RUNNER_TYPE.EXEC_QUERY: {
             const abortController = new AbortController();
             const queryId = message.message.payload.queryId;
+            const requestedTables = message.message.payload.tables;
 
             activeQueriesRef.current?.set(queryId, abortController);
 
@@ -123,7 +124,8 @@ export function App() {
                         type: BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY,
                         payload: {
                           runnerId: uuid,
-                          tables: tables,
+                          // Use the original query table config; runner-local table metadata can be empty.
+                          tables: requestedTables,
                         },
                       });
 

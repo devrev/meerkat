@@ -1,6 +1,6 @@
 /**
  * Comprehensive Mathematical Functions Tests
- * 
+ *
  * Tests mathematical operations:
  * - Basic functions (ABS, ROUND, CEIL, FLOOR, TRUNC)
  * - Advanced math (SQRT, POW, LOG, EXP, LN)
@@ -11,7 +11,6 @@
  * - Mathematical operations with NULL
  * - Edge cases (overflow, underflow)
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -19,7 +18,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Mathematical Functions', () => {
   beforeAll(async () => {
     console.log('🚀 Starting mathematical functions tests...');
@@ -27,7 +25,6 @@ describe('Comprehensive: Mathematical Functions', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('Basic Math Functions', () => {
     it('should use ABS for absolute values', async () => {
       const sql = `
@@ -40,7 +37,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(Number(row.abs_metric)).toBeGreaterThanOrEqual(0);
@@ -48,7 +44,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         expect(Number(row.abs_metric)).toBe(Number(row.abs_negative));
       });
     });
-
     it('should use ROUND with different precisions', async () => {
       const sql = `
         SELECT 
@@ -61,7 +56,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.round_0).toBeDefined();
@@ -69,7 +63,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         expect(row.round_tens).toBeDefined();
       });
     });
-
     it('should use CEIL and FLOOR', async () => {
       const sql = `
         SELECT 
@@ -82,21 +75,18 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const original = Number(row.metric_double);
         const ceiling = Number(row.ceiling);
         const floor = Number(row.floor);
         const truncate = Number(row.truncate);
-        
         expect(ceiling).toBeGreaterThanOrEqual(original);
         expect(floor).toBeLessThanOrEqual(original);
         expect(Math.abs(truncate - original)).toBeLessThan(1);
       });
     });
   });
-
   describe('Advanced Math Functions', () => {
     it('should use SQRT for square roots', async () => {
       const sql = `
@@ -109,7 +99,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         const original = Number(row.metric_double);
@@ -117,7 +106,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         expect(sqrt * sqrt).toBeCloseTo(original, 1);
       });
     });
-
     it('should use POW for exponentiation', async () => {
       const sql = `
         SELECT 
@@ -130,7 +118,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row, index) => {
         const n = index + 1;
@@ -138,7 +125,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         expect(Number(row.pow_n_2)).toBeCloseTo(Math.pow(n, 2), 1);
       });
     });
-
     it('should use LOG and EXP', async () => {
       const sql = `
         SELECT 
@@ -151,7 +137,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(Number(row.log10)).toBeGreaterThanOrEqual(0);
@@ -160,7 +145,6 @@ describe('Comprehensive: Mathematical Functions', () => {
       });
     });
   });
-
   describe('Trigonometric Functions', () => {
     it('should use SIN, COS, TAN', async () => {
       const sql = `
@@ -171,12 +155,10 @@ describe('Comprehensive: Mathematical Functions', () => {
           TAN(0) as tan_0
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].sin_0)).toBeCloseTo(0, 5);
       expect(Number(result[0].cos_0)).toBeCloseTo(1, 5);
       expect(Number(result[0].tan_0)).toBeCloseTo(0, 5);
     });
-
     it('should use PI constant', async () => {
       const sql = `
         SELECT 
@@ -186,13 +168,11 @@ describe('Comprehensive: Mathematical Functions', () => {
           TAN(PI() / 4) as tan_45
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].pi_value)).toBeCloseTo(Math.PI, 5);
       expect(Number(result[0].sin_90)).toBeCloseTo(1, 5);
       expect(Number(result[0].cos_180)).toBeCloseTo(-1, 5);
       expect(Number(result[0].tan_45)).toBeCloseTo(1, 5);
     });
-
     it('should use inverse trig functions', async () => {
       const sql = `
         SELECT 
@@ -202,14 +182,12 @@ describe('Comprehensive: Mathematical Functions', () => {
           ATAN2(1, 1) as atan2_one_one
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].asin_half)).toBeCloseTo(Math.asin(0.5), 5);
       expect(Number(result[0].acos_half)).toBeCloseTo(Math.acos(0.5), 5);
       expect(Number(result[0].atan_one)).toBeCloseTo(Math.atan(1), 5);
       expect(Number(result[0].atan2_one_one)).toBeCloseTo(Math.atan2(1, 1), 5);
     });
   });
-
   describe('Modulo and Division', () => {
     it('should use modulo operator', async () => {
       const sql = `
@@ -223,7 +201,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(20);
       result.forEach((row) => {
         expect(Number(row.mod_10)).toBeGreaterThanOrEqual(0);
@@ -233,7 +210,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         expect([0, 1]).toContain(Number(row.mod_2));
       });
     });
-
     it('should use integer division', async () => {
       const sql = `
         SELECT 
@@ -247,11 +223,9 @@ describe('Comprehensive: Mathematical Functions', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
     });
   });
-
   describe('Complex Mathematical Expressions', () => {
     it('should compute distance formula', async () => {
       const sql = `
@@ -264,7 +238,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const id = Number(row.id_bigint);
@@ -273,7 +246,6 @@ describe('Comprehensive: Mathematical Functions', () => {
         expect(Number(row.euclidean_distance)).toBeCloseTo(expected, 1);
       });
     });
-
     it('should compute compound interest formula', async () => {
       const sql = `
         SELECT 
@@ -283,11 +255,9 @@ describe('Comprehensive: Mathematical Functions', () => {
           1000 * POW(1 + 0.05, 10) as compound_amount
       `;
       const result = await duckdbExec(sql);
-
       const expected = 1000 * Math.pow(1.05, 10);
       expect(Number(result[0].compound_amount)).toBeCloseTo(expected, 1);
     });
-
     it.fails('should use math functions in aggregates', async () => {
       const sql = `
         SELECT 
@@ -300,14 +270,12 @@ describe('Comprehensive: Mathematical Functions', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         expect(Number(row.avg_metric)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('NULL Handling', () => {
     it('should handle NULL in math functions', async () => {
       const sql = `
@@ -318,14 +286,12 @@ describe('Comprehensive: Mathematical Functions', () => {
           LOG(NULL) as log_null
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].abs_null).toBeNull();
       expect(result[0].sqrt_null).toBeNull();
       expect(result[0].pow_null).toBeNull();
       expect(result[0].log_null).toBeNull();
     });
   });
-
   describe('Edge Cases', () => {
     it('should handle very large exponents', async () => {
       const sql = `
@@ -334,18 +300,14 @@ describe('Comprehensive: Mathematical Functions', () => {
           POW(2, 20) as pow_2_20
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].pow_2_10)).toBe(1024);
       expect(Number(result[0].pow_2_20)).toBe(1048576);
     });
-
     it('should handle square root of zero', async () => {
       const sql = `SELECT SQRT(0) as sqrt_zero`;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].sqrt_zero)).toBe(0);
     });
-
     it('should handle logarithm edge cases', async () => {
       const sql = `
         SELECT 
@@ -354,17 +316,14 @@ describe('Comprehensive: Mathematical Functions', () => {
           LOG(10, 100) as log_100
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].log_1)).toBe(0);
       expect(Number(result[0].log_10)).toBeCloseTo(1, 5);
       expect(Number(result[0].log_100)).toBeCloseTo(2, 5);
     });
   });
-
   describe('Performance', () => {
     it('should execute math functions efficiently (< 500ms)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           id_bigint,
@@ -376,12 +335,9 @@ describe('Comprehensive: Mathematical Functions', () => {
         WHERE id_bigint < 50000
         LIMIT 1000
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(500);
     });
   });
 });
-

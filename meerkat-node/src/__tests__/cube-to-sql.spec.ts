@@ -6,16 +6,13 @@ import {
 } from '../__fixtures__/test-data';
 import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
 import { duckdbExec } from '../duckdb-exec';
-
 describe('cube-to-sql', () => {
   beforeAll(async () => {
     // Create orders table
     await duckdbExec(CREATE_TEST_TABLE);
-
     // Insert data into orders table
     await duckdbExec(INPUT_DATA_QUERY);
   });
-
   getTestData()
     .flat()
     .forEach((data) => {
@@ -53,7 +50,6 @@ describe('cube-to-sql', () => {
               : undefined,
           };
         });
-
         /**
          * Compare the output with the expected output
          */
@@ -64,7 +60,6 @@ describe('cube-to-sql', () => {
         expect(sql).toBe(data.expectedSQL);
       });
     });
-
   it('Should order the projected value', async () => {
     const query = {
       measures: ['orders.total_order_amount'],
@@ -87,7 +82,6 @@ describe('cube-to-sql', () => {
       parsedOutput[1].orders__total_order_amount
     );
   });
-
   it('Without filter query generator with empty and', async () => {
     const query = {
       measures: ['*'],
@@ -107,7 +101,6 @@ describe('cube-to-sql', () => {
       'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
     );
   });
-
   it('Without filter query generator with empty or', async () => {
     const query = {
       measures: ['*'],
@@ -127,7 +120,6 @@ describe('cube-to-sql', () => {
       'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
     );
   });
-
   it('Should handle empty order', async () => {
     const query = {
       order: {},
@@ -148,7 +140,6 @@ describe('cube-to-sql', () => {
       'SELECT orders.* FROM (SELECT * FROM (select * from orders) AS orders) AS orders'
     );
   });
-
   it('Should order by field not in dimensions and verify sorting', async () => {
     // Dimensions: customer_id - projected in inner query
     // Order by: order_date - NOT in dimensions, but should be projected for ORDER BY

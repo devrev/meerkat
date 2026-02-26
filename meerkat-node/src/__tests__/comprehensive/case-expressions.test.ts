@@ -1,6 +1,6 @@
 /**
  * Comprehensive CASE Expression Tests
- * 
+ *
  * Tests CASE WHEN expressions in different contexts:
  * - Simple CASE expressions
  * - Searched CASE expressions
@@ -12,7 +12,6 @@
  * - Nested CASE expressions
  * - CASE with NULL handling
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -20,7 +19,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: CASE Expressions', () => {
   beforeAll(async () => {
     console.log('🚀 Starting CASE expression tests...');
@@ -28,7 +26,6 @@ describe('Comprehensive: CASE Expressions', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('Simple CASE Expressions', () => {
     it.fails('should use simple CASE for value mapping', async () => {
       const sql = `
@@ -48,15 +45,12 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY priority_level
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row, index) => {
         expect(Number(row.priority_level)).toBe(index + 1);
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use CASE with ELSE clause', async () => {
       const sql = `
         SELECT 
@@ -72,15 +66,12 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY status_category
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(2); // Active and Inactive
-
       const categories = result.map((r) => r.status_category);
       expect(categories).toContain('Active');
       expect(categories).toContain('Inactive');
     });
   });
-
   describe('Searched CASE Expressions', () => {
     it('should use searched CASE with conditions', async () => {
       const sql = `
@@ -99,9 +90,7 @@ describe('Comprehensive: CASE Expressions', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       result.forEach((row) => {
         const id = Number(row.id_bigint);
         if (id < 100) {
@@ -113,7 +102,6 @@ describe('Comprehensive: CASE Expressions', () => {
         }
       });
     });
-
     it('should use CASE with complex conditions', async () => {
       const sql = `
         SELECT 
@@ -130,15 +118,12 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY category
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(row.category).toBeTruthy();
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use CASE with multiple conditions', async () => {
       const sql = `
         SELECT 
@@ -156,11 +141,9 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY metric_category
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
     });
   });
-
   describe('CASE in SELECT', () => {
     it.fails('should use multiple CASE expressions in SELECT', async () => {
       const sql = `
@@ -179,15 +162,12 @@ describe('Comprehensive: CASE Expressions', () => {
         LIMIT 20
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(['Active', 'Inactive']).toContain(row.status);
         expect(['High', 'Low']).toContain(row.metric_level);
       });
     });
-
     it.fails('should use CASE for derived columns', async () => {
       const sql = `
         SELECT 
@@ -202,15 +182,12 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       result.forEach((row) => {
         expect(Number(row.adjusted_metric)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('CASE in WHERE', () => {
     it('should use CASE in WHERE clause', async () => {
       const sql = `
@@ -229,10 +206,8 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY priority, status
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
     });
-
     it('should filter using CASE result', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -245,11 +220,9 @@ describe('Comprehensive: CASE Expressions', () => {
         AND id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
   });
-
   describe('CASE in ORDER BY', () => {
     it.fails('should order by CASE expression', async () => {
       const sql = `
@@ -269,9 +242,7 @@ describe('Comprehensive: CASE Expressions', () => {
           END
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       const priorities = result.map((r) => r.priority);
       expect(priorities[0]).toBe('urgent');
       expect(priorities[1]).toBe('critical');
@@ -279,7 +250,6 @@ describe('Comprehensive: CASE Expressions', () => {
       expect(priorities[3]).toBe('medium');
       expect(priorities[4]).toBe('low');
     });
-
     it('should order by complex CASE', async () => {
       const sql = `
         SELECT 
@@ -299,11 +269,9 @@ describe('Comprehensive: CASE Expressions', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
     });
   });
-
   describe('CASE in GROUP BY', () => {
     it('should group by CASE expression', async () => {
       const sql = `
@@ -320,14 +288,11 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY id_range
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       const firstThousand = result.find((r) => r.id_range === 'First Thousand');
       expect(Number(firstThousand?.count)).toBe(1000);
     });
   });
-
   describe('CASE with Aggregates', () => {
     it('should use CASE inside aggregate function', async () => {
       const sql = `
@@ -342,18 +307,14 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row) => {
         const activeCount = Number(row.active_count);
         const inactiveCount = Number(row.inactive_count);
         const totalCount = Number(row.total_count);
-
         expect(activeCount + inactiveCount).toBe(totalCount);
       });
     });
-
     it('should use SUM with CASE for conditional aggregation', async () => {
       const sql = `
         SELECT 
@@ -367,16 +328,13 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY status
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(Number(row.total)).toBeGreaterThan(0);
         expect(Number(row.high_priority_count)).toBeGreaterThanOrEqual(0);
         expect(Number(row.low_priority_count)).toBeGreaterThanOrEqual(0);
       });
     });
-
     it('should use AVG with CASE', async () => {
       const sql = `
         SELECT 
@@ -389,16 +347,13 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
-
       result.forEach((row) => {
         expect(Number(row.avg_active_metric)).toBeGreaterThan(0);
         expect(Number(row.avg_inactive_metric)).toBeGreaterThan(0);
       });
     });
   });
-
   describe('Nested CASE Expressions', () => {
     it('should use nested CASE expressions', async () => {
       const sql = `
@@ -423,15 +378,12 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY combined_status
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
-
       result.forEach((row) => {
         expect(row.combined_status).toBeTruthy();
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it.fails('should use deeply nested CASE', async () => {
       const sql = `
         SELECT 
@@ -454,11 +406,9 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY category
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(4);
     });
   });
-
   describe('CASE with NULL Handling', () => {
     it('should use CASE to handle NULL values', async () => {
       const sql = `
@@ -474,14 +424,11 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY resolution_status
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(2);
-
       const statuses = result.map((r) => r.resolution_status);
       expect(statuses).toContain('Unresolved');
       expect(statuses).toContain('Resolved');
     });
-
     it('should use CASE with COALESCE', async () => {
       const sql = `
         SELECT 
@@ -496,10 +443,8 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY resolver_status
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(2);
     });
-
     it('should return NULL from CASE when no conditions match and no ELSE', async () => {
       const sql = `
         SELECT 
@@ -512,15 +457,12 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
-
       result.forEach((row) => {
         expect(row.result).toBeNull();
       });
     });
   });
-
   describe('CASE with JOINs', () => {
     it('should use CASE in JOIN with dimension tables', async () => {
       const sql = `
@@ -538,20 +480,16 @@ describe('Comprehensive: CASE Expressions', () => {
         ORDER BY tier
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
-
       const tiers = result.map((r) => r.tier);
       expect(tiers).toContain('Premium');
       expect(tiers).toContain('Standard');
       expect(tiers).toContain('Basic');
     });
   });
-
   describe('Performance', () => {
     it('should execute CASE expressions efficiently (< 500ms)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           CASE 
@@ -564,16 +502,12 @@ describe('Comprehensive: CASE Expressions', () => {
         WHERE id_bigint < 100000
         GROUP BY importance
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(500);
     });
-
     it('should execute complex nested CASE efficiently (< 1s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           CASE 
@@ -594,12 +528,9 @@ describe('Comprehensive: CASE Expressions', () => {
         WHERE id_bigint < 100000
         GROUP BY category
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(1000);
     });
   });
 });
-

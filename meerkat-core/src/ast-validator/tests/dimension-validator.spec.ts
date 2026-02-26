@@ -16,7 +16,6 @@ import {
   EMPTY_VALID_FUNCTIONS,
   INVALID_NODE,
 } from './test-data';
-
 describe('validateDimension', () => {
   it('should throw error if the statement if there is no statement', () => {
     expect(() =>
@@ -29,7 +28,6 @@ describe('validateDimension', () => {
       )
     ).toThrow('No statement found');
   });
-
   it('should return true if the statement is valid', () => {
     expect(
       validateDimension(
@@ -64,7 +62,6 @@ describe('validateDimension', () => {
     ).toBe(true);
   });
 });
-
 describe('validateExpressionNode for dimension expressions', () => {
   for (const data of DIMENSION_TEST_CASES) {
     it(`should return true for dimension expression: ${data.description}`, () => {
@@ -73,7 +70,6 @@ describe('validateExpressionNode for dimension expressions', () => {
       );
     });
   }
-
   it('should throw error for node type FUNCTION with ROUND function and if it not contains in validFunctions', () => {
     const CASE_EXPR_NODE: ParsedExpression = {
       class: ExpressionClass.FUNCTION,
@@ -115,15 +111,13 @@ describe('validateExpressionNode for dimension expressions', () => {
       export_state: false,
       catalog: '',
     };
-
     expect(() =>
       validateExpressionNode(CASE_EXPR_NODE, new Set(['contains']))
-    ).toThrowError('Invalid function: round');
+    ).toThrow('Invalid function: round');
   });
-
   it('should throw error for node type INVALID', () => {
     expect(() =>
       validateExpressionNode(INVALID_NODE, EMPTY_VALID_FUNCTIONS)
-    ).toThrowError('Invalid expression type');
+    ).toThrow('Invalid expression type');
   });
 });

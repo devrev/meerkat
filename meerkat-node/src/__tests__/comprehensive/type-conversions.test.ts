@@ -1,6 +1,6 @@
 /**
  * Comprehensive Type Conversions Tests
- * 
+ *
  * Tests type conversion and casting:
  * - CAST between different type pairs
  * - Implicit type conversions
@@ -12,7 +12,6 @@
  * - JSON operations (advanced)
  * - NULL handling in conversions
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -20,7 +19,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Type Conversions', () => {
   beforeAll(async () => {
     console.log('🚀 Starting type conversion tests...');
@@ -28,7 +26,6 @@ describe('Comprehensive: Type Conversions', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('Numeric Type Conversions', () => {
     it('should cast BIGINT to other numeric types', async () => {
       const sql = `
@@ -42,7 +39,6 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const original = Number(row.id_bigint);
@@ -51,7 +47,6 @@ describe('Comprehensive: Type Conversions', () => {
         expect(Number(row.as_integer)).toBe(original);
       });
     });
-
     it.fails('should cast DOUBLE to INTEGER (truncation)', async () => {
       const sql = `
         SELECT 
@@ -63,19 +58,16 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const original = Number(row.metric_double);
         const asInt = Number(row.as_integer);
         const asBigint = Number(row.as_bigint);
-        
         // Should truncate decimal part
         expect(Math.floor(original)).toBe(asInt);
         expect(Math.floor(original)).toBe(asBigint);
       });
     });
-
     it('should perform implicit numeric type coercion', async () => {
       const sql = `
         SELECT 
@@ -88,20 +80,17 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const idBigint = Number(row.id_bigint);
         const metricDouble = Number(row.metric_double);
         const sumMixed = Number(row.sum_mixed);
         const productMixed = Number(row.product_mixed);
-        
         expect(sumMixed).toBeCloseTo(idBigint + metricDouble, 2);
         expect(productMixed).toBeCloseTo(idBigint * metricDouble, 2);
       });
     });
   });
-
   describe('String Conversions', () => {
     it('should cast numeric types to VARCHAR', async () => {
       const sql = `
@@ -115,18 +104,15 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(typeof row.id_string).toBe('string');
         expect(typeof row.metric_string).toBe('string');
         expect(typeof row.numeric_string).toBe('string');
-        
         // Should be able to parse back to numbers
         expect(Number(row.id_string)).toBe(Number(row.id_bigint));
       });
     });
-
     it('should cast VARCHAR to numeric types', async () => {
       const sql = `
         SELECT 
@@ -137,13 +123,11 @@ describe('Comprehensive: Type Conversions', () => {
         WHERE id_bigint = 0
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(1);
       expect(Number(result[0].int_value)).toBe(123);
       expect(Number(result[0].double_value)).toBeCloseTo(456.78, 2);
       expect(Number(result[0].bigint_value)).toBe(999);
     });
-
     it('should handle string to numeric coercion in comparisons', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -151,11 +135,9 @@ describe('Comprehensive: Type Conversions', () => {
         WHERE CAST(id_bigint AS VARCHAR) = '100'
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBe(1);
     });
   });
-
   describe('Boolean Conversions', () => {
     it('should cast boolean to INTEGER', async () => {
       const sql = `
@@ -169,20 +151,16 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const activeInt = Number(row.as_integer);
         const deletedInt = Number(row.deleted_as_int);
-        
         expect([0, 1]).toContain(activeInt);
         expect([0, 1]).toContain(deletedInt);
-        
         expect(row.is_active).toBe(activeInt === 1);
         expect(row.is_deleted).toBe(deletedInt === 1);
       });
     });
-
     it('should cast INTEGER to boolean', async () => {
       const sql = `
         SELECT 
@@ -193,13 +171,11 @@ describe('Comprehensive: Type Conversions', () => {
         WHERE id_bigint = 0
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].zero_as_bool).toBe(false);
       expect(result[0].one_as_bool).toBe(true);
       expect(result[0].hundred_as_bool).toBe(true);
     });
   });
-
   describe('Date/Time Conversions', () => {
     it('should cast DATE to VARCHAR', async () => {
       const sql = `
@@ -211,14 +187,12 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(typeof row.date_string).toBe('string');
         expect(row.date_string).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       });
     });
-
     it('should cast TIMESTAMP to DATE', async () => {
       const sql = `
         SELECT 
@@ -230,14 +204,12 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.as_date).toBeTruthy();
         expect(row.date_func).toBeTruthy();
       });
     });
-
     it('should cast DATE to TIMESTAMP', async () => {
       const sql = `
         SELECT 
@@ -248,13 +220,11 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.as_timestamp).toBeTruthy();
       });
     });
-
     it('should convert VARCHAR to DATE', async () => {
       const sql = `
         SELECT 
@@ -264,12 +234,10 @@ describe('Comprehensive: Type Conversions', () => {
         WHERE id_bigint = 0
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].parsed_date).toBeTruthy();
       expect(result[0].year_end).toBeTruthy();
     });
   });
-
   describe('Array Operations', () => {
     it('should access array elements by index', async () => {
       const sql = `
@@ -285,13 +253,11 @@ describe('Comprehensive: Type Conversions', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(Number(row.tag_count)).toBeGreaterThan(0);
       });
     });
-
     it('should cast array to string representation', async () => {
       const sql = `
         SELECT 
@@ -304,14 +270,12 @@ describe('Comprehensive: Type Conversions', () => {
         LIMIT 5
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       result.forEach((row) => {
         expect(typeof row.tags_string).toBe('string');
       });
     });
   });
-
   describe('JSON Operations', () => {
     it('should extract and cast JSON values', async () => {
       const sql = `
@@ -325,10 +289,8 @@ describe('Comprehensive: Type Conversions', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
     });
-
     it('should cast JSON to VARCHAR', async () => {
       const sql = `
         SELECT 
@@ -340,7 +302,6 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(typeof row.json_string).toBe('string');
@@ -348,7 +309,6 @@ describe('Comprehensive: Type Conversions', () => {
       });
     });
   });
-
   describe('NULL Handling in Conversions', () => {
     it('should handle NULL in CAST operations', async () => {
       const sql = `
@@ -362,7 +322,6 @@ describe('Comprehensive: Type Conversions', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (row.resolved_by === null) {
@@ -374,7 +333,6 @@ describe('Comprehensive: Type Conversions', () => {
         }
       });
     });
-
     it('should handle NULL in COALESCE with type conversions', async () => {
       const sql = `
         SELECT 
@@ -385,7 +343,6 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.resolved_string).toBeTruthy();
@@ -393,7 +350,6 @@ describe('Comprehensive: Type Conversions', () => {
       });
     });
   });
-
   describe('Complex Type Conversions', () => {
     it('should chain multiple type conversions', async () => {
       const sql = `
@@ -405,14 +361,12 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(typeof row.rounded_string).toBe('string');
         expect(Number(row.rounded_string)).toBeGreaterThanOrEqual(0);
       });
     });
-
     it('should use conversions in aggregates', async () => {
       const sql = `
         SELECT 
@@ -425,7 +379,6 @@ describe('Comprehensive: Type Conversions', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         expect(Number(row.active_count)).toBeGreaterThanOrEqual(0);
@@ -434,11 +387,9 @@ describe('Comprehensive: Type Conversions', () => {
       });
     });
   });
-
   describe('Performance', () => {
     it('should execute type conversions efficiently (< 500ms)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           CAST(id_bigint AS VARCHAR) as id_string,
@@ -449,12 +400,9 @@ describe('Comprehensive: Type Conversions', () => {
         WHERE id_bigint < 100000
         LIMIT 1000
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(500);
     });
   });
 });
-

@@ -9,18 +9,15 @@ import {
   MODIFIERS,
 } from '../sql-expression-modifiers';
 import { DimensionModifier } from '../types';
-
 jest.mock('../../utils/is-array-member-type', () => {
   return {
     isArrayTypeMember: jest.fn(),
   };
 });
-
 const QUERY = {
   measures: ['test_measure'],
   dimensions: ['test_dimension'],
 };
-
 describe('Dimension Modifier', () => {
   describe('arrayFieldUnNestModifier', () => {
     it('should return the correct unnested SQL expression', () => {
@@ -35,7 +32,6 @@ describe('Dimension Modifier', () => {
       );
     });
   });
-
   describe('shouldUnnest', () => {
     it('should return true when dimension is array type and has shouldUnnestGroupBy modifier', () => {
       (isArrayTypeMember as jest.Mock).mockReturnValue(true);
@@ -50,7 +46,6 @@ describe('Dimension Modifier', () => {
       };
       expect(shouldUnnest(modifier)).toBe(true);
     });
-
     it('should return false when dimension is not array type', () => {
       (isArrayTypeMember as jest.Mock).mockReturnValue(false);
       const modifier: DimensionModifier = {
@@ -64,7 +59,6 @@ describe('Dimension Modifier', () => {
       };
       expect(shouldUnnest(modifier)).toBe(false);
     });
-
     it("should return false when dimension doesn't have shouldUnnestGroupBy modifier", () => {
       (isArrayTypeMember as jest.Mock).mockReturnValue(true);
       const modifier: DimensionModifier = {
@@ -91,7 +85,6 @@ describe('Dimension Modifier', () => {
       expect(shouldUnnest(modifier)).toBe(false);
     });
   });
-
   describe('getModifiedSqlExpression', () => {
     it('should not modify if no modifiers passed', () => {
       (isArrayTypeMember as jest.Mock).mockReturnValue(true);
@@ -123,7 +116,6 @@ describe('Dimension Modifier', () => {
         'array[unnest(array_field)]'
       );
     });
-
     it('should not apply the modifier when conditions are not met', () => {
       (isArrayTypeMember as jest.Mock).mockReturnValue(false);
       const input = {

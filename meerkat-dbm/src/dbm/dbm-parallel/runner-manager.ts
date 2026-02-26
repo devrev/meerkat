@@ -13,7 +13,7 @@ export interface IFrameRunnerManagerConstructor {
   runnerURL: string;
   origin: string;
   fetchTableFileBuffers: (tables: TableConfig[]) => Promise<FileBufferStore[]>;
-  fetchPreQuery: (runnerId: string, tables: Table[]) => string[];
+  fetchPreQuery: (runnerId: string, tables: Table[] | TableConfig[]) => Promise<string[]>;
   totalRunners: number;
   logger: DBMLogger;
   onEvent?: (event: DBMEvent) => void;
@@ -43,7 +43,10 @@ export class IFrameRunnerManager {
   private fetchTableFileBuffers: (
     tables: TableConfig[]
   ) => Promise<FileBufferStore[]>;
-  private fetchPreQuery: (runnerId: string, tables: Table[]) => string[];
+  private fetchPreQuery: (
+    runnerId: string,
+    tables: Table[] | TableConfig[]
+  ) => Promise<string[]>;
 
   constructor({
     runnerURL,
@@ -167,11 +170,19 @@ export class IFrameRunnerManager {
             return;
           }
 
-          const { tables } = message.message.payload;
+          const payload = message.message.payload as
+            | { tables?: Table[] | TableConfig[] }
+            | (Table[] | TableConfig[])
+            | undefined;
+          const tables = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.tables)
+              ? payload.tables
+              : [];
 
-          const preQueries = this.fetchPreQuery(runnerId, tables);
-
-          manager.communication.sendResponse(message.uuid, preQueries);
+          this.fetchPreQuery(runnerId, tables).then((preQueries) => {
+            manager.communication.sendResponse(message.uuid, preQueries);
+          });
         }
 
         break;

@@ -6,7 +6,6 @@ import { AggregateHandling } from '../../types/duckdb-serialization-types/serial
 import { ParsedSerialization } from '../types';
 import { getSelectNode } from '../utils';
 import { COLUMN_REF_NODE } from './test-data';
-
 const PARSED_SERIALIZATION: ParsedSerialization = {
   error: false,
   statements: [
@@ -33,7 +32,6 @@ const PARSED_SERIALIZATION: ParsedSerialization = {
     },
   ],
 };
-
 describe('getSelectNode', () => {
   it('should throw error if the statement if there is no statement', () => {
     expect(() =>
@@ -43,7 +41,6 @@ describe('getSelectNode', () => {
       })
     ).toThrow('No statement found');
   });
-
   it('should throw error if no statement is found', () => {
     expect(() =>
       getSelectNode({
@@ -62,7 +59,6 @@ describe('getSelectNode', () => {
       })
     ).toThrow('Statement must be a SELECT node');
   });
-
   it('should throw error if select list is not exactly one expression', () => {
     expect(() =>
       getSelectNode({
@@ -82,7 +78,6 @@ describe('getSelectNode', () => {
       })
     ).toThrow('SELECT must contain exactly one expression');
   });
-
   it('should return true if the statement is valid', () => {
     expect(getSelectNode(PARSED_SERIALIZATION)).toBe(
       PARSED_SERIALIZATION.statements[0].node.select_list[0]

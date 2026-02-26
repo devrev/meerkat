@@ -1,7 +1,6 @@
 import { Database } from 'duckdb';
 import { TableSchema } from '../types/cube-types';
 import { getFilterParamsSQL } from './get-filter-params-sql';
-
 const getQueryOutput = async (sql: string) => {
   const db = new Database(':memory:');
   return new Promise((resolve, reject) => {
@@ -13,7 +12,6 @@ const getQueryOutput = async (sql: string) => {
     });
   });
 };
-
 const TABLE_SCHEMA: TableSchema = {
   name: 'orders',
   sql: "select * from orders WHERE ${FILTER_PARAMS.orders.status.filter('status')}",
@@ -25,7 +23,6 @@ const TABLE_SCHEMA: TableSchema = {
     { name: 'amount', sql: 'amount', type: 'number' },
   ],
 };
-
 describe('getFilterParamsSQL', () => {
   it('should find filter params when there are filters of base filter type', async () => {
     const result = await getFilterParamsSQL({
@@ -53,7 +50,6 @@ describe('getFilterParamsSQL', () => {
       },
     ]);
   });
-
   it('should not find filter params when there are no filters of base filter type', async () => {
     const result = await getFilterParamsSQL({
       filterType: 'BASE_FILTER',
@@ -67,7 +63,6 @@ describe('getFilterParamsSQL', () => {
     });
     expect(result).toEqual([]);
   });
-
   it('should find filter params when there are filters of projection filter type', async () => {
     const result = await getFilterParamsSQL({
       filterType: 'PROJECTION_FILTER',
@@ -94,7 +89,6 @@ describe('getFilterParamsSQL', () => {
       },
     ]);
   });
-
   it('should not find filter params when there are no filters', async () => {
     const result = await getFilterParamsSQL({
       filterType: 'PROJECTION_FILTER',
@@ -108,7 +102,6 @@ describe('getFilterParamsSQL', () => {
     });
     expect(result).toEqual([]);
   });
-
   it('should apply aliases', async () => {
     const tableSchema: TableSchema = {
       ...TABLE_SCHEMA,
@@ -127,7 +120,6 @@ describe('getFilterParamsSQL', () => {
         },
       ],
     };
-
     const result = await getFilterParamsSQL({
       filterType: 'PROJECTION_FILTER',
       query: {

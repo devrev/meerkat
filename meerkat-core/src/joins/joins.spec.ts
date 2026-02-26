@@ -6,7 +6,6 @@ import {
   generateSqlQuery,
   getCombinedTableSchema,
 } from './joins';
-
 describe('Table schema functions', () => {
   it('should create a directed graph from the table schema', () => {
     const sqlQueryMap = {
@@ -28,13 +27,11 @@ describe('Table schema functions', () => {
       { name: 'table3', sql: 'select * from table3', joins: [] },
     ];
     const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
-
     expect(directedGraph).toEqual({
       table1: { table2: { id: 'table1.id = table2.id' } },
       table2: { table3: { id: 'table2.id = table3.id' } },
     });
   });
-
   it('should create a directed graph from the table schema using CONTAINS join', () => {
     const sqlQueryMap = {
       table1: 'select * from table1',
@@ -53,12 +50,10 @@ describe('Table schema functions', () => {
       },
     ];
     const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
-
     expect(directedGraph).toEqual({
       table1: { table2: { items: 'CONTAINS(table1.items, table2.id)' } },
     });
   });
-
   it('should throw an error for invalid CONTAINS argument (missing table.column format)', () => {
     const sqlQueryMap = {
       table1: 'select * from table1',
@@ -76,12 +71,10 @@ describe('Table schema functions', () => {
         joins: [],
       },
     ];
-
     expect(() => createDirectedGraph(tableSchema, sqlQueryMap)).toThrow(
       'Invalid CONTAINS argument: "invalid_expr". Expected format: table.column'
     );
   });
-
   it('should throw an error for CONTAINS with invalid second argument', () => {
     const sqlQueryMap = {
       table1: 'select * from table1',
@@ -99,12 +92,10 @@ describe('Table schema functions', () => {
         joins: [],
       },
     ];
-
     expect(() => createDirectedGraph(tableSchema, sqlQueryMap)).toThrow(
       'Invalid CONTAINS argument: "just_a_column". Expected format: table.column'
     );
   });
-
   it('should support CONTAINS with quoted table names', () => {
     const sqlQueryMap = {
       'table.name': 'select * from "table.name"',
@@ -123,14 +114,12 @@ describe('Table schema functions', () => {
       },
     ];
     const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
-
     expect(directedGraph).toEqual({
       'table.name': {
         table2: { items: 'CONTAINS("table.name".items, table2.id)' },
       },
     });
   });
-
   it('should support CONTAINS with composite fields (multiple dots)', () => {
     const sqlQueryMap = {
       table1: 'select * from table1',
@@ -149,7 +138,6 @@ describe('Table schema functions', () => {
       },
     ];
     const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
-
     expect(directedGraph).toEqual({
       table1: {
         table2: {
@@ -158,7 +146,6 @@ describe('Table schema functions', () => {
       },
     });
   });
-
   it('should ignore a directed graph edge from the table schema if not present in query map', () => {
     const sqlQueryMap = {
       table1: 'select * from table1',
@@ -181,12 +168,10 @@ describe('Table schema functions', () => {
       { name: 'table3', sql: 'select * from table3', joins: [] },
     ];
     const directedGraph = createDirectedGraph(tableSchema, sqlQueryMap);
-
     expect(directedGraph).toEqual({
       table1: { table2: { id: 'table1.id = table2.id' } },
     });
   });
-
   it('should correctly generate a SQL query from the provided join path, table schema SQL map, and directed graph', () => {
     const joinPaths = [
       [
@@ -208,12 +193,10 @@ describe('Table schema functions', () => {
       tableSchemaSqlMap,
       directedGraph
     );
-
     expect(sqlQuery).toBe(
       'select * from table1 LEFT JOIN (select * from table2) AS table2  ON table1.id = table2.id LEFT JOIN (select * from table3) AS table3  ON table2.id = table3.id'
     );
   });
-
   describe('checkLoopInJoinPath', () => {
     it('should return false if there is no loop in the join path', () => {
       const joinPath = [
@@ -239,7 +222,6 @@ describe('Table schema functions', () => {
       expect(checkLoopInJoinPath(joinPath)).toBe(false);
     });
   });
-
   describe('getCombinedTableSchema', () => {
     it('should return single table schema when only one table is provided', async () => {
       const tableSchema = [
@@ -263,7 +245,6 @@ describe('Table schema functions', () => {
       const result = await getCombinedTableSchema(tableSchema, cubeQuery);
       expect(result).toEqual(tableSchema[0]);
     });
-
     it('should combine multiple table schemas correctly', async () => {
       const tableSchema = [
         {
@@ -331,7 +312,6 @@ describe('Table schema functions', () => {
         joins: [],
       });
     });
-
     it('should throw error when loop is detected in join paths', () => {
       const tableSchema = [
         {
@@ -361,7 +341,6 @@ describe('Table schema functions', () => {
         /A loop was detected in the joins/
       );
     });
-
     it('should handle empty measures and dimensions', async () => {
       const tableSchema = [
         {
@@ -391,7 +370,6 @@ describe('Table schema functions', () => {
         joins: [],
       });
     });
-
     it('should filter table schema based on filters, measures, and dimensions', () => {
       const tableSchema: TableSchema[] = [
         {
@@ -496,7 +474,6 @@ describe('Table schema functions', () => {
       const result = getUsedTableSchema(tableSchema, cubeQuery);
       expect(result).toEqual(tableSchema);
     });
-
     it('should filter table schema based on filters, measures, dimensions, order, and joinPaths', () => {
       const tableSchema: TableSchema[] = [
         {
@@ -642,7 +619,6 @@ describe('Table schema functions', () => {
       const result = getUsedTableSchema(tableSchema, cubeQuery);
       expect(result).toEqual(tableSchema);
     });
-
     it('should return only single table if other tables are not getting used from schema', () => {
       const tableSchemas: TableSchema[] = [
         {

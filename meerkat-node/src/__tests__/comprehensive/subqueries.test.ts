@@ -1,6 +1,6 @@
 /**
  * Comprehensive Subqueries Tests
- * 
+ *
  * Tests subquery patterns in various contexts:
  * - WHERE EXISTS
  * - WHERE NOT EXISTS
@@ -12,7 +12,6 @@
  * - Subqueries in FROM clause
  * - Subqueries with aggregates
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -20,7 +19,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Subqueries', () => {
   beforeAll(async () => {
     console.log('🚀 Starting subquery tests...');
@@ -28,7 +26,6 @@ describe('Comprehensive: Subqueries', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('WHERE EXISTS', () => {
     it('should use EXISTS to check for related records', async () => {
       const sql = `
@@ -43,10 +40,8 @@ describe('Comprehensive: Subqueries', () => {
         AND f.id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use EXISTS with multiple conditions', async () => {
       const sql = `
         SELECT f.priority, COUNT(*) as count
@@ -63,13 +58,11 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY f.priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5); // All 5 priorities
       result.forEach((row) => {
         expect(Number(row.count)).toBeGreaterThan(0);
       });
     });
-
     it('should use EXISTS with aggregates in subquery', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -83,11 +76,9 @@ describe('Comprehensive: Subqueries', () => {
         )
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
   });
-
   describe('WHERE NOT EXISTS', () => {
     it('should use NOT EXISTS to find unmatched records', async () => {
       const sql = `
@@ -102,11 +93,9 @@ describe('Comprehensive: Subqueries', () => {
         )
       `;
       const result = await duckdbExec(sql);
-
       // Some users should not have urgent priority items
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use NOT EXISTS with date filters', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -120,11 +109,9 @@ describe('Comprehensive: Subqueries', () => {
         )
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].count).toBeDefined();
     });
   });
-
   describe('WHERE IN (subquery)', () => {
     it('should use IN with subquery returning single column', async () => {
       const sql = `
@@ -138,10 +125,8 @@ describe('Comprehensive: Subqueries', () => {
         AND id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use IN with subquery and aggregates', async () => {
       const sql = `
         SELECT priority, COUNT(*) as count
@@ -156,10 +141,8 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
     });
-
     it.fails('should use IN with filtered subquery', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -172,11 +155,9 @@ describe('Comprehensive: Subqueries', () => {
         AND f.id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
   });
-
   describe('WHERE NOT IN (subquery)', () => {
     it('should use NOT IN with subquery', async () => {
       const sql = `
@@ -190,10 +171,8 @@ describe('Comprehensive: Subqueries', () => {
         AND id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should handle NOT IN with NULL values correctly', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -207,11 +186,9 @@ describe('Comprehensive: Subqueries', () => {
           )
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].count).toBeDefined();
     });
   });
-
   describe('Scalar Subqueries in SELECT', () => {
     it('should use scalar subquery to get related value', async () => {
       const sql = `
@@ -224,13 +201,11 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY f.id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.segment).toBeTruthy();
       });
     });
-
     it('should use scalar subquery with aggregate', async () => {
       const sql = `
         SELECT 
@@ -242,13 +217,11 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY u.user_id
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
       result.forEach((row) => {
         expect(Number(row.fact_count)).toBeGreaterThan(0);
       });
     });
-
     it('should use multiple scalar subqueries', async () => {
       const sql = `
         SELECT 
@@ -260,7 +233,6 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY f.id_bigint
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(row.segment).toBeTruthy();
@@ -268,7 +240,6 @@ describe('Comprehensive: Subqueries', () => {
       });
     });
   });
-
   describe('Correlated Subqueries', () => {
     it('should use correlated subquery in WHERE', async () => {
       const sql = `
@@ -288,11 +259,9 @@ describe('Comprehensive: Subqueries', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
       expect(result.length).toBeLessThanOrEqual(10);
     });
-
     it.fails('should use correlated subquery in SELECT', async () => {
       const sql = `
         SELECT 
@@ -309,15 +278,15 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY u.user_id
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
       result.forEach((row) => {
         expect(Number(row.avg_metric)).toBeGreaterThan(0);
       });
     });
-
-    it.fails('should use correlated EXISTS with complex condition', async () => {
-      const sql = `
+    it.fails(
+      'should use correlated EXISTS with complex condition',
+      async () => {
+        const sql = `
         SELECT COUNT(*) as count
         FROM fact_all_types f1
         WHERE EXISTS (
@@ -330,12 +299,11 @@ describe('Comprehensive: Subqueries', () => {
         )
         AND f1.id_bigint < 10000
       `;
-      const result = await duckdbExec(sql);
-
-      expect(Number(result[0].count)).toBeGreaterThan(0);
-    });
+        const result = await duckdbExec(sql);
+        expect(Number(result[0].count)).toBeGreaterThan(0);
+      }
+    );
   });
-
   describe('Nested Subqueries', () => {
     it('should use 2-level nested subqueries', async () => {
       const sql = `
@@ -350,10 +318,8 @@ describe('Comprehensive: Subqueries', () => {
         AND id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use 3-level nested subqueries', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -375,11 +341,9 @@ describe('Comprehensive: Subqueries', () => {
         AND f.id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
   });
-
   describe('Subqueries in FROM (Derived Tables)', () => {
     it('should use subquery in FROM clause', async () => {
       const sql = `
@@ -399,13 +363,11 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         expect(Number(row.overall_avg)).toBeGreaterThan(0);
       });
     });
-
     it.fails('should join with subquery', async () => {
       const sql = `
         SELECT 
@@ -426,14 +388,12 @@ describe('Comprehensive: Subqueries', () => {
         ORDER BY u.user_id
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(3);
       result.forEach((row) => {
         expect(Number(row.avg_metric)).toBeGreaterThan(0);
         expect(Number(row.total_count)).toBeGreaterThan(0);
       });
     });
-
     it('should use multiple subqueries in FROM', async () => {
       const sql = `
         SELECT 
@@ -455,11 +415,9 @@ describe('Comprehensive: Subqueries', () => {
         LIMIT 15
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(15); // 5 priorities × 3 segments
     });
   });
-
   describe('Subqueries with Aggregates', () => {
     it.fails('should use subquery with GROUP BY and HAVING', async () => {
       const sql = `
@@ -473,10 +431,8 @@ describe('Comprehensive: Subqueries', () => {
         ) AS active_users
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should compare against aggregate subquery', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -487,17 +443,14 @@ describe('Comprehensive: Subqueries', () => {
         AND f.id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       const count = Number(result[0].count);
       expect(count).toBeGreaterThan(0);
       expect(count).toBeLessThan(10000);
     });
   });
-
   describe('Performance', () => {
     it('should execute simple subquery efficiently (< 1s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT COUNT(*) as count
         FROM fact_all_types
@@ -506,16 +459,12 @@ describe('Comprehensive: Subqueries', () => {
         )
         AND id_bigint < 100000
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(1000);
     });
-
     it('should execute correlated subquery efficiently (< 2s)', async () => {
       const start = Date.now();
-
       const sql = `
         SELECT 
           u.user_id,
@@ -524,12 +473,9 @@ describe('Comprehensive: Subqueries', () => {
         WHERE u.user_id LIKE 'user_%'
         LIMIT 100
       `;
-
       await duckdbExec(sql);
       const duration = Date.now() - start;
-
       expect(duration).toBeLessThan(2000);
     });
   });
 });
-

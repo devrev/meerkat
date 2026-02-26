@@ -10,7 +10,6 @@
  * - Truth table verification
  * - NULL in boolean logic
  */
-
 import { beforeAll, describe, expect, it } from 'vitest';
 import { duckdbExec } from '../../duckdb-exec';
 import {
@@ -18,7 +17,6 @@ import {
   dropSyntheticTables,
   verifySyntheticTables,
 } from './synthetic/schema-setup';
-
 describe('Comprehensive: Conditional Logic', () => {
   beforeAll(async () => {
     console.log('🚀 Starting conditional logic tests...');
@@ -26,7 +24,6 @@ describe('Comprehensive: Conditional Logic', () => {
     await createAllSyntheticTables();
     await verifySyntheticTables();
   }, 120000);
-
   describe('IIF Function', () => {
     it.fails('should use IIF for simple conditional logic', async () => {
       const sql = `
@@ -40,7 +37,6 @@ describe('Comprehensive: Conditional Logic', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         if (row.priority === 'high') {
@@ -51,7 +47,6 @@ describe('Comprehensive: Conditional Logic', () => {
         }
       });
     });
-
     it.fails('should nest IIF functions', async () => {
       const sql = `
         SELECT 
@@ -67,7 +62,6 @@ describe('Comprehensive: Conditional Logic', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         const metric = Number(row.metric_double);
@@ -82,7 +76,6 @@ describe('Comprehensive: Conditional Logic', () => {
         }
       });
     });
-
     it.fails('should use IIF with aggregates', async () => {
       const sql = `
         SELECT 
@@ -96,18 +89,15 @@ describe('Comprehensive: Conditional Logic', () => {
         ORDER BY priority
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(5);
       result.forEach((row) => {
         const total = Number(row.total);
         const active = Number(row.active_count);
         const deleted = Number(row.deleted_count);
-
         expect(active + deleted).toBeLessThanOrEqual(total);
       });
     });
   });
-
   describe('Boolean Operator Precedence', () => {
     it('should respect AND precedence over OR', async () => {
       const sql = `
@@ -118,10 +108,8 @@ describe('Comprehensive: Conditional Logic', () => {
           AND id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use parentheses to override precedence', async () => {
       const sql1 = `
         SELECT COUNT(*) as count
@@ -129,25 +117,20 @@ describe('Comprehensive: Conditional Logic', () => {
         WHERE priority = 'high' OR priority = 'low' AND status = 'open'
           AND id_bigint < 10000
       `;
-
       const sql2 = `
         SELECT COUNT(*) as count
         FROM fact_all_types
         WHERE (priority = 'high' OR priority = 'low') AND status = 'open'
           AND id_bigint < 10000
       `;
-
       const result1 = await duckdbExec(sql1);
       const result2 = await duckdbExec(sql2);
-
       // Results should be different due to precedence
       const count1 = Number(result1[0].count);
       const count2 = Number(result2[0].count);
-
       expect(count1).toBeDefined();
       expect(count2).toBeDefined();
     });
-
     it('should handle complex precedence with NOT', async () => {
       const sql = `
         SELECT COUNT(*) as count
@@ -156,11 +139,9 @@ describe('Comprehensive: Conditional Logic', () => {
           AND id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
   });
-
   describe('Truth Table Verification', () => {
     it('should verify AND truth table', async () => {
       const sql = `
@@ -171,13 +152,11 @@ describe('Comprehensive: Conditional Logic', () => {
           false AND false as f_and_f
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].t_and_t).toBe(true);
       expect(result[0].t_and_f).toBe(false);
       expect(result[0].f_and_t).toBe(false);
       expect(result[0].f_and_f).toBe(false);
     });
-
     it('should verify OR truth table', async () => {
       const sql = `
         SELECT 
@@ -187,13 +166,11 @@ describe('Comprehensive: Conditional Logic', () => {
           false OR false as f_or_f
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].t_or_t).toBe(true);
       expect(result[0].t_or_f).toBe(true);
       expect(result[0].f_or_t).toBe(true);
       expect(result[0].f_or_f).toBe(false);
     });
-
     it('should verify NOT truth table', async () => {
       const sql = `
         SELECT 
@@ -201,12 +178,10 @@ describe('Comprehensive: Conditional Logic', () => {
           NOT false as not_false
       `;
       const result = await duckdbExec(sql);
-
       expect(result[0].not_true).toBe(false);
       expect(result[0].not_false).toBe(true);
     });
   });
-
   describe('NULL in Boolean Logic', () => {
     it('should handle NULL in AND operations', async () => {
       const sql = `
@@ -217,7 +192,6 @@ describe('Comprehensive: Conditional Logic', () => {
           NULL AND false as null_and_f
       `;
       const result = await duckdbExec(sql);
-
       // true AND NULL = NULL
       expect(result[0].t_and_null).toBeNull();
       // false AND NULL = false (short-circuit)
@@ -225,7 +199,6 @@ describe('Comprehensive: Conditional Logic', () => {
       expect(result[0].null_and_t).toBeNull();
       expect(result[0].null_and_f).toBe(false);
     });
-
     it('should handle NULL in OR operations', async () => {
       const sql = `
         SELECT 
@@ -235,7 +208,6 @@ describe('Comprehensive: Conditional Logic', () => {
           NULL OR false as null_or_f
       `;
       const result = await duckdbExec(sql);
-
       // true OR NULL = true (short-circuit)
       expect(result[0].t_or_null).toBe(true);
       // false OR NULL = NULL
@@ -243,15 +215,12 @@ describe('Comprehensive: Conditional Logic', () => {
       expect(result[0].null_or_t).toBe(true);
       expect(result[0].null_or_f).toBeNull();
     });
-
     it('should handle NOT NULL', async () => {
       const sql = `SELECT NOT NULL as not_null`;
       const result = await duckdbExec(sql);
-
       expect(result[0].not_null).toBeNull();
     });
   });
-
   describe('Complex Conditional Expressions', () => {
     it('should combine multiple conditional operators', async () => {
       const sql = `
@@ -265,10 +234,8 @@ describe('Comprehensive: Conditional Logic', () => {
         AND id_bigint < 10000
       `;
       const result = await duckdbExec(sql);
-
       expect(Number(result[0].count)).toBeGreaterThan(0);
     });
-
     it('should use conditional logic in SELECT with multiple columns', async () => {
       const sql = `
         SELECT 
@@ -283,14 +250,12 @@ describe('Comprehensive: Conditional Logic', () => {
         LIMIT 10
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBe(10);
       result.forEach((row) => {
         expect(typeof row.is_critical_active).toBe('boolean');
         expect(typeof row.is_non_priority).toBe('boolean');
       });
     });
-
     it('should use conditional logic with aggregates and HAVING', async () => {
       const sql = `
         SELECT 
@@ -305,17 +270,14 @@ describe('Comprehensive: Conditional Logic', () => {
         ORDER BY count DESC
       `;
       const result = await duckdbExec(sql);
-
       expect(result.length).toBeGreaterThan(0);
     });
   });
-
   describe('Performance', () => {
     it.fails(
       'should execute conditional logic efficiently (< 500ms)',
       async () => {
         const start = Date.now();
-
         const sql = `
         SELECT 
           priority,
@@ -325,10 +287,8 @@ describe('Comprehensive: Conditional Logic', () => {
         WHERE id_bigint < 100000
         LIMIT 1000
       `;
-
         await duckdbExec(sql);
         const duration = Date.now() - start;
-
         expect(duration).toBeLessThan(500);
       }
     );

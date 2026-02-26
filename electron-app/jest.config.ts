@@ -1,5 +1,5 @@
 /* eslint-disable */
-export default {
+module.exports = {
   displayName: 'electron-app',
   preset: '../jest.preset.js',
   testEnvironment: 'node',
