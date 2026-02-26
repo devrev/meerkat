@@ -7,7 +7,8 @@ export const arrayFieldUnNestModifier = ({
   // Ensure NULL or empty arrays produce at least one row with NULL value
   // This prevents rows from being dropped when arrays are NULL or empty
   // COALESCE handles NULL, and len() = 0 check handles empty arrays []
-  return `array[unnest(CASE WHEN ${sqlExpression} IS NULL OR len(COALESCE(${sqlExpression}, [])) = 0 THEN [NULL] ELSE ${sqlExpression} END)]`;
+  // We use [NULL] to preserve the row, then use NULLIF to convert [NULL] back to NULL
+  return `NULLIF(array[unnest(CASE WHEN ${sqlExpression} IS NULL OR len(COALESCE(${sqlExpression}, [])) = 0 THEN [NULL] ELSE ${sqlExpression} END)], [NULL])`;
 };
 
 export const shouldUnnest = ({
