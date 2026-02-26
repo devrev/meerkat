@@ -46,31 +46,6 @@ describe('Dimension Modifier', () => {
         'NULLIF(array[unnest(CASE WHEN table.nested_array IS NULL OR len(COALESCE(table.nested_array, [])) = 0 THEN [NULL] ELSE table.nested_array END)], [NULL])'
       );
     });
-
-    it('should preserve NULL values by returning NULL for NULL arrays', () => {
-      const modifier: DimensionModifier = {
-        sqlExpression: 'nullable_array',
-        dimension: {} as Dimension,
-        key: 'test_key',
-        query: QUERY,
-      };
-      const result = arrayFieldUnNestModifier(modifier);
-      expect(result).toContain('CASE WHEN nullable_array IS NULL');
-      expect(result).toContain('NULLIF');
-      expect(result).toContain('[NULL]');
-    });
-
-    it('should preserve rows with empty arrays by returning NULL', () => {
-      const modifier: DimensionModifier = {
-        sqlExpression: 'empty_array',
-        dimension: {} as Dimension,
-        key: 'test_key',
-        query: QUERY,
-      };
-      const result = arrayFieldUnNestModifier(modifier);
-      expect(result).toContain('len(COALESCE(empty_array, [])) = 0');
-      expect(result).toContain('NULLIF');
-    });
   });
 
   describe('shouldUnnest', () => {
