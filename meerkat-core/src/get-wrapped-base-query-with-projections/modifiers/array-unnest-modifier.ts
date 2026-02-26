@@ -4,7 +4,10 @@ import { DimensionModifier, Modifier } from '../types';
 export const arrayFieldUnNestModifier = ({
   sqlExpression,
 }: DimensionModifier): string => {
-  return `array[unnest(${sqlExpression})]`;
+  // Ensure NULL or empty arrays produce at least one row with NULL value
+  // This prevents rows from being dropped when arrays are NULL or empty
+  // COALESCE handles NULL, and len() = 0 check handles empty arrays []
+  return `array[unnest(CASE WHEN ${sqlExpression} IS NULL OR len(COALESCE(${sqlExpression}, [])) = 0 THEN [NULL] ELSE ${sqlExpression} END)]`;
 };
 
 export const shouldUnnest = ({

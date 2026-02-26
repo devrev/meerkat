@@ -23,7 +23,7 @@ const QUERY = {
 
 describe('Dimension Modifier', () => {
   describe('arrayFieldUnNestModifier', () => {
-    it('should return the correct unnested SQL expression', () => {
+    it('should return the correct unnested SQL expression with NULL/empty array handling', () => {
       const modifier: DimensionModifier = {
         sqlExpression: 'some_array_field',
         dimension: {} as Dimension,
@@ -31,8 +31,44 @@ describe('Dimension Modifier', () => {
         query: QUERY,
       };
       expect(arrayFieldUnNestModifier(modifier)).toBe(
-        'array[unnest(some_array_field)]'
+        'array[unnest(CASE WHEN some_array_field IS NULL OR len(COALESCE(some_array_field, [])) = 0 THEN [NULL] ELSE some_array_field END)]'
       );
+    });
+
+    it('should handle complex SQL expressions with NULL/empty array handling', () => {
+      const modifier: DimensionModifier = {
+        sqlExpression: 'table.nested_array',
+        dimension: {} as Dimension,
+        key: 'test_key',
+        query: QUERY,
+      };
+      expect(arrayFieldUnNestModifier(modifier)).toBe(
+        'array[unnest(CASE WHEN table.nested_array IS NULL OR len(COALESCE(table.nested_array, [])) = 0 THEN [NULL] ELSE table.nested_array END)]'
+      );
+    });
+
+    it('should preserve NULL values by converting NULL arrays to [NULL]', () => {
+      const modifier: DimensionModifier = {
+        sqlExpression: 'nullable_array',
+        dimension: {} as Dimension,
+        key: 'test_key',
+        query: QUERY,
+      };
+      const result = arrayFieldUnNestModifier(modifier);
+      expect(result).toContain('CASE WHEN nullable_array IS NULL');
+      expect(result).toContain('THEN [NULL]');
+    });
+
+    it('should preserve rows with empty arrays by converting to [NULL]', () => {
+      const modifier: DimensionModifier = {
+        sqlExpression: 'empty_array',
+        dimension: {} as Dimension,
+        key: 'test_key',
+        query: QUERY,
+      };
+      const result = arrayFieldUnNestModifier(modifier);
+      expect(result).toContain('len(COALESCE(empty_array, [])) = 0');
+      expect(result).toContain('THEN [NULL]');
     });
   });
 
@@ -120,7 +156,7 @@ describe('Dimension Modifier', () => {
         modifiers: MODIFIERS,
       };
       expect(getModifiedSqlExpression(input)).toBe(
-        'array[unnest(array_field)]'
+        'array[unnest(CASE WHEN array_field IS NULL OR len(COALESCE(array_field, [])) = 0 THEN [NULL] ELSE array_field END)]'
       );
     });
 
