@@ -154,6 +154,192 @@ describe('In transforms Tests', () => {
         type: 'FUNCTION',
       });
     });
+
+    it('Should return the correct value for number member with number[] values', () => {
+      const expectedOutput = {
+        alias: '',
+        children: [
+          {
+            alias: '',
+            class: 'COLUMN_REF',
+            column_names: ['amount'],
+            type: 'COLUMN_REF',
+          },
+          {
+            alias: '',
+            class: 'CONSTANT',
+            type: 'VALUE_CONSTANT',
+            value: {
+              is_null: false,
+              type: {
+                id: 'DECIMAL',
+                type_info: {
+                  alias: '',
+                  scale: 0,
+                  type: 'DECIMAL_TYPE_INFO',
+                  width: 3,
+                },
+              },
+              value: 100,
+            },
+          },
+          {
+            alias: '',
+            class: 'CONSTANT',
+            type: 'VALUE_CONSTANT',
+            value: {
+              is_null: false,
+              type: {
+                id: 'DECIMAL',
+                type_info: {
+                  alias: '',
+                  scale: 0,
+                  type: 'DECIMAL_TYPE_INFO',
+                  width: 3,
+                },
+              },
+              value: 200,
+            },
+          },
+          {
+            alias: '',
+            class: 'CONSTANT',
+            type: 'VALUE_CONSTANT',
+            value: {
+              is_null: false,
+              type: {
+                id: 'DECIMAL',
+                type_info: {
+                  alias: '',
+                  scale: 0,
+                  type: 'DECIMAL_TYPE_INFO',
+                  width: 3,
+                },
+              },
+              value: 300,
+            },
+          },
+        ],
+        class: 'OPERATOR',
+        type: 'COMPARE_IN',
+      };
+      expect(
+        inTransform(
+          {
+            member: 'amount',
+            operator: 'in',
+            values: [100, 200, 300],
+            memberInfo: {
+              name: 'amount',
+              sql: 'table.amount',
+              type: 'number',
+            },
+          },
+          options
+        )
+      ).toEqual(expectedOutput);
+    });
+
+    it('Should return the correct value for number_array member with number[] values', () => {
+      const output = inTransform(
+        {
+          member: 'scores',
+          operator: 'in',
+          values: [10, 20, 30],
+          memberInfo: {
+            name: 'scores',
+            sql: 'table.scores',
+            type: 'number_array',
+          },
+        },
+        options
+      ) as ConjunctionExpression;
+      expect(output).toEqual({
+        alias: '',
+        catalog: '',
+        children: [
+          {
+            alias: '',
+            class: 'COLUMN_REF',
+            column_names: ['scores'],
+            type: 'COLUMN_REF',
+          },
+          {
+            alias: '',
+            children: [
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'DECIMAL',
+                    type_info: {
+                      alias: '',
+                      scale: 0,
+                      type: 'DECIMAL_TYPE_INFO',
+                      width: 2,
+                    },
+                  },
+                  value: 10,
+                },
+              },
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'DECIMAL',
+                    type_info: {
+                      alias: '',
+                      scale: 0,
+                      type: 'DECIMAL_TYPE_INFO',
+                      width: 2,
+                    },
+                  },
+                  value: 20,
+                },
+              },
+              {
+                alias: '',
+                class: 'CONSTANT',
+                type: 'VALUE_CONSTANT',
+                value: {
+                  is_null: false,
+                  type: {
+                    id: 'DECIMAL',
+                    type_info: {
+                      alias: '',
+                      scale: 0,
+                      type: 'DECIMAL_TYPE_INFO',
+                      width: 2,
+                    },
+                  },
+                  value: 30,
+                },
+              },
+            ],
+            class: 'OPERATOR',
+            type: 'ARRAY_CONSTRUCTOR',
+          },
+        ],
+        class: 'FUNCTION',
+        distinct: false,
+        export_state: false,
+        filter: null,
+        function_name: '&&',
+        is_operator: true,
+        order_bys: {
+          orders: [],
+          type: 'ORDER_MODIFIER',
+        },
+        schema: '',
+        type: 'FUNCTION',
+      });
+    });
   });
 
   describe('isAlias: true (projection alias refs)', () => {
