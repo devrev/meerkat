@@ -1178,4 +1178,50 @@ export const TEST_DATA_WITH_SAFE_ALIAS = [
       ],
     },
   ],
+  [
+    {
+      testName: 'In filter with number[] values',
+      expectedSQL: `SELECT orders.* FROM (SELECT order_id AS orders__order_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__order_id IN (1, 2, 3))`,
+      cubeInput: {
+        measures: ['*'],
+        filters: [
+          {
+            member: 'orders.order_id',
+            operator: 'in',
+            values: [1, 2, 3],
+          },
+        ],
+        dimensions: [],
+      },
+      expectedOutput: [
+        {
+          order_id: 1,
+          orders__order_id: 1,
+          customer_id: '1',
+          product_id: '1',
+          order_date: '2022-01-01',
+          order_amount: 50.0,
+          vendors: ['myntra', 'amazon', 'flipkart'],
+        },
+        {
+          order_id: 2,
+          orders__order_id: 2,
+          customer_id: '1',
+          product_id: '2',
+          order_date: '2022-01-02',
+          order_amount: 80.0,
+          vendors: ['myntra'],
+        },
+        {
+          order_id: 3,
+          orders__order_id: 3,
+          customer_id: '2',
+          product_id: '3',
+          order_date: '2022-02-01',
+          order_amount: 25.0,
+          vendors: [],
+        },
+      ],
+    },
+  ],
 ];
