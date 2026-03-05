@@ -41,7 +41,6 @@ export default defineConfig({
     },
     environment: 'jsdom',
     include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['**/benchmarking-tests/**', '**/node_modules/**', '**/dist/**'],
     testTimeout: 300000,
   },
 });
