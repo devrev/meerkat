@@ -16,7 +16,7 @@ import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const containsDuckdbCondition = (
   columnName: string,
-  value: string,
+  value: string | number,
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {

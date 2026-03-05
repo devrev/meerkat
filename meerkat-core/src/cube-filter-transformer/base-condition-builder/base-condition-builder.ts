@@ -71,7 +71,7 @@ export const createColumnRef = (
 export const baseDuckdbCondition = (
   columnName: string,
   type: ExpressionType,
-  value: string,
+  value: string | number,
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {
@@ -92,7 +92,7 @@ export const baseDuckdbCondition = (
 export const baseArrayDuckdbCondition = (
   columnName: string,
   type: ExpressionType,
-  value: string,
+  value: string | number,
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {
@@ -156,25 +156,27 @@ export const baseArrayDuckdbCondition = (
 };
 
 export const valueBuilder = (
-  value: string,
+  value: string | number,
   memberInfo: Measure | Dimension
 ) => {
   switch (memberInfo.type) {
     case 'string':
+    case 'string_array':
       return {
         type: {
-          id: CUBE_TYPE_TO_DUCKDB_TYPE[memberInfo.type],
+          id: CUBE_TYPE_TO_DUCKDB_TYPE.string,
           type_info: null,
         },
         is_null: false,
-        value: sanitizeStringValue(value),
+        value: sanitizeStringValue(String(value)),
       };
 
-    case 'number': {
-      const parsedValue = parseFloat(value);
+    case 'number':
+    case 'number_array': {
+      const parsedValue = typeof value === 'number' ? value : parseFloat(value);
       return {
         type: {
-          id: CUBE_TYPE_TO_DUCKDB_TYPE[memberInfo.type],
+          id: CUBE_TYPE_TO_DUCKDB_TYPE.number,
           type_info: getTypeInfo(parsedValue),
         },
         is_null: false,
@@ -209,7 +211,7 @@ export const valueBuilder = (
           type_info: null,
         },
         is_null: false,
-        value: sanitizeStringValue(value),
+        value: sanitizeStringValue(String(value)),
       };
   }
 };

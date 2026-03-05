@@ -15,7 +15,7 @@ import {
 
 const notInDuckDbCondition = (
   columnName: string,
-  values: string[],
+  values: (string | number)[],
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {

@@ -15,7 +15,7 @@ import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 const equalsDuckDbCondition = (
   columnName: string,
-  values: string[],
+  values: (string | number)[],
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {

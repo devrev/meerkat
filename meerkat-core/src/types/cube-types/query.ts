@@ -66,7 +66,7 @@ export type FilterType = 'BASE_FILTER' | 'PROJECTION_FILTER';
 type QueryFilterWithValues = {
   member: Member;
   operator: FilterOperator;
-  values?: string[];
+  values?: string[] | number[];
 };
 
 type QueryFilterWithSQL = {
