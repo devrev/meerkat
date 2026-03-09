@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/vite:build",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/benchmarking"
@@ -53,18 +55,23 @@
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
-      "outputs": ["{options.reportsDirectory}"],
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/coverage/benchmarking"
+      ],
       "options": {
-        "passWithNoTests": true,
-        "reportsDirectory": "../coverage/benchmarking"
+        "command": "npx vitest run --config benchmarking/vitest.config.ts"
       }
     },
     "lint": {
       "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["benchmarking/**/*.{ts,tsx,js,jsx}"]
+        "lintFilePatterns": [
+          "benchmarking/**/*.{ts,tsx,js,jsx}"
+        ]
       }
     }
   },

@@ -1,6 +1,40 @@
 import { ChildProcess, spawn } from 'child_process';
 import * as puppeteer from 'puppeteer';
 
+async function waitForServer(
+  page: puppeteer.Page,
+  url: string,
+  timeoutMs = 120000
+) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      await page.goto(url);
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+  throw new Error(`Server at ${url} did not start within ${timeoutMs}ms`);
+}
+
+async function measureTotalTime(
+  page: puppeteer.Page,
+  url: string,
+  timeoutMs = 300000,
+  warmupRuns = 1
+) {
+  // Warmup runs avoid penalizing first-hit startup/caching costs.
+  for (let i = 0; i < warmupRuns; i++) {
+    await page.goto(url);
+    await page.waitForSelector('#total_time', { timeout: timeoutMs });
+  }
+
+  await page.goto(url);
+  await page.waitForSelector('#total_time', { timeout: timeoutMs });
+  return page.$eval('#total_time', (el) => Number(el.textContent));
+}
+
 describe('Benchmarking DBMs', () => {
   let page: puppeteer.Page;
   let browser: puppeteer.Browser;
@@ -24,61 +58,25 @@ describe('Benchmarking DBMs', () => {
     });
 
     page = await browser.newPage();
-
-    //Wait for the server to start by visiting the page
-    let serverStarted = false;
-    while (!serverStarted) {
-      console.info('Waiting for server to start');
-      try {
-        await page.goto('http://localhost:4204');
-        serverStarted = true;
-      } catch (error) {
-        console.info('Server not started yet', error);
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-      }
-    }
-
-    let serverStartedRunner = false;
-    while (!serverStartedRunner) {
-      console.info('Waiting for server to start');
-
-      try {
-        await page.goto('http://localhost:4205');
-        serverStartedRunner = true;
-      } catch (error) {
-        console.info('Server not started yet', error);
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for 1 second before retrying
-      }
-    }
+    await waitForServer(page, 'http://localhost:4204');
+    await waitForServer(page, 'http://localhost:4205');
   }, 30000);
 
   it('Benchmark raw duckdb with memory sequence duckdb', async () => {
-    await page.goto('http://localhost:4204/raw-dbm');
-    /**
-     * wait for total time to be render
-     */
-    await page.waitForSelector('#total_time', { timeout: 120000 });
-    /**
-     * Get the total time as number
-     */
-    const totalTimeForRawDB = await page.$eval('#total_time', (el) =>
-      Number(el.textContent)
+    const totalTimeForRawDB = await measureTotalTime(
+      page,
+      'http://localhost:4204/raw-dbm',
+      300000,
+      1
     );
 
     console.info('totalTimeForRawDB', totalTimeForRawDB);
 
-    await page.goto('http://localhost:4204/memory-dbm');
-
-    /**
-     * wait for total time to be render
-     */
-    await page.waitForSelector('#total_time', { timeout: 120000 });
-
-    /**
-     * Get the total time as number
-     */
-    totalTimeForMemoryDB = await page.$eval('#total_time', (el) =>
-      Number(el.textContent)
+    totalTimeForMemoryDB = await measureTotalTime(
+      page,
+      'http://localhost:4204/memory-dbm',
+      300000,
+      1
     );
 
     console.info('totalTimeForMemoryDB', totalTimeForMemoryDB);
@@ -90,16 +88,11 @@ describe('Benchmarking DBMs', () => {
   }, 220000);
 
   it('Benchmark indexed dbm duckdb', async () => {
-    await page.goto('http://localhost:4204/indexed-dbm');
-    /**
-     * wait for total time to be render
-     */
-    await page.waitForSelector('#total_time', { timeout: 300000 });
-    /**
-     * Get the total time as number
-     */
-    const totalTimeForIndexedDBM = await page.$eval('#total_time', (el) =>
-      Number(el.textContent)
+    const totalTimeForIndexedDBM = await measureTotalTime(
+      page,
+      'http://localhost:4204/indexed-dbm',
+      300000,
+      0
     );
 
     console.info('totalTimeForIndexedDBM', totalTimeForIndexedDBM);
@@ -111,17 +104,11 @@ describe('Benchmarking DBMs', () => {
   }, 300000);
 
   it('Benchmark parallel memory dbm duckdb', async () => {
-    await page.goto('http://localhost:4204/parallel-memory-dbm');
-    /**
-     * wait for total time to be render
-     */
-    await page.waitForSelector('#total_time', { timeout: 300000 });
-    /**
-     * Get the total time as number
-     */
-    const totalTimeForParallelMemoryDBM = await page.$eval(
-      '#total_time',
-      (el) => Number(el.textContent)
+    const totalTimeForParallelMemoryDBM = await measureTotalTime(
+      page,
+      'http://localhost:4204/parallel-memory-dbm',
+      300000,
+      0
     );
 
     console.info('totalTimeForParallelDBM', totalTimeForParallelMemoryDBM);

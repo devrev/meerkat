@@ -15,18 +15,24 @@ vi.mock('@devrev/meerkat-dbm', () => ({
     RUNNER_PRE_QUERY: 'RUNNER_PRE_QUERY',
   },
   convertArrowTableToJSON: vi.fn((data) => data),
-  DBM: vi.fn().mockImplementation(() => mockDBM),
+  DBM: vi.fn().mockImplementation(function () {
+    return mockDBM;
+  }),
   getMainAppName: vi.fn((uuid) => `main-${uuid}`),
   getRunnerAppName: vi.fn((uuid) => `runner-${uuid}`),
-  RunnerIndexedDBFileManager: vi.fn().mockImplementation(() => ({})),
-  WindowCommunication: vi
-    .fn()
-    .mockImplementation(() => mockWindowCommunication),
+  RunnerIndexedDBFileManager: vi.fn().mockImplementation(function () {
+    return {};
+  }),
+  WindowCommunication: vi.fn().mockImplementation(function () {
+    return mockWindowCommunication;
+  }),
 }));
 
 // Mock the InstanceManager
 vi.mock('./duck-db/instance-manager', () => ({
-  InstanceManager: vi.fn().mockImplementation(() => ({})),
+  InstanceManager: vi.fn().mockImplementation(function () {
+    return {};
+  }),
 }));
 
 // Mock URL search params
