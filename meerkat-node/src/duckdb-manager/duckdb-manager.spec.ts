@@ -1,53 +1,53 @@
-import { Database } from 'duckdb';
+import { vi } from 'vitest';
 import { DuckDBSingleton } from '../duckdb-singleton';
 import { DuckDBManager } from './duckdb-manager';
 
-jest.mock('../duckdb-singleton', () => ({
+vi.mock('../duckdb-singleton', () => ({
   DuckDBSingleton: {
-    getInstance: jest.fn(),
+    getInstance: vi.fn(),
   },
 }));
 
 describe('DuckDBManager', () => {
-  let mockDb: jest.Mocked<Database>;
+  let mockDb: any;
   let mockConnection: {
-    close: jest.Mock;
-    prepare: jest.Mock;
-    run: jest.Mock;
+    close: any;
+    prepare: any;
+    run: any;
   };
   let mockStatement: {
-    columns: jest.Mock;
-    all: jest.Mock;
+    columns: any;
+    all: any;
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup all mocks
     mockConnection = {
-      close: jest.fn(),
-      prepare: jest.fn(),
-      run: jest.fn(),
+      close: vi.fn(),
+      prepare: vi.fn(),
+      run: vi.fn(),
     };
 
     mockStatement = {
-      columns: jest.fn().mockReturnValue([
+      columns: vi.fn().mockReturnValue([
         { name: 'col1', type: { sql_type: 'text', name: 'text' } },
         { name: 'col2', type: { sql_type: 'int', name: 'int' } },
       ]),
-      all: jest.fn(),
+      all: vi.fn(),
     };
 
     mockDb = {
-      connect: jest.fn().mockResolvedValue(mockConnection),
+      connect: vi.fn().mockResolvedValue(mockConnection),
     } as any;
 
-    (DuckDBSingleton.getInstance as jest.Mock).mockReturnValue(mockDb);
+    (DuckDBSingleton.getInstance as any).mockReturnValue(mockDb);
   });
 
   describe('initialization', () => {
     it('should initialize with onInitialize callback', async () => {
-      const onInitialize = jest.fn();
+      const onInitialize = vi.fn();
       const manager = new DuckDBManager({ onInitialize });
 
       await manager['initPromise'];
@@ -86,7 +86,7 @@ describe('DuckDBManager', () => {
         }
       );
 
-      mockStatement.all.mockImplementation((callback) => {
+      mockStatement.all.mockImplementation((callback: any) => {
         callback(null, testData);
       });
 
@@ -114,7 +114,7 @@ describe('DuckDBManager', () => {
       const manager = new DuckDBManager({});
       const error = new Error('Prepare error');
 
-      mockConnection.prepare.mockImplementation((query: string, callback) => {
+      mockConnection.prepare.mockImplementation((query: string, callback: any) => {
         callback(error);
       });
 
@@ -127,11 +127,11 @@ describe('DuckDBManager', () => {
       const manager = new DuckDBManager({});
       const error = new Error('Execution error');
 
-      mockConnection.prepare.mockImplementation((query: string, callback) => {
+      mockConnection.prepare.mockImplementation((query: string, callback: any) => {
         callback(null, mockStatement);
       });
 
-      mockStatement.all.mockImplementation((callback) => {
+      mockStatement.all.mockImplementation((callback: any) => {
         callback(error);
       });
 

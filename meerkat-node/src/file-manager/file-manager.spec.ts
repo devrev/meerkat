@@ -1,28 +1,29 @@
 import axios from 'axios';
 import { createWriteStream, promises as fs } from 'fs';
+import { vi } from 'vitest';
 import { hashString } from '../utils/hash-string';
 import { FileManager } from './file-manager';
 
 // Mock external dependencies
-jest.mock('axios');
+vi.mock('axios');
 
-jest.mock('fs', () => ({
+vi.mock('fs', () => ({
   promises: {
-    mkdir: jest.fn().mockImplementation(() => Promise.resolve()),
-    writeFile: jest.fn().mockImplementation(() => Promise.resolve()),
-    readdir: jest.fn().mockImplementation(() => Promise.resolve([])),
-    unlink: jest.fn().mockImplementation(() => Promise.resolve()),
+    mkdir: vi.fn().mockImplementation(() => Promise.resolve()),
+    writeFile: vi.fn().mockImplementation(() => Promise.resolve()),
+    readdir: vi.fn().mockImplementation(() => Promise.resolve([])),
+    unlink: vi.fn().mockImplementation(() => Promise.resolve()),
   },
-  createWriteStream: jest.fn(),
+  createWriteStream: vi.fn(),
 }));
 
-jest.mock('path', () => ({
-  join: jest.fn((...args) => args.join('/')),
-  dirname: jest.fn((path) => path.split('/').slice(0, -1).join('/')),
+vi.mock('path', () => ({
+  join: vi.fn((...args) => args.join('/')),
+  dirname: vi.fn((path) => path.split('/').slice(0, -1).join('/')),
 }));
 
-jest.mock('../utils/hash-string', () => ({
-  hashString: jest.fn((str) => `hashed_${str}`),
+vi.mock('../utils/hash-string', () => ({
+  hashString: vi.fn((str) => `hashed_${str}`),
 }));
 
 describe('FileManager', () => {
@@ -31,7 +32,7 @@ describe('FileManager', () => {
 
   beforeEach(() => {
     fileManager = new FileManager({ baseDir: mockBaseDir });
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('should create base directory', () => {
@@ -84,7 +85,7 @@ describe('FileManager', () => {
   describe('getTableFilePaths', () => {
     it('should return file paths for existing table', async () => {
       const mockFiles = ['file1.txt', 'file2.txt'];
-      (fs.readdir as jest.Mock).mockResolvedValueOnce(mockFiles);
+      (fs.readdir as any).mockResolvedValueOnce(mockFiles);
 
       const result = await fileManager.getTableFilePaths('test-table');
 
@@ -121,23 +122,23 @@ describe('FileManager', () => {
 
     beforeEach(() => {
       const mockWriteStream: any = {
-        close: jest.fn(),
-        pipe: jest.fn(),
-        on: jest.fn((event, callback) => {
+        close: vi.fn(),
+        pipe: vi.fn(),
+        on: vi.fn((event, callback) => {
           if (event === 'finish') setTimeout(callback, 0);
           return mockWriteStream;
         }),
       };
-      (createWriteStream as jest.Mock).mockReturnValue(mockWriteStream);
+      (createWriteStream as any).mockReturnValue(mockWriteStream);
     });
 
     it('should stream and register file successfully', async () => {
       const mockResponse = {
         data: {
-          pipe: jest.fn(),
+          pipe: vi.fn(),
         },
       };
-      (axios as unknown as jest.Mock).mockResolvedValueOnce(mockResponse);
+      (axios as unknown as any).mockResolvedValueOnce(mockResponse);
 
       await fileManager.streamAndRegisterFile(mockParams);
 
@@ -157,18 +158,18 @@ describe('FileManager', () => {
     it('should handle stream errors', async () => {
       const streamError = new Error('stream error');
       const mockWriteStream: any = {
-        close: jest.fn(),
-        pipe: jest.fn(),
-        on: jest.fn((event, callback) => {
+        close: vi.fn(),
+        pipe: vi.fn(),
+        on: vi.fn((event, callback) => {
           if (event === 'error') setTimeout(() => callback(streamError), 0);
           return mockWriteStream;
         }),
       };
 
-      (createWriteStream as jest.Mock).mockReturnValue(mockWriteStream);
-      (axios as unknown as jest.Mock).mockResolvedValueOnce({
+      (createWriteStream as any).mockReturnValue(mockWriteStream);
+      (axios as unknown as any).mockResolvedValueOnce({
         data: {
-          pipe: jest.fn(),
+          pipe: vi.fn(),
         },
       });
 

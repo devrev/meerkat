@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "@nx/vite:build",
-      "outputs": ["{options.outputPath}"],
+      "outputs": [
+        "{options.outputPath}"
+      ],
       "defaultConfiguration": "production",
       "options": {
         "outputPath": "dist/meerkat-browser-runner"
@@ -53,18 +55,23 @@
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
-      "outputs": ["{options.reportsDirectory}"],
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/coverage/meerkat-browser-runner"
+      ],
       "options": {
-        "passWithNoTests": true,
-        "reportsDirectory": "../coverage/meerkat-browser-runner"
+        "command": "npx vitest run --config meerkat-browser-runner/vitest.config.ts"
       }
     },
     "lint": {
       "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
+      "outputs": [
+        "{options.outputFile}"
+      ],
       "options": {
-        "lintFilePatterns": ["meerkat-browser-runner/**/*.{ts,tsx,js,jsx}"]
+        "lintFilePatterns": [
+          "meerkat-browser-runner/**/*.{ts,tsx,js,jsx}"
+        ]
       }
     }
   },

@@ -29,16 +29,15 @@
       }
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "executor": "@nx/vite:test",
       "options": {
-        "jestConfig": "meerkat-node/jest.config.ts",
-        "passWithNoTests": true
+        "configFile": "meerkat-node/vitest.config.ts",
+        "passWithNoTests": true,
+        "reportsDirectory": "../coverage/meerkat-node"
       },
       "configurations": {
         "ci": {
-          "ci": true,
-          "codeCoverage": true
+          "mode": "ci"
         }
       }
     }
