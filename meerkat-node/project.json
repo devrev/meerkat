@@ -29,16 +29,12 @@
       }
     },
     "test": {
-      "executor": "@nx/vite:test",
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/coverage/meerkat-node"
+      ],
       "options": {
-        "configFile": "meerkat-node/vitest.config.ts",
-        "passWithNoTests": true,
-        "reportsDirectory": "../coverage/meerkat-node"
-      },
-      "configurations": {
-        "ci": {
-          "mode": "ci"
-        }
+        "command": "npx vitest run --config meerkat-node/vitest.config.ts"
       }
     }
   },

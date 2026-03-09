@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
 export default defineConfig({
+  root: __dirname,
   resolve: {
     alias: {
       '@devrev/meerkat-core': resolve(__dirname, '../meerkat-core/src/index.ts'),
