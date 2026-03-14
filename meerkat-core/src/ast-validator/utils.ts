@@ -1,9 +1,9 @@
 import { ParsedExpression } from '../types/duckdb-serialization-types';
 import { ParsedSerialization } from './types';
 
-export function getSelectNode(
+export function getSelectNodes(
   parsedSerialization: ParsedSerialization
-): ParsedExpression {
+): ParsedExpression[] {
   const statement = parsedSerialization.statements?.[0];
   if (!statement) {
     throw new Error('No statement found');
@@ -14,7 +14,18 @@ export function getSelectNode(
   }
 
   const selectList = statement.node.select_list;
-  if (!selectList?.length || selectList.length !== 1) {
+  if (!selectList?.length) {
+    throw new Error('SELECT must contain at least one expression');
+  }
+
+  return selectList;
+}
+
+export function getSelectNode(
+  parsedSerialization: ParsedSerialization
+): ParsedExpression {
+  const selectList = getSelectNodes(parsedSerialization);
+  if (selectList.length !== 1) {
     throw new Error('SELECT must contain exactly one expression');
   }
 

@@ -589,7 +589,7 @@ export const MEASURE_TEST_CASES = [
     validScalarFunctions: EMPTY_VALID_FUNCTIONS,
     expected: true,
     query:
-      'max(CASE WHEN stage_json->>name = "Tech" THEN modified_date ELSE NULL END)',
+      "max(CASE WHEN stage_json->>'name' = 'Tech Doc Inprogress' THEN modified_date ELSE NULL END)",
   },
   {
     description:
@@ -700,7 +700,7 @@ export const MEASURE_TEST_CASES = [
   {
     description: 'node type CAST',
     query:
-      "CAST(COUNT(DISTINCT(id)) AS FLOAT) / NULLIF(DATEDIFF('day', MIN(created_date), MAX(created_date)) / 7 + 1, 0)",
+      "CAST(COUNT(DISTINCT(id)) AS FLOAT) / NULLIF(DATEDIFF('day', MIN(created_date), MAX(created_date1)) / 7 + 1, 0)",
     columnNames: ['id', 'created_date', 'created_date1'],
     node: {
       class: ExpressionClass.FUNCTION,
@@ -948,8 +948,8 @@ export const MEASURE_TEST_CASES = [
   },
   {
     description: 'node type COALESCE',
-    query: 'COALESCE(SUM(amount) FILTER(direction = "Income"), 0)',
-    columnNames: ['amount'],
+    query: "COALESCE(SUM(amount) FILTER(direction = 'Income'), 0)",
+    columnNames: ['amount', 'direction'],
     node: {
       class: ExpressionClass.OPERATOR,
       type: ExpressionType.OPERATOR_COALESCE,
@@ -985,11 +985,18 @@ export const MEASURE_TEST_CASES = [
               column_names: ['direction'],
             },
             right: {
-              class: ExpressionClass.COLUMN_REF,
-              type: ExpressionType.COLUMN_REF,
+              class: ExpressionClass.CONSTANT,
+              type: ExpressionType.VALUE_CONSTANT,
               alias: '',
               query_location: 47,
-              column_names: ['Income'],
+              value: {
+                type: {
+                  id: 'VARCHAR',
+                  type_info: null,
+                },
+                is_null: false,
+                value: 'Income',
+              },
             },
           },
           order_bys: {
@@ -1025,7 +1032,7 @@ export const MEASURE_TEST_CASES = [
     description: 'node type WINDOW_AGGREGATE',
     query:
       'AVG(COUNT(column1)) OVER (ORDER BY (MEERKAT).record_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)',
-    columnNames: ['column1'],
+    columnNames: ['column1', 'MEERKAT'],
     node: {
       class: ExpressionClass.WINDOW,
       type: ExpressionType.WINDOW_AGGREGATE,
@@ -1077,7 +1084,7 @@ export const MEASURE_TEST_CASES = [
                 class: ExpressionClass.COLUMN_REF,
                 type: ExpressionType.COLUMN_REF,
                 alias: '',
-                query_location: 54,
+                query_location: 43,
                 column_names: ['MEERKAT'],
               },
               {
