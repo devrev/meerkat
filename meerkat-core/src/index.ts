@@ -28,12 +28,20 @@ export * from './resolution/steps/apply-sql-overrides';
 export * from './resolution/steps/resolution-step';
 export * from './resolution/steps/unnest-step';
 export * from './resolution/types';
-export { FilterType } from './types/cube-types';
+export type { FilterType } from './types/cube-types';
 export * from './types/cube-types/index';
 export * from './types/duckdb-serialization-types/index';
 export * from './types/utils';
 export { BASE_TABLE_NAME } from './utils/base-ast';
+export * from './utils/duckdb-ast-parse-serialize';
 export * from './utils/cube-to-table-schema';
 export * from './utils/get-column-names-from-ast';
 export * from './utils/get-possible-nodes';
 export { meerkatPlaceholderReplacer } from './utils/meerkat-placeholder-replacer';
+export { ensureColumnAliasBatch } from './utils/ensure-sql-expression-column-alias';
+export type {
+  EnsureColumnAliasBatchItem,
+  EnsureColumnAliasBatchParams,
+  EnsureColumnAliasBatchResult,
+} from './utils/ensure-sql-expression-column-alias';
+export * from './utils/ensure-table-schema-alias-sql';

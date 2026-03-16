@@ -5,3 +5,4 @@ export {
 } from './ast';
 export * from './browser-cube-to-sql-with-resolution/browser-cube-to-sql-with-resolution';
 export * from './browser-cube-to-sql/browser-cube-to-sql';
+export * from './ensure-table-schema-alias/ensure-table-schema-alias';

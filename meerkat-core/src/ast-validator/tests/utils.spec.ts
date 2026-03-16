@@ -63,7 +63,7 @@ describe('getSelectNode', () => {
     ).toThrow('Statement must be a SELECT node');
   });
 
-  it('should throw error if select list is not exactly one expression', () => {
+  it('should throw error if select list is empty', () => {
     expect(() =>
       getSelectNode({
         error: false,
@@ -76,6 +76,26 @@ describe('getSelectNode', () => {
                 map: [],
               },
               select_list: [],
+            },
+          },
+        ],
+      })
+    ).toThrow('SELECT must contain at least one expression');
+  });
+
+  it('should throw error if select list has more than one expression', () => {
+    expect(() =>
+      getSelectNode({
+        error: false,
+        statements: [
+          {
+            node: {
+              type: QueryNodeType.SELECT_NODE,
+              modifiers: [],
+              cte_map: {
+                map: [],
+              },
+              select_list: [COLUMN_REF_NODE, COLUMN_REF_NODE],
             },
           },
         ],
