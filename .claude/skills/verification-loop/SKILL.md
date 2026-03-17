@@ -111,6 +111,20 @@ Set a mental checkpoint:
 Run: /verify
 ```
 
+## Pre-Push Gate (MANDATORY)
+
+Before ANY `git push`, run the full monorepo test suite:
+
+```bash
+npx nx run-many --target=test --all 2>&1 | tail -50
+```
+
+**Rules:**
+- If ANY test fails, DO NOT push. Fix the failing tests first.
+- This applies to all branches, not just main.
+- Run this even if only one package was changed — cross-package regressions are common.
+- After fixing failures, re-run the full suite to confirm before pushing.
+
 ## Integration with Hooks
 
 This skill complements PostToolUse hooks but provides deeper verification.
