@@ -227,7 +227,7 @@ describe('Not Equals Transform Tests', () => {
         {
           member: 'scores',
           operator: 'notEquals',
-          values: ['1', '2', '3'],
+          values: [1, 2, 3],
           memberInfo: {
             name: 'scores',
             sql: 'table.scores',

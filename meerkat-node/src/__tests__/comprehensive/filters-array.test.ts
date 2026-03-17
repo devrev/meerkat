@@ -609,7 +609,7 @@ describe('Comprehensive: Array Filters', () => {
           {
             member: 'fact_all_types.score_ids',
             operator: 'notEquals',
-            values: ['1'],
+            values: [1],
           },
         ],
         dimensions: [],
@@ -637,7 +637,7 @@ describe('Comprehensive: Array Filters', () => {
           {
             member: 'fact_all_types.score_ids',
             operator: 'notEquals',
-            values: ['1', '2'],
+            values: [1, 2],
           },
         ],
         dimensions: [],
@@ -665,7 +665,7 @@ describe('Comprehensive: Array Filters', () => {
           {
             member: 'fact_all_types.score_ids',
             operator: 'notEquals',
-            values: ['999'],
+            values: [999],
           },
         ],
         dimensions: [],
@@ -692,7 +692,7 @@ describe('Comprehensive: Array Filters', () => {
           {
             member: 'fact_all_types.score_ids',
             operator: 'equals',
-            values: ['2'],
+            values: [2],
           },
         ],
         dimensions: [],
@@ -718,7 +718,7 @@ describe('Comprehensive: Array Filters', () => {
           {
             member: 'fact_all_types.score_ids',
             operator: 'equals',
-            values: ['1', '2', '3'],
+            values: [1, 2, 3],
           },
         ],
         dimensions: [],
