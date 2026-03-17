@@ -464,6 +464,143 @@ describe('Comprehensive: Array Filters', () => {
     });
   });
 
+  describe('notEquals on Array (via cubeQueryToSQL)', () => {
+    it('should filter array notEquals with single value', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.tags',
+            operator: 'notEquals',
+            values: ['backend'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // tags containing 'backend': i%4=0 (['backend','urgent']) + i%4=2 (['api','backend']) = 500k
+      // notEquals 'backend' means NOT list_has_all(tags, ['backend'])
+      // So rows that do NOT have 'backend': i%4=1 (['frontend']) + i%4=3 ([]) = 500k
+      expect(count).toBeGreaterThan(490000);
+      expect(count).toBeLessThan(510000);
+    });
+
+    it('should filter array notEquals with multiple values', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.tags',
+            operator: 'notEquals',
+            values: ['backend', 'urgent'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // notEquals ['backend', 'urgent'] means NOT list_has_all(tags, ['backend', 'urgent'])
+      // Only i%4=0 has BOTH 'backend' AND 'urgent' = 250k rows
+      // So NOT that = 750k rows
+      expect(count).toBeGreaterThan(740000);
+      expect(count).toBeLessThan(760000);
+    });
+
+    it('should filter array notEquals with value not present in any row', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.tags',
+            operator: 'notEquals',
+            values: ['nonexistent_tag'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // No rows have 'nonexistent_tag', so NOT list_has_all returns all rows
+      expect(count).toBe(1000000);
+    });
+  });
+
+  describe('equals on Array (via cubeQueryToSQL)', () => {
+    it('should filter array equals with single value', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.tags',
+            operator: 'equals',
+            values: ['backend'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // tags containing 'backend': i%4=0 + i%4=2 = 500k
+      expect(count).toBeGreaterThan(490000);
+      expect(count).toBeLessThan(510000);
+    });
+
+    it('should filter array equals with multiple values', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.tags',
+            operator: 'equals',
+            values: ['backend', 'urgent'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // list_has_all(tags, ['backend', 'urgent']): only i%4=0 = 250k
+      expect(count).toBeGreaterThan(240000);
+      expect(count).toBeLessThan(260000);
+    });
+  });
+
   describe('Array Edge Cases', () => {
     it('should handle searching for non-existent tag', async () => {
       const sql = `
