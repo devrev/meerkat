@@ -738,6 +738,112 @@ describe('Comprehensive: Array Filters', () => {
     });
   });
 
+  describe('Number Array with string-typed values (via cubeQueryToSQL)', () => {
+    it('should handle number_array notEquals when values are strings', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'notEquals',
+            values: ['1'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // Same as number variant: rows without 1 = i%4=1 + i%4=3 = 500k
+      expect(count).toBeGreaterThan(490000);
+      expect(count).toBeLessThan(510000);
+    });
+
+    it('should handle number_array notEquals with multiple string values', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'notEquals',
+            values: ['1', '2'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // Same as number variant: only i%4=0 has both 1 AND 2 = 250k excluded → 750k
+      expect(count).toBeGreaterThan(740000);
+      expect(count).toBeLessThan(760000);
+    });
+
+    it('should handle number_array equals when values are strings', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // Same as number variant: i%4=0 + i%4=1 = 500k
+      expect(count).toBeGreaterThan(490000);
+      expect(count).toBeLessThan(510000);
+    });
+
+    it('should handle number_array equals with multiple string values', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'equals',
+            values: ['1', '2', '3'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // Same as number variant: only i%4=0 has all three = 250k
+      expect(count).toBeGreaterThan(240000);
+      expect(count).toBeLessThan(260000);
+    });
+  });
+
   describe('Array Edge Cases', () => {
     it('should handle searching for non-existent tag', async () => {
       const sql = `
