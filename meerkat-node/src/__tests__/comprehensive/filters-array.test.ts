@@ -601,6 +601,143 @@ describe('Comprehensive: Array Filters', () => {
     });
   });
 
+  describe('notEquals on Number Array (via cubeQueryToSQL)', () => {
+    it('should filter number_array notEquals with single value', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'notEquals',
+            values: ['1'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // score_ids containing 1: i%4=0 ([1,2,3]) + i%4=2 ([1,5]) = 500k
+      // notEquals 1 means NOT list_has_all(score_ids, [1])
+      // Rows without 1: i%4=1 ([2,4]) + i%4=3 ([]) = 500k
+      expect(count).toBeGreaterThan(490000);
+      expect(count).toBeLessThan(510000);
+    });
+
+    it('should filter number_array notEquals with multiple values', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'notEquals',
+            values: ['1', '2'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // notEquals [1, 2] means NOT list_has_all(score_ids, [1, 2])
+      // Only i%4=0 has BOTH 1 AND 2 ([1,2,3]) = 250k rows
+      // So NOT that = 750k rows
+      expect(count).toBeGreaterThan(740000);
+      expect(count).toBeLessThan(760000);
+    });
+
+    it('should filter number_array notEquals with value not in any row', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'notEquals',
+            values: ['999'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // No rows contain 999, so NOT list_has_all returns all rows
+      expect(count).toBe(1000000);
+    });
+  });
+
+  describe('equals on Number Array (via cubeQueryToSQL)', () => {
+    it('should filter number_array equals with single value', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'equals',
+            values: ['2'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // score_ids containing 2: i%4=0 ([1,2,3]) + i%4=1 ([2,4]) = 500k
+      expect(count).toBeGreaterThan(490000);
+      expect(count).toBeLessThan(510000);
+    });
+
+    it('should filter number_array equals with multiple values', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.score_ids',
+            operator: 'equals',
+            values: ['1', '2', '3'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = Number(result[0]?.fact_all_types__count || 0);
+
+      // list_has_all(score_ids, [1,2,3]): only i%4=0 = 250k
+      expect(count).toBeGreaterThan(240000);
+      expect(count).toBeLessThan(260000);
+    });
+  });
+
   describe('Array Edge Cases', () => {
     it('should handle searching for non-existent tag', async () => {
       const sql = `

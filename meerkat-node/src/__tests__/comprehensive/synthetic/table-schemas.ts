@@ -70,6 +70,7 @@ export const FACT_ALL_TYPES_SCHEMA = {
     { name: 'tags', sql: 'tags', type: 'string_array' },
     { name: 'owned_by_ids', sql: 'owned_by_ids', type: 'string_array' },
     { name: 'part_ids', sql: 'part_ids', type: 'string_array' },
+    { name: 'score_ids', sql: 'score_ids', type: 'number_array' },
     
     // JSON-derived dimensions (stored as VARCHAR)
     { name: 'metadata_json', sql: 'metadata_json', type: 'string' },
