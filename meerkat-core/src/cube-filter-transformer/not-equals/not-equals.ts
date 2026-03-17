@@ -3,10 +3,9 @@ import { ExpressionType } from '../../types/duckdb-serialization-types/serializa
 import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import {
   baseDuckdbCondition,
-  CreateColumnRefOptions,
 } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
-import { orDuckdbCondition } from '../or/or';
+import { notInTransform } from '../not-in/not-in';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 import { notEqualsArrayTransform } from './not-equals-array';
 
@@ -36,7 +35,7 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (
   }
 
   /**
-   * If there is only one value, we can create a simple equals condition
+   * If there is only one value, we can create a simple notEquals condition
    */
   if (values.length === 1) {
     return baseDuckdbCondition(
@@ -49,19 +48,9 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (
   }
 
   /**
-   * If there are multiple values, we need to create an OR condition
+   * ISS-245695: Multiple values should use NOT IN semantics.
+   * Previously this used OR (col != 'A' OR col != 'B') which is always true.
+   * Correct: NOT IN ('A', 'B') which excludes rows matching any value.
    */
-  const orCondition = orDuckdbCondition();
-  values.forEach((value) => {
-    orCondition.children.push(
-      baseDuckdbCondition(
-        member,
-        ExpressionType.COMPARE_NOTEQUAL,
-        value,
-        memberInfo,
-        options
-      )
-    );
-  });
-  return orCondition;
+  return notInTransform(query, options);
 };

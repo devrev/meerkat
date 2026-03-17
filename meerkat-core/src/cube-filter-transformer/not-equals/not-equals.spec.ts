@@ -62,7 +62,8 @@ describe('Not Equals Transform Tests', () => {
       ).toEqual(expectedOutput);
     });
 
-    it('Should create an OR condition if there are multiple values', () => {
+    // ISS-245695: notEquals with multiple values should use NOT IN (not OR)
+    it('Should use NOT IN for multiple values to correctly exclude all', () => {
       const output = notEqualsTransform(
         {
           member: 'country',
@@ -76,9 +77,14 @@ describe('Not Equals Transform Tests', () => {
         },
         options
       ) as ConjunctionExpression;
+      // Should produce (NOT IN (...)) OR (IS NULL) — same as notIn
       expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
       expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
-      expect(output.children.length).toEqual(3);
+      expect(output.children.length).toEqual(2);
+      // First child: NOT IN condition
+      expect(output.children[0].type).toEqual(ExpressionType.COMPARE_NOT_IN);
+      // Second child: IS NULL for proper null handling
+      expect(output.children[1].type).toEqual(ExpressionType.OPERATOR_IS_NULL);
     });
   });
 
@@ -105,7 +111,7 @@ describe('Not Equals Transform Tests', () => {
       ).toThrow();
     });
 
-    it('Should create a simple equals condition if there is only one value', () => {
+    it('Should create a simple notEquals condition if there is only one value', () => {
       const expectedOutput = baseDuckdbCondition(
         'country',
         ExpressionType.COMPARE_NOTEQUAL,
@@ -134,7 +140,8 @@ describe('Not Equals Transform Tests', () => {
       ).toEqual(expectedOutput);
     });
 
-    it('Should create an OR condition if there are multiple values', () => {
+    // ISS-245695: notEquals with multiple values should use NOT IN (not OR)
+    it('Should use NOT IN for multiple values to correctly exclude all', () => {
       const output = notEqualsTransform(
         {
           member: 'country',
@@ -150,7 +157,9 @@ describe('Not Equals Transform Tests', () => {
       ) as ConjunctionExpression;
       expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
       expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
-      expect(output.children.length).toEqual(3);
+      expect(output.children.length).toEqual(2);
+      expect(output.children[0].type).toEqual(ExpressionType.COMPARE_NOT_IN);
+      expect(output.children[1].type).toEqual(ExpressionType.OPERATOR_IS_NULL);
     });
   });
 });
