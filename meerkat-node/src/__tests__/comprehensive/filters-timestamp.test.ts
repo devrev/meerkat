@@ -296,7 +296,8 @@ describe('Comprehensive: TIMESTAMP Filters', () => {
       expect(count).toBeLessThan(8400);
     });
 
-    it.fails('should handle TIMESTAMP NOT IN operator', async () => {
+    // ISS-245695: fixed — notEquals with multiple values now correctly uses NOT IN
+    it('should handle TIMESTAMP NOT IN operator', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
