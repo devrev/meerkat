@@ -106,6 +106,14 @@ export async function createFactAllTypesTable(): Promise<void> {
         WHEN i % 5 = 1 THEN ARRAY['part_' || (i % 500)]
         ELSE ARRAY[]::VARCHAR[]
       END AS part_ids,
+
+      -- Number arrays (INTEGER[])
+      CASE
+        WHEN i % 4 = 0 THEN ARRAY[1, 2, 3]
+        WHEN i % 4 = 1 THEN ARRAY[2, 4]
+        WHEN i % 4 = 2 THEN ARRAY[1, 5]
+        ELSE ARRAY[]::INTEGER[]
+      END AS score_ids,
       
       -- JSON-like VARCHAR (to test JSON extraction)
       '{"severity_id": ' || ((i % 5) + 1) || ', "impact": "' ||

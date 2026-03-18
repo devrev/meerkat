@@ -296,7 +296,7 @@ describe('Comprehensive: TIMESTAMP Filters', () => {
       expect(count).toBeLessThan(8400);
     });
 
-    it.fails('should handle TIMESTAMP NOT IN operator', async () => {
+    it('should handle TIMESTAMP NOT IN operator', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
