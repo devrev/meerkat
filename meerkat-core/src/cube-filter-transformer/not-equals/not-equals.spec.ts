@@ -66,7 +66,6 @@ describe('Not Equals Transform Tests', () => {
       ).toEqual(expectedOutput);
     });
 
-    // ISS-245695: notEquals with multiple values should use NOT IN (not OR)
     it('Should use NOT IN for multiple values to correctly exclude all', () => {
       const output = notEqualsTransform(
         {
@@ -81,13 +80,10 @@ describe('Not Equals Transform Tests', () => {
         },
         options
       ) as ConjunctionExpression;
-      // Should produce (NOT IN (...)) OR (IS NULL) — same as notIn
       expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
       expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
       expect(output.children.length).toEqual(2);
-      // First child: NOT IN condition
       expect(output.children[0].type).toEqual(ExpressionType.COMPARE_NOT_IN);
-      // Second child: IS NULL for proper null handling
       expect(output.children[1].type).toEqual(ExpressionType.OPERATOR_IS_NULL);
     });
   });
@@ -144,7 +140,6 @@ describe('Not Equals Transform Tests', () => {
       ).toEqual(expectedOutput);
     });
 
-    // ISS-245695: notEquals with multiple values should use NOT IN (not OR)
     it('Should use NOT IN for multiple values to correctly exclude all', () => {
       const output = notEqualsTransform(
         {
@@ -186,10 +181,8 @@ describe('Not Equals Transform Tests', () => {
         },
         options
       ) as OperatorExpression;
-      // NOT wrapper
       expect(output.class).toEqual(ExpressionClass.OPERATOR);
       expect(output.type).toEqual(ExpressionType.OPERATOR_NOT);
-      // Inner: list_has_all function
       const inner = output.children[0] as FunctionExpression;
       expect(inner.class).toEqual(ExpressionClass.FUNCTION);
       expect(inner.function_name).toEqual('list_has_all');
@@ -209,14 +202,11 @@ describe('Not Equals Transform Tests', () => {
         },
         options
       ) as OperatorExpression;
-      // NOT wrapper
       expect(output.class).toEqual(ExpressionClass.OPERATOR);
       expect(output.type).toEqual(ExpressionType.OPERATOR_NOT);
-      // Inner: list_has_all with 2 children (column ref + list_value)
       const inner = output.children[0] as FunctionExpression;
       expect(inner.function_name).toEqual('list_has_all');
       expect(inner.children.length).toEqual(2);
-      // Second child is list_value with 3 values
       const listValue = inner.children[1] as FunctionExpression;
       expect(listValue.function_name).toEqual('list_value');
       expect(listValue.children.length).toEqual(3);

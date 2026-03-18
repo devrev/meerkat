@@ -47,10 +47,5 @@ export const notEqualsTransform: CubeToParseExpressionTransform = (
     );
   }
 
-  /**
-   * ISS-245695: Multiple values should use NOT IN semantics.
-   * Previously this used OR (col != 'A' OR col != 'B') which is always true.
-   * Correct: NOT IN ('A', 'B') which excludes rows matching any value.
-   */
   return notInTransform(query, options);
 };

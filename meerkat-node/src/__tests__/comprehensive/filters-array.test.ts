@@ -486,9 +486,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // tags containing 'backend': i%4=0 (['backend','urgent']) + i%4=2 (['api','backend']) = 500k
-      // notEquals 'backend' means NOT list_has_all(tags, ['backend'])
-      // So rows that do NOT have 'backend': i%4=1 (['frontend']) + i%4=3 ([]) = 500k
       expect(count).toBeGreaterThan(490000);
       expect(count).toBeLessThan(510000);
     });
@@ -514,9 +511,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // notEquals ['backend', 'urgent'] means NOT list_has_all(tags, ['backend', 'urgent'])
-      // Only i%4=0 has BOTH 'backend' AND 'urgent' = 250k rows
-      // So NOT that = 750k rows
       expect(count).toBeGreaterThan(740000);
       expect(count).toBeLessThan(760000);
     });
@@ -542,7 +536,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // No rows have 'nonexistent_tag', so NOT list_has_all returns all rows
       expect(count).toBe(1000000);
     });
   });
@@ -569,7 +562,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // tags containing 'backend': i%4=0 + i%4=2 = 500k
       expect(count).toBeGreaterThan(490000);
       expect(count).toBeLessThan(510000);
     });
@@ -595,7 +587,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // list_has_all(tags, ['backend', 'urgent']): only i%4=0 = 250k
       expect(count).toBeGreaterThan(240000);
       expect(count).toBeLessThan(260000);
     });
@@ -623,9 +614,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // score_ids containing 1: i%4=0 ([1,2,3]) + i%4=2 ([1,5]) = 500k
-      // notEquals 1 means NOT list_has_all(score_ids, [1])
-      // Rows without 1: i%4=1 ([2,4]) + i%4=3 ([]) = 500k
       expect(count).toBeGreaterThan(490000);
       expect(count).toBeLessThan(510000);
     });
@@ -651,9 +639,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // notEquals [1, 2] means NOT list_has_all(score_ids, [1, 2])
-      // Only i%4=0 has BOTH 1 AND 2 ([1,2,3]) = 250k rows
-      // So NOT that = 750k rows
       expect(count).toBeGreaterThan(740000);
       expect(count).toBeLessThan(760000);
     });
@@ -679,7 +664,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // No rows contain 999, so NOT list_has_all returns all rows
       expect(count).toBe(1000000);
     });
   });
@@ -706,7 +690,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // score_ids containing 2: i%4=0 ([1,2,3]) + i%4=1 ([2,4]) = 500k
       expect(count).toBeGreaterThan(490000);
       expect(count).toBeLessThan(510000);
     });
@@ -732,7 +715,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // list_has_all(score_ids, [1,2,3]): only i%4=0 = 250k
       expect(count).toBeGreaterThan(240000);
       expect(count).toBeLessThan(260000);
     });
@@ -760,7 +742,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // Same as number variant: rows without 1 = i%4=1 + i%4=3 = 500k
       expect(count).toBeGreaterThan(490000);
       expect(count).toBeLessThan(510000);
     });
@@ -786,7 +767,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // Same as number variant: only i%4=0 has both 1 AND 2 = 250k excluded → 750k
       expect(count).toBeGreaterThan(740000);
       expect(count).toBeLessThan(760000);
     });
@@ -812,7 +792,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // Same as number variant: i%4=0 + i%4=1 = 500k
       expect(count).toBeGreaterThan(490000);
       expect(count).toBeLessThan(510000);
     });
@@ -838,7 +817,6 @@ describe('Comprehensive: Array Filters', () => {
       const result = await duckdbExec(sql);
       const count = Number(result[0]?.fact_all_types__count || 0);
 
-      // Same as number variant: only i%4=0 has all three = 250k
       expect(count).toBeGreaterThan(240000);
       expect(count).toBeLessThan(260000);
     });
