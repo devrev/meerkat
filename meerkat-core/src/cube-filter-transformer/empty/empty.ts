@@ -5,7 +5,7 @@ import {
 import { createColumnRef } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 
-const arrayEmptyCondition = (
+const emptyCondition = (
   columnName: string,
   options: { isAlias: boolean }
 ) => {
@@ -55,12 +55,21 @@ const arrayEmptyCondition = (
   };
 };
 
+const nullCondition = (
+  columnName: string,
+  options: { isAlias: boolean }
+) => ({
+  class: ExpressionClass.OPERATOR,
+  type: ExpressionType.OPERATOR_IS_NULL,
+  alias: '',
+  children: [createColumnRef(columnName, { isAlias: options.isAlias })],
+});
+
 /**
- * Generates: (col IS NULL OR len(col) = 0)
- *
- * Only valid for array columns. Throws if the member type is not an array.
+ * For array columns: (col IS NULL OR len(col) = 0)
+ * For non-array columns: (col IS NULL)
  */
-export const arrayEmptyTransform: CubeToParseExpressionTransform = (
+export const emptyTransform: CubeToParseExpressionTransform = (
   query,
   options
 ) => {
@@ -70,13 +79,11 @@ export const arrayEmptyTransform: CubeToParseExpressionTransform = (
     switch (memberInfo.type) {
       case 'string_array':
       case 'number_array':
-        return arrayEmptyCondition(member, options);
+        return emptyCondition(member, options);
       default:
-        throw new Error(
-          `arrayEmpty operator requires an array column, but "${member}" has type "${memberInfo.type}"`
-        );
+        return nullCondition(member, options);
     }
   }
 
-  return arrayEmptyCondition(member, options);
+  return emptyCondition(member, options);
 };

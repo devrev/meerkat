@@ -1,27 +1,27 @@
 import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
-import { arrayNotEmptyTransform } from './array-not-empty';
+import { emptyTransform } from './empty';
 
-describe('arrayNotEmptyTransform', () => {
+describe('emptyTransform', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
     };
 
-    it('should return (col IS NOT NULL AND len(col) > 0)', () => {
+    it('should return (col IS NULL OR len(col) = 0)', () => {
       const query = {
         member: 'table.column',
       };
 
-      const result = arrayNotEmptyTransform(query, options);
+      const result = emptyTransform(query, options);
 
       expect(result).toEqual({
         class: 'CONJUNCTION',
-        type: 'CONJUNCTION_AND',
+        type: 'CONJUNCTION_OR',
         alias: '',
         children: [
           {
             class: 'OPERATOR',
-            type: 'OPERATOR_IS_NOT_NULL',
+            type: 'OPERATOR_IS_NULL',
             alias: '',
             children: [
               {
@@ -34,7 +34,7 @@ describe('arrayNotEmptyTransform', () => {
           },
           {
             class: 'COMPARISON',
-            type: 'COMPARE_GREATERTHAN',
+            type: 'COMPARE_EQUAL',
             alias: '',
             left: {
               class: 'FUNCTION',
@@ -83,41 +83,50 @@ describe('arrayNotEmptyTransform', () => {
         member: 'table.column',
       };
 
-      const result = arrayNotEmptyTransform(query, options);
+      const result = emptyTransform(query, options);
 
-      const isNotNullChild = (result as any).children[0];
+      // Both the IS NULL and len() children should use alias column names
+      const isNullChild = (result as any).children[0];
       const lenChild = (result as any).children[1];
 
-      expect(isNotNullChild.children[0].column_names).toEqual([
-        'table.column',
-      ]);
-      expect(lenChild.left.children[0].column_names).toEqual([
-        'table.column',
-      ]);
+      expect(isNullChild.children[0].column_names).toEqual(['table.column']);
+      expect(lenChild.left.children[0].column_names).toEqual(['table.column']);
     });
   });
 
   describe('type validation', () => {
     const options: CreateColumnRefOptions = { isAlias: false };
 
-    it('should throw if memberInfo type is not an array', () => {
+    it('should return IS NULL for non-array types', () => {
       const query = {
         member: 'table.column',
         memberInfo: { name: 'column', type: 'string' as const, sql: 'column' },
       };
 
-      expect(() => arrayNotEmptyTransform(query, options)).toThrow(
-        'arrayNotEmpty operator requires an array column'
-      );
+      const result = emptyTransform(query, options);
+
+      expect(result).toEqual({
+        class: 'OPERATOR',
+        type: 'OPERATOR_IS_NULL',
+        alias: '',
+        children: [
+          {
+            class: 'COLUMN_REF',
+            type: 'COLUMN_REF',
+            alias: '',
+            column_names: ['table', 'column'],
+          },
+        ],
+      });
     });
 
-    it('should not throw if memberInfo type is number_array', () => {
+    it('should not throw if memberInfo type is string_array', () => {
       const query = {
         member: 'table.column',
-        memberInfo: { name: 'column', type: 'number_array' as const, sql: 'column' },
+        memberInfo: { name: 'column', type: 'string_array' as const, sql: 'column' },
       };
 
-      expect(() => arrayNotEmptyTransform(query, options)).not.toThrow();
+      expect(() => emptyTransform(query, options)).not.toThrow();
     });
 
     it('should not throw if memberInfo is not present', () => {
@@ -125,7 +134,7 @@ describe('arrayNotEmptyTransform', () => {
         member: 'table.column',
       };
 
-      expect(() => arrayNotEmptyTransform(query, options)).not.toThrow();
+      expect(() => emptyTransform(query, options)).not.toThrow();
     });
   });
 });
