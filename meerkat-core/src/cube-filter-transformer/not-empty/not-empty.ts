@@ -5,7 +5,7 @@ import {
 import { createColumnRef } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 
-const arrayNotEmptyCondition = (
+const notEmptyCondition = (
   columnName: string,
   options: { isAlias: boolean }
 ) => {
@@ -69,7 +69,7 @@ const notNullCondition = (
  * For array columns: (col IS NOT NULL AND len(col) > 0)
  * For non-array columns: (col IS NOT NULL)
  */
-export const arrayNotEmptyTransform: CubeToParseExpressionTransform = (
+export const notEmptyTransform: CubeToParseExpressionTransform = (
   query,
   options
 ) => {
@@ -79,11 +79,11 @@ export const arrayNotEmptyTransform: CubeToParseExpressionTransform = (
     switch (memberInfo.type) {
       case 'string_array':
       case 'number_array':
-        return arrayNotEmptyCondition(member, options);
+        return notEmptyCondition(member, options);
       default:
         return notNullCondition(member, options);
     }
   }
 
-  return arrayNotEmptyCondition(member, options);
+  return notEmptyCondition(member, options);
 };

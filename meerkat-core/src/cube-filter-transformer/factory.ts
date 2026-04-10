@@ -15,8 +15,8 @@ import {
   isQueryFilter,
 } from '../utils/type-guards';
 import { andDuckdbCondition } from './and/and';
-import { arrayEmptyTransform } from './array-empty/array-empty';
-import { arrayNotEmptyTransform } from './array-not-empty/array-not-empty';
+import { emptyTransform } from './empty/empty';
+import { notEmptyTransform } from './not-empty/not-empty';
 import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { containsTransform } from './contains/contains';
 import { equalsTransform } from './equals/equals';
@@ -75,11 +75,11 @@ const cubeFilterOperatorsToDuckdb = (
     case 'set': {
       return setTransform(cubeFilter, options);
     }
-    case 'arrayEmpty': {
-      return arrayEmptyTransform(cubeFilter, options);
+    case 'empty': {
+      return emptyTransform(cubeFilter, options);
     }
-    case 'arrayNotEmpty': {
-      return arrayNotEmptyTransform(cubeFilter, options);
+    case 'notEmpty': {
+      return notEmptyTransform(cubeFilter, options);
     }
     default:
       throw new Error('Could not transform the filter');

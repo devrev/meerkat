@@ -1187,7 +1187,7 @@ export const TEST_DATA_WITH_SAFE_ALIAS = [
         filters: [
           {
             member: 'orders.vendors',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -1242,7 +1242,7 @@ export const TEST_DATA_WITH_SAFE_ALIAS = [
         filters: [
           {
             member: 'orders.vendors',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],
@@ -1353,7 +1353,7 @@ export const TEST_DATA_WITH_SAFE_ALIAS = [
         filters: [
           {
             member: 'orders.customer_id',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -1381,7 +1381,7 @@ export const TEST_DATA_WITH_SAFE_ALIAS = [
         filters: [
           {
             member: 'orders.customer_id',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],

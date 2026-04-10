@@ -1,9 +1,9 @@
 /**
  * Comprehensive Array Empty/Not Empty Filter Tests
  *
- * Tests arrayEmpty and arrayNotEmpty filter operators including:
+ * Tests empty and notEmpty filter operators including:
  * - Basic empty/not-empty filtering across different array columns
- * - Complementary counts (arrayEmpty + arrayNotEmpty = total)
+ * - Complementary counts (empty + notEmpty = total)
  * - Combinations with other filter types
  * - Performance testing on 1M+ rows
  */
@@ -27,14 +27,14 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
     await verifySyntheticTables();
   }, 120000);
 
-  describe('arrayEmpty Operator', () => {
+  describe('empty Operator', () => {
     it('should filter empty arrays on tags column', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.tags',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -58,7 +58,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
         filters: [
           {
             member: 'fact_all_types.owned_by_ids',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -82,7 +82,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
         filters: [
           {
             member: 'fact_all_types.part_ids',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -101,14 +101,14 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
     });
   });
 
-  describe('arrayNotEmpty Operator', () => {
+  describe('notEmpty Operator', () => {
     it('should filter non-empty arrays on tags column', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.tags',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],
@@ -132,7 +132,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
         filters: [
           {
             member: 'fact_all_types.owned_by_ids',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],
@@ -156,7 +156,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
         filters: [
           {
             member: 'fact_all_types.part_ids',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],
@@ -176,13 +176,13 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
   });
 
   describe('Complementary Counts', () => {
-    it('arrayEmpty + arrayNotEmpty on tags should equal total rows', async () => {
+    it('empty + notEmpty on tags should equal total rows', async () => {
       const emptyQuery = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.tags',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -193,7 +193,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
         filters: [
           {
             member: 'fact_all_types.tags',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],
@@ -219,13 +219,13 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
       expect(emptyCount + notEmptyCount).toBe(1000000);
     });
 
-    it('arrayEmpty + arrayNotEmpty on part_ids should equal total rows', async () => {
+    it('empty + notEmpty on part_ids should equal total rows', async () => {
       const emptyQuery = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.part_ids',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -236,7 +236,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
         filters: [
           {
             member: 'fact_all_types.part_ids',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],
@@ -263,13 +263,13 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
   });
 
   describe('Combined with Other Filters', () => {
-    it.fails('should combine arrayNotEmpty with equals filter', async () => {
+    it.fails('should combine notEmpty with equals filter', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.tags',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
           {
             member: 'fact_all_types.priority',
@@ -294,13 +294,13 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
       expect(count).toBe(150000);
     });
 
-    it.fails('should combine arrayEmpty with boolean filter', async () => {
+    it.fails('should combine empty with boolean filter', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.part_ids',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
           {
             member: 'fact_all_types.is_deleted',
@@ -327,13 +327,13 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
   });
 
   describe('Performance', () => {
-    it('should execute arrayEmpty filter within acceptable time', async () => {
+    it('should execute empty filter within acceptable time', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.tags',
-            operator: 'arrayEmpty',
+            operator: 'empty',
           },
         ],
         dimensions: [],
@@ -353,13 +353,13 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
       expect(duration).toBeLessThan(5000);
     });
 
-    it('should execute arrayNotEmpty filter within acceptable time', async () => {
+    it('should execute notEmpty filter within acceptable time', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
           {
             member: 'fact_all_types.tags',
-            operator: 'arrayNotEmpty',
+            operator: 'notEmpty',
           },
         ],
         dimensions: [],

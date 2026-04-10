@@ -1,7 +1,7 @@
 import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
-import { arrayEmptyTransform } from './array-empty';
+import { emptyTransform } from './empty';
 
-describe('arrayEmptyTransform', () => {
+describe('emptyTransform', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
@@ -12,7 +12,7 @@ describe('arrayEmptyTransform', () => {
         member: 'table.column',
       };
 
-      const result = arrayEmptyTransform(query, options);
+      const result = emptyTransform(query, options);
 
       expect(result).toEqual({
         class: 'CONJUNCTION',
@@ -83,7 +83,7 @@ describe('arrayEmptyTransform', () => {
         member: 'table.column',
       };
 
-      const result = arrayEmptyTransform(query, options);
+      const result = emptyTransform(query, options);
 
       // Both the IS NULL and len() children should use alias column names
       const isNullChild = (result as any).children[0];
@@ -103,7 +103,7 @@ describe('arrayEmptyTransform', () => {
         memberInfo: { name: 'column', type: 'string' as const, sql: 'column' },
       };
 
-      const result = arrayEmptyTransform(query, options);
+      const result = emptyTransform(query, options);
 
       expect(result).toEqual({
         class: 'OPERATOR',
@@ -126,7 +126,7 @@ describe('arrayEmptyTransform', () => {
         memberInfo: { name: 'column', type: 'string_array' as const, sql: 'column' },
       };
 
-      expect(() => arrayEmptyTransform(query, options)).not.toThrow();
+      expect(() => emptyTransform(query, options)).not.toThrow();
     });
 
     it('should not throw if memberInfo is not present', () => {
@@ -134,7 +134,7 @@ describe('arrayEmptyTransform', () => {
         member: 'table.column',
       };
 
-      expect(() => arrayEmptyTransform(query, options)).not.toThrow();
+      expect(() => emptyTransform(query, options)).not.toThrow();
     });
   });
 });
