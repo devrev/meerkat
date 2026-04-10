@@ -100,15 +100,27 @@ describe('arrayNotEmptyTransform', () => {
   describe('type validation', () => {
     const options: CreateColumnRefOptions = { isAlias: false };
 
-    it('should throw if memberInfo type is not an array', () => {
+    it('should return IS NOT NULL for non-array types', () => {
       const query = {
         member: 'table.column',
         memberInfo: { name: 'column', type: 'string' as const, sql: 'column' },
       };
 
-      expect(() => arrayNotEmptyTransform(query, options)).toThrow(
-        'arrayNotEmpty operator requires an array column'
-      );
+      const result = arrayNotEmptyTransform(query, options);
+
+      expect(result).toEqual({
+        class: 'OPERATOR',
+        type: 'OPERATOR_IS_NOT_NULL',
+        alias: '',
+        children: [
+          {
+            class: 'COLUMN_REF',
+            type: 'COLUMN_REF',
+            alias: '',
+            column_names: ['table', 'column'],
+          },
+        ],
+      });
     });
 
     it('should not throw if memberInfo type is number_array', () => {

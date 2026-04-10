@@ -55,10 +55,19 @@ const arrayNotEmptyCondition = (
   };
 };
 
+const notNullCondition = (
+  columnName: string,
+  options: { isAlias: boolean }
+) => ({
+  class: ExpressionClass.OPERATOR,
+  type: ExpressionType.OPERATOR_IS_NOT_NULL,
+  alias: '',
+  children: [createColumnRef(columnName, { isAlias: options.isAlias })],
+});
+
 /**
- * Generates: (col IS NOT NULL AND len(col) > 0)
- *
- * Only valid for array columns. Throws if the member type is not an array.
+ * For array columns: (col IS NOT NULL AND len(col) > 0)
+ * For non-array columns: (col IS NOT NULL)
  */
 export const arrayNotEmptyTransform: CubeToParseExpressionTransform = (
   query,
@@ -72,9 +81,7 @@ export const arrayNotEmptyTransform: CubeToParseExpressionTransform = (
       case 'number_array':
         return arrayNotEmptyCondition(member, options);
       default:
-        throw new Error(
-          `arrayNotEmpty operator requires an array column, but "${member}" has type "${memberInfo.type}"`
-        );
+        return notNullCondition(member, options);
     }
   }
 
