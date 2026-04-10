@@ -5,7 +5,7 @@ import {
 import { createColumnRef } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 
-const arrayNotEmptyCondition = (
+const emptyCondition = (
   columnName: string,
   options: { isAlias: boolean }
 ) => {
@@ -13,18 +13,18 @@ const arrayNotEmptyCondition = (
 
   return {
     class: ExpressionClass.CONJUNCTION,
-    type: ExpressionType.CONJUNCTION_AND,
+    type: ExpressionType.CONJUNCTION_OR,
     alias: '',
     children: [
       {
         class: ExpressionClass.OPERATOR,
-        type: ExpressionType.OPERATOR_IS_NOT_NULL,
+        type: ExpressionType.OPERATOR_IS_NULL,
         alias: '',
         children: [columnRef],
       },
       {
         class: ExpressionClass.COMPARISON,
-        type: ExpressionType.COMPARE_GREATERTHAN,
+        type: ExpressionType.COMPARE_EQUAL,
         alias: '',
         left: {
           class: ExpressionClass.FUNCTION,
@@ -55,12 +55,21 @@ const arrayNotEmptyCondition = (
   };
 };
 
+const nullCondition = (
+  columnName: string,
+  options: { isAlias: boolean }
+) => ({
+  class: ExpressionClass.OPERATOR,
+  type: ExpressionType.OPERATOR_IS_NULL,
+  alias: '',
+  children: [createColumnRef(columnName, { isAlias: options.isAlias })],
+});
+
 /**
- * Generates: (col IS NOT NULL AND len(col) > 0)
- *
- * Only valid for array columns. Throws if the member type is not an array.
+ * For array columns: (col IS NULL OR len(col) = 0)
+ * For primitive columns: (col IS NULL)
  */
-export const arrayNotEmptyTransform: CubeToParseExpressionTransform = (
+export const emptyTransform: CubeToParseExpressionTransform = (
   query,
   options
 ) => {
@@ -70,13 +79,11 @@ export const arrayNotEmptyTransform: CubeToParseExpressionTransform = (
     switch (memberInfo.type) {
       case 'string_array':
       case 'number_array':
-        return arrayNotEmptyCondition(member, options);
+        return emptyCondition(member, options);
       default:
-        throw new Error(
-          `arrayNotEmpty operator requires an array column, but "${member}" has type "${memberInfo.type}"`
-        );
+        return nullCondition(member, options);
     }
   }
 
-  return arrayNotEmptyCondition(member, options);
+  return emptyCondition(member, options);
 };

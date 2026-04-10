@@ -1,11 +1,11 @@
 import {
-  ExpressionClass,
-  ExpressionType,
+    ExpressionClass,
+    ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
 import { createColumnRef } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
 
-const arrayEmptyCondition = (
+const notEmptyCondition = (
   columnName: string,
   options: { isAlias: boolean }
 ) => {
@@ -13,18 +13,18 @@ const arrayEmptyCondition = (
 
   return {
     class: ExpressionClass.CONJUNCTION,
-    type: ExpressionType.CONJUNCTION_OR,
+    type: ExpressionType.CONJUNCTION_AND,
     alias: '',
     children: [
       {
         class: ExpressionClass.OPERATOR,
-        type: ExpressionType.OPERATOR_IS_NULL,
+        type: ExpressionType.OPERATOR_IS_NOT_NULL,
         alias: '',
         children: [columnRef],
       },
       {
         class: ExpressionClass.COMPARISON,
-        type: ExpressionType.COMPARE_EQUAL,
+        type: ExpressionType.COMPARE_GREATERTHAN,
         alias: '',
         left: {
           class: ExpressionClass.FUNCTION,
@@ -55,12 +55,21 @@ const arrayEmptyCondition = (
   };
 };
 
+const notNullCondition = (
+  columnName: string,
+  options: { isAlias: boolean }
+) => ({
+  class: ExpressionClass.OPERATOR,
+  type: ExpressionType.OPERATOR_IS_NOT_NULL,
+  alias: '',
+  children: [createColumnRef(columnName, { isAlias: options.isAlias })],
+});
+
 /**
- * Generates: (col IS NULL OR len(col) = 0)
- *
- * Only valid for array columns. Throws if the member type is not an array.
+ * For array columns: (col IS NOT NULL AND len(col) > 0)
+ * For primitive columns: (col IS NOT NULL)
  */
-export const arrayEmptyTransform: CubeToParseExpressionTransform = (
+export const notEmptyTransform: CubeToParseExpressionTransform = (
   query,
   options
 ) => {
@@ -70,13 +79,11 @@ export const arrayEmptyTransform: CubeToParseExpressionTransform = (
     switch (memberInfo.type) {
       case 'string_array':
       case 'number_array':
-        return arrayEmptyCondition(member, options);
+        return notEmptyCondition(member, options);
       default:
-        throw new Error(
-          `arrayEmpty operator requires an array column, but "${member}" has type "${memberInfo.type}"`
-        );
+        return notNullCondition(member, options);
     }
   }
 
-  return arrayEmptyCondition(member, options);
+  return notEmptyCondition(member, options);
 };

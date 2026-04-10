@@ -1,7 +1,7 @@
 import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
-import { arrayNotEmptyTransform } from './array-not-empty';
+import { notEmptyTransform } from './not-empty';
 
-describe('arrayNotEmptyTransform', () => {
+describe('notEmptyTransform', () => {
   describe('isAlias: false (base column refs)', () => {
     const options: CreateColumnRefOptions = {
       isAlias: false,
@@ -12,7 +12,7 @@ describe('arrayNotEmptyTransform', () => {
         member: 'table.column',
       };
 
-      const result = arrayNotEmptyTransform(query, options);
+      const result = notEmptyTransform(query, options);
 
       expect(result).toEqual({
         class: 'CONJUNCTION',
@@ -83,7 +83,7 @@ describe('arrayNotEmptyTransform', () => {
         member: 'table.column',
       };
 
-      const result = arrayNotEmptyTransform(query, options);
+      const result = notEmptyTransform(query, options);
 
       const isNotNullChild = (result as any).children[0];
       const lenChild = (result as any).children[1];
@@ -100,15 +100,27 @@ describe('arrayNotEmptyTransform', () => {
   describe('type validation', () => {
     const options: CreateColumnRefOptions = { isAlias: false };
 
-    it('should throw if memberInfo type is not an array', () => {
+    it('should return IS NOT NULL for primitive types', () => {
       const query = {
         member: 'table.column',
         memberInfo: { name: 'column', type: 'string' as const, sql: 'column' },
       };
 
-      expect(() => arrayNotEmptyTransform(query, options)).toThrow(
-        'arrayNotEmpty operator requires an array column'
-      );
+      const result = notEmptyTransform(query, options);
+
+      expect(result).toEqual({
+        class: 'OPERATOR',
+        type: 'OPERATOR_IS_NOT_NULL',
+        alias: '',
+        children: [
+          {
+            class: 'COLUMN_REF',
+            type: 'COLUMN_REF',
+            alias: '',
+            column_names: ['table', 'column'],
+          },
+        ],
+      });
     });
 
     it('should not throw if memberInfo type is number_array', () => {
@@ -117,7 +129,7 @@ describe('arrayNotEmptyTransform', () => {
         memberInfo: { name: 'column', type: 'number_array' as const, sql: 'column' },
       };
 
-      expect(() => arrayNotEmptyTransform(query, options)).not.toThrow();
+      expect(() => notEmptyTransform(query, options)).not.toThrow();
     });
 
     it('should not throw if memberInfo is not present', () => {
@@ -125,7 +137,7 @@ describe('arrayNotEmptyTransform', () => {
         member: 'table.column',
       };
 
-      expect(() => arrayNotEmptyTransform(query, options)).not.toThrow();
+      expect(() => notEmptyTransform(query, options)).not.toThrow();
     });
   });
 });

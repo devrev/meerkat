@@ -1,24 +1,23 @@
 import {
-  QueryFilterWithInfo,
-  QueryFiltersWithInfo,
-  QueryOperatorsWithInfo,
+    QueryFilterWithInfo,
+    QueryFiltersWithInfo,
+    QueryOperatorsWithInfo,
 } from '../cube-to-duckdb/cube-filter-to-duckdb';
 import { ParsedExpression } from '../types/duckdb-serialization-types/serialization/ParsedExpression';
 import { SelectNode } from '../types/duckdb-serialization-types/serialization/QueryNode';
 import { SelectStatement } from '../types/duckdb-serialization-types/serialization/Statement';
 import {
-  hasChildren,
-  isFilterArray,
-  isLogicalAnd,
-  isLogicalAndOR,
-  isLogicalOr,
-  isQueryFilter,
+    hasChildren,
+    isFilterArray,
+    isLogicalAnd,
+    isLogicalAndOR,
+    isLogicalOr,
+    isQueryFilter,
 } from '../utils/type-guards';
 import { andDuckdbCondition } from './and/and';
-import { arrayEmptyTransform } from './array-empty/array-empty';
-import { arrayNotEmptyTransform } from './array-not-empty/array-not-empty';
 import { CreateColumnRefOptions } from './base-condition-builder/base-condition-builder';
 import { containsTransform } from './contains/contains';
+import { emptyTransform } from './empty/empty';
 import { equalsTransform } from './equals/equals';
 import { gtTransform } from './gt/gt';
 import { gteTransform } from './gte/gte';
@@ -28,6 +27,7 @@ import { ltTransform } from './lt/lt';
 import { lteTransform } from './lte/lte';
 import { notInDataRangeTransform } from './not-In-date-range/not-In-date-range';
 import { notContainsTransform } from './not-contains/not-contains';
+import { notEmptyTransform } from './not-empty/not-empty';
 import { notEqualsTransform } from './not-equals/not-equals';
 import { notInTransform } from './not-in/not-in';
 import { notSetTransform } from './not-set/not-set';
@@ -75,11 +75,11 @@ const cubeFilterOperatorsToDuckdb = (
     case 'set': {
       return setTransform(cubeFilter, options);
     }
-    case 'arrayEmpty': {
-      return arrayEmptyTransform(cubeFilter, options);
+    case 'empty': {
+      return emptyTransform(cubeFilter, options);
     }
-    case 'arrayNotEmpty': {
-      return arrayNotEmptyTransform(cubeFilter, options);
+    case 'notEmpty': {
+      return notEmptyTransform(cubeFilter, options);
     }
     default:
       throw new Error('Could not transform the filter');
