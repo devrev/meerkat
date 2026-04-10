@@ -44,6 +44,8 @@ type FilterOperator =
   | 'lte'
   | 'set'
   | 'notSet'
+  | 'arrayEmpty'
+  | 'arrayNotEmpty'
   | 'inDateRange'
   | 'notInDateRange'
   | 'onTheDate'
