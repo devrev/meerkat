@@ -32,5 +32,6 @@
     "javascriptreact",
     "typescript",
     "typescriptreact"
-  ]
+  ],
+  "vitest.workspaceConfig": "./vitest.workspace.ts"
 }
