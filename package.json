@@ -19,7 +19,7 @@
     "lodash.isnil": "^4.0.0",
     "loglevel": "^1.8.1",
     "next": "16.2.3",
-    "puppeteer": "24.40.0",
+    "puppeteer": "24.32.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "^6.30.3",
