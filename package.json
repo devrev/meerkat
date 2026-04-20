@@ -108,6 +108,8 @@
       "tar": ">=7.5.7"
     },
     "vitest": "^4.0.18",
-    "@tootallnate/once": "^3.0.1"
+    "@tootallnate/once": "^3.0.1",
+    "basic-ftp": ">=5.3.0",
+    "follow-redirects": ">=1.16.0"
   }
 }
