@@ -88,14 +88,14 @@ describe('ensureTableSchemaAliasSql', () => {
     expect(ensureExpressionAlias).toHaveBeenCalledTimes(2);
     expect(ensureExpressionAlias).toHaveBeenCalledWith({
       items: expect.arrayContaining([
-        {
+        expect.objectContaining({
           sql: 'SUM(order_amount)',
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'gross_amount',
             memberType: 'measure',
-          },
-        },
+          }),
+        }),
       ]),
     });
   });
@@ -220,38 +220,38 @@ describe('ensureTableSchemaAliasSql', () => {
     expect(ensureExpressionAlias).toHaveBeenCalledTimes(2);
     expect(ensureExpressionAlias).toHaveBeenNthCalledWith(1, {
       items: [
-        {
+        expect.objectContaining({
           sql: 'SUM(order_amount)',
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'gross_amount',
             memberType: 'measure',
-          },
-        },
-        {
+          }),
+        }),
+        expect.objectContaining({
           sql: 'SUM(order_amount - discount_amount)',
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'net_amount',
             memberType: 'measure',
-          },
-        },
-        {
+          }),
+        }),
+        expect.objectContaining({
           sql: 'customer_id',
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'customer_id',
             memberType: 'dimension',
-          },
-        },
-        {
+          }),
+        }),
+        expect.objectContaining({
           sql: "DATE_TRUNC('month', created_at)",
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'order_month',
             memberType: 'dimension',
-          },
-        },
+          }),
+        }),
       ],
     });
     expect(result[0].measures.map((measure) => measure.sql)).toEqual([
@@ -284,39 +284,145 @@ describe('ensureTableSchemaAliasSql', () => {
     expect(ensureExpressionAlias).toHaveBeenCalled();
     expect(ensureExpressionAlias).toHaveBeenCalledWith({
       items: [
-        {
+        expect.objectContaining({
           sql: 'SUM(order_amount)',
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'gross_amount',
             memberType: 'measure',
-          },
-        },
-        {
+          }),
+        }),
+        expect.objectContaining({
           sql: 'SUM(order_amount - discount_amount)',
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'net_amount',
             memberType: 'measure',
-          },
-        },
-        {
+          }),
+        }),
+        expect.objectContaining({
           sql: 'customer_id',
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'customer_id',
             memberType: 'dimension',
-          },
-        },
-        {
+          }),
+        }),
+        expect.objectContaining({
           sql: "DATE_TRUNC('month', created_at)",
-          context: {
+          context: expect.objectContaining({
             tableName: 'orders',
             memberName: 'order_month',
             memberType: 'dimension',
-          },
-        },
+          }),
+        }),
       ],
     });
+  });
+
+  it('threads knownTableNames through the expression aliaser', async () => {
+    const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+    const ensureExpressionAlias = jest.fn(async ({ items }) =>
+      items.map(({ sql }: { sql: string }) => sql)
+    );
+
+    await ensureTableSchemaAliasSql({
+      tableSchemas,
+      ensureExpressionAlias,
+    });
+
+    const [firstCallArgs] = ensureExpressionAlias.mock.calls;
+    const [{ items: ordersItems }] = firstCallArgs;
+    expect(ordersItems[0].context.knownTableNames).toEqual(
+      new Set(['orders', 'customers'])
+    );
+  });
+
+  it('passes the same knownTableNames to every table in the batch', async () => {
+    const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+    const ensureExpressionAlias = jest.fn(async ({ items }) =>
+      items.map(({ sql }: { sql: string }) => sql)
+    );
+
+    await ensureTableSchemaAliasSql({
+      tableSchemas,
+      ensureExpressionAlias,
+    });
+
+    const expected = new Set(['orders', 'customers']);
+    for (const [call] of ensureExpressionAlias.mock.calls) {
+      for (const item of call.items) {
+        expect(item.context.knownTableNames).toEqual(expected);
+      }
+    }
+  });
+
+  it('uses a knownTableNames set derived from all provided schemas', async () => {
+    const schemas = [
+      ...createEnsureTableSchemaAliasSqlFixture(),
+      {
+        name: 'audit',
+        sql: 'SELECT * FROM audit',
+        measures: [
+          { name: 'total', sql: 'COUNT(id)', type: 'number' as const },
+        ],
+        dimensions: [],
+      },
+    ];
+    const ensureExpressionAlias = jest.fn(async ({ items }) =>
+      items.map(({ sql }: { sql: string }) => sql)
+    );
+
+    await ensureTableSchemaAliasSql({
+      tableSchemas: schemas,
+      ensureExpressionAlias,
+    });
+
+    const expected = new Set(['orders', 'customers', 'audit']);
+    const lastCall =
+      ensureExpressionAlias.mock.calls[
+        ensureExpressionAlias.mock.calls.length - 1
+      ][0];
+    expect(lastCall.items[0].context.knownTableNames).toEqual(expected);
+  });
+
+  it('does not mutate measures/dimensions when ensureExpressionAlias is a no-op', async () => {
+    const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+    const before = JSON.parse(JSON.stringify(tableSchemas));
+
+    const result = await ensureTableSchemaAliasSql({
+      tableSchemas,
+      ensureExpressionAlias: async ({ items }) =>
+        items.map(({ sql }: { sql: string }) => sql),
+    });
+
+    expect(tableSchemas).toEqual(before);
+    expect(result[0].measures[0].sql).toBe(
+      tableSchemas[0].measures[0].sql
+    );
+    expect(result[0]).not.toBe(tableSchemas[0]);
+    expect(result[0].measures).not.toBe(tableSchemas[0].measures);
+  });
+
+  it('handles schema with no measures or dimensions without calling aliaser', async () => {
+    const schemas = [
+      {
+        name: 'empty',
+        sql: 'SELECT 1',
+        measures: [],
+        dimensions: [],
+      },
+    ];
+    const ensureExpressionAlias = jest.fn(async ({ items }) =>
+      items.map(({ sql }: { sql: string }) => sql)
+    );
+
+    const result = await ensureTableSchemaAliasSql({
+      tableSchemas: schemas,
+      ensureExpressionAlias,
+    });
+
+    expect(ensureExpressionAlias).not.toHaveBeenCalled();
+    expect(result).toEqual(schemas);
   });
 });

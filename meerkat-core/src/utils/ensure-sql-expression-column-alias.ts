@@ -23,6 +23,12 @@ import { getChildExpressions } from './get-child-expressions';
 export interface EnsureColumnAliasBatchItem<TContext = unknown> {
   sql: string;
   tableName: string;
+  /**
+   * Names of all tables in the current schema batch. Used to distinguish a
+   * cross-table reference (e.g. `customers.id`) from struct field access
+   * (e.g. `stage.stage_id`) on multi-part column references.
+   */
+  knownTableNames?: Set<string>;
   context?: TContext;
 }
 
@@ -38,29 +44,56 @@ export interface EnsureColumnAliasBatchParams<TContext = unknown> {
 
 const ALIASABLE_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+const isAliasableIdentifier = (identifier: string | undefined): boolean => {
+  if (!identifier) {
+    return false;
+  }
+  if (/\s/.test(identifier)) {
+    return false;
+  }
+  return ALIASABLE_IDENTIFIER_REGEX.test(identifier);
+};
+
 const shouldEnsureColumnRefAlias = (
   columnNames: string[],
-  scopedIdentifiers: Set<string>
+  scopedIdentifiers: Set<string>,
+  tableName: string,
+  knownTableNames?: Set<string>
 ): boolean => {
-  if (columnNames.length !== 1) {
+  if (columnNames.length === 0) {
     return false;
   }
 
-  const [columnName] = columnNames;
+  const [root] = columnNames;
 
-  if (!columnName) {
+  if (!isAliasableIdentifier(root)) {
     return false;
   }
 
-  if (/\s/.test(columnName)) {
+  if (scopedIdentifiers.has(root)) {
     return false;
   }
 
-  if (scopedIdentifiers.has(columnName)) {
-    return false;
+  if (columnNames.length === 1) {
+    return true;
   }
 
-  return ALIASABLE_IDENTIFIER_REGEX.test(columnName);
+  if (columnNames.length === 2) {
+    if (root === tableName) {
+      return false;
+    }
+    // Without a schema batch, a two-part ref is ambiguous between
+    // `table.column` and `struct.field`; stay conservative.
+    if (!knownTableNames) {
+      return false;
+    }
+    if (knownTableNames.has(root)) {
+      return false;
+    }
+    return true;
+  }
+
+  return false;
 };
 
 const getLambdaBoundIdentifiers = (
@@ -84,14 +117,16 @@ const getLambdaBoundIdentifiers = (
 const ensureOrderByNodesAlias = (
   orders: OrderByNode[],
   scopedIdentifiers: Set<string>,
-  tableName?: string
+  tableName?: string,
+  knownTableNames?: Set<string>
 ): boolean => {
   return orders.reduce(
     (changed, order) =>
       ensureParsedExpressionAlias(
         order.expression,
         tableName,
-        scopedIdentifiers
+        scopedIdentifiers,
+        knownTableNames
       ) || changed,
     false
   );
@@ -124,7 +159,8 @@ const isLimitLikeModifier = (
 const ensureQueryNodeAlias = (
   node: QueryNode,
   tableName?: string,
-  scopedIdentifiers: Set<string> = new Set()
+  scopedIdentifiers: Set<string> = new Set(),
+  knownTableNames?: Set<string>
 ): boolean => {
   if (isSelectNode(node)) {
     let changed = false;
@@ -134,7 +170,8 @@ const ensureQueryNodeAlias = (
         ensureParsedExpressionAlias(
           expression,
           tableName,
-          scopedIdentifiers
+          scopedIdentifiers,
+          knownTableNames
         ) || changed;
     });
     changed =
@@ -142,7 +179,8 @@ const ensureQueryNodeAlias = (
         ? ensureParsedExpressionAlias(
             node.where_clause,
             tableName,
-            scopedIdentifiers
+            scopedIdentifiers,
+            knownTableNames
           )
         : false) || changed;
     node.group_expressions.forEach((expression) => {
@@ -150,7 +188,8 @@ const ensureQueryNodeAlias = (
         ensureParsedExpressionAlias(
           expression,
           tableName,
-          scopedIdentifiers
+          scopedIdentifiers,
+          knownTableNames
         ) || changed;
     });
     changed =
@@ -158,7 +197,8 @@ const ensureQueryNodeAlias = (
         ? ensureParsedExpressionAlias(
             node.having,
             tableName,
-            scopedIdentifiers
+            scopedIdentifiers,
+            knownTableNames
           )
         : false) || changed;
     changed =
@@ -166,7 +206,8 @@ const ensureQueryNodeAlias = (
         ? ensureParsedExpressionAlias(
             node.qualify,
             tableName,
-            scopedIdentifiers
+            scopedIdentifiers,
+            knownTableNames
           )
         : false) || changed;
 
@@ -176,7 +217,8 @@ const ensureQueryNodeAlias = (
           ensureOrderByNodesAlias(
             modifier.orders,
             scopedIdentifiers,
-            tableName
+            tableName,
+            knownTableNames
           ) || changed;
       }
 
@@ -187,7 +229,8 @@ const ensureQueryNodeAlias = (
               ensureParsedExpressionAlias(
                 target,
                 tableName,
-                scopedIdentifiers
+                scopedIdentifiers,
+                knownTableNames
               ) || changed)
         );
       }
@@ -198,7 +241,8 @@ const ensureQueryNodeAlias = (
             ? ensureParsedExpressionAlias(
                 modifier.limit,
                 tableName,
-                scopedIdentifiers
+                scopedIdentifiers,
+                knownTableNames
               )
             : false) || changed;
         changed =
@@ -206,7 +250,8 @@ const ensureQueryNodeAlias = (
             ? ensureParsedExpressionAlias(
                 modifier.offset,
                 tableName,
-                scopedIdentifiers
+                scopedIdentifiers,
+                knownTableNames
               )
             : false) || changed;
       }
@@ -218,27 +263,57 @@ const ensureQueryNodeAlias = (
   if (node.type === QueryNodeType.SET_OPERATION_NODE) {
     let changed = false;
     changed =
-      ensureQueryNodeAlias(node.left, tableName, scopedIdentifiers) || changed;
+      ensureQueryNodeAlias(
+        node.left,
+        tableName,
+        scopedIdentifiers,
+        knownTableNames
+      ) || changed;
     changed =
-      ensureQueryNodeAlias(node.right, tableName, scopedIdentifiers) || changed;
+      ensureQueryNodeAlias(
+        node.right,
+        tableName,
+        scopedIdentifiers,
+        knownTableNames
+      ) || changed;
     return changed;
   }
 
   if (node.type === QueryNodeType.RECURSIVE_CTE_NODE) {
     let changed = false;
     changed =
-      ensureQueryNodeAlias(node.left, tableName, scopedIdentifiers) || changed;
+      ensureQueryNodeAlias(
+        node.left,
+        tableName,
+        scopedIdentifiers,
+        knownTableNames
+      ) || changed;
     changed =
-      ensureQueryNodeAlias(node.right, tableName, scopedIdentifiers) || changed;
+      ensureQueryNodeAlias(
+        node.right,
+        tableName,
+        scopedIdentifiers,
+        knownTableNames
+      ) || changed;
     return changed;
   }
 
   if (node.type === QueryNodeType.CTE_NODE) {
     let changed = false;
     changed =
-      ensureQueryNodeAlias(node.query, tableName, scopedIdentifiers) || changed;
+      ensureQueryNodeAlias(
+        node.query,
+        tableName,
+        scopedIdentifiers,
+        knownTableNames
+      ) || changed;
     changed =
-      ensureQueryNodeAlias(node.child, tableName, scopedIdentifiers) || changed;
+      ensureQueryNodeAlias(
+        node.child,
+        tableName,
+        scopedIdentifiers,
+        knownTableNames
+      ) || changed;
     return changed;
   }
 
@@ -248,15 +323,23 @@ const ensureQueryNodeAlias = (
 const ensureParsedExpressionAlias = (
   node: ParsedExpression,
   tableName?: string,
-  scopedIdentifiers: Set<string> = new Set()
+  scopedIdentifiers: Set<string> = new Set(),
+  knownTableNames?: Set<string>
 ): boolean => {
   if (!node || !tableName) {
     return false;
   }
 
   if (isColumnRefExpression(node)) {
-    if (shouldEnsureColumnRefAlias(node.column_names, scopedIdentifiers)) {
-      node.column_names = [tableName, node.column_names[0]];
+    if (
+      shouldEnsureColumnRefAlias(
+        node.column_names,
+        scopedIdentifiers,
+        tableName,
+        knownTableNames
+      )
+    ) {
+      node.column_names = [tableName, ...node.column_names];
       return true;
     }
     return false;
@@ -272,7 +355,8 @@ const ensureParsedExpressionAlias = (
       ? ensureParsedExpressionAlias(
           node.expr,
           tableName,
-          lambdaScopedIdentifiers
+          lambdaScopedIdentifiers,
+          knownTableNames
         )
       : false;
   }
@@ -281,14 +365,16 @@ const ensureParsedExpressionAlias = (
     let changed = ensureQueryNodeAlias(
       node.subquery.node,
       tableName,
-      scopedIdentifiers
+      scopedIdentifiers,
+      knownTableNames
     );
     if (node.child) {
       changed =
         ensureParsedExpressionAlias(
           node.child,
           tableName,
-          scopedIdentifiers
+          scopedIdentifiers,
+          knownTableNames
         ) || changed;
     }
     return changed;
@@ -296,8 +382,12 @@ const ensureParsedExpressionAlias = (
 
   return getChildExpressions(node).reduce(
     (changed, child) =>
-      ensureParsedExpressionAlias(child, tableName, scopedIdentifiers) ||
-      changed,
+      ensureParsedExpressionAlias(
+        child,
+        tableName,
+        scopedIdentifiers,
+        knownTableNames
+      ) || changed,
     false
   );
 };
@@ -336,7 +426,9 @@ export const ensureColumnAliasBatch = async <TContext = unknown>({
   parsedExpressions.forEach((parsedExpression, index) => {
     const didChange = ensureParsedExpressionAlias(
       parsedExpression,
-      items[index].tableName
+      items[index].tableName,
+      new Set(),
+      items[index].knownTableNames
     );
     if (!didChange) {
       return;

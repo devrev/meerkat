@@ -7,6 +7,12 @@ export interface EnsureAliasExpressionContext {
   tableName: string;
   memberName: string;
   memberType: MemberType;
+  /**
+   * Names of all tables in the current schema batch. Used to treat
+   * `otherTable.col` as an intentional cross-table reference rather than a
+   * struct access.
+   */
+  knownTableNames?: Set<string>;
 }
 
 export interface EnsureTableSchemaAliasSqlParams {
@@ -29,11 +35,13 @@ const collectAliasableDescriptors = ({
   members,
   memberType,
   tableName,
+  knownTableNames,
   descriptors,
 }: {
   members: AliasableMember[];
   memberType: MemberType;
   tableName: string;
+  knownTableNames?: Set<string>;
   descriptors: AliasableMemberDescriptor[];
 }): void => {
   members.forEach((member) => {
@@ -43,6 +51,7 @@ const collectAliasableDescriptors = ({
         tableName,
         memberName: member.name,
         memberType,
+        knownTableNames,
       },
       apply: (aliasedSql: string) => {
         member.sql = aliasedSql;
@@ -93,6 +102,8 @@ export const ensureTableSchemaAliasSql = async ({
   tableSchemas,
   ensureExpressionAlias,
 }: EnsureTableSchemaAliasSqlParams): Promise<TableSchema[]> => {
+  const knownTableNames = new Set(tableSchemas.map((s) => s.name));
+
   return Promise.all(
     tableSchemas.map(async (tableSchema) => {
       const aliasedTableSchema: TableSchema = {
@@ -108,12 +119,14 @@ export const ensureTableSchemaAliasSql = async ({
         members: aliasedTableSchema.measures,
         memberType: 'measure',
         tableName: tableSchema.name,
+        knownTableNames,
         descriptors,
       });
       collectAliasableDescriptors({
         members: aliasedTableSchema.dimensions,
         memberType: 'dimension',
         tableName: tableSchema.name,
+        knownTableNames,
         descriptors,
       });
 

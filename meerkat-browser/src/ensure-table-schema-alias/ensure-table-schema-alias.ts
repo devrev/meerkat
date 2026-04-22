@@ -33,6 +33,7 @@ export const ensureTableSchemasAlias = async ({
         items: items.map((item) => ({
           sql: item.sql,
           tableName: item.context.tableName,
+          knownTableNames: item.context.knownTableNames,
         })),
         executeQuery,
       });
