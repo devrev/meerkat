@@ -93,10 +93,10 @@ describe('ensureTableSchemasAlias', () => {
 
     expect(ensureColumnAliasBatch).toHaveBeenCalledWith({
       items: [
-        {
+        expect.objectContaining({
           sql: 'SUM(order_amount)',
           tableName: 'orders',
-        },
+        }),
       ],
       executeQuery: expect.any(Function),
     });

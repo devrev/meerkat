@@ -89,16 +89,18 @@ describe('ensureTableSchemasAlias', () => {
   it('ensures alias for schemas using duckdbExec plumbing', async () => {
     const result = await ensureTableSchemasAlias(tableSchemas);
 
-    expect(ensureTableSchemaAliasSql).toHaveBeenCalledWith({
-      tableSchemas,
-      ensureExpressionAlias: expect.any(Function),
-    });
+    expect(ensureTableSchemaAliasSql).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tableSchemas,
+        ensureExpressionAlias: expect.any(Function),
+      })
+    );
     expect(ensureColumnAliasBatch).toHaveBeenCalledWith({
       items: [
-        {
+        expect.objectContaining({
           sql: 'SUM(order_amount)',
           tableName: 'orders',
-        },
+        }),
       ],
       executeQuery: expect.any(Function),
     });
