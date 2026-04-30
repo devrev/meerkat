@@ -4,7 +4,7 @@
   "dependencies": {
     "tslib": "^2.3.0",
     "@devrev/meerkat-core": "*",
-    "@duckdb/duckdb-wasm": "1.29.1-dev266.0"
+    "@duckdb/duckdb-wasm": "1.32.0"
   },
   "scripts": {
     "release": "semantic-release"
