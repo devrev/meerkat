@@ -177,6 +177,18 @@ describe('ensureTableSchemaAliasSql integration', () => {
 
     const aliasedSchemas = await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: {
+        measures: [
+          'orders.total_amount',
+          'orders.conditional_amount',
+          'orders.blended_amount',
+        ],
+        dimensions: [
+          'orders.order_month',
+          'orders.customer_id',
+          'orders.order_health',
+        ],
+      },
       ensureExpressionAlias: async ({ items }) => {
         const aliasedItems = await ensureColumnAliasBatch({
           items: items.map((item) => ({
@@ -253,6 +265,10 @@ describe('ensureTableSchemaAliasSql integration', () => {
 
     const aliasedSchemas = await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: {
+        measures: ['orders.blended_amount', 'orders.between_amount'],
+        dimensions: ['orders.order_health', 'orders.order_month'],
+      },
       ensureExpressionAlias: async ({ items }) => {
         const aliasedItems = await ensureColumnAliasBatch({
           items: items.map((item) => ({
