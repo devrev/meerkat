@@ -1,3 +1,4 @@
+import { getUsedMembers } from '../get-used-members/get-used-members';
 import {
   Dimension,
   Measure,
@@ -24,9 +25,8 @@ export interface EnsureTableSchemaAliasSqlParams {
   tableSchemas: TableSchema[];
   /**
    * Query whose member references drive which table-schema members are
-   * aliased. Members that the query does not reach are left untouched and
-   * never sent through `ensureExpressionAlias` — this is the primary
-   * optimization when tenants have thousands of dimensions.
+   * aliased. Members the query does not reach pass through untouched —
+   * critical for tenants with thousands of dimensions.
    */
   query: Query;
   ensureExpressionAlias: (params: {
@@ -43,60 +43,23 @@ interface AliasableMemberDescriptor {
   apply: (aliasedSql: string) => void;
 }
 
-const collectFilterMembers = (filter: unknown, acc: Set<string>): void => {
-  if (!filter || typeof filter !== 'object') {
-    return;
-  }
-  const candidate = filter as {
-    and?: unknown[];
-    or?: unknown[];
-    member?: string;
-  };
-  if (Array.isArray(candidate.and)) {
-    candidate.and.forEach((child) => collectFilterMembers(child, acc));
-    return;
-  }
-  if (Array.isArray(candidate.or)) {
-    candidate.or.forEach((child) => collectFilterMembers(child, acc));
-    return;
-  }
-  if (typeof candidate.member === 'string') {
-    acc.add(candidate.member);
-  }
-};
-
-const collectReferencedMembers = (query: Query): Set<string> => {
-  const referenced = new Set<string>();
-
-  query.measures.forEach((m) => referenced.add(m));
-  query.dimensions?.forEach((d) => referenced.add(d));
-
-  if (query.order) {
-    Object.keys(query.order).forEach((m) => referenced.add(m));
-  }
-
-  query.filters?.forEach((filter) => collectFilterMembers(filter, referenced));
-
-  return referenced;
-};
-
 const collectAliasableDescriptors = ({
   members,
   memberType,
   tableName,
   knownTableNames,
-  referencedMembers,
+  usedMembers,
   descriptors,
 }: {
   members: AliasableMember[];
   memberType: MemberType;
   tableName: string;
   knownTableNames?: Set<string>;
-  referencedMembers: Set<string>;
+  usedMembers: Set<string>;
   descriptors: AliasableMemberDescriptor[];
 }): void => {
   members.forEach((member) => {
-    if (!referencedMembers.has(`${tableName}.${member.name}`)) {
+    if (!usedMembers.has(`${tableName}.${member.name}`)) {
       return;
     }
     descriptors.push({
@@ -152,13 +115,19 @@ const ensureDescriptorBatchAlias = async ({
   }
 };
 
+/**
+ * Rewrites measure/dimension SQL on each table schema to prefix bare
+ * column refs with the table name. Only members used by `query` go
+ * through `ensureExpressionAlias`; `TableSchema.joins[].sql` is already
+ * fully qualified and is preserved as-is.
+ */
 export const ensureTableSchemaAliasSql = async ({
   tableSchemas,
   query,
   ensureExpressionAlias,
 }: EnsureTableSchemaAliasSqlParams): Promise<TableSchema[]> => {
   const knownTableNames = new Set(tableSchemas.map((s) => s.name));
-  const referencedMembers = collectReferencedMembers(query);
+  const usedMembers = getUsedMembers(query);
 
   return Promise.all(
     tableSchemas.map(async (tableSchema) => {
@@ -176,7 +145,7 @@ export const ensureTableSchemaAliasSql = async ({
         memberType: 'measure',
         tableName: tableSchema.name,
         knownTableNames,
-        referencedMembers,
+        usedMembers,
         descriptors,
       });
       collectAliasableDescriptors({
@@ -184,7 +153,7 @@ export const ensureTableSchemaAliasSql = async ({
         memberType: 'dimension',
         tableName: tableSchema.name,
         knownTableNames,
-        referencedMembers,
+        usedMembers,
         descriptors,
       });
 
