@@ -328,6 +328,67 @@ const expressionAstBySql: Record<string, ParsedExpression> = {
   }),
   "'customer_id'": createStringConstant('customer_id'),
   '"Order ID"': createColumnRef('Order ID'),
+  'stage.stage_id': createColumnRef(['stage', 'stage_id']),
+  'issue.stage.stage_id': createColumnRef(['issue', 'stage', 'stage_id']),
+  'COUNT(stage.stage_id)': createFunction({
+    functionName: 'COUNT',
+    children: [createColumnRef(['stage', 'stage_id'])],
+  }),
+  'foo.bar': createColumnRef(['foo', 'bar']),
+  missing_column: createColumnRef('missing_column'),
+  'stage.stage_id + amount': createFunction({
+    functionName: '+',
+    children: [
+      createColumnRef(['stage', 'stage_id']),
+      createColumnRef('amount'),
+    ],
+    isOperator: true,
+  }),
+  'stage.stage_id = devusers.id': createComparison({
+    type: ExpressionType.COMPARE_EQUAL,
+    left: createColumnRef(['stage', 'stage_id']),
+    right: createColumnRef(['devusers', 'id']),
+  }),
+  'CASE WHEN stage.stage_id = 1 THEN owner.id END': createCase({
+    whenExpr: createComparison({
+      type: ExpressionType.COMPARE_EQUAL,
+      left: createColumnRef(['stage', 'stage_id']),
+      right: {
+        class: ExpressionClass.CONSTANT,
+        type: ExpressionType.VALUE_CONSTANT,
+        alias: '',
+        value: {
+          type: { id: 'INTEGER', type_info: null },
+          is_null: false,
+          value: 1,
+        },
+      } as ParsedExpression,
+    }),
+    thenExpr: createColumnRef(['owner', 'id']),
+    elseExpr: {
+      class: ExpressionClass.CONSTANT,
+      type: ExpressionType.VALUE_CONSTANT,
+      alias: '',
+      value: {
+        type: { id: 'NULL', type_info: null },
+        is_null: true,
+      },
+    } as ParsedExpression,
+  }),
+  'SUM(stage.stage_id)': createFunction({
+    functionName: 'SUM',
+    children: [createColumnRef(['stage', 'stage_id'])],
+  }),
+  'list_transform(stage.items, x -> x)': createFunction({
+    functionName: 'list_transform',
+    children: [
+      createColumnRef(['stage', 'items']),
+      createLambda({
+        lhs: createColumnRef('x'),
+        expr: createColumnRef('x'),
+      }),
+    ],
+  }),
   "list_transform(priority_tags, x -> CASE WHEN x = 1 THEN 'P1' ELSE 'Unknown' END)":
     createFunction({
       functionName: 'list_transform',
@@ -564,6 +625,241 @@ describe('column refs with quotes and dots are not re-aliased', () => {
   it('does not alias an already dot-qualified column ref from a different table', async () => {
     const result = await ensureSingleColumnAlias('customers.id', 'orders');
     expect(result).toBe('customers.id');
+  });
+});
+
+describe('schema-aware struct field aliasing', () => {
+  const runWithContext = async ({
+    sql,
+    tableName,
+    knownTableNames,
+  }: {
+    sql: string;
+    tableName: string;
+    knownTableNames?: string[];
+  }) => {
+    const [result] = await ensureColumnAliasBatch({
+      items: [
+        {
+          sql,
+          tableName,
+          knownTableNames: knownTableNames
+            ? new Set(knownTableNames)
+            : undefined,
+        },
+      ],
+      executeQuery: dummyGetQueryOutput,
+    });
+    if (!result) {
+      throw new Error('Missing alias result');
+    }
+    return result.sql;
+  };
+
+  it('qualifies struct field access on a local column', async () => {
+    const result = await runWithContext({
+      sql: 'stage.stage_id',
+      tableName: 'issue',
+      knownTableNames: ['issue', 'devusers'],
+    });
+    expect(result).toBe('issue.stage.stage_id');
+  });
+
+  it('qualifies struct access inside an aggregate', async () => {
+    const result = await runWithContext({
+      sql: 'COUNT(stage.stage_id)',
+      tableName: 'issue',
+      knownTableNames: ['issue', 'devusers'],
+    });
+    expect(result).toBe('COUNT(issue.stage.stage_id)');
+  });
+
+  it('leaves cross-table references to a known table alias untouched', async () => {
+    const result = await runWithContext({
+      sql: 'customers.id',
+      tableName: 'orders',
+      knownTableNames: ['orders', 'customers'],
+    });
+    expect(result).toBe('customers.id');
+  });
+
+  it('does not double-qualify already-qualified struct access', async () => {
+    const result = await runWithContext({
+      sql: 'issue.stage.stage_id',
+      tableName: 'issue',
+      knownTableNames: ['issue'],
+    });
+    expect(result).toBe('issue.stage.stage_id');
+  });
+
+  it('falls back to legacy behavior when knownTableNames is omitted', async () => {
+    const result = await runWithContext({
+      sql: 'customer_id',
+      tableName: 'orders',
+    });
+    expect(result).toBe('orders.customer_id');
+  });
+});
+
+describe('schema-aware struct aliasing — extended coverage', () => {
+  const run = async ({
+    sql,
+    tableName,
+    knownTableNames,
+  }: {
+    sql: string;
+    tableName: string;
+    knownTableNames?: string[];
+  }) => {
+    const [result] = await ensureColumnAliasBatch({
+      items: [
+        {
+          sql,
+          tableName,
+          knownTableNames: knownTableNames
+            ? new Set(knownTableNames)
+            : undefined,
+        },
+      ],
+      executeQuery: dummyGetQueryOutput,
+    });
+    return result?.sql;
+  };
+
+  it('qualifies struct access mixed with bare columns in arithmetic', async () => {
+    const result = await run({
+      sql: 'stage.stage_id + amount',
+      tableName: 'issue',
+      knownTableNames: ['issue', 'devusers'],
+    });
+    expect(result).toBe('issue.stage.stage_id + issue.amount');
+  });
+
+  it('qualifies local struct but preserves cross-table ref in comparison', async () => {
+    const result = await run({
+      sql: 'stage.stage_id = devusers.id',
+      tableName: 'issue',
+      knownTableNames: ['issue', 'devusers'],
+    });
+    expect(result).toBe('issue.stage.stage_id = devusers.id');
+  });
+
+  it('qualifies struct access inside CASE branches', async () => {
+    const result = await run({
+      sql: 'CASE WHEN stage.stage_id = 1 THEN owner.id END',
+      tableName: 'issue',
+      knownTableNames: ['issue', 'devusers'],
+    });
+    expect(result).toBe(
+      'CASE WHEN issue.stage.stage_id = 1 THEN issue.owner.id END'
+    );
+  });
+
+  it('qualifies struct access inside SUM aggregate', async () => {
+    const result = await run({
+      sql: 'SUM(stage.stage_id)',
+      tableName: 'issue',
+      knownTableNames: ['issue', 'devusers'],
+    });
+    expect(result).toBe('SUM(issue.stage.stage_id)');
+  });
+
+  it('qualifies struct access inside lambda function argument but not lambda-bound identifier', async () => {
+    const result = await run({
+      sql: 'list_transform(stage.items, x -> x)',
+      tableName: 'issue',
+      knownTableNames: ['issue', 'devusers'],
+    });
+    expect(result).toBe('LIST_TRANSFORM(issue.stage.items, x -> x)');
+  });
+
+  it('treats ambiguous multi-part ref as cross-table when knownTableNames contains root', async () => {
+    const result = await run({
+      sql: 'customers.id',
+      tableName: 'orders',
+      knownTableNames: ['orders', 'customers'],
+    });
+    expect(result).toBe('customers.id');
+  });
+
+  it('qualifies multi-part ref with unknown root as struct when schema batch is present', async () => {
+    const result = await run({
+      sql: 'foo.bar',
+      tableName: 'issue',
+      knownTableNames: ['issue'],
+    });
+    expect(result).toBe('issue.foo.bar');
+  });
+
+  it('stays conservative on multi-part ref when knownTableNames is omitted', async () => {
+    const result = await run({
+      sql: 'foo.bar',
+      tableName: 'issue',
+    });
+    expect(result).toBe('foo.bar');
+  });
+
+  it('does not double-qualify when root matches table even without knownTableNames', async () => {
+    const result = await run({
+      sql: 'orders.order_amount',
+      tableName: 'orders',
+    });
+    expect(result).toBe('orders.order_amount');
+  });
+});
+
+describe('ensureColumnAliasBatch — batched mixed tables', () => {
+  it('applies per-item knownTableNames correctly within a single batch', async () => {
+    const results = await ensureColumnAliasBatch({
+      items: [
+        {
+          sql: 'stage.stage_id',
+          tableName: 'issue',
+          knownTableNames: new Set(['issue', 'devusers']),
+        },
+        {
+          sql: 'customers.id',
+          tableName: 'orders',
+          knownTableNames: new Set(['orders', 'customers']),
+        },
+        {
+          sql: 'customer_id',
+          tableName: 'orders',
+        },
+      ],
+      executeQuery: dummyGetQueryOutput,
+    });
+
+    expect(results.map((r) => r.sql)).toEqual([
+      'issue.stage.stage_id',
+      'customers.id',
+      'orders.customer_id',
+    ]);
+    expect(results.map((r) => r.didChange)).toEqual([true, false, true]);
+  });
+
+  it('preserves context per-item through batched aliasing', async () => {
+    const results = await ensureColumnAliasBatch({
+      items: [
+        {
+          sql: 'customer_id',
+          tableName: 'orders',
+          context: { memberName: 'a' },
+        },
+        {
+          sql: 'stage.stage_id',
+          tableName: 'issue',
+          knownTableNames: new Set(['issue']),
+          context: { memberName: 'b' },
+        },
+      ],
+      executeQuery: dummyGetQueryOutput,
+    });
+
+    expect(results.map((r) => r.context)).toEqual([
+      { memberName: 'a' },
+      { memberName: 'b' },
+    ]);
   });
 });
 
