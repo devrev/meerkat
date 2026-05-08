@@ -1,4 +1,4 @@
-import type { TableSchema } from '@devrev/meerkat-core';
+import type { Query, TableSchema } from '@devrev/meerkat-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -47,6 +47,11 @@ describe('ensureTableSchemasAlias', () => {
     },
   ];
 
+  const query: Query = {
+    measures: ['orders.gross_amount'],
+    dimensions: ['orders.customer_id'],
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     ensureColumnAliasBatch.mockResolvedValue([
@@ -87,11 +92,12 @@ describe('ensureTableSchemasAlias', () => {
   });
 
   it('ensures alias for schemas using duckdbExec plumbing', async () => {
-    const result = await ensureTableSchemasAlias(tableSchemas);
+    const result = await ensureTableSchemasAlias({ tableSchemas, query });
 
     expect(ensureTableSchemaAliasSql).toHaveBeenCalledWith(
       expect.objectContaining({
         tableSchemas,
+        query,
         ensureExpressionAlias: expect.any(Function),
       })
     );
@@ -109,9 +115,12 @@ describe('ensureTableSchemasAlias', () => {
 
   it('returns a reusable factory', async () => {
     const factory = ensureTableSchemaAlias();
-    const result = await factory(tableSchemas);
+    const result = await factory(tableSchemas, query);
 
     expect(ensureTableSchemaAliasSql).toHaveBeenCalledTimes(1);
+    expect(ensureTableSchemaAliasSql).toHaveBeenCalledWith(
+      expect.objectContaining({ query })
+    );
     expect(result).toHaveLength(1);
   });
 });

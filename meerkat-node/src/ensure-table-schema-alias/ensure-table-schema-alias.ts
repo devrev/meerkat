@@ -1,15 +1,27 @@
 import {
+  Query,
   TableSchema,
   ensureColumnAliasBatch,
   ensureTableSchemaAliasSql,
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
 
-export const ensureTableSchemasAlias = async (
-  tableSchemas: TableSchema[]
-): Promise<TableSchema[]> => {
+export interface EnsureTableSchemasAliasParams {
+  tableSchemas: TableSchema[];
+  /**
+   * Query whose member references drive which members are aliased. Members
+   * that the query does not reach are passed through untouched.
+   */
+  query: Query;
+}
+
+export const ensureTableSchemasAlias = async ({
+  tableSchemas,
+  query,
+}: EnsureTableSchemasAliasParams): Promise<TableSchema[]> => {
   return ensureTableSchemaAliasSql({
     tableSchemas,
+    query,
     ensureExpressionAlias: async ({ items }) => {
       const aliasedItems = await ensureColumnAliasBatch({
         items: items.map((item) => ({
@@ -17,8 +29,8 @@ export const ensureTableSchemasAlias = async (
           tableName: item.context.tableName,
           knownTableNames: item.context.knownTableNames,
         })),
-        executeQuery: (query) =>
-          duckdbExec<Record<string, string>[]>(query),
+        executeQuery: (queryString) =>
+          duckdbExec<Record<string, string>[]>(queryString),
       });
 
       return aliasedItems.map((item) => item.sql);
@@ -27,7 +39,10 @@ export const ensureTableSchemasAlias = async (
 };
 
 export const ensureTableSchemaAlias = () => {
-  return async (tableSchemas: TableSchema[]): Promise<TableSchema[]> => {
-    return ensureTableSchemasAlias(tableSchemas);
+  return async (
+    tableSchemas: TableSchema[],
+    query: Query
+  ): Promise<TableSchema[]> => {
+    return ensureTableSchemasAlias({ tableSchemas, query });
   };
 };

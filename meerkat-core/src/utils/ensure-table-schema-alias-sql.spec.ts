@@ -1,8 +1,18 @@
+import { Query } from '../types/cube-types';
 import { createEnsureTableSchemaAliasSqlFixture } from './__fixtures__/ensure-sql-expression-column-alias.fixtures';
 import {
   EnsureAliasExpressionContext,
   ensureTableSchemaAliasSql,
 } from './ensure-table-schema-alias-sql';
+
+const FULL_FIXTURE_QUERY: Query = {
+  measures: [
+    'orders.gross_amount',
+    'orders.net_amount',
+    'customers.gross_amount',
+  ],
+  dimensions: ['orders.customer_id', 'orders.order_month', 'customers.id'],
+};
 
 describe('ensureTableSchemaAliasSql', () => {
   it('rewrites measure and dimension SQL while preserving schema-level SQL and joins', async () => {
@@ -34,6 +44,7 @@ describe('ensureTableSchemaAliasSql', () => {
 
     const result = await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: FULL_FIXTURE_QUERY,
       ensureExpressionAlias,
     });
 
@@ -106,6 +117,7 @@ describe('ensureTableSchemaAliasSql', () => {
 
     await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: FULL_FIXTURE_QUERY,
       ensureExpressionAlias: async ({ items }) =>
         items.map(({ sql }: { sql: string }) => `mockAliased:${sql}`),
     });
@@ -119,6 +131,7 @@ describe('ensureTableSchemaAliasSql', () => {
     await expect(
       ensureTableSchemaAliasSql({
         tableSchemas,
+        query: FULL_FIXTURE_QUERY,
         ensureExpressionAlias: async ({ items }) =>
           items.map(
             ({ context }: { context: EnsureAliasExpressionContext }) => {
@@ -164,6 +177,10 @@ describe('ensureTableSchemaAliasSql', () => {
 
     const result = await ensureTableSchemaAliasSql({
       tableSchemas: placeholderSchemas,
+      query: {
+        measures: ['orders.gross_amount', 'orders.placeholder_measure'],
+        dimensions: ['orders.customer_id', 'orders.placeholder_dimension'],
+      },
       ensureExpressionAlias,
     });
 
@@ -214,6 +231,7 @@ describe('ensureTableSchemaAliasSql', () => {
 
     const result = await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: FULL_FIXTURE_QUERY,
       ensureExpressionAlias,
     });
 
@@ -275,6 +293,7 @@ describe('ensureTableSchemaAliasSql', () => {
     await expect(
       ensureTableSchemaAliasSql({
         tableSchemas,
+        query: FULL_FIXTURE_QUERY,
         ensureExpressionAlias,
       })
     ).rejects.toThrow(
@@ -328,6 +347,7 @@ describe('ensureTableSchemaAliasSql', () => {
 
     await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: FULL_FIXTURE_QUERY,
       ensureExpressionAlias,
     });
 
@@ -346,6 +366,7 @@ describe('ensureTableSchemaAliasSql', () => {
 
     await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: FULL_FIXTURE_QUERY,
       ensureExpressionAlias,
     });
 
@@ -375,6 +396,10 @@ describe('ensureTableSchemaAliasSql', () => {
 
     await ensureTableSchemaAliasSql({
       tableSchemas: schemas,
+      query: {
+        ...FULL_FIXTURE_QUERY,
+        measures: [...FULL_FIXTURE_QUERY.measures, 'audit.total'],
+      },
       ensureExpressionAlias,
     });
 
@@ -392,6 +417,7 @@ describe('ensureTableSchemaAliasSql', () => {
 
     const result = await ensureTableSchemaAliasSql({
       tableSchemas,
+      query: FULL_FIXTURE_QUERY,
       ensureExpressionAlias: async ({ items }) =>
         items.map(({ sql }: { sql: string }) => sql),
     });
@@ -419,10 +445,167 @@ describe('ensureTableSchemaAliasSql', () => {
 
     const result = await ensureTableSchemaAliasSql({
       tableSchemas: schemas,
+      query: { measures: [] },
       ensureExpressionAlias,
     });
 
     expect(ensureExpressionAlias).not.toHaveBeenCalled();
     expect(result).toEqual(schemas);
+  });
+
+  describe('query-driven filtering', () => {
+    it('skips members that the query does not reference', async () => {
+      const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+      const ensureExpressionAlias = jest.fn(async ({ items }) =>
+        items.map(
+          ({ context }: { context: EnsureAliasExpressionContext }) =>
+            `aliased(${context.tableName}.${context.memberName})`
+        )
+      );
+
+      const result = await ensureTableSchemaAliasSql({
+        tableSchemas,
+        query: {
+          measures: ['orders.gross_amount'],
+          dimensions: ['orders.customer_id'],
+        },
+        ensureExpressionAlias,
+      });
+
+      expect(ensureExpressionAlias).toHaveBeenCalledTimes(1);
+      const [{ items }] = ensureExpressionAlias.mock.calls[0];
+      expect(items).toHaveLength(2);
+      expect(items.map((item: { context: EnsureAliasExpressionContext }) =>
+        `${item.context.tableName}.${item.context.memberName}`
+      )).toEqual(['orders.gross_amount', 'orders.customer_id']);
+
+      expect(result[0].measures[0].sql).toBe('aliased(orders.gross_amount)');
+      expect(result[0].measures[1].sql).toBe(
+        tableSchemas[0].measures[1].sql
+      );
+      expect(result[0].dimensions[0].sql).toBe(
+        'aliased(orders.customer_id)'
+      );
+      expect(result[0].dimensions[1].sql).toBe(
+        tableSchemas[0].dimensions[1].sql
+      );
+      expect(result[1].measures[0].sql).toBe(
+        tableSchemas[1].measures[0].sql
+      );
+      expect(result[1].dimensions[0].sql).toBe(
+        tableSchemas[1].dimensions[0].sql
+      );
+    });
+
+    it('includes members referenced only by filters', async () => {
+      const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+      const ensureExpressionAlias = jest.fn(async ({ items }) =>
+        items.map(({ sql }: { sql: string }) => sql)
+      );
+
+      await ensureTableSchemaAliasSql({
+        tableSchemas,
+        query: {
+          measures: [],
+          filters: [
+            {
+              and: [
+                {
+                  member: 'orders.customer_id',
+                  operator: 'equals',
+                  values: ['42'],
+                },
+                {
+                  or: [
+                    {
+                      member: 'customers.id',
+                      operator: 'equals',
+                      values: ['42'],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        ensureExpressionAlias,
+      });
+
+      const referencedMembers = ensureExpressionAlias.mock.calls
+        .flatMap(([{ items }]) => items)
+        .map(
+          (item: { context: EnsureAliasExpressionContext }) =>
+            `${item.context.tableName}.${item.context.memberName}`
+        );
+      expect(referencedMembers.sort()).toEqual(
+        ['orders.customer_id', 'customers.id'].sort()
+      );
+    });
+
+    it('includes members referenced only by order', async () => {
+      const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+      const ensureExpressionAlias = jest.fn(async ({ items }) =>
+        items.map(({ sql }: { sql: string }) => sql)
+      );
+
+      await ensureTableSchemaAliasSql({
+        tableSchemas,
+        query: {
+          measures: [],
+          order: {
+            'orders.order_month': 'desc',
+          },
+        },
+        ensureExpressionAlias,
+      });
+
+      const referencedMembers = ensureExpressionAlias.mock.calls
+        .flatMap(([{ items }]) => items)
+        .map(
+          (item: { context: EnsureAliasExpressionContext }) =>
+            `${item.context.tableName}.${item.context.memberName}`
+        );
+      expect(referencedMembers).toEqual(['orders.order_month']);
+    });
+
+    it('ignores joinPaths entries because they reference table names, not members', async () => {
+      const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+      const ensureExpressionAlias = jest.fn(async ({ items }) =>
+        items.map(({ sql }: { sql: string }) => sql)
+      );
+
+      await ensureTableSchemaAliasSql({
+        tableSchemas,
+        query: {
+          measures: [],
+          joinPaths: [
+            [
+              {
+                left: 'orders',
+                right: 'customers',
+                on: 'customer_id',
+              },
+            ],
+          ],
+        },
+        ensureExpressionAlias,
+      });
+
+      expect(ensureExpressionAlias).not.toHaveBeenCalled();
+    });
+
+    it('does not call aliaser when query references no schema members', async () => {
+      const tableSchemas = createEnsureTableSchemaAliasSqlFixture();
+      const ensureExpressionAlias = jest.fn();
+
+      const result = await ensureTableSchemaAliasSql({
+        tableSchemas,
+        query: { measures: [] },
+        ensureExpressionAlias,
+      });
+
+      expect(ensureExpressionAlias).not.toHaveBeenCalled();
+      expect(result).toEqual(tableSchemas);
+    });
   });
 });
