@@ -7,6 +7,7 @@ export interface EnsureColumnAliasScenario {
   expectedSql: string;
   shouldChange: boolean;
   notes?: string;
+  knownTableNames?: string[];
 }
 
 export interface DeferredEnsureColumnAliasScenario
@@ -157,6 +158,40 @@ export const ENSURE_COLUMN_ALIAS_SCENARIOS: EnsureColumnAliasScenario[] = [
     tableName: 'orders',
     inputSql: 'customers.id',
     expectedSql: 'customers.id',
+    shouldChange: false,
+  },
+  {
+    description: 'struct field access on local column is qualified',
+    tableName: 'issue',
+    knownTableNames: ['issue', 'devusers'],
+    inputSql: 'stage.stage_id',
+    expectedSql: 'issue.stage.stage_id',
+    shouldChange: true,
+  },
+  {
+    description:
+      'struct field access inside aggregate on local column is qualified',
+    tableName: 'issue',
+    knownTableNames: ['issue', 'devusers'],
+    inputSql: 'COUNT(stage.stage_id)',
+    expectedSql: 'COUNT(issue.stage.stage_id)',
+    shouldChange: true,
+  },
+  {
+    description:
+      'multi-part ref where leading identifier is another table stays untouched',
+    tableName: 'orders',
+    knownTableNames: ['orders', 'customers'],
+    inputSql: 'customers.id',
+    expectedSql: 'customers.id',
+    shouldChange: false,
+  },
+  {
+    description: 'already-qualified struct access is not double-qualified',
+    tableName: 'issue',
+    knownTableNames: ['issue'],
+    inputSql: 'issue.stage.stage_id',
+    expectedSql: 'issue.stage.stage_id',
     shouldChange: false,
   },
 ];

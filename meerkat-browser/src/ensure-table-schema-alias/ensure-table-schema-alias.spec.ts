@@ -1,5 +1,5 @@
 import type { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
-import type { TableSchema } from '@devrev/meerkat-core';
+import type { Query, TableSchema } from '@devrev/meerkat-core';
 
 jest.mock('@devrev/meerkat-core', () => ({
   ensureColumnAliasBatch: jest.fn(),
@@ -27,6 +27,10 @@ describe('ensureTableSchemasAlias', () => {
       dimensions: [],
     },
   ];
+
+  const query: Query = {
+    measures: ['orders.gross_amount'],
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -86,17 +90,27 @@ describe('ensureTableSchemasAlias', () => {
     const result = await ensureTableSchemasAlias({
       connection,
       tableSchemas,
+      query,
     });
 
     const ensureColumnAliasBatch =
       meerkatCore.ensureColumnAliasBatch as jest.Mock;
+    const ensureTableSchemaAliasSql =
+      meerkatCore.ensureTableSchemaAliasSql as jest.Mock;
 
+    expect(ensureTableSchemaAliasSql).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tableSchemas,
+        query,
+        ensureExpressionAlias: expect.any(Function),
+      })
+    );
     expect(ensureColumnAliasBatch).toHaveBeenCalledWith({
       items: [
-        {
+        expect.objectContaining({
           sql: 'SUM(order_amount)',
           tableName: 'orders',
-        },
+        }),
       ],
       executeQuery: expect.any(Function),
     });
@@ -109,10 +123,13 @@ describe('ensureTableSchemasAlias', () => {
     } as unknown as AsyncDuckDBConnection;
     const factory = ensureTableSchemaAlias(connection);
 
-    await factory(tableSchemas);
+    await factory(tableSchemas, query);
 
     const ensureTableSchemaAliasSql =
       meerkatCore.ensureTableSchemaAliasSql as jest.Mock;
     expect(ensureTableSchemaAliasSql).toHaveBeenCalledTimes(1);
+    expect(ensureTableSchemaAliasSql).toHaveBeenCalledWith(
+      expect.objectContaining({ query })
+    );
   });
 });
