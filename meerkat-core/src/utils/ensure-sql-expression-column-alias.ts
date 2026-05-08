@@ -44,6 +44,7 @@ export interface EnsureColumnAliasBatchParams<TContext = unknown> {
 
 const ALIASABLE_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/** True for plain SQL identifiers (letters/digits/underscore, no whitespace). */
 const isAliasableIdentifier = (identifier: string | undefined): boolean => {
   if (!identifier) {
     return false;
@@ -54,6 +55,11 @@ const isAliasableIdentifier = (identifier: string | undefined): boolean => {
   return ALIASABLE_IDENTIFIER_REGEX.test(identifier);
 };
 
+/**
+ * Decides whether a parsed column ref should be prefixed with `tableName`.
+ * `knownTableNames` is optional: when absent, 2-part refs stay untouched
+ * because `table.col` vs `struct.field` is ambiguous without the batch.
+ */
 const shouldEnsureColumnRefAlias = (
   columnNames: string[],
   scopedIdentifiers: Set<string>,
@@ -114,6 +120,8 @@ const getLambdaBoundIdentifiers = (
   return boundIdentifiers;
 };
 
+/** `knownTableNames` is forwarded so ORDER BY expressions disambiguate
+ *  cross-table refs the same way the SELECT list does. */
 const ensureOrderByNodesAlias = (
   orders: OrderByNode[],
   scopedIdentifiers: Set<string>,
