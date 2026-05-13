@@ -1,4 +1,5 @@
 import { traverseMeerkatQueryFilter } from '../filter-params/filter-params-ast';
+import { hasAnyJoinPaths } from '../joins/accessors';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member, Query, QueryFilter, TableSchema } from '../types/cube-types';
 
@@ -6,7 +7,11 @@ export const getUsedTableSchema = (
   tableSchema: TableSchema[],
   cubeQuery: Query
 ): TableSchema[] => {
-  if (cubeQuery.joinPaths?.length) {
+  // When the query declares any join path (legacy or v2), all supplied
+  // table schemas may be needed; the join emitter is the source of
+  // truth for which tables participate. Pruning only kicks in when
+  // there are no declared paths.
+  if (hasAnyJoinPaths(cubeQuery)) {
     return tableSchema;
   }
 

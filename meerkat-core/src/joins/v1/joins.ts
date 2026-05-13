@@ -1,5 +1,5 @@
-import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
-import { JoinPath, Query, TableSchema, isJoinNode } from '../types/cube-types';
+import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
+import { JoinPath, Query, TableSchema, isJoinNode } from '../../types/cube-types';
 
 /**
  * Regex pattern to match a CONTAINS function call in join SQL.

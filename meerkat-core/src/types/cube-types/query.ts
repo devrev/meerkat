@@ -137,6 +137,12 @@ interface JoinNode {
    */
 }
 
+/** Structured join edge used by `joinPathsV2`. See `joins/v2/`. */
+export type StructuredJoin = {
+  from: { table: string; column: string };
+  to: { table: string; column: string };
+};
+
 /**
  * Single node data type.
  * This is the case when there is no join. Just a single node.
@@ -164,7 +170,10 @@ interface Query {
   measures: Member[];
   dimensions?: Member[];
   filters?: MeerkatQueryFilter[];
+  /** @deprecated Prefer `joinPathsV2` for new code. */
   joinPaths?: JoinPath[];
+  /** Structured join paths; array joins emit UNNEST equi-joins instead of CONTAINS. */
+  joinPathsV2?: StructuredJoin[][];
   limit?: null | number;
   offset?: number;
   order?: Record<string, QueryOrderType>;

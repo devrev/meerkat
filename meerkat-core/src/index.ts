@@ -18,7 +18,9 @@ export {
 export { getFilterParamsSQL } from './get-filter-params-sql/get-filter-params-sql';
 export { getFinalBaseSQL } from './get-final-base-sql/get-final-base-sql';
 export * from './get-wrapped-base-query-with-projections';
-export * from './joins/joins';
+// The joins module's public API — router + shared helpers + v1/v2
+// primitives. See `./joins/index.ts`.
+export * from './joins';
 export * from './member-formatters';
 export * from './resolution/generators';
 export * from './resolution/resolution';

@@ -1,5 +1,5 @@
-import { getUsedTableSchema } from '../get-used-table-schema/get-used-table-schema';
-import { Query, TableSchema } from '../types/cube-types';
+import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
+import { Query, TableSchema } from '../../types/cube-types';
 import {
   checkLoopInJoinPath,
   createDirectedGraph,
