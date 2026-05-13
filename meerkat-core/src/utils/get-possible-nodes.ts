@@ -1,4 +1,4 @@
-import { Graph, checkLoopInJoinPath, createDirectedGraph } from '../joins/joins';
+import { Graph, checkLoopInJoinPath, createDirectedGraph } from '../joins';
 import {
   Dimension,
   JoinPath,
@@ -27,7 +27,7 @@ export const getNestedTableSchema = (
   tableSchemas: TableSchema[],
   joinPath: JoinPath[],
   depth: number
-) => {
+): NestedTableSchema => {
   const tableSchemaSqlMap: { [key: string]: string } = {};
   for (const schema of tableSchemas) {
     if (!schema) {
