@@ -15,7 +15,7 @@
     "express": "^4.21.2",
     "fake-indexeddb": "^5.0.1",
     "install": "^0.13.0",
-    "lodash": "^4.18.1",
+    "lodash": "4.18.1",
     "lodash.isnil": "^4.0.0",
     "loglevel": "^1.8.1",
     "next": "^16.2.6",
@@ -107,6 +107,8 @@
     "vitest": "^4.0.18",
     "@tootallnate/once": ">=3.0.1",
     "picomatch": ">=4.0.4",
-    "lodash-es": ">=4.18.1"
+    "lodash": "4.18.1",
+    "lodash-es": "4.18.1",
+    "basic-ftp": "5.3.1"
   }
 }

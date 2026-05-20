@@ -110,6 +110,72 @@ describe('joins-v2', () => {
     expect(sql).toContain('issues.__mk_u_owned_by_ids = admins.id');
   });
 
+  it('inlines dim.sql for composite-child synthetic array columns whose name is not a real column', () => {
+    // The synthetic dim `tags_$0_tag_id` is not a real column on the
+    // base table — only the parent `tags` struct array is. UNNEST must
+    // reference the dim's `sql` expression, not the synthetic name.
+    const schemas: TableSchema[] = [
+      {
+        name: 'parts',
+        sql: 'select * from parts',
+        dimensions: [
+          { name: 'id', sql: 'parts.id', type: 'string' },
+          {
+            name: 'tags_$0_tag_id',
+            sql: "json_extract_string(tags, '$[*].tag_id')",
+            type: 'string_array',
+          },
+        ],
+        measures: [],
+        joins: [],
+      },
+      scalar('tags'),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'parts', column: 'tags_$0_tag_id' },
+          to: { table: 'tags', column: 'id' },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+
+    expect(sql).toContain(
+      "UNNEST(json_extract_string(tags, '$[*].tag_id')) AS __mk_u_tags_$0_tag_id"
+    );
+    expect(sql).toContain('parts.__mk_u_tags_$0_tag_id = tags.id');
+  });
+
+  it('wraps a multi-hop intermediate table when its from.column is array-typed', () => {
+    const schemas = [
+      scalar('tickets', ['id', 'part_id']),
+      withArrayCols('parts', ['id'], ['tag_ids']),
+      scalar('tags'),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'tickets', column: 'part_id' },
+          to: { table: 'parts', column: 'id' },
+        },
+        {
+          from: { table: 'parts', column: 'tag_ids' },
+          to: { table: 'tags', column: 'id' },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+
+    expect(sql).toContain('tickets.part_id = parts.id');
+    expect(sql).toContain('UNNEST(tag_ids) AS __mk_u_tag_ids');
+    expect(sql).toContain('parts.__mk_u_tag_ids = tags.id');
+  });
+
   it('throws when both sides of an edge are array-typed', () => {
     const schemas = [
       withArrayCols('issues', ['id'], ['owned_by_ids']),

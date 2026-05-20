@@ -1,60 +1,114 @@
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
+import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
 import { Query, StructuredJoin, TableSchema } from '../../types/cube-types';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';
-const ARRAY_COLUMN_TYPES = new Set(['string_array', 'number_array']);
+const ARRAY_DIMENSION_TYPES = new Set(['string_array', 'number_array']);
+
+const findArrayMember = (
+  tableSchemas: TableSchema[],
+  table: string,
+  column: string
+) => {
+  const schema = tableSchemas.find((s) => s.name === table);
+  if (!schema) return undefined;
+  const member =
+    schema.dimensions.find((d) => d.name === column) ??
+    schema.measures.find((m) => m.name === column);
+  return member && ARRAY_DIMENSION_TYPES.has(member.type) ? member : undefined;
+};
 
 const isArrayColumn = (
   tableSchemas: TableSchema[],
   table: string,
   column: string
-): boolean => {
-  const t = tableSchemas.find((s) => s.name === table);
-  if (!t) return false;
-  const d = t.dimensions.find((x) => x.name === column);
-  if (d) return ARRAY_COLUMN_TYPES.has(d.type);
-  const m = t.measures.find((x) => x.name === column);
-  return m ? ARRAY_COLUMN_TYPES.has(m.type) : false;
-};
+): boolean => findArrayMember(tableSchemas, table, column) !== undefined;
 
-const buildPredicate = (edge: StructuredJoin, fromIsArray: boolean): string => {
-  const left = fromIsArray
-    ? `${edge.from.table}.${UNNEST_ALIAS_PREFIX}${edge.from.column}`
-    : `${edge.from.table}.${edge.from.column}`;
-  return `${left} = ${edge.to.table}.${edge.to.column}`;
+/**
+ * Returns the SQL expression to feed `UNNEST(...)` for an array column
+ * inside a `(SELECT *, UNNEST(<expr>) FROM (<baseSql>))` wrap. The
+ * subquery exposes the table's columns directly (via `SELECT *`) but
+ * the table alias is not yet in scope — so we strip a leading
+ * `${tableName}.` prefix from `dim.sql` if present. For composite-child
+ * synthetic dims (`tags_$0_tag_id`), `dim.sql` is the underlying
+ * expression like `json_extract_string(tags, '$[*].tag_id')` and works
+ * inside the wrap unchanged.
+ */
+const getArrayUnnestExpression = (
+  tableSchemas: TableSchema[],
+  table: string,
+  column: string
+): string => {
+  const member = findArrayMember(tableSchemas, table, column);
+  const sql = member?.sql ?? column;
+  return sql.startsWith(`${table}.`) ? sql.slice(table.length + 1) : sql;
 };
 
 /**
- * Wraps the base subquery with UNNEST projections for every array-typed
- * from-column referenced across the paths. DuckDB can't hash-join on
- * CONTAINS/list_contains, so without this wrap array joins fall back to
- * O(n × m).
+ * For each path edge whose `from.column` is array-typed, record the
+ * column under its source table. Multi-hop joins where the array column
+ * is on an intermediate table (e.g. `ticket -> part -> tag` with
+ * `part.tag_ids` as the array) require entries beyond the starting
+ * table so each hop's right side gets its own UNNEST wrap.
  */
-const wrapBaseSqlForArrayFrom = (
-  baseSql: string,
-  baseTable: string,
+const collectArrayJoinSources = (
   paths: StructuredJoin[][],
   tableSchemas: TableSchema[]
-): string => {
-  const cols = new Set<string>();
+): Map<string, Set<string>> => {
+  const result = new Map<string, Set<string>>();
   for (const path of paths) {
-    for (const edge of path) {
-      if (
-        edge.from.table === baseTable &&
-        isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
-      ) {
-        cols.add(edge.from.column);
-      }
+    for (const { from } of path) {
+      if (!isArrayColumn(tableSchemas, from.table, from.column)) continue;
+      const cols = result.get(from.table) ?? new Set<string>();
+      cols.add(from.column);
+      result.set(from.table, cols);
     }
   }
-  if (cols.size === 0) return baseSql;
-  const projections = Array.from(cols)
-    .map((c) => `UNNEST(${c}) AS ${UNNEST_ALIAS_PREFIX}${c}`)
+  return result;
+};
+
+/**
+ * Wraps a table's subquery with UNNEST projections for each array column
+ * referenced as a join `from`. The unnested column is exposed under
+ * `__mk_u_<col>` for use in the ON clause and re-projected with its
+ * safe-key alias (`tableName____mk_u_<col>`) so the outer query can also
+ * reference it.
+ *
+ * DuckDB cannot hash-join on `CONTAINS(...)`/`list_contains`, so without
+ * the wrap, array joins fall back to O(n × m) nested-loop scans.
+ */
+const wrapTableSqlForArrayFrom = (
+  baseSql: string,
+  tableName: string,
+  arrayCols: Set<string> | undefined,
+  tableSchemas: TableSchema[]
+): string => {
+  if (!arrayCols || arrayCols.size === 0) return baseSql;
+  const cols = [...arrayCols];
+  const unnestProjections = cols
+    .map((c) => {
+      const expr = getArrayUnnestExpression(tableSchemas, tableName, c);
+      return `UNNEST(${expr}) AS ${UNNEST_ALIAS_PREFIX}${c}`;
+    })
     .join(', ');
-  return `(SELECT *, ${projections} FROM (${baseSql})) AS ${quoteIdentifierIfNeeded(
-    baseTable
+  const aliasProjections = cols
+    .map((c) => {
+      const unnestCol = `${UNNEST_ALIAS_PREFIX}${c}`;
+      return `${unnestCol} AS ${memberKeyToSafeKey(`${tableName}.${unnestCol}`)}`;
+    })
+    .join(', ');
+  const innerSql = `(SELECT *, ${unnestProjections} FROM (${baseSql}))`;
+  return `(SELECT *, ${aliasProjections} FROM ${innerSql}) AS ${quoteIdentifierIfNeeded(
+    tableName
   )}`;
+};
+
+const buildPredicate = (edge: StructuredJoin, fromIsArray: boolean): string => {
+  const leftColumn = fromIsArray
+    ? `${UNNEST_ALIAS_PREFIX}${edge.from.column}`
+    : edge.from.column;
+  return `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
 };
 
 export const createDirectedGraphV2 = (
@@ -84,8 +138,8 @@ export const createDirectedGraphV2 = (
       if (graph[from.table]?.[to.table]?.[from.column]) {
         throw new Error('An invalid path was detected.');
       }
-      if (!graph[from.table]) graph[from.table] = {};
-      if (!graph[from.table][to.table]) graph[from.table][to.table] = {};
+      graph[from.table] ??= {};
+      graph[from.table][to.table] ??= {};
       graph[from.table][to.table][from.column] = buildPredicate(edge, fromIsArray);
     }
   }
@@ -93,10 +147,11 @@ export const createDirectedGraphV2 = (
 };
 
 /**
- * Structurally identical to v1 `generateSqlQuery`. Only delta: when a
- * path's `from.column` is array-typed, the base subquery is wrapped with
- * UNNEST projections so the ON clause becomes a hash-joinable equi-join
- * (`base.__mk_u_col = right.col`) instead of a CONTAINS nested-loop.
+ * Builds the FROM clause for the combined table: the starting subquery
+ * left-joined against each downstream table along every path. v2 differs
+ * from v1 only in that any subquery whose source array column is joined
+ * gets UNNEST projections so the join becomes a hash-joinable equi-join
+ * (`base.__mk_u_col = right.col`) instead of a `CONTAINS(...)` scan.
  */
 export const generateSqlQueryV2 = (
   paths: StructuredJoin[][],
@@ -112,26 +167,27 @@ export const generateSqlQueryV2 = (
 
   const startingTable = paths[0][0]?.from.table;
   if (!startingTable) return '';
+  if (paths.some((p) => p[0]?.from.table !== startingTable)) {
+    throw new Error(
+      'Invalid path, starting node is not the same for all paths.'
+    );
+  }
 
-  let query = wrapBaseSqlForArrayFrom(
+  const arraySourcesByTable = collectArrayJoinSources(paths, tableSchemas);
+
+  let query = wrapTableSqlForArrayFrom(
     tableSchemaSqlMap[startingTable],
     startingTable,
-    paths,
+    arraySourcesByTable.get(startingTable),
     tableSchemas
   );
 
   const visited = new Map<string, StructuredJoin>();
 
-  for (let i = 0; i < paths.length; i++) {
-    if (paths[i][0]?.from.table !== startingTable) {
-      throw new Error(
-        'Invalid path, starting node is not the same for all paths.'
-      );
-    }
-    for (let j = 0; j < paths[i].length; j++) {
-      const edge = paths[i][j];
+  for (const path of paths) {
+    for (const edge of path) {
       const prev = visited.get(edge.to.table);
-      if (prev && prev.from.table === edge.from.table) continue;
+      if (prev?.from.table === edge.from.table) continue;
       if (prev) {
         throw new Error(
           `Path ambiguity, node ${edge.to.table} visited from different sources`
@@ -139,20 +195,25 @@ export const generateSqlQueryV2 = (
       }
       visited.set(edge.to.table, edge);
 
-      const quotedAlias = quoteIdentifierIfNeeded(edge.to.table);
-      query += ` LEFT JOIN (${
-        tableSchemaSqlMap[edge.to.table]
-      }) AS ${quotedAlias}  ON ${
-        directedGraph[edge.from.table][edge.to.table][edge.from.column]
-      }`;
+      const onClause =
+        directedGraph[edge.from.table][edge.to.table][edge.from.column];
+      const rightArrayCols = arraySourcesByTable.get(edge.to.table);
+      const rightSubquery = rightArrayCols?.size
+        ? wrapTableSqlForArrayFrom(
+            tableSchemaSqlMap[edge.to.table],
+            edge.to.table,
+            rightArrayCols,
+            tableSchemas
+          )
+        : `(${tableSchemaSqlMap[edge.to.table]}) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
+      query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
   }
 
   return query;
 };
 
-/** Mirrors v1's `checkLoopInJoinPath` — detects cycles within a path. */
-const checkLoopInJoinPathV2 = (paths: StructuredJoin[][]): boolean => {
+const hasLoop = (paths: StructuredJoin[][]): boolean => {
   for (const path of paths) {
     const visited = new Set<string>();
     if (path[0]) visited.add(path[0].from.table);
@@ -170,38 +231,31 @@ export const getCombinedTableSchemaV2 = (
 ): TableSchema => {
   if (tableSchema.length === 1) return tableSchema[0];
 
-  const newTableSchema = cubeQuery.joinPathsV2?.length
+  // joinPathsV2 callers control which tables participate; everyone else
+  // gets the legacy auto-prune via getUsedTableSchema.
+  const activeTables = cubeQuery.joinPathsV2?.length
     ? tableSchema
     : getUsedTableSchema(tableSchema, cubeQuery);
-
-  if (newTableSchema.length === 1) return newTableSchema[0];
-
-  const tableSchemaSqlMap = newTableSchema.reduce(
-    (acc: { [key: string]: string }, s: TableSchema) => ({
-      ...acc,
-      [s.name]: s.sql,
-    }),
-    {}
-  );
+  if (activeTables.length === 1) return activeTables[0];
 
   const paths = cubeQuery.joinPathsV2 ?? [];
-  if (checkLoopInJoinPathV2(paths)) {
+  if (hasLoop(paths)) {
     throw new Error(
       `A loop was detected in the joins. ${JSON.stringify(paths)}`
     );
   }
-  const graph = createDirectedGraphV2(newTableSchema, tableSchemaSqlMap, paths);
-  const baseSql = generateSqlQueryV2(paths, tableSchemaSqlMap, graph, newTableSchema);
 
-  return newTableSchema.reduce(
-    (acc: TableSchema, s: TableSchema) => ({
-      name: 'MEERKAT_GENERATED_TABLE',
-      sql: baseSql,
-      measures: [...acc.measures, ...s.measures],
-      dimensions: [...acc.dimensions, ...s.dimensions],
-      joins: [],
-    }),
-    { name: '', sql: '', measures: [], dimensions: [], joins: [] }
+  const tableSchemaSqlMap = Object.fromEntries(
+    activeTables.map((s) => [s.name, s.sql])
   );
-};
+  const graph = createDirectedGraphV2(activeTables, tableSchemaSqlMap, paths);
+  const sql = generateSqlQueryV2(paths, tableSchemaSqlMap, graph, activeTables);
 
+  return {
+    name: 'MEERKAT_GENERATED_TABLE',
+    sql,
+    measures: activeTables.flatMap((s) => s.measures),
+    dimensions: activeTables.flatMap((s) => s.dimensions),
+    joins: [],
+  };
+};
