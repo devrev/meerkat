@@ -394,7 +394,7 @@ describe('Joins Tests (v2)', () => {
     expect(parsedOutput[1].orders__customer_id).toBe('2');
   });
 
-  describe('Array join with VALUES-list base SQL (ISS-304372)', () => {
+  describe('Array join with VALUES-list base SQL', () => {
     it('resolves __mk_u_ columns on a VALUES-list base table', async () => {
       const partSchema = {
         name: 'part',

@@ -78,6 +78,25 @@ const collectArrayJoinSources = (
  * DuckDB cannot hash-join on `CONTAINS(...)`/`list_contains`, so without
  * the wrap, array joins fall back to O(n × m) nested-loop scans.
  */
+/**
+ * The unnested column name used inside the wrapped subquery. Single source of
+ * truth for both the UNNEST projection and the predicate's left-hand side, so
+ * the names emitted in the SELECT list stay in lock-step with the names
+ * referenced in the ON clause.
+ */
+const getUnnestAlias = (column: string): string => `${UNNEST_ALIAS_PREFIX}${column}`;
+
+/**
+ * `<unnestAlias> AS <table.unnestAlias safe-key>` — re-aliases the unnested
+ * column under the canonical safe-key form so outer queries can reference it
+ * via the same `tableName____mk_u_<col>` identifier they use for any other
+ * member.
+ */
+const buildSafeKeyAliasProjection = (tableName: string, column: string): string => {
+  const unnestAlias = getUnnestAlias(column);
+  return `${unnestAlias} AS ${memberKeyToSafeKey(`${tableName}.${unnestAlias}`)}`;
+};
+
 const wrapTableSqlForArrayFrom = (
   baseSql: string,
   tableName: string,
@@ -89,14 +108,11 @@ const wrapTableSqlForArrayFrom = (
   const unnestProjections = cols
     .map((c) => {
       const expr = getArrayUnnestExpression(tableSchemas, tableName, c);
-      return `UNNEST(${expr}) AS ${UNNEST_ALIAS_PREFIX}${c}`;
+      return `UNNEST(${expr}) AS ${getUnnestAlias(c)}`;
     })
     .join(', ');
   const aliasProjections = cols
-    .map((c) => {
-      const unnestCol = `${UNNEST_ALIAS_PREFIX}${c}`;
-      return `${unnestCol} AS ${memberKeyToSafeKey(`${tableName}.${unnestCol}`)}`;
-    })
+    .map((c) => buildSafeKeyAliasProjection(tableName, c))
     .join(', ');
   const innerSql = `(SELECT *, ${unnestProjections} FROM (${baseSql}))`;
   return `(SELECT *, ${aliasProjections} FROM ${innerSql}) AS ${quoteIdentifierIfNeeded(
@@ -105,9 +121,7 @@ const wrapTableSqlForArrayFrom = (
 };
 
 const buildPredicate = (edge: StructuredJoin, fromIsArray: boolean): string => {
-  const leftColumn = fromIsArray
-    ? `${UNNEST_ALIAS_PREFIX}${edge.from.column}`
-    : edge.from.column;
+  const leftColumn = fromIsArray ? getUnnestAlias(edge.from.column) : edge.from.column;
   return `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
 };
 

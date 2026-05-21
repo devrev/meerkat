@@ -24,6 +24,8 @@ export const getDimensionProjection = ({
 
   const foundMember = findInDimensionSchema(measureWithoutTable, tableSchema);
   if (!foundMember || tableName !== tableSchema.name) {
+    // If the selected member is not found in the table schema or if it is already selected, continue.
+    // If the selected member is not from the current table, don't create an alias.
     return {
       sql: undefined,
       foundMember: undefined,
