@@ -394,6 +394,141 @@ describe('Joins Tests (v2)', () => {
     expect(parsedOutput[1].orders__customer_id).toBe('2');
   });
 
+  describe('Array join with VALUES-list base SQL', () => {
+    it('resolves __mk_u_ columns on a VALUES-list base table', async () => {
+      const partSchema = {
+        name: 'part',
+        sql: `SELECT * FROM (VALUES ('p1', 'Part A', ['owner1', 'owner2']), ('p2', 'Part B', ['owner3'])) AS part(id, name, owned_by_ids)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'part.id', type: 'string' as const },
+          { name: 'name', sql: 'part.name', type: 'string' as const },
+          {
+            name: 'owned_by_ids',
+            sql: 'part.owned_by_ids',
+            type: 'string_array' as const,
+          },
+        ],
+        joins: [],
+      };
+      const devUserSchema = {
+        name: 'dev_user',
+        sql: `SELECT * FROM (VALUES ('owner1', 'Alice'), ('owner2', 'Bob'), ('owner3', 'Charlie')) AS dev_user(id, display_name)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'dev_user.id', type: 'string' as const },
+          {
+            name: 'display_name',
+            sql: 'dev_user.display_name',
+            type: 'string' as const,
+          },
+        ],
+        joins: [],
+      };
+
+      const query = {
+        measures: [],
+        joinPathsV2: [
+          [
+            {
+              from: { table: 'part', column: 'owned_by_ids' },
+              to: { table: 'dev_user', column: 'id' },
+            },
+          ],
+        ],
+        filters: [],
+        dimensions: ['part.name', 'dev_user.display_name'],
+        order: {
+          'part.name': 'asc',
+          'dev_user.display_name': 'asc',
+        },
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [partSchema, devUserSchema],
+      });
+
+      expect(sql).toContain('UNNEST');
+
+      const output = await duckdbExec(sql);
+      const parsedOutput = JSON.parse(JSON.stringify(output));
+
+      expect(parsedOutput).toHaveLength(3);
+      const pairs = parsedOutput.map(
+        (row: Record<string, unknown>) =>
+          `${row['part__name']}-${row['dev_user__display_name']}`
+      );
+      expect(pairs).toContain('Part A-Alice');
+      expect(pairs).toContain('Part A-Bob');
+      expect(pairs).toContain('Part B-Charlie');
+    });
+
+    it('supports filtering on the unnested dimension', async () => {
+      const partSchema = {
+        name: 'part',
+        sql: `SELECT * FROM (VALUES ('p1', 'Part A', ['owner1', 'owner2']), ('p2', 'Part B', ['owner3'])) AS part(id, name, owned_by_ids)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'part.id', type: 'string' as const },
+          { name: 'name', sql: 'part.name', type: 'string' as const },
+          {
+            name: 'owned_by_ids',
+            sql: 'part.owned_by_ids',
+            type: 'string_array' as const,
+          },
+        ],
+        joins: [],
+      };
+      const devUserSchema = {
+        name: 'dev_user',
+        sql: `SELECT * FROM (VALUES ('owner1', 'Alice'), ('owner2', 'Bob'), ('owner3', 'Charlie')) AS dev_user(id, display_name)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'dev_user.id', type: 'string' as const },
+          {
+            name: 'display_name',
+            sql: 'dev_user.display_name',
+            type: 'string' as const,
+          },
+        ],
+        joins: [],
+      };
+
+      const query = {
+        measures: [],
+        joinPathsV2: [
+          [
+            {
+              from: { table: 'part', column: 'owned_by_ids' },
+              to: { table: 'dev_user', column: 'id' },
+            },
+          ],
+        ],
+        filters: [
+          {
+            member: 'dev_user.display_name',
+            operator: 'equals',
+            values: ['Alice'],
+          },
+        ],
+        dimensions: ['part.name', 'dev_user.display_name'],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [partSchema, devUserSchema],
+      });
+      const output = await duckdbExec(sql);
+      const parsedOutput = JSON.parse(JSON.stringify(output));
+
+      expect(parsedOutput).toHaveLength(1);
+      expect(parsedOutput[0]['part__name']).toBe('Part A');
+      expect(parsedOutput[0]['dev_user__display_name']).toBe('Alice');
+    });
+
+  });
+
   describe('Array Join Tests (UNNEST equi-join)', () => {
     it('Basic array join', async () => {
       const query = {
