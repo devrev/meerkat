@@ -220,11 +220,16 @@ export async function sqlToMeerkat(
   const queryFilters: MeerkatQueryFilter[] = wrapFilters(allFilters);
 
   const baseSQL = await buildBaseSQL(
-    sql,
     selectNode,
     residualWhere,
     getQueryOutput
   );
+  if (baseSQL === null) {
+    return {
+      success: false,
+      reason: 'Failed to serialize base SQL from AST',
+    };
+  }
 
   // Extract ORDER BY
   let order: Record<string, QueryOrderType> | undefined;

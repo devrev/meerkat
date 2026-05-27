@@ -12,11 +12,10 @@ import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
 import { stripQueryLocationInPlace } from './helpers';
 
 export async function buildBaseSQL(
-  originalSql: string,
   selectNode: SelectNode,
   residualWhere: ParsedExpression | undefined,
   getQueryOutput: GetQueryOutput
-): Promise<string> {
+): Promise<string | null> {
   const clonedNode = JSON.parse(JSON.stringify(selectNode));
   const fromOnlyNode = {
     ...clonedNode,
@@ -49,7 +48,6 @@ export async function buildBaseSQL(
     const baseSql = deserializeQuery(rows).replace(/;\s*$/, '');
     return baseSql;
   } catch {
-    const cleaned = originalSql.replace(/;\s*$/, '');
-    return `SELECT * FROM (${cleaned}) AS _base`;
+    return null;
   }
 }
