@@ -285,6 +285,23 @@ describe('sqlToMeerkat E2E', () => {
       );
       expect(query.filters).toBeDefined();
     });
+
+    it('OR condition extracted as LogicalOrFilter', async () => {
+      const { query } = await decomposeAndVerifyRowCount(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE status = 'open' OR status = 'review' GROUP BY status"
+      );
+      expect(query.filters).toBeDefined();
+      // Should contain an OR filter structure
+      const topFilter = query.filters![0];
+      expect('or' in topFilter).toBe(true);
+    });
+
+    it('OR with AND branches', async () => {
+      const { query } = await decomposeAndVerifyRowCount(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE (status = 'open' AND priority > 3) OR (status = 'closed' AND priority <= 2) GROUP BY status"
+      );
+      expect(query.filters).toBeDefined();
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════

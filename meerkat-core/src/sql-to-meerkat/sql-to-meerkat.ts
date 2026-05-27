@@ -1,5 +1,6 @@
 import {
   LogicalAndFilter,
+  LogicalOrFilter,
   MeerkatQueryFilter,
   Query,
   QueryFilter,
@@ -145,7 +146,7 @@ export async function sqlToMeerkat(input: SqlToMeerkatInput): Promise<DecomposeO
   const baseSQL = await buildBaseSQL(sql, selectNode, hasAggregates || hasGroupBy, getQueryOutput);
 
   // Extract WHERE filters
-  const allFilters: QueryFilter[] = [];
+  const allFilters: (QueryFilter | LogicalOrFilter)[] = [];
   if (selectNode.where_clause) {
     const extracted = extractFiltersFromAst(selectNode.where_clause, tableName);
     allFilters.push(...extracted.filters);
@@ -153,7 +154,11 @@ export async function sqlToMeerkat(input: SqlToMeerkatInput): Promise<DecomposeO
       warnings.push(...extracted.warnings);
     }
     for (const f of extracted.filters) {
-      ensureFilterColumnInSchema(f, dimensions, tableName);
+      if ('member' in f) {
+        ensureFilterColumnInSchema(f as QueryFilter, dimensions, tableName);
+      } else if ('or' in f) {
+        ensureOrFilterColumnsInSchema(f as LogicalOrFilter, dimensions, tableName);
+      }
     }
   }
 
@@ -387,13 +392,12 @@ async function buildBaseSQL(
 function extractFiltersFromAst(
   whereExpr: ParsedExpression,
   tableName: string
-): { filters: QueryFilter[]; warnings: string[] } {
-  const filters: QueryFilter[] = [];
+): { filters: (QueryFilter | LogicalOrFilter)[]; warnings: string[] } {
+  const filters: (QueryFilter | LogicalOrFilter)[] = [];
   const warnings: string[] = [];
 
   if (whereExpr.class === ExpressionClass.CONJUNCTION) {
     const conj = whereExpr as ConjunctionExpression;
-    // AND conjunction — try to extract each child
     if (whereExpr.type === ExpressionType.CONJUNCTION_AND) {
       for (const child of conj.children) {
         const extracted = tryExtractSingleFilter(child, tableName);
@@ -403,9 +407,13 @@ function extractFiltersFromAst(
           warnings.push('Non-extractable WHERE condition kept in base SQL');
         }
       }
-    } else {
-      // OR conjunction — can't extract as simple filter
-      warnings.push('OR conditions not extractable as filters');
+    } else if (whereExpr.type === ExpressionType.CONJUNCTION_OR) {
+      const orFilter = extractOrFilter(conj, tableName);
+      if (orFilter) {
+        filters.push(orFilter);
+      } else {
+        warnings.push('OR condition partially non-extractable');
+      }
     }
   } else {
     const extracted = tryExtractSingleFilter(whereExpr, tableName);
@@ -415,6 +423,36 @@ function extractFiltersFromAst(
   }
 
   return { filters, warnings };
+}
+
+function extractOrFilter(
+  conj: ConjunctionExpression,
+  tableName: string
+): LogicalOrFilter | null {
+  const orChildren: (QueryFilter | LogicalAndFilter)[] = [];
+  for (const child of conj.children) {
+    if (child.class === ExpressionClass.CONJUNCTION && child.type === ExpressionType.CONJUNCTION_AND) {
+      const andChildren: QueryFilter[] = [];
+      const andConj = child as ConjunctionExpression;
+      let allExtracted = true;
+      for (const grandchild of andConj.children) {
+        const extracted = tryExtractSingleFilter(grandchild, tableName);
+        if (extracted) {
+          andChildren.push(extracted);
+        } else {
+          allExtracted = false;
+          break;
+        }
+      }
+      if (!allExtracted) return null;
+      orChildren.push({ and: andChildren });
+    } else {
+      const extracted = tryExtractSingleFilter(child, tableName);
+      if (!extracted) return null;
+      orChildren.push(extracted);
+    }
+  }
+  return { or: orChildren };
 }
 
 function tryExtractSingleFilter(
@@ -622,10 +660,28 @@ function ensureFilterColumnInSchema(
   }
 }
 
-function wrapFilters(filters: QueryFilter[]): MeerkatQueryFilter[] {
+function ensureOrFilterColumnsInSchema(
+  orFilter: LogicalOrFilter,
+  dimensions: Dimension[],
+  tableName: string
+): void {
+  for (const child of orFilter.or) {
+    if ('member' in child) {
+      ensureFilterColumnInSchema(child as QueryFilter, dimensions, tableName);
+    } else if ('and' in child) {
+      for (const grandchild of (child as LogicalAndFilter).and) {
+        if ('member' in grandchild) {
+          ensureFilterColumnInSchema(grandchild as QueryFilter, dimensions, tableName);
+        }
+      }
+    }
+  }
+}
+
+function wrapFilters(filters: (QueryFilter | LogicalOrFilter)[]): MeerkatQueryFilter[] {
   if (filters.length === 0) return [];
   if (filters.length === 1) return [filters[0]];
-  const andFilter: LogicalAndFilter = { and: filters };
+  const andFilter: LogicalAndFilter = { and: filters as (QueryFilter | LogicalOrFilter)[] };
   return [andFilter];
 }
 
