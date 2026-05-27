@@ -209,7 +209,7 @@ export async function sqlToMeerkat(
 
   // Extract HAVING as measure filters (all-or-nothing: if any condition
   // can't be matched to a known measure, keep entire HAVING in base SQL
-  // to avoid silently dropping filter conditions)
+  // and demote all measures to dimensions to prevent re-aggregation)
   let residualHaving: ParsedExpression | undefined;
   if (selectNode.having) {
     const havingFilters = extractHavingFromAst(
@@ -222,6 +222,12 @@ export async function sqlToMeerkat(
     } else {
       residualHaving = selectNode.having;
       warnings.push('Non-extractable HAVING condition retained in base SQL');
+      for (const m of measures) {
+        dimensions.push({ name: m.name, sql: m.name, type: 'number' });
+        queryDimensions.push(`${tableName}.${m.name}`);
+      }
+      measures.length = 0;
+      queryMeasures.length = 0;
     }
   }
 
