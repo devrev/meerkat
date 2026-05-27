@@ -298,6 +298,13 @@ function resolveMemberName(
   return `${tableName}.${ref.column}`;
 }
 
+function isConstantLike(expr: ParsedExpression): boolean {
+  return (
+    expr.class === ExpressionClass.CONSTANT ||
+    (expr.class === ExpressionClass.CAST && getConstantValue(expr) !== null)
+  );
+}
+
 function extractComparisonFilter(
   expr: ComparisonExpression,
   tableName: string
@@ -305,7 +312,7 @@ function extractComparisonFilter(
   const memberLeft = resolveMemberName(expr.left, tableName);
   const memberRight = resolveMemberName(expr.right, tableName);
 
-  if (memberLeft && expr.right.class === ExpressionClass.CONSTANT) {
+  if (memberLeft && isConstantLike(expr.right)) {
     return buildComparisonResult(
       memberLeft,
       expr.right,
@@ -314,7 +321,7 @@ function extractComparisonFilter(
     );
   }
 
-  if (memberRight && expr.left.class === ExpressionClass.CONSTANT) {
+  if (memberRight && isConstantLike(expr.left)) {
     return buildComparisonResult(
       memberRight,
       expr.left,

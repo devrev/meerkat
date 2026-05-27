@@ -997,6 +997,90 @@ describe('sqlToMeerkat E2E', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
+  // CAST/TIMESTAMPTZ FILTER EXTRACTION
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  describe('CAST and typed constant filters', () => {
+    it('CAST comparison extracted as filter', async () => {
+      const { query } = await decomposeAndRebuild(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date >= CAST('2024-03-01' AS TIMESTAMP) GROUP BY status"
+      );
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual({
+        member: 'tickets.created_date',
+        operator: 'gte',
+        values: ['2024-03-01'],
+      });
+    });
+
+    it('multiple CAST filters all extracted', async () => {
+      const { query, warnings } = await decomposeAndRebuild(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date >= CAST('2024-01-01' AS TIMESTAMP) AND created_date < CAST('2024-07-01' AS TIMESTAMP) GROUP BY status"
+      );
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual({
+        member: 'tickets.created_date',
+        operator: 'gte',
+        values: ['2024-01-01'],
+      });
+      expect(filters).toContainEqual({
+        member: 'tickets.created_date',
+        operator: 'lt',
+        values: ['2024-07-01'],
+      });
+      expect(warnings).toEqual([]);
+    });
+
+    it('CAST filter round-trip produces correct row count', async () => {
+      await verifyExactRowMatch(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date >= CAST('2024-03-01' AS TIMESTAMP) GROUP BY status"
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // ROUND-TRIP CORRECTNESS — verify decompose+rebuild matches original
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  describe('round-trip correctness', () => {
+    it('aggregate with WHERE + ORDER + LIMIT', async () => {
+      await verifyExactRowMatch(
+        "SELECT owner, SUM(amount) as total FROM tickets WHERE status = 'open' GROUP BY owner ORDER BY total DESC LIMIT 3"
+      );
+    });
+
+    it('multi-column GROUP BY with HAVING', async () => {
+      await verifyExactRowMatch(
+        'SELECT status, owner, COUNT(*) as cnt FROM tickets GROUP BY status, owner HAVING COUNT(*) >= 2'
+      );
+    });
+
+    it('IN filter with ORDER BY', async () => {
+      await verifyExactRowMatch(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE status IN ('open', 'review') GROUP BY status ORDER BY cnt DESC"
+      );
+    });
+
+    it('multiple aggregates with WHERE + HAVING + ORDER + LIMIT', async () => {
+      await verifyExactRowMatch(
+        "SELECT owner, COUNT(*) as cnt, SUM(amount) as total, AVG(priority) as avg_pri FROM tickets WHERE status != 'closed' GROUP BY owner HAVING COUNT(*) >= 2 ORDER BY total DESC LIMIT 5"
+      );
+    });
+
+    it('non-aggregated with IN and ORDER', async () => {
+      await verifyExactRowMatch(
+        "SELECT id, title, owner, priority FROM tickets WHERE priority IN (4, 5) AND status = 'open' ORDER BY priority DESC, id ASC LIMIT 5"
+      );
+    });
+
+    it('expression in SELECT with GROUP BY', async () => {
+      await verifyExactRowMatch(
+        "SELECT CASE WHEN priority >= 4 THEN 'high' WHEN priority >= 2 THEN 'medium' ELSE 'low' END as bucket, COUNT(*) as cnt, SUM(amount) as total FROM tickets GROUP BY CASE WHEN priority >= 4 THEN 'high' WHEN priority >= 2 THEN 'medium' ELSE 'low' END ORDER BY total DESC"
+      );
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
   // PRODUCTION QUERIES — real-world SQL patterns
   // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1212,7 +1296,7 @@ WHERE t.state = 'closed'
     });
 
     describe('DATE_TRUNC GROUP BY with TIMESTAMPTZ filter', () => {
-      it('extracts extractable filters, retains TIMESTAMPTZ comparison in residual', async () => {
+      it('extracts all filters including TIMESTAMPTZ comparison', async () => {
         const result = await sqlToMeerkat({
           sql: `SELECT
   DATE_TRUNC('month', t.actual_close_date) AS month,
@@ -1249,9 +1333,12 @@ ORDER BY month`,
           operator: 'equals',
           values: ['don:core:dvrv-us-1:devo/0:capability/61'],
         });
-        expect(warnings).toContainEqual(
-          'Non-extractable WHERE condition retained in base SQL'
-        );
+        expect(filters).toContainEqual({
+          member: 't.actual_close_date',
+          operator: 'gte',
+          values: ['2025-06-01T00:00:00+00:00'],
+        });
+        expect(warnings).toEqual([]);
         expect(query.order).toEqual({ 't.month': 'asc' });
       });
     });
