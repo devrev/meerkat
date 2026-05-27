@@ -90,9 +90,19 @@ export function extractHavingFromAst(
   tableName: string,
   measures: readonly Measure[]
 ): QueryFilterWithValues[] {
+  const filters = tryExtractAllHaving(havingExpr, tableName, measures);
+  if (filters === null) return [];
+  return filters;
+}
+
+function tryExtractAllHaving(
+  havingExpr: ParsedExpression,
+  tableName: string,
+  measures: readonly Measure[]
+): QueryFilterWithValues[] | null {
   if (havingExpr.class === ExpressionClass.COMPARISON) {
     const filter = extractHavingComparison(havingExpr as ComparisonExpression, tableName, measures);
-    return filter ? [filter] : [];
+    return filter ? [filter] : null;
   }
   if (
     havingExpr.class === ExpressionClass.CONJUNCTION &&
@@ -101,12 +111,13 @@ export function extractHavingFromAst(
     const conj = havingExpr as ConjunctionExpression;
     const filters: QueryFilterWithValues[] = [];
     for (const child of conj.children) {
-      filters.push(...extractHavingFromAst(child, tableName, measures));
+      const childFilters = tryExtractAllHaving(child, tableName, measures);
+      if (childFilters === null) return null;
+      filters.push(...childFilters);
     }
     return filters;
   }
-  // OR conjunctions and other expression types not extractable as measure filters
-  return [];
+  return null;
 }
 
 function extractHavingComparison(

@@ -207,14 +207,22 @@ export async function sqlToMeerkat(
     }
   }
 
-  // Extract HAVING as measure filters
+  // Extract HAVING as measure filters (all-or-nothing: if any condition
+  // can't be matched to a known measure, keep entire HAVING in base SQL
+  // to avoid silently dropping filter conditions)
+  let residualHaving: ParsedExpression | undefined;
   if (selectNode.having) {
     const havingFilters = extractHavingFromAst(
       selectNode.having,
       tableName,
       measures
     );
-    allFilters.push(...havingFilters);
+    if (havingFilters.length > 0) {
+      allFilters.push(...havingFilters);
+    } else {
+      residualHaving = selectNode.having;
+      warnings.push('Non-extractable HAVING condition retained in base SQL');
+    }
   }
 
   const queryFilters: MeerkatQueryFilter[] = wrapFilters(allFilters);
@@ -222,6 +230,7 @@ export async function sqlToMeerkat(
   const baseSQL = await buildBaseSQL(
     selectNode,
     residualWhere,
+    residualHaving,
     getQueryOutput
   );
   if (baseSQL === null) {

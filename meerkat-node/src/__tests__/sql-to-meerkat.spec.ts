@@ -438,6 +438,18 @@ describe('sqlToMeerkat E2E', () => {
         'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status HAVING 1 < COUNT(*)'
       );
     });
+
+    it('HAVING on aggregate NOT in select list retains correct row count', async () => {
+      await verifyExactRowMatch(
+        'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status HAVING AVG(amount) > 50'
+      );
+    });
+
+    it('HAVING with mixed: one extractable, one not in select', async () => {
+      await verifyExactRowMatch(
+        'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status HAVING COUNT(*) > 1 AND AVG(amount) > 30'
+      );
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
