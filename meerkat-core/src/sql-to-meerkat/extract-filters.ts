@@ -151,28 +151,37 @@ export function ensureOrFilterColumnsInSchema(
   tableName: string
 ): Dimension[] | null {
   const newDims: Dimension[] = [];
-  for (const child of orFilter.or) {
-    if ('member' in child) {
-      const added = ensureFilterColumnInSchema(
-        child as QueryFilterWithValues,
-        [...dimensions, ...newDims],
-        tableName
+  collectFilterDimensions(orFilter, dimensions, tableName, newDims);
+  return newDims.length > 0 ? newDims : null;
+}
+
+function collectFilterDimensions(
+  filter: QueryFilterWithValues | LogicalOrFilter | LogicalAndFilter,
+  dimensions: readonly Dimension[],
+  tableName: string,
+  newDims: Dimension[]
+): void {
+  if ('member' in filter) {
+    const added = ensureFilterColumnInSchema(
+      filter as QueryFilterWithValues,
+      [...dimensions, ...newDims],
+      tableName
+    );
+    if (added) newDims.push(...added);
+  } else if ('or' in filter) {
+    for (const child of (filter as LogicalOrFilter).or) {
+      collectFilterDimensions(child, dimensions, tableName, newDims);
+    }
+  } else if ('and' in filter) {
+    for (const child of (filter as LogicalAndFilter).and) {
+      collectFilterDimensions(
+        child as QueryFilterWithValues | LogicalOrFilter | LogicalAndFilter,
+        dimensions,
+        tableName,
+        newDims
       );
-      if (added) newDims.push(...added);
-    } else if ('and' in child) {
-      for (const grandchild of (child as LogicalAndFilter).and) {
-        if ('member' in grandchild) {
-          const added = ensureFilterColumnInSchema(
-            grandchild as QueryFilterWithValues,
-            [...dimensions, ...newDims],
-            tableName
-          );
-          if (added) newDims.push(...added);
-        }
-      }
     }
   }
-  return newDims.length > 0 ? newDims : null;
 }
 
 function buildResidualConjunction(

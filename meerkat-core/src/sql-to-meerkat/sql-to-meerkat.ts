@@ -214,13 +214,16 @@ export async function sqlToMeerkat(
     (m) => m.type === ResultModifierType.ORDER_MODIFIER
   ) as OrderModifier | undefined;
   if (orderModifier) {
-    order = extractOrderFromAst(
+    const extracted = extractOrderFromAst(
       orderModifier.orders,
       tableName,
       dimensions,
       measures,
       selectListOrder
     );
+    if (Object.keys(extracted).length > 0) {
+      order = extracted;
+    }
   }
 
   // Extract LIMIT/OFFSET
@@ -231,12 +234,10 @@ export async function sqlToMeerkat(
   ) as LimitModifier | undefined;
   if (limitModifier) {
     if (limitModifier.limit) {
-      const rawLimit = getConstantValue(limitModifier.limit);
-      if (typeof rawLimit === 'number') limit = Math.trunc(rawLimit);
+      limit = parseIntConstant(getConstantValue(limitModifier.limit));
     }
     if (limitModifier.offset) {
-      const rawOffset = getConstantValue(limitModifier.offset);
-      if (typeof rawOffset === 'number') offset = Math.trunc(rawOffset);
+      offset = parseIntConstant(getConstantValue(limitModifier.offset));
     }
   }
 
@@ -265,4 +266,11 @@ function wrapFilters(
   if (filters.length === 0) return [];
   if (filters.length === 1) return [filters[0]];
   return [{ and: filters }];
+}
+
+function parseIntConstant(value: string | number | null): number | undefined {
+  if (value === null) return undefined;
+  const n = typeof value === 'number' ? value : Number(value);
+  if (isNaN(n)) return undefined;
+  return Math.trunc(n);
 }
