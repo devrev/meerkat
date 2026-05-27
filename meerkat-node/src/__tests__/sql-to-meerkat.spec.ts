@@ -994,6 +994,18 @@ describe('sqlToMeerkat E2E', () => {
       });
       expect(result.success).toBe(false);
     });
+
+    it('SELECT without FROM succeeds with query table name', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT 1 + 1 as result',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.tableSchema.name).toBe('query');
+        expect(result.tableSchema.dimensions.length).toBe(1);
+      }
+    });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -1076,6 +1088,36 @@ describe('sqlToMeerkat E2E', () => {
     it('expression in SELECT with GROUP BY', async () => {
       await verifyExactRowMatch(
         "SELECT CASE WHEN priority >= 4 THEN 'high' WHEN priority >= 2 THEN 'medium' ELSE 'low' END as bucket, COUNT(*) as cnt, SUM(amount) as total FROM tickets GROUP BY CASE WHEN priority >= 4 THEN 'high' WHEN priority >= 2 THEN 'medium' ELSE 'low' END ORDER BY total DESC"
+      );
+    });
+
+    it('arithmetic measure: SUM/COUNT ratio', async () => {
+      const { tableSchema, query } = await decomposeAndRebuild(
+        'SELECT status, SUM(amount) / COUNT(*) as avg_amount FROM tickets GROUP BY status'
+      );
+      expect(tableSchema.measures.length).toBe(1);
+      expect(tableSchema.measures[0].name).toBe('avg_amount');
+      expect(query.measures).toEqual(['tickets.avg_amount']);
+      await verifyExactRowMatch(
+        'SELECT status, SUM(amount) / COUNT(*) as avg_amount FROM tickets GROUP BY status'
+      );
+    });
+
+    it('arithmetic measure with constant: SUM(amount) * 1.1', async () => {
+      await verifyExactRowMatch(
+        'SELECT status, SUM(amount) * 1.1 as inflated FROM tickets GROUP BY status'
+      );
+    });
+
+    it('non-aggregated query ORDER BY column', async () => {
+      await verifyExactRowMatch(
+        'SELECT id, title, priority FROM tickets ORDER BY priority DESC, id ASC LIMIT 5'
+      );
+    });
+
+    it('JOIN with mixed extractable/non-extractable filters row count', async () => {
+      await verifyExactRowMatch(
+        "SELECT t.status, COUNT(*) as cnt FROM tickets t JOIN users u ON t.owner = u.name WHERE t.priority > 3 AND u.team = 'backend' GROUP BY t.status"
       );
     });
   });
