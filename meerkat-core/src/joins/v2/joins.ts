@@ -29,11 +29,10 @@ const isArrayColumn = (
  * Returns the SQL expression to feed `UNNEST(...)` for an array column
  * inside a `(SELECT *, UNNEST(<expr>) FROM (<baseSql>))` wrap. The
  * subquery exposes the table's columns directly (via `SELECT *`) but
- * the table alias is not yet in scope — so we strip a leading
- * `${tableName}.` prefix from `dim.sql` if present. For composite-child
- * synthetic dims (`tags_$0_tag_id`), `dim.sql` is the underlying
- * expression like `json_extract_string(tags, '$[*].tag_id')` and works
- * inside the wrap unchanged.
+ * the table alias is not yet in scope — so we strip all `${tableName}.`
+ * qualifiers from `dim.sql`. After `ensureTableSchemasAlias`, the SQL
+ * may be wrapped in expressions like `CAST(issue.col AS VARCHAR[])`,
+ * so a simple `startsWith` prefix check is not sufficient.
  */
 const getArrayUnnestExpression = (
   tableSchemas: TableSchema[],
@@ -42,7 +41,12 @@ const getArrayUnnestExpression = (
 ): string => {
   const member = findArrayMember(tableSchemas, table, column);
   const sql = member?.sql ?? column;
-  return sql.startsWith(`${table}.`) ? sql.slice(table.length + 1) : sql;
+  const tablePrefix = `${table}.`;
+  if (!sql.includes(tablePrefix)) return sql;
+  // Replace all occurrences of `table.` that appear as word-boundary
+  // qualified refs (not inside a string literal or as part of a longer name).
+  const escaped = table.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return sql.replace(new RegExp(`\\b${escaped}\\.`, 'g'), '');
 };
 
 /**
