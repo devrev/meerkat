@@ -51,12 +51,16 @@ INSERT INTO users VALUES
 
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function flattenFilters(filters: MeerkatQueryFilter[]): any[] {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any[] = [];
   for (const f of filters) {
     if ('and' in f) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       result.push(...flattenFilters((f as any).and));
     } else if ('or' in f) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       result.push(...flattenFilters((f as any).or));
     } else {
       result.push(f);
@@ -65,20 +69,24 @@ function flattenFilters(filters: MeerkatQueryFilter[]): any[] {
   return result;
 }
 
-async function decomposeAndVerifyRowCount(sql: string) {
+async function decomposeAndRebuild(sql: string) {
   const result = await sqlToMeerkat({ sql, getQueryOutput });
   expect(result.success).toBe(true);
-  const { tableSchema, query } = result as DecomposeResult;
-
+  const { tableSchema, query, warnings } = result as DecomposeResult;
   const rebuiltSql = await cubeQueryToSQL({
     query,
     tableSchemas: [tableSchema],
   });
-  const originalRows = await duckdbExec<any[]>(sql);
-  const rebuiltRows = await duckdbExec<any[]>(rebuiltSql);
+  return { tableSchema, query, warnings, rebuiltSql };
+}
 
+async function verifyExactRowMatch(sql: string) {
+  const { rebuiltSql } = await decomposeAndRebuild(sql);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const originalRows = await duckdbExec<any[]>(sql);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rebuiltRows = await duckdbExec<any[]>(rebuiltSql);
   expect(rebuiltRows.length).toBe(originalRows.length);
-  return result as DecomposeResult;
 }
 
 // ─── TESTS ─────────────────────────────────────────────────────────────────────
@@ -89,58 +97,80 @@ describe('sqlToMeerkat E2E', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // AGGREGATE FUNCTIONS
+  // AGGREGATE FUNCTIONS — exact SQL assertions
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('aggregate functions', () => {
     it('COUNT(*)', async () => {
-      await decomposeAndVerifyRowCount(
+      const { rebuiltSql, tableSchema, query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status'
+      );
+      expect(tableSchema.measures).toEqual([
+        { name: 'cnt', sql: 'count_star()', type: 'number' },
+      ]);
+      expect(tableSchema.dimensions).toEqual([
+        { name: 'status', sql: 'status', type: 'string' },
+      ]);
+      expect(query.measures).toEqual(['tickets.cnt']);
+      expect(query.dimensions).toEqual(['tickets.status']);
+      expect(rebuiltSql).toBe(
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets GROUP BY tickets__status"
       );
     });
 
     it('SUM', async () => {
-      await decomposeAndVerifyRowCount(
+      const { rebuiltSql, tableSchema } = await decomposeAndRebuild(
         'SELECT status, SUM(amount) as total FROM tickets GROUP BY status'
+      );
+      expect(tableSchema.measures).toEqual([
+        { name: 'total', sql: 'sum(amount)', type: 'number' },
+      ]);
+      expect(rebuiltSql).toBe(
+        "SELECT sum(amount) AS tickets__total ,   tickets__status FROM (SELECT status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets GROUP BY tickets__status"
       );
     });
 
     it('AVG', async () => {
-      await decomposeAndVerifyRowCount(
+      const { tableSchema } = await decomposeAndRebuild(
         'SELECT status, AVG(amount) as avg_amt FROM tickets GROUP BY status'
       );
+      expect(tableSchema.measures).toEqual([
+        { name: 'avg_amt', sql: 'avg(amount)', type: 'number' },
+      ]);
     });
 
     it('MIN and MAX', async () => {
-      await decomposeAndVerifyRowCount(
+      const { tableSchema } = await decomposeAndRebuild(
         'SELECT status, MIN(amount) as min_amt, MAX(amount) as max_amt FROM tickets GROUP BY status'
       );
+      expect(tableSchema.measures).toEqual([
+        { name: 'min_amt', sql: 'min(amount)', type: 'number' },
+        { name: 'max_amt', sql: 'max(amount)', type: 'number' },
+      ]);
     });
 
     it('COUNT(DISTINCT col)', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT status, COUNT(DISTINCT owner) as unique_owners FROM tickets GROUP BY status',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
+      const { tableSchema } = await decomposeAndRebuild(
+        'SELECT status, COUNT(DISTINCT owner) as unique_owners FROM tickets GROUP BY status'
+      );
       expect(tableSchema.measures.length).toBe(1);
+      expect(tableSchema.measures[0].name).toBe('unique_owners');
     });
 
     it('multiple aggregates on same column', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, SUM(amount) as total, AVG(amount) as avg_amt, MIN(amount) as lo, MAX(amount) as hi FROM tickets GROUP BY status'
       );
     });
 
     it('aggregate with CASE WHEN inside', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, SUM(CASE WHEN priority > 3 THEN amount ELSE 0 END) as high_priority_total FROM tickets GROUP BY status'
       );
     });
 
     it('aggregate with COALESCE inside', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, SUM(COALESCE(amount, 0)) as total FROM tickets GROUP BY status'
       );
     });
@@ -162,159 +192,176 @@ describe('sqlToMeerkat E2E', () => {
 
   describe('GROUP BY variations', () => {
     it('single column GROUP BY', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status'
       );
     });
 
     it('multi-column GROUP BY', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, priority, COUNT(*) as cnt FROM tickets GROUP BY status, priority'
       );
     });
 
     it('GROUP BY with expression (DATE_TRUNC)', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         "SELECT DATE_TRUNC('month', created_date) as month, COUNT(*) as cnt FROM tickets GROUP BY DATE_TRUNC('month', created_date)"
       );
     });
 
     it('GROUP BY with expression (EXTRACT)', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT EXTRACT(YEAR FROM created_date) as yr, COUNT(*) as cnt FROM tickets GROUP BY EXTRACT(YEAR FROM created_date)'
       );
     });
 
     it('GROUP BY with CASE expression', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         "SELECT CASE WHEN priority >= 4 THEN 'high' ELSE 'low' END as severity, COUNT(*) as cnt FROM tickets GROUP BY CASE WHEN priority >= 4 THEN 'high' ELSE 'low' END"
       );
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // WHERE CLAUSE FILTER EXTRACTION
+  // WHERE CLAUSE FILTER EXTRACTION — exact filter structure
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('WHERE clause extraction', () => {
     it('equality: col = literal string', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query, rebuiltSql } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE owner = 'alice' GROUP BY status"
       );
-      const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) => f.member === 'tickets.owner' && f.operator === 'equals'
-        )
-      ).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.owner', operator: 'equals', values: ['alice'] },
+      ]);
+      expect(rebuiltSql).toBe(
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT owner AS tickets__owner, status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets WHERE (tickets__owner = 'alice') GROUP BY tickets__status"
+      );
     });
 
     it('equality: col = integer', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE priority = 5 GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) => f.member === 'tickets.priority' && f.operator === 'equals'
-        )
-      ).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.priority', operator: 'equals', values: ['5'] },
+      ]);
     });
 
     it('not equals: col != literal', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE status != 'closed' GROUP BY status"
       );
       const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'notEquals')).toBe(true);
+      expect(filters).toContainEqual(
+        { member: 'tickets.status', operator: 'notEquals', values: ['closed'] }
+      );
     });
 
     it('greater than: col > value', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query, rebuiltSql } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE priority > 3 GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'gt')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.priority', operator: 'gt', values: ['3'] },
+      ]);
+      expect(rebuiltSql).toBe(
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT priority AS tickets__priority, status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets WHERE (tickets__priority > '3') GROUP BY tickets__status"
+      );
     });
 
     it('greater than or equal: col >= value', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE priority >= 4 GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'gte')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.priority', operator: 'gte', values: ['4'] },
+      ]);
     });
 
     it('less than: col < value', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount < 50 GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'lt')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.amount', operator: 'lt', values: ['50'] },
+      ]);
     });
 
     it('less than or equal: col <= value', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount <= 50 GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'lte')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.amount', operator: 'lte', values: ['50'] },
+      ]);
     });
 
     it('IS NULL', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE resolved_at IS NULL GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'notSet')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.resolved_at', operator: 'notSet', values: [] },
+      ]);
     });
 
     it('IS NOT NULL', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE resolved_at IS NOT NULL GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'set')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.resolved_at', operator: 'set', values: [] },
+      ]);
     });
 
-    it('BETWEEN', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+    it('BETWEEN date column', async () => {
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date BETWEEN '2024-02-01' AND '2024-04-01' GROUP BY status"
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'inDateRange')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.created_date', operator: 'inDateRange', values: ['2024-02-01', '2024-04-01'] },
+      ]);
     });
 
     it('multiple AND conditions', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE priority >= 4 AND owner = 'alice' GROUP BY status"
       );
       const filters = flattenFilters(query.filters!);
-      expect(filters.length).toBeGreaterThanOrEqual(2);
+      expect(filters).toContainEqual(
+        { member: 'tickets.priority', operator: 'gte', values: ['4'] }
+      );
+      expect(filters).toContainEqual(
+        { member: 'tickets.owner', operator: 'equals', values: ['alice'] }
+      );
     });
 
     it('timestamp comparison', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date > '2024-03-01' GROUP BY status"
       );
       expect(query.filters).toBeDefined();
+      const filters = flattenFilters(query.filters!);
+      expect(filters[0].operator).toBe('gt');
     });
 
     it('OR condition extracted as LogicalOrFilter', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE status = 'open' OR status = 'review' GROUP BY status"
       );
-      expect(query.filters).toBeDefined();
-      // Should contain an OR filter structure
       const topFilter = query.filters![0];
       expect('or' in topFilter).toBe(true);
     });
 
     it('OR with AND branches', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE (status = 'open' AND priority > 3) OR (status = 'closed' AND priority <= 2) GROUP BY status"
       );
       expect(query.filters).toBeDefined();
+      await verifyExactRowMatch(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE (status = 'open' AND priority > 3) OR (status = 'closed' AND priority <= 2) GROUP BY status"
+      );
     });
   });
 
@@ -324,107 +371,104 @@ describe('sqlToMeerkat E2E', () => {
 
   describe('HAVING clause', () => {
     it('HAVING with aggregate > value', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status HAVING COUNT(*) > 1'
       );
     });
 
     it('HAVING with aggregate >= value', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, SUM(amount) as total FROM tickets GROUP BY status HAVING SUM(amount) >= 100'
       );
     });
 
     it('HAVING + WHERE combined', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE priority > 2 GROUP BY status HAVING COUNT(*) >= 2'
       );
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // ORDER BY
+  // ORDER BY — exact order structure
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('ORDER BY', () => {
     it('ORDER BY aggregate DESC', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query, rebuiltSql } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status ORDER BY cnt DESC'
       );
-      expect(query.order).toBeDefined();
-      const orderValues = Object.values(query.order!);
-      expect(orderValues).toContain('desc');
+      expect(query.order).toEqual({ 'tickets.cnt': 'desc' });
+      expect(rebuiltSql).toBe(
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets GROUP BY tickets__status ORDER BY tickets__cnt DESC"
+      );
     });
 
     it('ORDER BY dimension ASC', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status ORDER BY status ASC'
       );
-      expect(query.order).toBeDefined();
+      expect(query.order).toEqual({ 'tickets.status': 'asc' });
     });
 
     it('ORDER BY multiple columns', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, priority, COUNT(*) as cnt FROM tickets GROUP BY status, priority ORDER BY status ASC, cnt DESC'
       );
-      expect(Object.keys(query.order!).length).toBe(2);
+      expect(query.order).toEqual({
+        'tickets.status': 'asc',
+        'tickets.cnt': 'desc',
+      });
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // LIMIT / OFFSET
+  // LIMIT / OFFSET — exact values
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('LIMIT and OFFSET', () => {
     it('LIMIT only', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query, rebuiltSql } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status ORDER BY cnt DESC LIMIT 2'
       );
       expect(query.limit).toBe(2);
+      expect(query.offset).toBeUndefined();
+      expect(rebuiltSql).toBe(
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets GROUP BY tickets__status ORDER BY tickets__cnt DESC LIMIT 2"
+      );
     });
 
     it('LIMIT + OFFSET', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status ORDER BY cnt DESC LIMIT 2 OFFSET 1',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { query } = result as DecomposeResult;
+      const { query } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status ORDER BY cnt DESC LIMIT 2 OFFSET 1'
+      );
       expect(query.limit).toBe(2);
       expect(query.offset).toBe(1);
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // CTEs (Common Table Expressions)
+  // CTEs
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('CTEs', () => {
     it('single CTE', async () => {
-      const result = await sqlToMeerkat({
-        sql: `
-          WITH recent AS (SELECT * FROM tickets WHERE created_date > '2024-03-01')
-          SELECT status, COUNT(*) as cnt FROM recent GROUP BY status
-        `,
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
-      expect(tableSchema.measures.length).toBeGreaterThan(0);
+      const { tableSchema } = await decomposeAndRebuild(`
+        WITH recent AS (SELECT * FROM tickets WHERE created_date > '2024-03-01')
+        SELECT status, COUNT(*) as cnt FROM recent GROUP BY status
+      `);
+      expect(tableSchema.measures).toEqual([
+        { name: 'cnt', sql: 'count_star()', type: 'number' },
+      ]);
     });
 
     it('multiple CTEs', async () => {
-      const result = await sqlToMeerkat({
-        sql: `
-          WITH
-            high_priority AS (SELECT * FROM tickets WHERE priority >= 4),
-            open_tickets AS (SELECT * FROM high_priority WHERE status = 'open')
-          SELECT owner, COUNT(*) as cnt FROM open_tickets GROUP BY owner
-        `,
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
+      const { tableSchema } = await decomposeAndRebuild(`
+        WITH
+          high_priority AS (SELECT * FROM tickets WHERE priority >= 4),
+          open_tickets AS (SELECT * FROM high_priority WHERE status = 'open')
+        SELECT owner, COUNT(*) as cnt FROM open_tickets GROUP BY owner
+      `);
       expect(tableSchema.measures.length).toBeGreaterThan(0);
     });
 
@@ -439,6 +483,9 @@ describe('sqlToMeerkat E2E', () => {
         getQueryOutput,
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.reason).toBe('WITH RECURSIVE not supported');
+      }
     });
   });
 
@@ -453,7 +500,9 @@ describe('sqlToMeerkat E2E', () => {
         getQueryOutput,
       });
       expect(result.success).toBe(false);
-      if (!result.success) expect(result.reason).toContain('UNION');
+      if (!result.success) {
+        expect(result.reason).toBe('UNION/INTERSECT/EXCEPT not supported');
+      }
     });
 
     it('rejects EXCEPT', async () => {
@@ -462,6 +511,9 @@ describe('sqlToMeerkat E2E', () => {
         getQueryOutput,
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.reason).toBe('UNION/INTERSECT/EXCEPT not supported');
+      }
     });
 
     it('rejects INTERSECT', async () => {
@@ -470,64 +522,65 @@ describe('sqlToMeerkat E2E', () => {
         getQueryOutput,
       });
       expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.reason).toBe('UNION/INTERSECT/EXCEPT not supported');
+      }
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // WINDOW FUNCTIONS (BEST EFFORT)
+  // WINDOW FUNCTIONS
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('window functions (best-effort skip)', () => {
     it('ROW_NUMBER alongside aggregate — extracts aggregate, skips window', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT status, COUNT(*) as cnt, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) as rn FROM tickets GROUP BY status',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema, warnings } = result as DecomposeResult;
-      expect(tableSchema.measures.some((m) => m.name === 'cnt')).toBe(true);
-      expect(warnings.some((w) => w.toLowerCase().includes('window'))).toBe(
-        true
+      const { tableSchema, warnings } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) as rn FROM tickets GROUP BY status'
       );
+      expect(tableSchema.measures).toContainEqual(
+        { name: 'cnt', sql: 'count_star()', type: 'number' }
+      );
+      expect(warnings.some((w) => w.toLowerCase().includes('window'))).toBe(true);
     });
 
     it('RANK alongside aggregate', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT status, SUM(amount) as total, RANK() OVER (ORDER BY SUM(amount) DESC) as rnk FROM tickets GROUP BY status',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
-      expect(tableSchema.measures.some((m) => m.name === 'total')).toBe(true);
+      const { tableSchema } = await decomposeAndRebuild(
+        'SELECT status, SUM(amount) as total, RANK() OVER (ORDER BY SUM(amount) DESC) as rnk FROM tickets GROUP BY status'
+      );
+      expect(tableSchema.measures).toContainEqual(
+        { name: 'total', sql: 'sum(amount)', type: 'number' }
+      );
     });
 
     it('only window functions — produces dimensions from non-window items', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT id, status, ROW_NUMBER() OVER (ORDER BY id) as rn FROM tickets',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
+      const { tableSchema } = await decomposeAndRebuild(
+        'SELECT id, status, ROW_NUMBER() OVER (ORDER BY id) as rn FROM tickets'
+      );
       expect(tableSchema.dimensions.length).toBeGreaterThan(0);
       expect(tableSchema.measures).toEqual([]);
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // NON-AGGREGATED QUERIES
+  // NON-AGGREGATED QUERIES — exact SQL
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('non-aggregated queries', () => {
     it('plain SELECT columns', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT id, title, status, priority FROM tickets',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema, query } = result as DecomposeResult;
+      const { tableSchema, query, rebuiltSql } = await decomposeAndRebuild(
+        'SELECT id, title, status, priority FROM tickets'
+      );
       expect(tableSchema.measures).toEqual([]);
-      expect(tableSchema.dimensions.length).toBe(4);
+      expect(tableSchema.dimensions).toEqual([
+        { name: 'id', sql: 'id', type: 'string' },
+        { name: 'title', sql: 'title', type: 'string' },
+        { name: 'status', sql: 'status', type: 'string' },
+        { name: 'priority', sql: 'priority', type: 'string' },
+      ]);
       expect(query.measures).toEqual([]);
+      expect(rebuiltSql).toBe(
+        "SELECT  tickets__id,  tickets__title,  tickets__status,  tickets__priority FROM (SELECT id AS tickets__id, title AS tickets__title, status AS tickets__status, priority AS tickets__priority, * FROM (SELECT * FROM tickets) AS tickets) AS tickets"
+      );
     });
 
     it('SELECT * (star expression)', async () => {
@@ -539,23 +592,24 @@ describe('sqlToMeerkat E2E', () => {
     });
 
     it('SELECT with WHERE but no aggregation', async () => {
-      const result = await sqlToMeerkat({
-        sql: "SELECT id, title, status FROM tickets WHERE owner = 'alice' AND priority > 3",
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { query } = result as DecomposeResult;
-      expect(query.filters).toBeDefined();
+      const { query } = await decomposeAndRebuild(
+        "SELECT id, title, status FROM tickets WHERE owner = 'alice' AND priority > 3"
+      );
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual(
+        { member: 'tickets.owner', operator: 'equals', values: ['alice'] }
+      );
+      expect(filters).toContainEqual(
+        { member: 'tickets.priority', operator: 'gt', values: ['3'] }
+      );
     });
 
     it('SELECT with computed columns (no aggregation)', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT id, title, amount * 1.1 as amount_with_tax FROM tickets',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
+      const { tableSchema } = await decomposeAndRebuild(
+        'SELECT id, title, amount * 1.1 as amount_with_tax FROM tickets'
+      );
       expect(tableSchema.dimensions.length).toBe(3);
+      expect(tableSchema.dimensions[2].name).toBe('amount_with_tax');
     });
   });
 
@@ -573,12 +627,9 @@ describe('sqlToMeerkat E2E', () => {
     });
 
     it('aggregation over subquery', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT owner, SUM(cnt) as total FROM (SELECT owner, COUNT(*) as cnt FROM tickets GROUP BY owner, status) sub GROUP BY owner',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
+      const { tableSchema } = await decomposeAndRebuild(
+        'SELECT owner, SUM(cnt) as total FROM (SELECT owner, COUNT(*) as cnt FROM tickets GROUP BY owner, status) sub GROUP BY owner'
+      );
       expect(tableSchema.measures.length).toBeGreaterThan(0);
     });
   });
@@ -597,13 +648,12 @@ describe('sqlToMeerkat E2E', () => {
     });
 
     it('numeric zero as filter value', async () => {
-      const result = await sqlToMeerkat({
-        sql: 'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount > 0 GROUP BY status',
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { query } = result as DecomposeResult;
-      expect(query.filters).toBeDefined();
+      const { query } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount > 0 GROUP BY status'
+      );
+      expect(query.filters).toEqual([
+        { member: 'tickets.amount', operator: 'gt', values: ['0'] },
+      ]);
     });
 
     it('negative number in filter', async () => {
@@ -621,17 +671,12 @@ describe('sqlToMeerkat E2E', () => {
 
   describe('JOINs', () => {
     it('INNER JOIN with aggregation', async () => {
-      const result = await sqlToMeerkat({
-        sql: `
-          SELECT u.team, COUNT(*) as cnt
-          FROM tickets t
-          JOIN users u ON t.owner = u.name
-          GROUP BY u.team
-        `,
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
+      const { tableSchema } = await decomposeAndRebuild(`
+        SELECT u.team, COUNT(*) as cnt
+        FROM tickets t
+        JOIN users u ON t.owner = u.name
+        GROUP BY u.team
+      `);
       expect(tableSchema.measures.length).toBeGreaterThan(0);
       expect(tableSchema.dimensions.length).toBeGreaterThan(0);
     });
@@ -651,7 +696,7 @@ describe('sqlToMeerkat E2E', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // CASTING AND TYPE FUNCTIONS
+  // CASTING
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('casting and type functions', () => {
@@ -673,7 +718,7 @@ describe('sqlToMeerkat E2E', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // DUCKDB-SPECIFIC SYNTAX
+  // DUCKDB-SPECIFIC
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('DuckDB-specific syntax', () => {
@@ -687,7 +732,6 @@ describe('sqlToMeerkat E2E', () => {
         `,
         getQueryOutput,
       });
-      // Should succeed — window items skipped, QUALIFY in AST but not blocking
       expect(result.success).toBe(true);
     });
 
@@ -700,91 +744,74 @@ describe('sqlToMeerkat E2E', () => {
     });
 
     it('string_agg aggregate', async () => {
-      const result = await sqlToMeerkat({
-        sql: "SELECT status, STRING_AGG(title, ', ') as titles FROM tickets GROUP BY status",
-        getQueryOutput,
-      });
-      expect(result.success).toBe(true);
-      const { tableSchema } = result as DecomposeResult;
+      const { tableSchema } = await decomposeAndRebuild(
+        "SELECT status, STRING_AGG(title, ', ') as titles FROM tickets GROUP BY status"
+      );
       expect(tableSchema.measures.length).toBe(1);
+      expect(tableSchema.measures[0].name).toBe('titles');
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // IN / NOT IN EXTRACTION
+  // IN / NOT IN — exact filter structure
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('IN / NOT IN extraction', () => {
-    it('IN list extracted as in operator with multiple values', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+    it('IN list extracted as in operator', async () => {
+      const { query, rebuiltSql } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE status IN ('open', 'review') GROUP BY status"
       );
-      const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) =>
-            f.member === 'tickets.status' &&
-            f.operator === 'in' &&
-            f.values.length === 2
-        )
-      ).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.status', operator: 'in', values: ['open', 'review'] },
+      ]);
+      expect(rebuiltSql).toBe(
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets WHERE (tickets__status IN ('open', 'review')) GROUP BY tickets__status"
+      );
     });
 
     it('NOT IN extracted as notIn operator', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE status NOT IN ('closed') GROUP BY status"
       );
-      const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) => f.member === 'tickets.status' && f.operator === 'notIn'
-        )
-      ).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.status', operator: 'notIn', values: ['closed'] },
+      ]);
     });
 
     it('IN with integers', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE priority IN (3, 4, 5) GROUP BY status'
       );
-      const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) =>
-            f.member === 'tickets.priority' &&
-            f.operator === 'in' &&
-            f.values.length === 3
-        )
-      ).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.priority', operator: 'in', values: ['3', '4', '5'] },
+      ]);
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // LIKE EXTRACTION
+  // LIKE — exact filter structure
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('LIKE extraction', () => {
     it('ILIKE %value% extracted as contains', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query, rebuiltSql } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE title ILIKE '%broken%' GROUP BY status"
       );
-      const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) => f.operator === 'contains' && f.values[0] === 'broken'
-        )
-      ).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.title', operator: 'contains', values: ['broken'] },
+      ]);
+      expect(rebuiltSql).toBe(
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT title AS tickets__title, status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets WHERE (tickets__title ~~* '%broken%') GROUP BY tickets__status"
+      );
     });
 
     it('NOT ILIKE %value% extracted as notContains', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE title NOT ILIKE '%broken%' GROUP BY status"
       );
-      const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) => f.operator === 'notContains' && f.values[0] === 'broken'
-        )
-      ).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.title', operator: 'notContains', values: ['broken'] },
+      ]);
     });
 
     it('complex LIKE pattern kept in base SQL (not extracted)', async () => {
@@ -794,55 +821,50 @@ describe('sqlToMeerkat E2E', () => {
       });
       expect(result.success).toBe(true);
       const { warnings } = result as DecomposeResult;
-      expect(warnings.some((w) => w.includes('retained in base SQL'))).toBe(
-        true
-      );
+      expect(warnings).toContainEqual('Non-extractable WHERE condition retained in base SQL');
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // RESIDUAL WHERE (non-extractable conditions kept in base SQL)
+  // RESIDUAL WHERE RETENTION
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('residual WHERE retention', () => {
     it('non-extractable condition retained — row count still matches', async () => {
-      // LIKE with wildcard in middle can't be extracted, should stay in base SQL
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE title LIKE '%br_ken%' GROUP BY status"
       );
     });
 
     it('mix of extractable and non-extractable conditions', async () => {
-      await decomposeAndVerifyRowCount(
+      await verifyExactRowMatch(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE priority > 3 AND title LIKE 'Login%' GROUP BY status"
       );
     });
   });
 
   // ═══════════════════════════════════════════════════════════════════════════════
-  // BETWEEN SEMANTIC FIX
+  // BETWEEN SEMANTICS
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('BETWEEN semantics', () => {
     it('numeric BETWEEN uses gte (not inDateRange)', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount BETWEEN 50 AND 150 GROUP BY status'
       );
       const filters = flattenFilters(query.filters!);
-      expect(
-        filters.some(
-          (f) => f.member === 'tickets.amount' && f.operator === 'gte'
-        )
-      ).toBe(true);
-      expect(filters.every((f) => f.operator !== 'inDateRange')).toBe(true);
+      expect(filters).toContainEqual(
+        { member: 'tickets.amount', operator: 'gte', values: ['50', '150'] }
+      );
     });
 
     it('date BETWEEN uses inDateRange', async () => {
-      const { query } = await decomposeAndVerifyRowCount(
+      const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date BETWEEN '2024-01-01' AND '2024-06-01' GROUP BY status"
       );
-      const filters = flattenFilters(query.filters!);
-      expect(filters.some((f) => f.operator === 'inDateRange')).toBe(true);
+      expect(query.filters).toEqual([
+        { member: 'tickets.created_date', operator: 'inDateRange', values: ['2024-01-01', '2024-06-01'] },
+      ]);
     });
   });
 
