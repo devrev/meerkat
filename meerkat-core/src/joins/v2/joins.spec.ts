@@ -176,6 +176,46 @@ describe('joins-v2', () => {
     expect(sql).toContain('parts.__mk_u_tag_ids = tags.id');
   });
 
+  it('strips table qualifier from CAST-wrapped array dim sql (ensureTableSchemasAlias output)', () => {
+    // After ensureTableSchemasAlias runs, the dim's sql becomes
+    // `CAST(issue.owned_by_ids AS VARCHAR[])` instead of plain `owned_by_ids`.
+    // The UNNEST wrap must strip the `issue.` qualifier since the inner
+    // subquery is unnamed at that scope.
+    const schemas: TableSchema[] = [
+      {
+        name: 'issue',
+        sql: 'SELECT CAST(issue.owned_by_ids AS VARCHAR[]) AS issue__owned_by_ids, issue.id AS issue__id, * FROM (select * from devrev.issue) AS issue',
+        dimensions: [
+          { name: 'id', sql: 'issue.id', type: 'string' },
+          {
+            name: 'owned_by_ids',
+            sql: 'CAST(issue.owned_by_ids AS VARCHAR[])',
+            type: 'string_array',
+          },
+        ],
+        measures: [],
+        joins: [],
+      },
+      scalar('users'),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issue', column: 'owned_by_ids' },
+          to: { table: 'users', column: 'id' },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+
+    // The UNNEST expression must NOT contain `issue.` since it's in an unnamed subquery scope
+    expect(sql).toContain('UNNEST(CAST(owned_by_ids AS VARCHAR[]))');
+    expect(sql).not.toMatch(/UNNEST\(CAST\(issue\./);
+    expect(sql).toContain('issue.__mk_u_owned_by_ids = users.id');
+  });
+
   it('throws when both sides of an edge are array-typed', () => {
     const schemas = [
       withArrayCols('issues', ['id'], ['owned_by_ids']),
