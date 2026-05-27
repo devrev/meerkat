@@ -14,7 +14,7 @@ import {
   OperatorExpression,
   ParsedExpression,
 } from '../types/duckdb-serialization-types';
-import { getColumnName, getConstantValue, getConstantTypeId, getQualifiedColumnRef, matchMeasureFromExpr } from './helpers';
+import { getConstantValue, getConstantTypeId, getQualifiedColumnRef, matchMeasureFromExpr } from './helpers';
 
 const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   [ExpressionType.COMPARE_EQUAL]: 'equals',
@@ -349,29 +349,21 @@ function buildComparisonResult(
 }
 
 function isDateTypedConstant(expr: ParsedExpression): boolean {
+  if (expr.class === ExpressionClass.CAST) {
+    const cast = expr as ParsedExpression & { cast_type?: { id?: string }; child?: ParsedExpression };
+    const castId = (cast.cast_type?.id || '').toUpperCase();
+    if (castId.includes('DATE') || castId.includes('TIMESTAMP')) return true;
+    if (cast.child) return isDateTypedConstant(cast.child);
+    return false;
+  }
   const typeId = getConstantTypeId(expr);
   if (!typeId) return false;
   const upper = typeId.toUpperCase();
   return upper.includes('DATE') || upper.includes('TIMESTAMP') || upper === 'INTERVAL';
 }
 
-function hasInformativeType(expr: ParsedExpression): boolean {
-  const typeId = getConstantTypeId(expr);
-  return typeId !== null && typeId.toUpperCase() !== 'VARCHAR';
-}
-
-const DATE_COLUMN_PATTERN = /(_at|_date)$|^(timestamp|date|datetime)$/i;
-
 function isBetweenDateRange(expr: BetweenExpression): boolean {
-  if (isDateTypedConstant(expr.lower) || isDateTypedConstant(expr.upper)) {
-    return true;
-  }
-  // Only fall back to column name heuristic when constants have no informative type
-  if (hasInformativeType(expr.lower) || hasInformativeType(expr.upper)) {
-    return false;
-  }
-  const colName = getColumnName(expr.input);
-  return colName !== null && DATE_COLUMN_PATTERN.test(colName);
+  return isDateTypedConstant(expr.lower) || isDateTypedConstant(expr.upper);
 }
 
 function extractBetweenFilter(

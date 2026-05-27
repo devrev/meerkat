@@ -315,13 +315,17 @@ describe('sqlToMeerkat E2E', () => {
       ]);
     });
 
-    it('BETWEEN date column', async () => {
+    it('BETWEEN date column with string literals emits gte/lte pair', async () => {
       const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date BETWEEN '2024-02-01' AND '2024-04-01' GROUP BY status"
       );
-      expect(query.filters).toEqual([
-        { member: 'tickets.created_date', operator: 'inDateRange', values: ['2024-02-01', '2024-04-01'] },
-      ]);
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual(
+        { member: 'tickets.created_date', operator: 'gte', values: ['2024-02-01'] }
+      );
+      expect(filters).toContainEqual(
+        { member: 'tickets.created_date', operator: 'lte', values: ['2024-04-01'] }
+      );
     });
 
     it('multiple AND conditions', async () => {
@@ -953,13 +957,17 @@ describe('sqlToMeerkat E2E', () => {
       );
     });
 
-    it('date BETWEEN uses inDateRange', async () => {
+    it('date BETWEEN with string literals emits gte/lte pair', async () => {
       const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date BETWEEN '2024-01-01' AND '2024-06-01' GROUP BY status"
       );
-      expect(query.filters).toEqual([
-        { member: 'tickets.created_date', operator: 'inDateRange', values: ['2024-01-01', '2024-06-01'] },
-      ]);
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual(
+        { member: 'tickets.created_date', operator: 'gte', values: ['2024-01-01'] }
+      );
+      expect(filters).toContainEqual(
+        { member: 'tickets.created_date', operator: 'lte', values: ['2024-06-01'] }
+      );
     });
   });
 

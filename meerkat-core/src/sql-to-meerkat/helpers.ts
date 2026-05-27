@@ -4,6 +4,7 @@ import {
   ExpressionClass,
   ExpressionType,
   FunctionExpression,
+  OperatorExpression,
   ParsedExpression,
   QueryNodeType,
   SelectNode,
@@ -53,6 +54,10 @@ export function isAggregateExpr(expr: ParsedExpression): boolean {
   if (expr.class === ExpressionClass.CAST) {
     const cast = expr as ParsedExpression & { child?: ParsedExpression };
     return cast.child ? isAggregateExpr(cast.child) : false;
+  }
+  if (expr.class === ExpressionClass.OPERATOR) {
+    const op = expr as OperatorExpression;
+    return op.children.some(isAggregateExpr);
   }
   return false;
 }
@@ -190,6 +195,10 @@ export function getConstantTypeId(
 export function getConstantValue(
   expr: ParsedExpression
 ): string | number | null {
+  if (expr.class === ExpressionClass.CAST) {
+    const cast = expr as ParsedExpression & { child?: ParsedExpression };
+    return cast.child ? getConstantValue(cast.child) : null;
+  }
   if (expr.class !== ExpressionClass.CONSTANT) return null;
   const constant = expr as ConstantExpression;
   const val = constant.value as
