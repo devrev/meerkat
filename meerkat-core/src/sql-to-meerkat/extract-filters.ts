@@ -146,8 +146,9 @@ export function ensureFilterColumnInSchema(
   dimensions: readonly Dimension[],
   tableName: string
 ): Dimension[] | null {
-  if (!filter.member.startsWith(`${tableName}.`)) return null;
-  const colName = filter.member.replace(`${tableName}.`, '');
+  const prefix = `${tableName}.`;
+  if (!filter.member.startsWith(prefix)) return null;
+  const colName = filter.member.slice(prefix.length);
   const exists = dimensions.some(
     (d) => d.name === colName || d.sql === colName
   );

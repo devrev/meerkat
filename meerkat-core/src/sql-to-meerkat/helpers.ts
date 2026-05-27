@@ -140,19 +140,6 @@ export function inferTypeFromExpr(expr: ParsedExpression): Dimension['type'] {
       return 'time';
     }
   }
-  if (expr.class === ExpressionClass.COLUMN_REF) {
-    const col = expr as ColumnRefExpression;
-    const colName = col.column_names[col.column_names.length - 1].toLowerCase();
-    if (
-      colName.endsWith('_at') ||
-      colName.endsWith('_date') ||
-      colName === 'timestamp' ||
-      colName === 'date' ||
-      colName === 'datetime'
-    ) {
-      return 'time';
-    }
-  }
   return 'string';
 }
 
