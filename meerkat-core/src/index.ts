@@ -40,6 +40,8 @@ export * from './utils/cube-to-table-schema';
 export * from './utils/get-column-names-from-ast';
 export * from './utils/get-possible-nodes';
 export { meerkatPlaceholderReplacer } from './utils/meerkat-placeholder-replacer';
+export { sqlToMeerkat } from './sql-to-meerkat';
+export type { SqlToMeerkatInput, DecomposeOutput, DecomposeResult, DecomposeFailure } from './sql-to-meerkat';
 export { ensureColumnAliasBatch } from './utils/ensure-sql-expression-column-alias';
 export type {
   EnsureColumnAliasBatchItem,
