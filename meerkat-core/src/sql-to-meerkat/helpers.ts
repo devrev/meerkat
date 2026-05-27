@@ -30,6 +30,8 @@ export const AGGREGATE_FUNCTIONS = new Set([
   'median',
   'percentile_cont',
   'percentile_disc',
+  'quantile_cont',
+  'quantile_disc',
   'approx_count_distinct',
   'list',
   'array_agg',
@@ -49,7 +51,12 @@ export const AGGREGATE_FUNCTIONS = new Set([
 export function isAggregateExpr(expr: ParsedExpression): boolean {
   if (expr.class === ExpressionClass.FUNCTION) {
     const fn = expr as FunctionExpression;
-    return AGGREGATE_FUNCTIONS.has(fn.function_name.toLowerCase());
+    if (AGGREGATE_FUNCTIONS.has(fn.function_name.toLowerCase())) return true;
+    return fn.children.some(isAggregateExpr);
+  }
+  if (expr.class === ExpressionClass.CAST) {
+    const cast = expr as ParsedExpression & { child?: ParsedExpression };
+    return cast.child ? isAggregateExpr(cast.child) : false;
   }
   return false;
 }
@@ -62,8 +69,14 @@ export function isStarExpr(expr: ParsedExpression): boolean {
   return expr.class === ExpressionClass.STAR;
 }
 
+function isDirectAggregate(expr: ParsedExpression): boolean {
+  if (expr.class !== ExpressionClass.FUNCTION) return false;
+  const fn = expr as FunctionExpression;
+  return AGGREGATE_FUNCTIONS.has(fn.function_name.toLowerCase());
+}
+
 export function isNestedAggregateExpr(expr: ParsedExpression): boolean {
-  if (!isAggregateExpr(expr)) return false;
+  if (!isDirectAggregate(expr)) return false;
   const fn = expr as FunctionExpression;
   return fn.children.some(isAggregateExpr);
 }
@@ -176,20 +189,22 @@ export function extractTableName(selectNode: SelectNode): string {
   const fromTable = selectNode.from_table as any;
   if (!fromTable) return 'query';
 
-  if (fromTable.type === 'BASE_TABLE') {
-    return fromTable.alias || fromTable.table_name || 'query';
+  return resolveTableRef(fromTable);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- from_table shape varies by type
+function resolveTableRef(ref: any): string {
+  if (!ref) return 'query';
+  if (ref.type === 'BASE_TABLE') {
+    return ref.alias || ref.table_name || 'query';
   }
-  if (fromTable.type === 'SUBQUERY') {
-    return fromTable.alias || 'subquery';
+  if (ref.type === 'SUBQUERY') {
+    return ref.alias || 'subquery';
   }
-  if (fromTable.type === 'JOIN') {
-    const left = fromTable.left;
-    if (left?.type === 'BASE_TABLE') {
-      return left.alias || left.table_name || 'query';
-    }
-    return left?.alias || 'query';
+  if (ref.type === 'JOIN') {
+    return resolveTableRef(ref.left);
   }
-  return fromTable.alias || 'query';
+  return ref.alias || 'query';
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cte_map is deeply nested untyped JSON
