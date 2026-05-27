@@ -16,6 +16,15 @@ import {
 } from '../types/duckdb-serialization-types';
 import { getColumnName, getConstantValue, matchMeasureFromExpr } from './helpers';
 
+const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
+  [ExpressionType.COMPARE_EQUAL]: 'equals',
+  [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
+  [ExpressionType.COMPARE_GREATERTHAN]: 'gt',
+  [ExpressionType.COMPARE_GREATERTHANOREQUALTO]: 'gte',
+  [ExpressionType.COMPARE_LESSTHAN]: 'lt',
+  [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'lte',
+};
+
 export interface FilterExtractionResult {
   filters: (QueryFilterWithValues | LogicalOrFilter)[];
   residual: ParsedExpression | undefined;
@@ -79,15 +88,7 @@ export function extractHavingFromAst(
     const measure = matchMeasureFromExpr(comp.left, measures);
     if (measure) {
       const value = getConstantValue(comp.right);
-      const opMap: Record<string, QueryFilterWithValues['operator']> = {
-        [ExpressionType.COMPARE_GREATERTHAN]: 'gt',
-        [ExpressionType.COMPARE_GREATERTHANOREQUALTO]: 'gte',
-        [ExpressionType.COMPARE_LESSTHAN]: 'lt',
-        [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'lte',
-        [ExpressionType.COMPARE_EQUAL]: 'equals',
-        [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
-      };
-      const op = opMap[comp.type];
+      const op = COMPARISON_OPERATOR_MAP[comp.type];
       if (op && value !== null) {
         filters.push({
           member: `${tableName}.${measure.name}`,
@@ -253,16 +254,7 @@ function extractComparisonFilter(
     return null;
   }
 
-  const opMap: Record<string, QueryFilterWithValues['operator']> = {
-    [ExpressionType.COMPARE_EQUAL]: 'equals',
-    [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
-    [ExpressionType.COMPARE_GREATERTHAN]: 'gt',
-    [ExpressionType.COMPARE_GREATERTHANOREQUALTO]: 'gte',
-    [ExpressionType.COMPARE_LESSTHAN]: 'lt',
-    [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'lte',
-  };
-
-  const operator = opMap[expr.type];
+  const operator = COMPARISON_OPERATOR_MAP[expr.type];
   if (!operator) return null;
 
   return {
@@ -270,6 +262,22 @@ function extractComparisonFilter(
     operator,
     values: [String(value)],
   };
+}
+
+function looksLikeDateColumn(colName: string): boolean {
+  const lower = colName.toLowerCase();
+  return (
+    lower.endsWith('_at') ||
+    lower.endsWith('_date') ||
+    lower === 'timestamp' ||
+    lower === 'date' ||
+    lower === 'datetime'
+  );
+}
+
+function looksLikeDateValue(value: string | number): boolean {
+  if (typeof value === 'number') return false;
+  return /^\d{4}-\d{2}-\d{2}/.test(value);
 }
 
 function extractBetweenFilter(
@@ -283,37 +291,39 @@ function extractBetweenFilter(
   const upper = getConstantValue(expr.upper);
   if (lower === null || upper === null) return null;
 
-  const isNumeric = typeof lower === 'number' && typeof upper === 'number';
-  if (isNumeric) {
-    const colNameLower = colName.toLowerCase();
-    const looksLikeDate =
-      colNameLower.endsWith('_at') ||
-      colNameLower.endsWith('_date') ||
-      colNameLower.includes('time');
-    if (!looksLikeDate) {
-      return [
-        {
-          member: `${tableName}.${colName}`,
-          operator: 'gte',
-          values: [String(lower)],
-        },
-        {
-          member: `${tableName}.${colName}`,
-          operator: 'lte',
-          values: [String(upper)],
-        },
-      ];
-    }
+  const isDateRange =
+    looksLikeDateColumn(colName) ||
+    looksLikeDateValue(lower) ||
+    looksLikeDateValue(upper);
+
+  if (isDateRange) {
+    return [
+      {
+        member: `${tableName}.${colName}`,
+        operator: 'inDateRange',
+        values: [String(lower), String(upper)],
+      },
+    ];
   }
 
   return [
     {
       member: `${tableName}.${colName}`,
-      operator: 'inDateRange',
-      values: [String(lower), String(upper)],
+      operator: 'gte',
+      values: [String(lower)],
+    },
+    {
+      member: `${tableName}.${colName}`,
+      operator: 'lte',
+      values: [String(upper)],
     },
   ];
 }
+
+const IN_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
+  [ExpressionType.COMPARE_IN]: 'in',
+  [ExpressionType.COMPARE_NOT_IN]: 'notIn',
+};
 
 function extractOperatorFilter(
   expr: OperatorExpression,
@@ -340,11 +350,7 @@ function extractOperatorFilter(
     return { member: `${tableName}.${colName}`, operator: 'set', values: [] };
   }
 
-  const inOperatorMap: Record<string, QueryFilterWithValues['operator']> = {
-    [ExpressionType.COMPARE_IN]: 'in',
-    [ExpressionType.COMPARE_NOT_IN]: 'notIn',
-  };
-  const inOp = inOperatorMap[expr.type];
+  const inOp = IN_OPERATOR_MAP[expr.type];
   if (inOp && expr.children?.length >= 2) {
     const colName = getColumnName(expr.children[0]);
     if (!colName) return null;

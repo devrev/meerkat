@@ -232,11 +232,13 @@ export async function sqlToMeerkat(
   if (limitModifier) {
     if (limitModifier.limit?.class === ExpressionClass.CONSTANT) {
       const lConst = limitModifier.limit as ConstantExpression;
-      limit = Number((lConst.value as { value?: string | number })?.value);
+      const rawLimit = Number((lConst.value as { value?: string | number })?.value);
+      if (!isNaN(rawLimit)) limit = rawLimit;
     }
     if (limitModifier.offset?.class === ExpressionClass.CONSTANT) {
       const oConst = limitModifier.offset as ConstantExpression;
-      offset = Number((oConst.value as { value?: string | number })?.value);
+      const rawOffset = Number((oConst.value as { value?: string | number })?.value);
+      if (!isNaN(rawOffset)) offset = rawOffset;
     }
   }
 

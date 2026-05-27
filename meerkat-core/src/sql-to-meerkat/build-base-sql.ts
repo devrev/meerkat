@@ -49,6 +49,6 @@ export async function buildBaseSQL(
     const baseSql = deserializeQuery(rows).replace(/;\s*$/, '');
     return baseSql;
   } catch {
-    return `SELECT * FROM (${originalSql.replace(/'/g, "''")}) AS _base`;
+    return `SELECT * FROM (${originalSql}) AS _base`;
   }
 }

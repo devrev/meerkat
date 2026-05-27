@@ -132,7 +132,9 @@ export function inferTypeFromExpr(expr: ParsedExpression): Dimension['type'] {
     if (
       colName.endsWith('_at') ||
       colName.endsWith('_date') ||
-      colName.includes('time')
+      colName === 'timestamp' ||
+      colName === 'date' ||
+      colName === 'datetime'
     ) {
       return 'time';
     }
