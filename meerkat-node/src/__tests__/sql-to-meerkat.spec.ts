@@ -932,6 +932,9 @@ LIMIT 100`,
         expect(result.success).toBe(true);
         const { tableSchema, query } = result as DecomposeResult;
         expect(tableSchema.name).toBe('c');
+        expect(tableSchema.sql).toBe(
+          `SELECT * FROM (SELECT date_trunc('day', created_date) AS "day", count_star() AS tickets_created FROM devrev.ticket WHERE (created_date >= CAST('2026-04-27T00:00:00+00:00' AS TIMESTAMP WITH TIME ZONE)) GROUP BY "day") AS c FULL JOIN (SELECT date_trunc('day', actual_close_date) AS "day", count_star() AS tickets_closed FROM devrev.ticket WHERE (actual_close_date >= CAST('2026-04-27T00:00:00+00:00' AS TIMESTAMP WITH TIME ZONE)) GROUP BY "day") AS cl ON ((c."day" = cl."day"))`
+        );
         expect(tableSchema.measures).toEqual([]);
         expect(tableSchema.dimensions.map((d) => d.name)).toEqual([
           'day',
@@ -996,7 +999,10 @@ LIMIT 100`,
           getQueryOutput,
         });
         expect(result.success).toBe(true);
-        const { query } = result as DecomposeResult;
+        const { tableSchema, query } = result as DecomposeResult;
+        expect(tableSchema.sql).toBe(
+          'SELECT * FROM devrev.ticket AS t LEFT JOIN devrev.feature AS f ON ((t.applies_to_part_id = f.id))'
+        );
         const filters = flattenFilters(query.filters!);
         expect(filters).toContainEqual({
           member: 't.state',
@@ -1092,6 +1098,7 @@ WHERE t.state = 'closed'
         expect(result.success).toBe(true);
         const { tableSchema, query } = result as DecomposeResult;
         expect(tableSchema.name).toBe('t');
+        expect(tableSchema.sql).toBe('SELECT * FROM devrev.ticket AS t');
         expect(tableSchema.measures.map((m) => m.name)).toEqual([
           'avg_resolution_days',
           'median_resolution_days',
@@ -1184,6 +1191,9 @@ LIMIT 100`,
         expect(result.success).toBe(true);
         const { tableSchema, query, warnings } = result as DecomposeResult;
         expect(tableSchema.name).toBe('sub');
+        expect(tableSchema.sql).toBe(
+          `SELECT * FROM (SELECT COALESCE(f."name", cap."name") AS part_name, t.severity, count_star() AS ticket_count, sum(count_star()) OVER (PARTITION BY COALESCE(f."name", cap."name")) AS total_for_part FROM devrev.ticket AS t , unnest(t.ancestral_product) AS ap(product_id) LEFT JOIN devrev.feature AS f ON ((t.applies_to_part_id = f.id)) LEFT JOIN devrev.capability AS cap ON ((t.applies_to_part_id = cap.id)) WHERE ((ap.product_id = 'don:core:dvrv-us-1:devo/0:product/1') AND (t.applies_to_part_id != 'don:core:dvrv-us-1:devo/0:product/1') AND (COALESCE(f."name", cap."name") IS NOT NULL)) GROUP BY COALESCE(f."name", cap."name"), t.severity) AS sub`
+        );
         expect(tableSchema.measures).toEqual([]);
         expect(tableSchema.dimensions.map((d) => d.name)).toEqual([
           'part_name',
