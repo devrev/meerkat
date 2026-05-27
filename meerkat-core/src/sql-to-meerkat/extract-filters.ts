@@ -419,7 +419,7 @@ function extractOperatorFilter(
 ): QueryFilterWithValues | null {
   if (
     expr.type === ExpressionType.OPERATOR_IS_NULL &&
-    expr.children?.length === 1
+    expr.children.length === 1
   ) {
     const member = resolveMemberName(expr.children[0], tableName);
     if (!member) return null;
@@ -427,7 +427,7 @@ function extractOperatorFilter(
   }
   if (
     expr.type === ExpressionType.OPERATOR_IS_NOT_NULL &&
-    expr.children?.length === 1
+    expr.children.length === 1
   ) {
     const member = resolveMemberName(expr.children[0], tableName);
     if (!member) return null;
@@ -435,7 +435,7 @@ function extractOperatorFilter(
   }
 
   const inOp = IN_OPERATOR_MAP[expr.type];
-  if (inOp && expr.children?.length >= 2) {
+  if (inOp && expr.children.length >= 2) {
     const member = resolveMemberName(expr.children[0], tableName);
     if (!member) return null;
     const values: string[] = [];
