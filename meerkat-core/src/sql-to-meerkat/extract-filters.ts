@@ -14,7 +14,7 @@ import {
   OperatorExpression,
   ParsedExpression,
 } from '../types/duckdb-serialization-types';
-import { getColumnName, getConstantValue, getQualifiedColumnRef, matchMeasureFromExpr } from './helpers';
+import { getColumnName, getConstantValue, getConstantTypeId, getQualifiedColumnRef, matchMeasureFromExpr } from './helpers';
 
 const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   [ExpressionType.COMPARE_EQUAL]: 'equals',
@@ -90,43 +90,55 @@ export function extractHavingFromAst(
   tableName: string,
   measures: readonly Measure[]
 ): QueryFilterWithValues[] {
-  const filters: QueryFilterWithValues[] = [];
-
   if (havingExpr.class === ExpressionClass.COMPARISON) {
-    const comp = havingExpr as ComparisonExpression;
-    const measureLeft = matchMeasureFromExpr(comp.left, measures);
-    if (measureLeft) {
-      const value = getConstantValue(comp.right);
-      const op = COMPARISON_OPERATOR_MAP[comp.type];
-      if (op && value !== null) {
-        filters.push({
-          member: `${tableName}.${measureLeft.name}`,
-          operator: op,
-          values: [String(value)],
-        });
-      }
-    } else {
-      const measureRight = matchMeasureFromExpr(comp.right, measures);
-      if (measureRight) {
-        const value = getConstantValue(comp.left);
-        const op = FLIPPED_COMPARISON_MAP[comp.type];
-        if (op && value !== null) {
-          filters.push({
-            member: `${tableName}.${measureRight.name}`,
-            operator: op,
-            values: [String(value)],
-          });
-        }
-      }
-    }
-  } else if (havingExpr.class === ExpressionClass.CONJUNCTION) {
+    const filter = extractHavingComparison(havingExpr as ComparisonExpression, tableName, measures);
+    return filter ? [filter] : [];
+  }
+  if (
+    havingExpr.class === ExpressionClass.CONJUNCTION &&
+    havingExpr.type === ExpressionType.CONJUNCTION_AND
+  ) {
     const conj = havingExpr as ConjunctionExpression;
+    const filters: QueryFilterWithValues[] = [];
     for (const child of conj.children) {
       filters.push(...extractHavingFromAst(child, tableName, measures));
     }
+    return filters;
   }
+  // OR conjunctions and other expression types not extractable as measure filters
+  return [];
+}
 
-  return filters;
+function extractHavingComparison(
+  comp: ComparisonExpression,
+  tableName: string,
+  measures: readonly Measure[]
+): QueryFilterWithValues | null {
+  const measureLeft = matchMeasureFromExpr(comp.left, measures);
+  if (measureLeft) {
+    const value = getConstantValue(comp.right);
+    const op = COMPARISON_OPERATOR_MAP[comp.type];
+    if (op && value !== null) {
+      return {
+        member: `${tableName}.${measureLeft.name}`,
+        operator: op,
+        values: [String(value)],
+      };
+    }
+  }
+  const measureRight = matchMeasureFromExpr(comp.right, measures);
+  if (measureRight) {
+    const value = getConstantValue(comp.left);
+    const op = FLIPPED_COMPARISON_MAP[comp.type];
+    if (op && value !== null) {
+      return {
+        member: `${tableName}.${measureRight.name}`,
+        operator: op,
+        values: [String(value)],
+      };
+    }
+  }
+  return null;
 }
 
 export function ensureFilterColumnInSchema(
@@ -140,9 +152,22 @@ export function ensureFilterColumnInSchema(
     (d) => d.name === colName || d.sql === colName
   );
   if (!exists) {
-    return [{ name: colName, sql: colName, type: 'string' }];
+    return [{ name: colName, sql: colName, type: inferFilterColumnType(filter) }];
   }
   return null;
+}
+
+const DATE_OPERATORS = new Set(['inDateRange', 'notInDateRange', 'beforeDate', 'afterDate', 'onTheDate']);
+const NUMERIC_PATTERN = /^-?\d+(\.\d+)?$/;
+
+function inferFilterColumnType(filter: QueryFilterWithValues): Dimension['type'] {
+  if (DATE_OPERATORS.has(filter.operator)) {
+    return 'time';
+  }
+  if (filter.values && filter.values.length > 0 && filter.values.every((v) => NUMERIC_PATTERN.test(v))) {
+    return 'number';
+  }
+  return 'string';
 }
 
 export function ensureOrFilterColumnsInSchema(
@@ -323,20 +348,30 @@ function buildComparisonResult(
   return { member, operator, values: [String(value)] };
 }
 
-function looksLikeDateColumn(colName: string): boolean {
-  const lower = colName.toLowerCase();
-  return (
-    lower.endsWith('_at') ||
-    lower.endsWith('_date') ||
-    lower === 'timestamp' ||
-    lower === 'date' ||
-    lower === 'datetime'
-  );
+function isDateTypedConstant(expr: ParsedExpression): boolean {
+  const typeId = getConstantTypeId(expr);
+  if (!typeId) return false;
+  const upper = typeId.toUpperCase();
+  return upper.includes('DATE') || upper.includes('TIMESTAMP') || upper === 'INTERVAL';
 }
 
-function looksLikeDateValue(value: string | number): boolean {
-  if (typeof value === 'number') return false;
-  return /^\d{4}-\d{2}-\d{2}/.test(value);
+function hasInformativeType(expr: ParsedExpression): boolean {
+  const typeId = getConstantTypeId(expr);
+  return typeId !== null && typeId.toUpperCase() !== 'VARCHAR';
+}
+
+const DATE_COLUMN_PATTERN = /(_at|_date)$|^(timestamp|date|datetime)$/i;
+
+function isBetweenDateRange(expr: BetweenExpression): boolean {
+  if (isDateTypedConstant(expr.lower) || isDateTypedConstant(expr.upper)) {
+    return true;
+  }
+  // Only fall back to column name heuristic when constants have no informative type
+  if (hasInformativeType(expr.lower) || hasInformativeType(expr.upper)) {
+    return false;
+  }
+  const colName = getColumnName(expr.input);
+  return colName !== null && DATE_COLUMN_PATTERN.test(colName);
 }
 
 function extractBetweenFilter(
@@ -346,17 +381,11 @@ function extractBetweenFilter(
   const member = resolveMemberName(expr.input, tableName);
   if (!member) return null;
 
-  const colName = getColumnName(expr.input)!;
   const lower = getConstantValue(expr.lower);
   const upper = getConstantValue(expr.upper);
   if (lower === null || upper === null) return null;
 
-  const isDateRange =
-    looksLikeDateColumn(colName) ||
-    looksLikeDateValue(lower) ||
-    looksLikeDateValue(upper);
-
-  if (isDateRange) {
+  if (isBetweenDateRange(expr)) {
     return [
       { member, operator: 'inDateRange', values: [String(lower), String(upper)] },
     ];

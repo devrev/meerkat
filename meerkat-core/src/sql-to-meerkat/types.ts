@@ -14,9 +14,3 @@ export interface DecomposeFailure {
 }
 
 export type DecomposeOutput = DecomposeResult | DecomposeFailure;
-
-export interface ExtractedFilter {
-  member: string;
-  operator: string;
-  values: string[];
-}

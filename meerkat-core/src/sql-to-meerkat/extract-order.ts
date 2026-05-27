@@ -14,7 +14,7 @@ export function extractOrderFromAst(
   tableName: string,
   dimensions: readonly Dimension[],
   measures: readonly Measure[],
-  selectListOrder?: readonly string[]
+  selectListOrder?: readonly (string | null)[]
 ): Record<string, QueryOrderType> {
   const result: Record<string, QueryOrderType> = {};
 
@@ -44,7 +44,10 @@ export function extractOrderFromAst(
           ...measures.map((m) => m.name),
         ];
         if (idx >= 0 && idx < orderedNames.length) {
-          result[`${tableName}.${orderedNames[idx]}`] = direction;
+          const name = orderedNames[idx];
+          if (name !== null) {
+            result[`${tableName}.${name}`] = direction;
+          }
         }
       }
     }

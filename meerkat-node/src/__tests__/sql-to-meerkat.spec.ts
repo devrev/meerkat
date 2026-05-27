@@ -266,7 +266,7 @@ describe('sqlToMeerkat E2E', () => {
         { member: 'tickets.priority', operator: 'gt', values: ['3'] },
       ]);
       expect(rebuiltSql).toBe(
-        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT priority AS tickets__priority, status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets WHERE (tickets__priority > '3') GROUP BY tickets__status"
+        "SELECT count_star() AS tickets__cnt ,   tickets__status FROM (SELECT priority AS tickets__priority, status AS tickets__status, * FROM (SELECT * FROM tickets) AS tickets) AS tickets WHERE (tickets__priority > 3) GROUP BY tickets__status"
       );
     });
 

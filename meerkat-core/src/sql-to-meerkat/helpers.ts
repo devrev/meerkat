@@ -9,10 +9,6 @@ import {
   SelectNode,
 } from '../types/duckdb-serialization-types';
 import { Dimension, Measure } from '../types/cube-types/table';
-import {
-  GetQueryOutput,
-  serializeExpressions,
-} from '../utils/duckdb-ast-parse-serialize';
 
 export const AGGREGATE_FUNCTIONS = new Set([
   'count',
@@ -155,17 +151,6 @@ export function inferTypeFromExpr(expr: ParsedExpression): Dimension['type'] {
   return 'string';
 }
 
-export async function exprToSql(
-  expr: ParsedExpression,
-  getQueryOutput: GetQueryOutput
-): Promise<string> {
-  const copy = JSON.parse(JSON.stringify(expr));
-  copy.alias = '';
-  stripQueryLocationInPlace(copy);
-  const results = await serializeExpressions([copy], getQueryOutput);
-  return results[0];
-}
-
 export interface QualifiedColumnRef {
   table: string | null;
   column: string;
@@ -189,6 +174,17 @@ export function getColumnName(expr: ParsedExpression): string | null {
   if (expr.class !== ExpressionClass.COLUMN_REF) return null;
   const col = expr as ColumnRefExpression;
   return col.column_names[col.column_names.length - 1];
+}
+
+export function getConstantTypeId(
+  expr: ParsedExpression
+): string | null {
+  if (expr.class !== ExpressionClass.CONSTANT) return null;
+  const constant = expr as ConstantExpression;
+  const val = constant.value as
+    | { type?: { id?: string } }
+    | undefined;
+  return val?.type?.id || null;
 }
 
 export function getConstantValue(
@@ -251,6 +247,7 @@ export function hasRecursiveCteInMap(node: any): boolean {
   );
 }
 
+// astSerializerQuery wraps input in single quotes for DuckDB's json_serialize_sql('...')
 export function sanitizeForSerialize(sql: string): string {
   return sql.replace(/'/g, "''");
 }
@@ -280,24 +277,26 @@ export function matchMeasureFromExpr(
     const byAlias = measures.find((m) => m.name === expr.alias);
     if (byAlias) return byAlias;
   }
+  if (expr.class === ExpressionClass.CAST) {
+    const cast = expr as ParsedExpression & { child?: ParsedExpression };
+    if (cast.child) return matchMeasureFromExpr(cast.child, measures);
+    return null;
+  }
   if (expr.class === ExpressionClass.FUNCTION) {
     const fn = expr as FunctionExpression;
     const fnLower = fn.function_name.toLowerCase();
     const childCol =
       fn.children.length === 1 ? getColumnName(fn.children[0]) : null;
-    const candidateSql = childCol
-      ? `${fnLower}(${childCol})`
-      : `${fnLower}()`;
 
-    const exactMatch = measures.find(
-      (m) => m.sql.toLowerCase() === candidateSql
-    );
-    if (exactMatch) return exactMatch;
+    const candidates: string[] = [];
+    if (childCol) candidates.push(`${fnLower}(${childCol})`);
+    if (fn.children.length === 0 || isStarExpr(fn.children[0])) {
+      candidates.push(`${fnLower}()`);
+      candidates.push('count_star()');
+    }
 
     return (
-      measures.find((m) =>
-        m.sql.toLowerCase().startsWith(fnLower + '(')
-      ) || null
+      measures.find((m) => candidates.includes(m.sql.toLowerCase())) || null
     );
   }
   return null;

@@ -16,7 +16,7 @@ import {
   ResultModifierType,
   SelectNode,
 } from '../types/duckdb-serialization-types';
-import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
+import { GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
 import { DecomposeOutput } from './types';
 import { buildBaseSQL } from './build-base-sql';
 import {
@@ -29,7 +29,6 @@ import { extractOrderFromAst } from './extract-order';
 import {
   deduplicateName,
   exprToName,
-  exprToSql,
   extractTableName,
   generateAggregateName,
   getConstantValue,
@@ -40,6 +39,7 @@ import {
   isStarExpr,
   isWindowExpr,
   sanitizeForSerialize,
+  stripQueryLocationInPlace,
 } from './helpers';
 
 export interface SqlToMeerkatInput {
@@ -101,19 +101,28 @@ export async function sqlToMeerkat(
   const dimensions: Dimension[] = [];
   const queryMeasures: string[] = [];
   const queryDimensions: string[] = [];
-  const selectListOrder: string[] = [];
+  const selectListOrder: (string | null)[] = [];
   const usedNames = new Set<string>();
 
   const hasAggregates = selectNode.select_list.some(isAggregateExpr);
   const hasGroupBy = selectNode.group_expressions.length > 0;
 
-  for (const expr of selectNode.select_list) {
-    if (isStarExpr(expr)) continue;
+  // Collect serializable expressions, tracking their position in the select list
+  const exprBatch: { expr: ParsedExpression; isMeasure: boolean; selectIndex: number }[] = [];
+
+  for (let idx = 0; idx < selectNode.select_list.length; idx++) {
+    const expr = selectNode.select_list[idx];
+
+    if (isStarExpr(expr)) {
+      selectListOrder.push(null);
+      continue;
+    }
 
     if (isWindowExpr(expr)) {
       warnings.push(
         `Skipped window function: ${expr.alias || exprToName(expr)}`
       );
+      selectListOrder.push(null);
       continue;
     }
 
@@ -121,34 +130,43 @@ export async function sqlToMeerkat(
       warnings.push(
         `Skipped nested aggregation: ${expr.alias || exprToName(expr)}`
       );
+      selectListOrder.push(null);
       continue;
     }
 
-    if (hasAggregates || hasGroupBy) {
-      if (isAggregateExpr(expr)) {
-        const name = deduplicateName(
-          expr.alias || generateAggregateName(expr),
-          usedNames
-        );
-        const measureSql = await exprToSql(expr, getQueryOutput);
-        measures.push({ name, sql: measureSql, type: 'number' });
-        queryMeasures.push(`${tableName}.${name}`);
-        selectListOrder.push(name);
-      } else {
-        const name = deduplicateName(expr.alias || exprToName(expr), usedNames);
-        const dimSql = await exprToSql(expr, getQueryOutput);
-        const dimType = inferTypeFromExpr(expr);
-        dimensions.push({ name, sql: dimSql, type: dimType });
-        queryDimensions.push(`${tableName}.${name}`);
-        selectListOrder.push(name);
-      }
+    const isMeasure = (hasAggregates || hasGroupBy) && isAggregateExpr(expr);
+    // Reserve slot — will be filled after batch serialization
+    exprBatch.push({ expr, isMeasure, selectIndex: selectListOrder.length });
+    selectListOrder.push(null);
+  }
+
+  // Single round-trip for all expression serialization
+  const exprsToSerialize = exprBatch.map(({ expr }) => {
+    const copy = JSON.parse(JSON.stringify(expr));
+    copy.alias = '';
+    stripQueryLocationInPlace(copy);
+    return copy;
+  });
+  const serializedSqls = await serializeExpressions(exprsToSerialize, getQueryOutput);
+
+  for (let i = 0; i < exprBatch.length; i++) {
+    const { expr, isMeasure, selectIndex } = exprBatch[i];
+    const exprSql = serializedSqls[i];
+
+    if (isMeasure) {
+      const name = deduplicateName(
+        expr.alias || generateAggregateName(expr),
+        usedNames
+      );
+      measures.push({ name, sql: exprSql, type: 'number' });
+      queryMeasures.push(`${tableName}.${name}`);
+      selectListOrder[selectIndex] = name;
     } else {
       const name = deduplicateName(expr.alias || exprToName(expr), usedNames);
-      const dimSql = await exprToSql(expr, getQueryOutput);
       const dimType = inferTypeFromExpr(expr);
-      dimensions.push({ name, sql: dimSql, type: dimType });
+      dimensions.push({ name, sql: exprSql, type: dimType });
       queryDimensions.push(`${tableName}.${name}`);
-      selectListOrder.push(name);
+      selectListOrder[selectIndex] = name;
     }
   }
 
@@ -265,6 +283,7 @@ function wrapFilters(
 ): MeerkatQueryFilter[] {
   if (filters.length === 0) return [];
   if (filters.length === 1) return [filters[0]];
+  // Downstream cubeFilterToDuckdbAST requires a single-element array
   return [{ and: filters }];
 }
 
