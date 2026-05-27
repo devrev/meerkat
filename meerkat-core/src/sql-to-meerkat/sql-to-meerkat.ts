@@ -9,8 +9,6 @@ import {
 } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import {
-  ConstantExpression,
-  ExpressionClass,
   LimitModifier,
   OrderModifier,
   ParsedExpression,
@@ -34,6 +32,7 @@ import {
   exprToSql,
   extractTableName,
   generateAggregateName,
+  getConstantValue,
   hasRecursiveCteInMap,
   inferTypeFromExpr,
   isAggregateExpr,
@@ -109,6 +108,8 @@ export async function sqlToMeerkat(
   const hasGroupBy = selectNode.group_expressions.length > 0;
 
   for (const expr of selectNode.select_list) {
+    if (isStarExpr(expr)) continue;
+
     if (isWindowExpr(expr)) {
       warnings.push(
         `Skipped window function: ${expr.alias || exprToName(expr)}`
@@ -142,7 +143,6 @@ export async function sqlToMeerkat(
         selectListOrder.push(name);
       }
     } else {
-      if (isStarExpr(expr)) continue;
       const name = deduplicateName(expr.alias || exprToName(expr), usedNames);
       const dimSql = await exprToSql(expr, getQueryOutput);
       const dimType = inferTypeFromExpr(expr);
@@ -230,15 +230,13 @@ export async function sqlToMeerkat(
     (m) => m.type === ResultModifierType.LIMIT_MODIFIER
   ) as LimitModifier | undefined;
   if (limitModifier) {
-    if (limitModifier.limit?.class === ExpressionClass.CONSTANT) {
-      const lConst = limitModifier.limit as ConstantExpression;
-      const rawLimit = Number((lConst.value as { value?: string | number })?.value);
-      if (!isNaN(rawLimit)) limit = rawLimit;
+    if (limitModifier.limit) {
+      const rawLimit = getConstantValue(limitModifier.limit);
+      if (typeof rawLimit === 'number') limit = Math.trunc(rawLimit);
     }
-    if (limitModifier.offset?.class === ExpressionClass.CONSTANT) {
-      const oConst = limitModifier.offset as ConstantExpression;
-      const rawOffset = Number((oConst.value as { value?: string | number })?.value);
-      if (!isNaN(rawOffset)) offset = rawOffset;
+    if (limitModifier.offset) {
+      const rawOffset = getConstantValue(limitModifier.offset);
+      if (typeof rawOffset === 'number') offset = Math.trunc(rawOffset);
     }
   }
 

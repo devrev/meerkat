@@ -1,11 +1,11 @@
 import { QueryOrderType } from '../types/cube-types/query';
 import { Dimension, Measure } from '../types/cube-types/table';
 import {
+  ConstantExpression,
   ExpressionClass,
   OrderByNode,
   OrderType,
   ParsedExpression,
-  PositionalReferenceExpression,
 } from '../types/duckdb-serialization-types';
 import { getColumnName, matchMeasureFromExpr } from './helpers';
 
@@ -36,19 +36,27 @@ export function extractOrderFromAst(
       if (measure) {
         result[`${tableName}.${measure.name}`] = direction;
       }
-    } else if (expr?.class === ExpressionClass.POSITIONAL_REFERENCE) {
-      const posExpr = expr as PositionalReferenceExpression;
-      const idx = posExpr.index - 1;
-      const orderedNames = selectListOrder ?? [
-        ...dimensions.map((d) => d.name),
-        ...measures.map((m) => m.name),
-      ];
-      if (idx >= 0 && idx < orderedNames.length) {
-        result[`${tableName}.${orderedNames[idx]}`] = direction;
+    } else if (expr?.class === ExpressionClass.CONSTANT) {
+      const idx = resolvePositionalIndex(expr);
+      if (idx !== null) {
+        const orderedNames = selectListOrder ?? [
+          ...dimensions.map((d) => d.name),
+          ...measures.map((m) => m.name),
+        ];
+        if (idx >= 0 && idx < orderedNames.length) {
+          result[`${tableName}.${orderedNames[idx]}`] = direction;
+        }
       }
     }
   }
 
   return result;
+}
+
+function resolvePositionalIndex(expr: ParsedExpression): number | null {
+  const constant = expr as ConstantExpression;
+  const val = constant.value as { is_null?: boolean; value?: number } | undefined;
+  if (val?.is_null || typeof val?.value !== 'number') return null;
+  return val.value - 1;
 }
 

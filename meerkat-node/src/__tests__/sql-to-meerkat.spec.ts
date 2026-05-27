@@ -346,6 +346,24 @@ describe('sqlToMeerkat E2E', () => {
       expect(filters[0].operator).toBe('gt');
     });
 
+    it('reversed comparison: literal on left (5 = col)', async () => {
+      const { query } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets WHERE 5 = priority GROUP BY status'
+      );
+      expect(query.filters).toEqual([
+        { member: 'tickets.priority', operator: 'equals', values: ['5'] },
+      ]);
+    });
+
+    it('reversed comparison: literal < col becomes col > literal', async () => {
+      const { query } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets WHERE 3 < priority GROUP BY status'
+      );
+      expect(query.filters).toEqual([
+        { member: 'tickets.priority', operator: 'gt', values: ['3'] },
+      ]);
+    });
+
     it('OR condition extracted as LogicalOrFilter', async () => {
       const { query } = await decomposeAndRebuild(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE status = 'open' OR status = 'review' GROUP BY status"
@@ -362,6 +380,29 @@ describe('sqlToMeerkat E2E', () => {
       await verifyExactRowMatch(
         "SELECT status, COUNT(*) as cnt FROM tickets WHERE (status = 'open' AND priority > 3) OR (status = 'closed' AND priority <= 2) GROUP BY status"
       );
+    });
+
+    it('AND with nested OR: extracts both parts', async () => {
+      const { query, warnings } = await decomposeAndRebuild(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE priority > 3 AND (status = 'open' OR status = 'closed') GROUP BY status"
+      );
+      expect(warnings).toEqual([]);
+      const topFilter = query.filters![0];
+      expect('and' in topFilter).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const andMembers = (topFilter as any).and;
+      expect(andMembers).toContainEqual({
+        member: 'tickets.priority',
+        operator: 'gt',
+        values: ['3'],
+      });
+      const orMember = andMembers.find((f: unknown) => f && typeof f === 'object' && 'or' in f);
+      expect(orMember).toBeDefined();
+      expect(orMember.or).toContainEqual({
+        member: 'tickets.status',
+        operator: 'equals',
+        values: ['open'],
+      });
     });
   });
 
@@ -385,6 +426,12 @@ describe('sqlToMeerkat E2E', () => {
     it('HAVING + WHERE combined', async () => {
       await verifyExactRowMatch(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE priority > 2 GROUP BY status HAVING COUNT(*) >= 2'
+      );
+    });
+
+    it('reversed HAVING: literal < aggregate', async () => {
+      await verifyExactRowMatch(
+        'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status HAVING 1 < COUNT(*)'
       );
     });
   });
@@ -419,6 +466,13 @@ describe('sqlToMeerkat E2E', () => {
         'tickets.status': 'asc',
         'tickets.cnt': 'desc',
       });
+    });
+
+    it('ORDER BY positional reference (ORDER BY 2 DESC)', async () => {
+      const { query } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status ORDER BY 2 DESC'
+      );
+      expect(query.order).toEqual({ 'tickets.cnt': 'desc' });
     });
   });
 
@@ -656,6 +710,15 @@ describe('sqlToMeerkat E2E', () => {
       ]);
     });
 
+    it('decimal value in filter', async () => {
+      const { query } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount > 99.5 GROUP BY status'
+      );
+      expect(query.filters).toEqual([
+        { member: 'tickets.amount', operator: 'gt', values: ['99.5'] },
+      ]);
+    });
+
     it('negative number in filter', async () => {
       const result = await sqlToMeerkat({
         sql: 'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount > -10 GROUP BY status',
@@ -692,6 +755,29 @@ describe('sqlToMeerkat E2E', () => {
         getQueryOutput,
       });
       expect(result.success).toBe(true);
+    });
+
+    it('WHERE on joined table retained in base SQL, primary table extracted', async () => {
+      const { query, tableSchema, warnings } = await decomposeAndRebuild(`
+        SELECT t.status, COUNT(*) as cnt
+        FROM tickets t
+        JOIN users u ON t.owner = u.name
+        WHERE u.team = 'backend' AND t.priority > 3
+        GROUP BY t.status
+      `);
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual({
+        member: 't.priority',
+        operator: 'gt',
+        values: ['3'],
+      });
+      expect(filters).not.toContainEqual(
+        expect.objectContaining({ member: 'u.team' })
+      );
+      expect(tableSchema.sql).toContain("u.team = 'backend'");
+      expect(warnings).toContain(
+        'Non-extractable WHERE condition retained in base SQL'
+      );
     });
   });
 
@@ -1059,11 +1145,9 @@ LIMIT 100`,
           operator: 'equals',
           values: ['closed'],
         });
-        expect(filters).toContainEqual({
-          member: 't.product_id',
-          operator: 'equals',
-          values: ['don:core:dvrv-us-1:devo/0:product/1'],
-        });
+        expect(filters).not.toContainEqual(
+          expect.objectContaining({ member: 'ap.product_id' })
+        );
         expect(filters).toContainEqual({
           member: 't.applies_to_part_id',
           operator: 'notEquals',

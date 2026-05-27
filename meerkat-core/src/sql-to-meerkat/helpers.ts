@@ -166,6 +166,25 @@ export async function exprToSql(
   return results[0];
 }
 
+export interface QualifiedColumnRef {
+  table: string | null;
+  column: string;
+}
+
+export function getQualifiedColumnRef(
+  expr: ParsedExpression
+): QualifiedColumnRef | null {
+  if (expr.class !== ExpressionClass.COLUMN_REF) return null;
+  const col = expr as ColumnRefExpression;
+  if (col.column_names.length >= 2) {
+    return {
+      table: col.column_names[col.column_names.length - 2],
+      column: col.column_names[col.column_names.length - 1],
+    };
+  }
+  return { table: null, column: col.column_names[0] };
+}
+
 export function getColumnName(expr: ParsedExpression): string | null {
   if (expr.class !== ExpressionClass.COLUMN_REF) return null;
   const col = expr as ColumnRefExpression;
@@ -178,10 +197,25 @@ export function getConstantValue(
   if (expr.class !== ExpressionClass.CONSTANT) return null;
   const constant = expr as ConstantExpression;
   const val = constant.value as
-    | { is_null?: boolean; value?: string | number }
+    | {
+        is_null?: boolean;
+        value?: string | number;
+        type?: { id?: string; type_info?: { scale?: number } };
+      }
     | undefined;
   if (val?.is_null) return null;
-  return val?.value ?? null;
+  if (val?.value == null) return null;
+
+  if (
+    val.type?.id === 'DECIMAL' &&
+    typeof val.value === 'number' &&
+    typeof val.type.type_info?.scale === 'number' &&
+    val.type.type_info.scale > 0
+  ) {
+    return val.value / Math.pow(10, val.type.type_info.scale);
+  }
+
+  return val.value;
 }
 
 export function extractTableName(selectNode: SelectNode): string {
@@ -242,16 +276,29 @@ export function matchMeasureFromExpr(
   expr: ParsedExpression,
   measures: readonly Measure[]
 ): Measure | null {
+  if (expr.alias) {
+    const byAlias = measures.find((m) => m.name === expr.alias);
+    if (byAlias) return byAlias;
+  }
   if (expr.class === ExpressionClass.FUNCTION) {
     const fn = expr as FunctionExpression;
+    const fnLower = fn.function_name.toLowerCase();
+    const childCol =
+      fn.children.length === 1 ? getColumnName(fn.children[0]) : null;
+    const candidateSql = childCol
+      ? `${fnLower}(${childCol})`
+      : `${fnLower}()`;
+
+    const exactMatch = measures.find(
+      (m) => m.sql.toLowerCase() === candidateSql
+    );
+    if (exactMatch) return exactMatch;
+
     return (
       measures.find((m) =>
-        m.sql.toLowerCase().startsWith(fn.function_name.toLowerCase() + '(')
+        m.sql.toLowerCase().startsWith(fnLower + '(')
       ) || null
     );
-  }
-  if (expr.alias) {
-    return measures.find((m) => m.name === expr.alias) || null;
   }
   return null;
 }
