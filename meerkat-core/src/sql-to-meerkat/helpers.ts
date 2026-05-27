@@ -8,7 +8,7 @@ import {
   QueryNodeType,
   SelectNode,
 } from '../types/duckdb-serialization-types';
-import { Dimension } from '../types/cube-types/table';
+import { Dimension, Measure } from '../types/cube-types/table';
 import {
   GetQueryOutput,
   serializeExpressions,
@@ -132,8 +132,7 @@ export function inferTypeFromExpr(expr: ParsedExpression): Dimension['type'] {
     if (
       colName.endsWith('_at') ||
       colName.endsWith('_date') ||
-      colName === 'created_at' ||
-      colName === 'updated_at'
+      colName.includes('time')
     ) {
       return 'time';
     }
@@ -220,4 +219,22 @@ export function stripQueryLocationInPlace(root: unknown): void {
     }
     Object.values(record).forEach((value) => stack.push(value));
   }
+}
+
+export function matchMeasureFromExpr(
+  expr: ParsedExpression,
+  measures: readonly Measure[]
+): Measure | null {
+  if (expr.class === ExpressionClass.FUNCTION) {
+    const fn = expr as FunctionExpression;
+    return (
+      measures.find((m) =>
+        m.sql.toLowerCase().startsWith(fn.function_name.toLowerCase() + '(')
+      ) || null
+    );
+  }
+  if (expr.alias) {
+    return measures.find((m) => m.name === expr.alias) || null;
+  }
+  return null;
 }

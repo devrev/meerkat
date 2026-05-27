@@ -848,13 +848,22 @@ describe('sqlToMeerkat E2E', () => {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   describe('BETWEEN semantics', () => {
-    it('numeric BETWEEN uses gte (not inDateRange)', async () => {
+    it('numeric BETWEEN emits gte + lte pair', async () => {
       const { query } = await decomposeAndRebuild(
         'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount BETWEEN 50 AND 150 GROUP BY status'
       );
       const filters = flattenFilters(query.filters!);
       expect(filters).toContainEqual(
-        { member: 'tickets.amount', operator: 'gte', values: ['50', '150'] }
+        { member: 'tickets.amount', operator: 'gte', values: ['50'] }
+      );
+      expect(filters).toContainEqual(
+        { member: 'tickets.amount', operator: 'lte', values: ['150'] }
+      );
+    });
+
+    it('numeric BETWEEN row count matches original', async () => {
+      await verifyExactRowMatch(
+        'SELECT status, COUNT(*) as cnt FROM tickets WHERE amount BETWEEN 50 AND 150 GROUP BY status'
       );
     });
 

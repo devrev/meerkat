@@ -14,7 +14,7 @@ import {
   OperatorExpression,
   ParsedExpression,
 } from '../types/duckdb-serialization-types';
-import { getColumnName, getConstantValue } from './helpers';
+import { getColumnName, getConstantValue, matchMeasureFromExpr } from './helpers';
 
 export interface FilterExtractionResult {
   filters: (QueryFilterWithValues | LogicalOrFilter)[];
@@ -34,9 +34,9 @@ export function extractFiltersFromAst(
     const conj = whereExpr as ConjunctionExpression;
     if (whereExpr.type === ExpressionType.CONJUNCTION_AND) {
       for (const child of conj.children) {
-        const extracted = tryExtractSingleFilter(child, tableName);
+        const extracted = tryExtractFilters(child, tableName);
         if (extracted) {
-          filters.push(extracted);
+          filters.push(...extracted);
         } else {
           residualParts.push(child);
           warnings.push('Non-extractable WHERE condition retained in base SQL');
@@ -54,9 +54,9 @@ export function extractFiltersFromAst(
       }
     }
   } else {
-    const extracted = tryExtractSingleFilter(whereExpr, tableName);
+    const extracted = tryExtractFilters(whereExpr, tableName);
     if (extracted) {
-      filters.push(extracted);
+      filters.push(...extracted);
     } else {
       residualParts.push(whereExpr);
       warnings.push('Non-extractable WHERE condition retained in base SQL');
@@ -178,9 +178,9 @@ function extractOrFilter(
       const andConj = child as ConjunctionExpression;
       let allExtracted = true;
       for (const grandchild of andConj.children) {
-        const extracted = tryExtractSingleFilter(grandchild, tableName);
+        const extracted = tryExtractFilters(grandchild, tableName);
         if (extracted) {
-          andChildren.push(extracted);
+          andChildren.push(...extracted);
         } else {
           allExtracted = false;
           break;
@@ -189,29 +189,36 @@ function extractOrFilter(
       if (!allExtracted) return null;
       orChildren.push({ and: andChildren });
     } else {
-      const extracted = tryExtractSingleFilter(child, tableName);
+      const extracted = tryExtractFilters(child, tableName);
       if (!extracted) return null;
-      orChildren.push(extracted);
+      if (extracted.length === 1) {
+        orChildren.push(extracted[0]);
+      } else {
+        orChildren.push({ and: extracted });
+      }
     }
   }
   return { or: orChildren };
 }
 
-function tryExtractSingleFilter(
+function tryExtractFilters(
   expr: ParsedExpression,
   tableName: string
-): QueryFilterWithValues | null {
+): QueryFilterWithValues[] | null {
   if (expr.class === ExpressionClass.COMPARISON) {
-    return extractComparisonFilter(expr as ComparisonExpression, tableName);
+    const f = extractComparisonFilter(expr as ComparisonExpression, tableName);
+    return f ? [f] : null;
   }
   if (expr.class === ExpressionClass.BETWEEN) {
     return extractBetweenFilter(expr as BetweenExpression, tableName);
   }
   if (expr.class === ExpressionClass.OPERATOR) {
-    return extractOperatorFilter(expr as OperatorExpression, tableName);
+    const f = extractOperatorFilter(expr as OperatorExpression, tableName);
+    return f ? [f] : null;
   }
   if (expr.class === ExpressionClass.FUNCTION) {
-    return extractFunctionFilter(expr as FunctionExpression, tableName);
+    const f = extractFunctionFilter(expr as FunctionExpression, tableName);
+    return f ? [f] : null;
   }
   return null;
 }
@@ -226,6 +233,25 @@ function extractComparisonFilter(
   const value = getConstantValue(expr.right);
   if (value === null && expr.right.class !== ExpressionClass.CONSTANT)
     return null;
+
+  // col = NULL / col != NULL → notSet / set (SQL NULL comparison is always false)
+  if (value === null && expr.right.class === ExpressionClass.CONSTANT) {
+    if (expr.type === ExpressionType.COMPARE_EQUAL) {
+      return {
+        member: `${tableName}.${colName}`,
+        operator: 'notSet',
+        values: [],
+      };
+    }
+    if (expr.type === ExpressionType.COMPARE_NOTEQUAL) {
+      return {
+        member: `${tableName}.${colName}`,
+        operator: 'set',
+        values: [],
+      };
+    }
+    return null;
+  }
 
   const opMap: Record<string, QueryFilterWithValues['operator']> = {
     [ExpressionType.COMPARE_EQUAL]: 'equals',
@@ -242,14 +268,14 @@ function extractComparisonFilter(
   return {
     member: `${tableName}.${colName}`,
     operator,
-    values: value !== null ? [String(value)] : [],
+    values: [String(value)],
   };
 }
 
 function extractBetweenFilter(
   expr: BetweenExpression,
   tableName: string
-): QueryFilterWithValues | null {
+): QueryFilterWithValues[] | null {
   const colName = getColumnName(expr.input);
   if (!colName) return null;
 
@@ -263,23 +289,30 @@ function extractBetweenFilter(
     const looksLikeDate =
       colNameLower.endsWith('_at') ||
       colNameLower.endsWith('_date') ||
-      colNameLower.includes('time') ||
-      colNameLower === 'created_at' ||
-      colNameLower === 'updated_at';
+      colNameLower.includes('time');
     if (!looksLikeDate) {
-      return {
-        member: `${tableName}.${colName}`,
-        operator: 'gte',
-        values: [String(lower), String(upper)],
-      };
+      return [
+        {
+          member: `${tableName}.${colName}`,
+          operator: 'gte',
+          values: [String(lower)],
+        },
+        {
+          member: `${tableName}.${colName}`,
+          operator: 'lte',
+          values: [String(upper)],
+        },
+      ];
     }
   }
 
-  return {
-    member: `${tableName}.${colName}`,
-    operator: 'inDateRange',
-    values: [String(lower), String(upper)],
-  };
+  return [
+    {
+      member: `${tableName}.${colName}`,
+      operator: 'inDateRange',
+      values: [String(lower), String(upper)],
+    },
+  ];
 }
 
 function extractOperatorFilter(
@@ -307,7 +340,12 @@ function extractOperatorFilter(
     return { member: `${tableName}.${colName}`, operator: 'set', values: [] };
   }
 
-  if (expr.type === ExpressionType.COMPARE_IN && expr.children?.length >= 2) {
+  const inOperatorMap: Record<string, QueryFilterWithValues['operator']> = {
+    [ExpressionType.COMPARE_IN]: 'in',
+    [ExpressionType.COMPARE_NOT_IN]: 'notIn',
+  };
+  const inOp = inOperatorMap[expr.type];
+  if (inOp && expr.children?.length >= 2) {
     const colName = getColumnName(expr.children[0]);
     if (!colName) return null;
     const values: string[] = [];
@@ -316,100 +354,44 @@ function extractOperatorFilter(
       if (val === null) return null;
       values.push(String(val));
     }
-    return { member: `${tableName}.${colName}`, operator: 'in', values };
-  }
-
-  if (
-    expr.type === ExpressionType.COMPARE_NOT_IN &&
-    expr.children?.length >= 2
-  ) {
-    const colName = getColumnName(expr.children[0]);
-    if (!colName) return null;
-    const values: string[] = [];
-    for (let i = 1; i < expr.children.length; i++) {
-      const val = getConstantValue(expr.children[i]);
-      if (val === null) return null;
-      values.push(String(val));
-    }
-    return { member: `${tableName}.${colName}`, operator: 'notIn', values };
+    return { member: `${tableName}.${colName}`, operator: inOp, values };
   }
 
   return null;
 }
+
+const LIKE_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
+  '~~': 'contains',
+  '~~*': 'contains',
+  '!~~': 'notContains',
+  '!~~*': 'notContains',
+};
 
 function extractFunctionFilter(
   expr: FunctionExpression,
   tableName: string
 ): QueryFilterWithValues | null {
   const fnName = expr.function_name.toLowerCase();
+  const likeOp = LIKE_OPERATOR_MAP[fnName];
+  if (!likeOp || expr.children.length < 2) return null;
 
-  if (fnName === '~~' || fnName === '~~*') {
-    if (expr.children.length >= 2) {
-      const colName = getColumnName(expr.children[0]);
-      if (!colName) return null;
-      const patternVal = getConstantValue(expr.children[1]);
-      if (patternVal === null) return null;
-      const pattern = String(patternVal);
-      if (
-        pattern.startsWith('%') &&
-        pattern.endsWith('%') &&
-        pattern.length > 2
-      ) {
-        const inner = pattern.slice(1, -1);
-        if (!inner.includes('%') && !inner.includes('_')) {
-          return {
-            member: `${tableName}.${colName}`,
-            operator: 'contains',
-            values: [inner],
-          };
-        }
-      }
-    }
+  const colName = getColumnName(expr.children[0]);
+  if (!colName) return null;
+
+  const patternVal = getConstantValue(expr.children[1]);
+  if (patternVal === null) return null;
+
+  const pattern = String(patternVal);
+  if (!pattern.startsWith('%') || !pattern.endsWith('%') || pattern.length <= 2)
     return null;
-  }
 
-  if (fnName === '!~~' || fnName === '!~~*') {
-    if (expr.children.length >= 2) {
-      const colName = getColumnName(expr.children[0]);
-      if (!colName) return null;
-      const patternVal = getConstantValue(expr.children[1]);
-      if (patternVal === null) return null;
-      const pattern = String(patternVal);
-      if (
-        pattern.startsWith('%') &&
-        pattern.endsWith('%') &&
-        pattern.length > 2
-      ) {
-        const inner = pattern.slice(1, -1);
-        if (!inner.includes('%') && !inner.includes('_')) {
-          return {
-            member: `${tableName}.${colName}`,
-            operator: 'notContains',
-            values: [inner],
-          };
-        }
-      }
-    }
-    return null;
-  }
+  const inner = pattern.slice(1, -1);
+  if (inner.includes('%') || inner.includes('_')) return null;
 
-  return null;
+  return {
+    member: `${tableName}.${colName}`,
+    operator: likeOp,
+    values: [inner],
+  };
 }
 
-function matchMeasureFromExpr(
-  expr: ParsedExpression,
-  measures: readonly Measure[]
-): Measure | null {
-  if (expr.class === ExpressionClass.FUNCTION) {
-    const fn = expr as FunctionExpression;
-    return (
-      measures.find((m) =>
-        m.sql.toLowerCase().startsWith(fn.function_name.toLowerCase() + '(')
-      ) || null
-    );
-  }
-  if (expr.alias) {
-    return measures.find((m) => m.name === expr.alias) || null;
-  }
-  return null;
-}

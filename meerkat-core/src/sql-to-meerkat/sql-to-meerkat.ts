@@ -102,6 +102,7 @@ export async function sqlToMeerkat(
   const dimensions: Dimension[] = [];
   const queryMeasures: string[] = [];
   const queryDimensions: string[] = [];
+  const selectListOrder: string[] = [];
   const usedNames = new Set<string>();
 
   const hasAggregates = selectNode.select_list.some(isAggregateExpr);
@@ -131,12 +132,14 @@ export async function sqlToMeerkat(
         const measureSql = await exprToSql(expr, getQueryOutput);
         measures.push({ name, sql: measureSql, type: 'number' });
         queryMeasures.push(`${tableName}.${name}`);
+        selectListOrder.push(name);
       } else {
         const name = deduplicateName(expr.alias || exprToName(expr), usedNames);
         const dimSql = await exprToSql(expr, getQueryOutput);
         const dimType = inferTypeFromExpr(expr);
         dimensions.push({ name, sql: dimSql, type: dimType });
         queryDimensions.push(`${tableName}.${name}`);
+        selectListOrder.push(name);
       }
     } else {
       if (isStarExpr(expr)) continue;
@@ -145,6 +148,7 @@ export async function sqlToMeerkat(
       const dimType = inferTypeFromExpr(expr);
       dimensions.push({ name, sql: dimSql, type: dimType });
       queryDimensions.push(`${tableName}.${name}`);
+      selectListOrder.push(name);
     }
   }
 
@@ -197,11 +201,9 @@ export async function sqlToMeerkat(
 
   const queryFilters: MeerkatQueryFilter[] = wrapFilters(allFilters);
 
-  // Build base SQL using AST (keeps residual WHERE conditions)
   const baseSQL = await buildBaseSQL(
     sql,
     selectNode,
-    hasAggregates || hasGroupBy,
     residualWhere,
     getQueryOutput
   );
@@ -216,7 +218,8 @@ export async function sqlToMeerkat(
       orderModifier.orders,
       tableName,
       dimensions,
-      measures
+      measures,
+      selectListOrder
     );
   }
 

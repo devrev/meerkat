@@ -14,12 +14,12 @@ import { stripQueryLocationInPlace } from './helpers';
 export async function buildBaseSQL(
   originalSql: string,
   selectNode: SelectNode,
-  hadAggregation: boolean,
   residualWhere: ParsedExpression | undefined,
   getQueryOutput: GetQueryOutput
 ): Promise<string> {
+  const clonedNode = JSON.parse(JSON.stringify(selectNode));
   const fromOnlyNode = {
-    ...selectNode,
+    ...clonedNode,
     select_list: [
       {
         class: ExpressionClass.STAR,
@@ -31,7 +31,9 @@ export async function buildBaseSQL(
         columns: false,
       },
     ],
-    where_clause: hadAggregation || residualWhere ? residualWhere : undefined,
+    where_clause: residualWhere
+      ? JSON.parse(JSON.stringify(residualWhere))
+      : undefined,
     group_expressions: [],
     group_sets: [],
     having: null,

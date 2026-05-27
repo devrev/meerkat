@@ -2,19 +2,19 @@ import { QueryOrderType } from '../types/cube-types/query';
 import { Dimension, Measure } from '../types/cube-types/table';
 import {
   ExpressionClass,
-  FunctionExpression,
   OrderByNode,
   OrderType,
   ParsedExpression,
   PositionalReferenceExpression,
 } from '../types/duckdb-serialization-types';
-import { getColumnName } from './helpers';
+import { getColumnName, matchMeasureFromExpr } from './helpers';
 
 export function extractOrderFromAst(
   orders: OrderByNode[],
   tableName: string,
   dimensions: readonly Dimension[],
-  measures: readonly Measure[]
+  measures: readonly Measure[],
+  selectListOrder?: readonly string[]
 ): Record<string, QueryOrderType> {
   const result: Record<string, QueryOrderType> = {};
 
@@ -39,12 +39,12 @@ export function extractOrderFromAst(
     } else if (expr?.class === ExpressionClass.POSITIONAL_REFERENCE) {
       const posExpr = expr as PositionalReferenceExpression;
       const idx = posExpr.index - 1;
-      const allMembers = [
+      const orderedNames = selectListOrder ?? [
         ...dimensions.map((d) => d.name),
         ...measures.map((m) => m.name),
       ];
-      if (idx >= 0 && idx < allMembers.length) {
-        result[`${tableName}.${allMembers[idx]}`] = direction;
+      if (idx >= 0 && idx < orderedNames.length) {
+        result[`${tableName}.${orderedNames[idx]}`] = direction;
       }
     }
   }
@@ -52,20 +52,3 @@ export function extractOrderFromAst(
   return result;
 }
 
-function matchMeasureFromExpr(
-  expr: ParsedExpression,
-  measures: readonly Measure[]
-): Measure | null {
-  if (expr.class === ExpressionClass.FUNCTION) {
-    const fn = expr as FunctionExpression;
-    return (
-      measures.find((m) =>
-        m.sql.toLowerCase().startsWith(fn.function_name.toLowerCase() + '(')
-      ) || null
-    );
-  }
-  if (expr.alias) {
-    return measures.find((m) => m.name === expr.alias) || null;
-  }
-  return null;
-}
