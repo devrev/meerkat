@@ -1450,4 +1450,301 @@ LIMIT 100`,
       });
     });
   });
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // EDGE CASES FOUND DURING REVIEW
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  describe('HUGEINT handling', () => {
+    it('HUGEINT comparison goes to residual (not notSet)', async () => {
+      await duckdbExec('CREATE OR REPLACE TABLE hugeint_t (x HUGEINT)');
+      const result = await sqlToMeerkat({
+        sql: 'SELECT x FROM hugeint_t WHERE x = 123456789012345678901234567890',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { query, warnings } = result as DecomposeResult;
+      // Should NOT produce a notSet filter — the value is not NULL, just unrepresentable
+      expect(query.filters).toBeUndefined();
+      expect(warnings).toContain('Non-extractable WHERE condition retained in base SQL');
+    });
+  });
+
+  describe('QUALIFY handling', () => {
+    it('QUALIFY preserves WHERE in base SQL (not extracted)', async () => {
+      await duckdbExec('CREATE OR REPLACE TABLE qualify_t (id INT, status VARCHAR, priority INT)');
+      await duckdbExec("INSERT INTO qualify_t VALUES (1,'a',5),(2,'a',3),(3,'b',4),(4,'b',2)");
+      const result = await sqlToMeerkat({
+        sql: "SELECT id, status, ROW_NUMBER() OVER (PARTITION BY status ORDER BY id) as rn FROM qualify_t WHERE priority > 2 QUALIFY rn = 1",
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema, query } = result as DecomposeResult;
+      // WHERE must stay in base SQL when QUALIFY exists
+      expect(tableSchema.sql).toContain('priority > 2');
+      expect(tableSchema.sql).toContain('QUALIFY');
+      expect(query.filters).toBeUndefined();
+    });
+
+    it('QUALIFY without WHERE still works', async () => {
+      const result = await sqlToMeerkat({
+        sql: "SELECT id, status, ROW_NUMBER() OVER (PARTITION BY status ORDER BY id) as rn FROM qualify_t QUALIFY rn = 1",
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      expect(tableSchema.sql).toContain('QUALIFY');
+    });
+  });
+
+  describe('SAMPLE handling', () => {
+    it('SAMPLE query succeeds (sampling dropped from round-trip)', async () => {
+      await duckdbExec('CREATE OR REPLACE TABLE sample_t (x INT)');
+      await duckdbExec('INSERT INTO sample_t SELECT range FROM range(100)');
+      const result = await sqlToMeerkat({
+        sql: 'SELECT x FROM sample_t USING SAMPLE 10%',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      // SAMPLE is dropped — base SQL is just SELECT *
+      expect(tableSchema.sql).not.toContain('SAMPLE');
+    });
+  });
+
+  describe('HAVING with alias reference', () => {
+    it('HAVING cnt > 1 (alias) extracts as measure filter', async () => {
+      const { query, tableSchema } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status HAVING cnt > 1'
+      );
+      expect(tableSchema.measures.length).toBe(1);
+      expect(query.filters).toBeDefined();
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual({
+        member: 'tickets.cnt',
+        operator: 'gt',
+        values: ['1'],
+      });
+    });
+
+    it('reversed HAVING: 1 < cnt (alias)', async () => {
+      const { query, tableSchema } = await decomposeAndRebuild(
+        'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY status HAVING 1 < cnt'
+      );
+      expect(tableSchema.measures.length).toBe(1);
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual({
+        member: 'tickets.cnt',
+        operator: 'gt',
+        values: ['1'],
+      });
+    });
+  });
+
+  describe('HAVING demotion', () => {
+    it('unaliased measure with HAVING demotion round-trips', async () => {
+      await duckdbExec('CREATE OR REPLACE TABLE having_t (status VARCHAR, amount DOUBLE)');
+      await duckdbExec("INSERT INTO having_t VALUES ('open', 100), ('open', 200), ('closed', 50)");
+      await verifyExactRowMatch(
+        'SELECT status, COUNT(*) as cnt FROM having_t GROUP BY status HAVING AVG(amount) > 10'
+      );
+    });
+
+    it('special-char alias with HAVING demotion round-trips', async () => {
+      await verifyExactRowMatch(
+        'SELECT status, COUNT(*) as "my-count" FROM having_t GROUP BY status HAVING AVG(amount) > 10'
+      );
+    });
+  });
+
+  describe('GROUP BY ALL', () => {
+    it('GROUP BY ALL classifies correctly', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT status, COUNT(*) as cnt FROM tickets GROUP BY ALL',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      expect(tableSchema.dimensions.map((d) => d.name)).toContain('status');
+      expect(tableSchema.measures.map((m) => m.name)).toContain('cnt');
+    });
+  });
+
+  describe('table functions in FROM', () => {
+    it('generate_series table function', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT x, COUNT(*) as cnt FROM generate_series(1, 10) as t(x) GROUP BY x',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      expect(tableSchema.name).toBe('t');
+      expect(tableSchema.sql).toContain('generate_series');
+    });
+  });
+
+  describe('unicode and special characters', () => {
+    it('unicode column names and filter values', async () => {
+      await duckdbExec('CREATE OR REPLACE TABLE unicode_t ("名前" VARCHAR, amount DOUBLE)');
+      await duckdbExec("INSERT INTO unicode_t VALUES ('東京', 100), ('大阪', 50)");
+      const result = await sqlToMeerkat({
+        sql: "SELECT \"名前\", SUM(amount) as total FROM unicode_t WHERE \"名前\" = '東京' GROUP BY \"名前\"",
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { query } = result as DecomposeResult;
+      const filters = flattenFilters(query.filters!);
+      expect(filters[0].values).toEqual(['東京']);
+    });
+
+    it('single quote in filter value', async () => {
+      const result = await sqlToMeerkat({
+        sql: "SELECT status, COUNT(*) as cnt FROM tickets WHERE title = 'it''s broken' GROUP BY status",
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('CAST(NULL) handling', () => {
+    it('col = CAST(NULL AS INTEGER) produces notSet', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT id FROM tickets WHERE id = CAST(NULL AS INTEGER)',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { query } = result as DecomposeResult;
+      const filters = flattenFilters(query.filters!);
+      expect(filters).toContainEqual({
+        member: 'tickets.id',
+        operator: 'notSet',
+        values: [],
+      });
+    });
+  });
+
+  describe('arithmetic measures (is_operator)', () => {
+    it('SUM/COUNT ratio classified as measure with readable name', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT status, SUM(amount) / COUNT(*) as avg_amount FROM tickets GROUP BY status',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      expect(tableSchema.measures.length).toBe(1);
+      expect(tableSchema.measures[0].name).toBe('avg_amount');
+    });
+
+    it('unaliased arithmetic measure gets descriptive name', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT status, SUM(amount) / COUNT(*) FROM tickets GROUP BY status',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      expect(tableSchema.measures[0].name).toBe('sum_amount_count');
+    });
+  });
+
+  describe('LIMIT edge cases', () => {
+    it('LIMIT 0 extracts as limit: 0', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT id FROM tickets LIMIT 0',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { query } = result as DecomposeResult;
+      expect(query.limit).toBe(0);
+    });
+
+    it('OFFSET 0 extracts as offset: 0', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT id FROM tickets LIMIT 10 OFFSET 0',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { query } = result as DecomposeResult;
+      expect(query.offset).toBe(0);
+    });
+  });
+
+  describe('filter type inference from AST', () => {
+    it('integer comparison infers number type', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT status, COUNT(*) as cnt FROM tickets WHERE priority > 3 GROUP BY status',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      const priorityDim = tableSchema.dimensions.find((d) => d.name === 'priority');
+      expect(priorityDim?.type).toBe('number');
+    });
+
+    it('TIMESTAMPTZ comparison infers time type', async () => {
+      const result = await sqlToMeerkat({
+        sql: "SELECT status, COUNT(*) as cnt FROM tickets WHERE created_date >= CAST('2024-01-01' AS TIMESTAMP) GROUP BY status",
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      const dateDim = tableSchema.dimensions.find((d) => d.name === 'created_date');
+      expect(dateDim?.type).toBe('time');
+    });
+
+    it('string comparison infers string type', async () => {
+      const result = await sqlToMeerkat({
+        sql: "SELECT id FROM tickets WHERE owner = 'alice'",
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      const ownerDim = tableSchema.dimensions.find((d) => d.name === 'owner');
+      expect(ownerDim?.type).toBe('string');
+    });
+  });
+
+  describe('name deduplication', () => {
+    it('duplicate aliases get _N suffix', async () => {
+      await duckdbExec('CREATE OR REPLACE TABLE dedup_t (x INT, y INT)');
+      const result = await sqlToMeerkat({
+        sql: 'SELECT x as col, y as col FROM dedup_t',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      expect(tableSchema.dimensions.map((d) => d.name)).toEqual(['col', 'col_2']);
+    });
+  });
+
+  describe('OR with BETWEEN branch', () => {
+    it('OR containing BETWEEN produces correct filter tree', async () => {
+      const { query, warnings } = await decomposeAndRebuild(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE status = 'open' OR amount BETWEEN 20 AND 60 GROUP BY status"
+      );
+      expect(warnings).toEqual([]);
+      const topFilter = query.filters![0];
+      expect('or' in topFilter).toBe(true);
+    });
+  });
+
+  describe('deeply nested AND/OR', () => {
+    it('AND with nested OR round-trips correctly', async () => {
+      await verifyExactRowMatch(
+        "SELECT status, COUNT(*) as cnt FROM tickets WHERE priority > 2 AND (status = 'open' OR status = 'closed') GROUP BY status"
+      );
+    });
+  });
+
+  describe('no-FROM queries', () => {
+    it('SELECT 1+1 succeeds with query table name', async () => {
+      const result = await sqlToMeerkat({
+        sql: 'SELECT 1 + 1 as result, 3.14 as pi',
+        getQueryOutput,
+      });
+      expect(result.success).toBe(true);
+      const { tableSchema } = result as DecomposeResult;
+      expect(tableSchema.name).toBe('query');
+      expect(tableSchema.dimensions.length).toBe(2);
+    });
+  });
 });
