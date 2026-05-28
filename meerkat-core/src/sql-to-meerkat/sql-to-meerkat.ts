@@ -17,6 +17,8 @@ import {
   SelectNode,
 } from '../types/duckdb-serialization-types';
 import { fetchDuckDBFunctions, GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
+import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
+import { sanitizeStringValue } from '../member-formatters/sanitize-value';
 import { DecomposeOutput, DuckDBSerializedAST } from './types';
 import {
   buildBaseSQL,
@@ -36,7 +38,6 @@ import {
   isNestedAggregateExpr,
   isStarExpr,
   isWindowExpr,
-  sanitizeForSerialize,
   stripQueryLocationInPlace,
 } from './helpers';
 
@@ -74,7 +75,7 @@ export async function sqlToMeerkat(
 
   let parsedAst: DuckDBSerializedAST;
   try {
-    const serializeQuery = astSerializerQuery(sanitizeForSerialize(sql));
+    const serializeQuery = astSerializerQuery(sanitizeStringValue(sql));
     const rows = await getQueryOutput(serializeQuery);
     const jsonStr = deserializeQuery(rows);
     parsedAst = JSON.parse(jsonStr) as DuckDBSerializedAST;
@@ -181,13 +182,13 @@ export async function sqlToMeerkat(
         usedNames
       );
       measures.push({ name, sql: exprSql, type: 'number' });
-      queryMeasures.push(`${tableName}.${name}`);
+      queryMeasures.push(getNamespacedKey(tableName, name));
       selectListOrder[selectIndex] = name;
     } else {
       const name = deduplicateName(expr.alias || exprToName(expr), usedNames);
       const dimType = inferTypeFromExpr(expr);
       dimensions.push({ name, sql: exprSql, type: dimType });
-      queryDimensions.push(`${tableName}.${name}`);
+      queryDimensions.push(getNamespacedKey(tableName, name));
       selectListOrder[selectIndex] = name;
     }
   }
@@ -254,7 +255,7 @@ export async function sqlToMeerkat(
       warnings.push('Non-extractable HAVING condition retained in base SQL');
       for (const m of measures) {
         dimensions.push({ name: m.name, sql: m.name, type: 'number' });
-        queryDimensions.push(`${tableName}.${m.name}`);
+        queryDimensions.push(getNamespacedKey(tableName, m.name));
       }
     }
   }

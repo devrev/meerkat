@@ -8,6 +8,7 @@ import {
   ParsedExpression,
 } from '../../types/duckdb-serialization-types';
 import { getColumnName, matchMeasureFromExpr } from './ast-utils';
+import { getNamespacedKey } from '../../member-formatters/get-namespaced-key';
 
 /**
  * Extracts ORDER BY clauses into Meerkat's order format.
@@ -40,12 +41,12 @@ export function extractOrderFromAst(
         const measure = measures.find((m) => m.name === colName);
         const dimension = dimensions.find((d) => d.name === colName);
         const memberName = measure?.name || dimension?.name || colName;
-        result[`${tableName}.${memberName}`] = direction;
+        result[getNamespacedKey(tableName, memberName)] = direction;
       }
     } else if (expr?.class === ExpressionClass.FUNCTION) {
       const measure = matchMeasureFromExpr(expr, measures);
       if (measure) {
-        result[`${tableName}.${measure.name}`] = direction;
+        result[getNamespacedKey(tableName, measure.name)] = direction;
       }
     } else if (expr?.class === ExpressionClass.CONSTANT) {
       // ORDER BY 1, ORDER BY 2 — positional reference (1-indexed in SQL, 0-indexed here)
@@ -59,7 +60,7 @@ export function extractOrderFromAst(
           const name = orderedNames[idx];
           // null entries are skipped items (STAR, WINDOW) — can't order by them
           if (name !== null) {
-            result[`${tableName}.${name}`] = direction;
+            result[getNamespacedKey(tableName, name)] = direction;
           }
         }
       }

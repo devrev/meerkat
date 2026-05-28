@@ -33,7 +33,6 @@ export {
   getConstantValue,
   extractTableName,
   hasRecursiveCteInMap,
-  sanitizeForSerialize,
   matchMeasureFromExpr,
 } from './ast-utils';
 

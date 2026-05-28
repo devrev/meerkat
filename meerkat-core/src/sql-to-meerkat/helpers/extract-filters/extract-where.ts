@@ -16,6 +16,7 @@ import {
 } from '../../../types/duckdb-serialization-types';
 import { getConstantValue, getConstantTypeId, isNullConstant } from '../../../utils/ast-constants';
 import { getQualifiedColumnRef } from '../../../utils/ast-column-ref';
+import { getNamespacedKey } from '../../../member-formatters/get-namespaced-key';
 import { typeFromConstantExpr } from './filter-schema';
 
 export interface FilterExtractionResult {
@@ -183,7 +184,7 @@ function resolveMemberName(
   const ref = getQualifiedColumnRef(expr);
   if (!ref) return null;
   if (ref.table && ref.table !== tableName) return null;
-  return `${tableName}.${ref.column}`;
+  return getNamespacedKey(tableName, ref.column);
 }
 
 function isConstantLike(expr: ParsedExpression): boolean {

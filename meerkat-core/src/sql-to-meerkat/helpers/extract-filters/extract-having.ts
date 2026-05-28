@@ -1,3 +1,4 @@
+import { getNamespacedKey } from '../../../member-formatters/get-namespaced-key';
 import {
   ComparisonExpression,
   ConjunctionExpression,
@@ -77,7 +78,7 @@ function extractHavingComparison(
     const op = COMPARISON_OPERATOR_MAP[comp.type];
     if (op && value !== null) {
       return {
-        member: `${tableName}.${measureLeft.name}`,
+        member: getNamespacedKey(tableName, measureLeft.name),
         operator: op,
         values: [String(value)],
       };
@@ -89,7 +90,7 @@ function extractHavingComparison(
     const op = FLIPPED_COMPARISON_MAP[comp.type];
     if (op && value !== null) {
       return {
-        member: `${tableName}.${measureRight.name}`,
+        member: getNamespacedKey(tableName, measureRight.name),
         operator: op,
         values: [String(value)],
       };

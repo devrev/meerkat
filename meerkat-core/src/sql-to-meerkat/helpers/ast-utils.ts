@@ -29,8 +29,6 @@ export function hasRecursiveCteInMap(node: SelectNode): boolean {
   );
 }
 
-export { sanitizeForSerialize } from '../../ast-serializer/ast-serializer';
-
 /**
  * Matches a HAVING expression to a known measure from the schema.
  *
