@@ -55,6 +55,7 @@ export interface FilterExtractionResult {
   filters: (QueryFilterWithValues | LogicalOrFilter)[];
   residual: ParsedExpression | undefined;
   warnings: string[];
+  memberTypes: Record<string, Dimension['type']>;
 }
 
 export function extractFiltersFromAst(
@@ -64,12 +65,13 @@ export function extractFiltersFromAst(
   const filters: (QueryFilterWithValues | LogicalOrFilter)[] = [];
   const residualParts: ParsedExpression[] = [];
   const warnings: string[] = [];
+  const memberTypes: Record<string, Dimension['type']> = {};
 
   if (whereExpr.class === ExpressionClass.CONJUNCTION) {
     const conj = whereExpr as ConjunctionExpression;
     if (whereExpr.type === ExpressionType.CONJUNCTION_AND) {
       for (const child of conj.children) {
-        const extracted = tryExtractFilters(child, tableName);
+        const extracted = tryExtractFilters(child, tableName, memberTypes);
         if (extracted) {
           filters.push(...extracted);
         } else {
@@ -78,7 +80,7 @@ export function extractFiltersFromAst(
         }
       }
     } else if (whereExpr.type === ExpressionType.CONJUNCTION_OR) {
-      const orFilter = extractOrFilter(conj, tableName);
+      const orFilter = extractOrFilter(conj, tableName, memberTypes);
       if (orFilter) {
         filters.push(orFilter);
       } else {
@@ -89,7 +91,7 @@ export function extractFiltersFromAst(
       }
     }
   } else {
-    const extracted = tryExtractFilters(whereExpr, tableName);
+    const extracted = tryExtractFilters(whereExpr, tableName, memberTypes);
     if (extracted) {
       filters.push(...extracted);
     } else {
@@ -99,7 +101,7 @@ export function extractFiltersFromAst(
   }
 
   const residual = buildResidualConjunction(residualParts);
-  return { filters, residual, warnings };
+  return { filters, residual, warnings, memberTypes };
 }
 
 export function extractHavingFromAst(
@@ -176,7 +178,8 @@ function extractHavingComparison(
 export function ensureFilterColumnInSchema(
   filter: QueryFilterWithValues,
   dimensions: readonly Dimension[],
-  tableName: string
+  tableName: string,
+  memberTypes?: Record<string, Dimension['type']>
 ): Dimension[] | null {
   const prefix = `${tableName}.`;
   if (!filter.member.startsWith(prefix)) return null;
@@ -185,21 +188,38 @@ export function ensureFilterColumnInSchema(
     (d) => d.name === colName || d.sql === colName
   );
   if (!exists) {
-    return [{ name: colName, sql: colName, type: inferFilterColumnType(filter) }];
+    const type = memberTypes?.[filter.member] || 'string';
+    return [{ name: colName, sql: colName, type }];
   }
   return null;
 }
 
-const DATE_OPERATORS = new Set(['inDateRange', 'notInDateRange', 'beforeDate', 'afterDate', 'onTheDate']);
-const NUMERIC_PATTERN = /^-?\d+(\.\d+)?$/;
+// Maps a DuckDB constant type ID to a Meerkat dimension type using the AST type info.
+const NUMERIC_TYPE_IDS = new Set([
+  'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT', 'FLOAT', 'DOUBLE',
+  'DECIMAL', 'HUGEINT', 'UINTEGER', 'UBIGINT', 'USMALLINT', 'UTINYINT',
+]);
+const DATE_TYPE_IDS = new Set([
+  'DATE', 'TIMESTAMP', 'TIMESTAMP WITH TIME ZONE', 'TIMESTAMP_S',
+  'TIMESTAMP_MS', 'TIMESTAMP_NS', 'INTERVAL', 'TIME',
+]);
 
-function inferFilterColumnType(filter: QueryFilterWithValues): Dimension['type'] {
-  if (DATE_OPERATORS.has(filter.operator)) {
-    return 'time';
+function typeFromConstantExpr(expr: ParsedExpression): Dimension['type'] {
+  const typeId = getConstantTypeId(expr);
+  if (!typeId) {
+    // Recurse through CAST to find the inner constant type
+    if (expr.class === ExpressionClass.CAST) {
+      const cast = expr as ParsedExpression & { cast_type?: { id?: string }; child?: ParsedExpression };
+      const castId = cast.cast_type?.id?.toUpperCase() || '';
+      if (DATE_TYPE_IDS.has(castId)) return 'time';
+      if (NUMERIC_TYPE_IDS.has(castId)) return 'number';
+      return cast.child ? typeFromConstantExpr(cast.child) : 'string';
+    }
+    return 'string';
   }
-  if (filter.values && filter.values.length > 0 && (filter.values as string[]).every((v) => NUMERIC_PATTERN.test(v))) {
-    return 'number';
-  }
+  const upper = typeId.toUpperCase();
+  if (NUMERIC_TYPE_IDS.has(upper)) return 'number';
+  if (DATE_TYPE_IDS.has(upper)) return 'time';
   return 'string';
 }
 
@@ -257,11 +277,12 @@ function buildResidualConjunction(
 
 function extractOrFilter(
   conj: ConjunctionExpression,
-  tableName: string
+  tableName: string,
+  memberTypes: Record<string, Dimension['type']>
 ): LogicalOrFilter | null {
   const orChildren: (QueryFilterWithValues | LogicalAndFilter)[] = [];
   for (const child of conj.children) {
-    const branch = extractOrBranch(child, tableName);
+    const branch = extractOrBranch(child, tableName, memberTypes);
     if (!branch) return null;
     orChildren.push(branch);
   }
@@ -270,7 +291,8 @@ function extractOrFilter(
 
 function extractOrBranch(
   expr: ParsedExpression,
-  tableName: string
+  tableName: string,
+  memberTypes: Record<string, Dimension['type']>
 ): QueryFilterWithValues | LogicalAndFilter | null {
   if (
     expr.class === ExpressionClass.CONJUNCTION &&
@@ -279,14 +301,14 @@ function extractOrBranch(
     const andConj = expr as ConjunctionExpression;
     const andMembers: (QueryFilterWithValues | LogicalOrFilter)[] = [];
     for (const grandchild of andConj.children) {
-      const extracted = tryExtractFilters(grandchild, tableName);
+      const extracted = tryExtractFilters(grandchild, tableName, memberTypes);
       if (!extracted) return null;
       andMembers.push(...extracted);
     }
     return { and: andMembers } as LogicalAndFilter;
   }
 
-  const extracted = tryExtractFilters(expr, tableName);
+  const extracted = tryExtractFilters(expr, tableName, memberTypes);
   if (!extracted) return null;
 
   if (extracted.length === 1 && 'member' in extracted[0]) {
@@ -297,14 +319,15 @@ function extractOrBranch(
 
 function tryExtractFilters(
   expr: ParsedExpression,
-  tableName: string
+  tableName: string,
+  memberTypes: Record<string, Dimension['type']>
 ): (QueryFilterWithValues | LogicalOrFilter)[] | null {
   if (expr.class === ExpressionClass.COMPARISON) {
-    const f = extractComparisonFilter(expr as ComparisonExpression, tableName);
+    const f = extractComparisonFilter(expr as ComparisonExpression, tableName, memberTypes);
     return f ? [f] : null;
   }
   if (expr.class === ExpressionClass.BETWEEN) {
-    return extractBetweenFilter(expr as BetweenExpression, tableName);
+    return extractBetweenFilter(expr as BetweenExpression, tableName, memberTypes);
   }
   if (expr.class === ExpressionClass.OPERATOR) {
     const f = extractOperatorFilter(expr as OperatorExpression, tableName);
@@ -318,7 +341,7 @@ function tryExtractFilters(
     expr.class === ExpressionClass.CONJUNCTION &&
     expr.type === ExpressionType.CONJUNCTION_OR
   ) {
-    const orFilter = extractOrFilter(expr as ConjunctionExpression, tableName);
+    const orFilter = extractOrFilter(expr as ConjunctionExpression, tableName, memberTypes);
     return orFilter ? [orFilter] : null;
   }
   return null;
@@ -349,12 +372,16 @@ function isConstantLike(expr: ParsedExpression): boolean {
 
 function extractComparisonFilter(
   expr: ComparisonExpression,
-  tableName: string
+  tableName: string,
+  memberTypes: Record<string, Dimension['type']>
 ): QueryFilterWithValues | null {
   const memberLeft = resolveMemberName(expr.left, tableName);
   const memberRight = resolveMemberName(expr.right, tableName);
 
   if (memberLeft && isConstantLike(expr.right)) {
+    if (!memberTypes[memberLeft]) {
+      memberTypes[memberLeft] = typeFromConstantExpr(expr.right);
+    }
     return buildComparisonResult(
       memberLeft,
       expr.right,
@@ -364,6 +391,9 @@ function extractComparisonFilter(
   }
 
   if (memberRight && isConstantLike(expr.left)) {
+    if (!memberTypes[memberRight]) {
+      memberTypes[memberRight] = typeFromConstantExpr(expr.left);
+    }
     return buildComparisonResult(
       memberRight,
       expr.left,
@@ -416,7 +446,8 @@ function isBetweenDateRange(expr: BetweenExpression): boolean {
 
 function extractBetweenFilter(
   expr: BetweenExpression,
-  tableName: string
+  tableName: string,
+  memberTypes: Record<string, Dimension['type']>
 ): QueryFilterWithValues[] | null {
   const member = resolveMemberName(expr.input, tableName);
   if (!member) return null;
@@ -426,11 +457,13 @@ function extractBetweenFilter(
   if (lower === null || upper === null) return null;
 
   if (isBetweenDateRange(expr)) {
+    if (!memberTypes[member]) memberTypes[member] = 'time';
     return [
       { member, operator: 'inDateRange', values: [String(lower), String(upper)] },
     ];
   }
 
+  if (!memberTypes[member]) memberTypes[member] = typeFromConstantExpr(expr.lower);
   return [
     { member, operator: 'gte', values: [String(lower)] },
     { member, operator: 'lte', values: [String(upper)] },

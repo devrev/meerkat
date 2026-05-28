@@ -221,7 +221,8 @@ export async function sqlToMeerkat(
         const newDims = ensureFilterColumnInSchema(
           f as QueryFilterWithValues,
           dimensions,
-          tableName
+          tableName,
+          extracted.memberTypes
         );
         if (newDims) dimensions.push(...newDims);
       } else if ('or' in f) {
