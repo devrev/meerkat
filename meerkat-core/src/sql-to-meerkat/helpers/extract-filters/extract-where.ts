@@ -352,24 +352,30 @@ const LIKE_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   '!~~*': 'notContains', // NOT ILIKE
 };
 
+// Extracts LIKE/ILIKE '%value%' patterns as contains/notContains filters.
+// Only supports simple substring patterns — rejects wildcards in the inner value.
 function extractFunctionFilter(
   expr: FunctionExpression,
   tableName: string
 ): QueryFilterWithValues | null {
+  // DuckDB uses function names like '~~*' for ILIKE — look up in map
   const fnName = expr.function_name.toLowerCase();
   const likeOp = LIKE_OPERATOR_MAP[fnName];
   if (!likeOp || expr.children.length < 2) return null;
 
+  // children[0] = column being matched, children[1] = pattern constant
   const member = resolveMemberName(expr.children[0], tableName);
   if (!member) return null;
 
   const patternVal = getConstantValue(expr.children[1]);
   if (patternVal === null) return null;
 
+  // Only extract %value% patterns (must have leading AND trailing %, with content between)
   const pattern = String(patternVal);
   if (!pattern.startsWith('%') || !pattern.endsWith('%') || pattern.length <= 2)
     return null;
 
+  // Reject complex patterns with inner wildcards (e.g. '%te_t%', '%a%b%')
   const inner = pattern.slice(1, -1);
   if (inner.includes('%') || inner.includes('_')) return null;
 
