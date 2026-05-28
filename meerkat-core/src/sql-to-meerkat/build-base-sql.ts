@@ -57,6 +57,7 @@ export async function buildBaseSQL(
       ? JSON.parse(JSON.stringify(residualHaving))
       : null,
     qualify: clonedNode.qualify || null,
+    sample: null,
     modifiers: [],
   };
 
