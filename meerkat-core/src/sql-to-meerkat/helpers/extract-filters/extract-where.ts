@@ -2,8 +2,8 @@ import {
   LogicalAndFilter,
   LogicalOrFilter,
   QueryFilterWithValues,
-} from '../../types/cube-types/query';
-import { Dimension, Measure } from '../../types/cube-types/table';
+} from '../../../types/cube-types/query';
+import { Dimension } from '../../../types/cube-types/table';
 import {
   BetweenExpression,
   ComparisonExpression,
@@ -13,43 +13,10 @@ import {
   FunctionExpression,
   OperatorExpression,
   ParsedExpression,
-} from '../../types/duckdb-serialization-types';
-import { getConstantValue, getConstantTypeId, getQualifiedColumnRef, isNullConstant, matchMeasureFromExpr } from './ast-utils';
-
-/**
- * WHERE/HAVING filter extraction from DuckDB AST.
- *
- * Extracts simple column-vs-constant conditions as Meerkat QueryFilters.
- * Non-extractable conditions (subqueries, function calls on columns, cross-table
- * references) are returned as "residual" AST nodes to be kept in the base SQL.
- *
- * Supported patterns:
- * - Comparisons: =, !=, >, >=, <, <= (with flipped-operand support)
- * - NULL checks: IS NULL → notSet, IS NOT NULL → set
- * - IN / NOT IN lists
- * - BETWEEN (numeric → gte+lte pair, date-typed → inDateRange)
- * - LIKE/ILIKE %value% → contains/notContains
- * - OR/AND combinations (all-or-nothing: entire OR goes to residual if any branch fails)
- */
-
-const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
-  [ExpressionType.COMPARE_EQUAL]: 'equals',
-  [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
-  [ExpressionType.COMPARE_GREATERTHAN]: 'gt',
-  [ExpressionType.COMPARE_GREATERTHANOREQUALTO]: 'gte',
-  [ExpressionType.COMPARE_LESSTHAN]: 'lt',
-  [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'lte',
-};
-
-// When the literal is on the LEFT (e.g. "5 > col"), flip the operator for the column.
-const FLIPPED_COMPARISON_MAP: Record<string, QueryFilterWithValues['operator']> = {
-  [ExpressionType.COMPARE_EQUAL]: 'equals',
-  [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
-  [ExpressionType.COMPARE_GREATERTHAN]: 'lt',
-  [ExpressionType.COMPARE_GREATERTHANOREQUALTO]: 'lte',
-  [ExpressionType.COMPARE_LESSTHAN]: 'gt',
-  [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'gte',
-};
+} from '../../../types/duckdb-serialization-types';
+import { getConstantValue, getConstantTypeId, isNullConstant } from '../../../utils/ast-constants';
+import { getQualifiedColumnRef } from '../../../utils/ast-column-ref';
+import { typeFromConstantExpr } from './filter-schema';
 
 export interface FilterExtractionResult {
   filters: (QueryFilterWithValues | LogicalOrFilter)[];
@@ -102,164 +69,6 @@ export function extractFiltersFromAst(
 
   const residual = buildResidualConjunction(residualParts);
   return { filters, residual, warnings, memberTypes };
-}
-
-export function extractHavingFromAst(
-  havingExpr: ParsedExpression,
-  tableName: string,
-  measures: readonly Measure[]
-): QueryFilterWithValues[] {
-  const filters = tryExtractAllHaving(havingExpr, tableName, measures);
-  if (filters === null) return [];
-  return filters;
-}
-
-// All-or-nothing: if ANY HAVING condition can't be matched to a measure, return null.
-// This prevents partial extraction that could double-filter or lose conditions.
-function tryExtractAllHaving(
-  havingExpr: ParsedExpression,
-  tableName: string,
-  measures: readonly Measure[]
-): QueryFilterWithValues[] | null {
-  if (havingExpr.class === ExpressionClass.COMPARISON) {
-    const filter = extractHavingComparison(havingExpr as ComparisonExpression, tableName, measures);
-    return filter ? [filter] : null;
-  }
-  if (
-    havingExpr.class === ExpressionClass.CONJUNCTION &&
-    havingExpr.type === ExpressionType.CONJUNCTION_AND
-  ) {
-    const conj = havingExpr as ConjunctionExpression;
-    const filters: QueryFilterWithValues[] = [];
-    for (const child of conj.children) {
-      const childFilters = tryExtractAllHaving(child, tableName, measures);
-      if (childFilters === null) return null;
-      filters.push(...childFilters);
-    }
-    return filters;
-  }
-  return null;
-}
-
-function extractHavingComparison(
-  comp: ComparisonExpression,
-  tableName: string,
-  measures: readonly Measure[]
-): QueryFilterWithValues | null {
-  const measureLeft = matchMeasureFromExpr(comp.left, measures);
-  if (measureLeft) {
-    const value = getConstantValue(comp.right);
-    const op = COMPARISON_OPERATOR_MAP[comp.type];
-    if (op && value !== null) {
-      return {
-        member: `${tableName}.${measureLeft.name}`,
-        operator: op,
-        values: [String(value)],
-      };
-    }
-  }
-  const measureRight = matchMeasureFromExpr(comp.right, measures);
-  if (measureRight) {
-    const value = getConstantValue(comp.left);
-    const op = FLIPPED_COMPARISON_MAP[comp.type];
-    if (op && value !== null) {
-      return {
-        member: `${tableName}.${measureRight.name}`,
-        operator: op,
-        values: [String(value)],
-      };
-    }
-  }
-  return null;
-}
-
-// Adds a dimension to the schema for filter columns not already in the SELECT list.
-// This allows cubeQueryToSQL to reference the column when building the WHERE clause.
-export function ensureFilterColumnInSchema(
-  filter: QueryFilterWithValues,
-  dimensions: readonly Dimension[],
-  tableName: string,
-  memberTypes?: Record<string, Dimension['type']>
-): Dimension[] | null {
-  const prefix = `${tableName}.`;
-  if (!filter.member.startsWith(prefix)) return null;
-  const colName = filter.member.slice(prefix.length);
-  const exists = dimensions.some(
-    (d) => d.name === colName || d.sql === colName
-  );
-  if (!exists) {
-    const type = memberTypes?.[filter.member] || 'string';
-    return [{ name: colName, sql: colName, type }];
-  }
-  return null;
-}
-
-// Maps a DuckDB constant type ID to a Meerkat dimension type using the AST type info.
-const NUMERIC_TYPE_IDS = new Set([
-  'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT', 'FLOAT', 'DOUBLE',
-  'DECIMAL', 'HUGEINT', 'UINTEGER', 'UBIGINT', 'USMALLINT', 'UTINYINT',
-]);
-const DATE_TYPE_IDS = new Set([
-  'DATE', 'TIMESTAMP', 'TIMESTAMP WITH TIME ZONE', 'TIMESTAMP_S',
-  'TIMESTAMP_MS', 'TIMESTAMP_NS', 'INTERVAL', 'TIME',
-]);
-
-function typeFromConstantExpr(expr: ParsedExpression): Dimension['type'] {
-  const typeId = getConstantTypeId(expr);
-  if (!typeId) {
-    // Recurse through CAST to find the inner constant type
-    if (expr.class === ExpressionClass.CAST) {
-      const cast = expr as ParsedExpression & { cast_type?: { id?: string }; child?: ParsedExpression };
-      const castId = cast.cast_type?.id?.toUpperCase() || '';
-      if (DATE_TYPE_IDS.has(castId)) return 'time';
-      if (NUMERIC_TYPE_IDS.has(castId)) return 'number';
-      return cast.child ? typeFromConstantExpr(cast.child) : 'string';
-    }
-    return 'string';
-  }
-  const upper = typeId.toUpperCase();
-  if (NUMERIC_TYPE_IDS.has(upper)) return 'number';
-  if (DATE_TYPE_IDS.has(upper)) return 'time';
-  return 'string';
-}
-
-export function ensureOrFilterColumnsInSchema(
-  orFilter: LogicalOrFilter,
-  dimensions: readonly Dimension[],
-  tableName: string
-): Dimension[] | null {
-  const newDims: Dimension[] = [];
-  collectFilterDimensions(orFilter, dimensions, tableName, newDims);
-  return newDims.length > 0 ? newDims : null;
-}
-
-function collectFilterDimensions(
-  filter: QueryFilterWithValues | LogicalOrFilter | LogicalAndFilter,
-  dimensions: readonly Dimension[],
-  tableName: string,
-  newDims: Dimension[]
-): void {
-  if ('member' in filter) {
-    const added = ensureFilterColumnInSchema(
-      filter as QueryFilterWithValues,
-      [...dimensions, ...newDims],
-      tableName
-    );
-    if (added) newDims.push(...added);
-  } else if ('or' in filter) {
-    for (const child of (filter as LogicalOrFilter).or) {
-      collectFilterDimensions(child as QueryFilterWithValues | LogicalOrFilter | LogicalAndFilter, dimensions, tableName, newDims);
-    }
-  } else if ('and' in filter) {
-    for (const child of (filter as LogicalAndFilter).and) {
-      collectFilterDimensions(
-        child as QueryFilterWithValues | LogicalOrFilter | LogicalAndFilter,
-        dimensions,
-        tableName,
-        newDims
-      );
-    }
-  }
 }
 
 function buildResidualConjunction(
@@ -347,8 +156,26 @@ function tryExtractFilters(
   return null;
 }
 
-// Resolves a column ref to a qualified member name (e.g. "tickets.status").
-// Rejects cross-table references (e.g. u.team when tableName is "t") — those go to residual.
+// ─── Comparison ───────────────────────────────────────────────────────────────
+
+const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
+  [ExpressionType.COMPARE_EQUAL]: 'equals',
+  [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
+  [ExpressionType.COMPARE_GREATERTHAN]: 'gt',
+  [ExpressionType.COMPARE_GREATERTHANOREQUALTO]: 'gte',
+  [ExpressionType.COMPARE_LESSTHAN]: 'lt',
+  [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'lte',
+};
+
+const FLIPPED_COMPARISON_MAP: Record<string, QueryFilterWithValues['operator']> = {
+  [ExpressionType.COMPARE_EQUAL]: 'equals',
+  [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
+  [ExpressionType.COMPARE_GREATERTHAN]: 'lt',
+  [ExpressionType.COMPARE_GREATERTHANOREQUALTO]: 'lte',
+  [ExpressionType.COMPARE_LESSTHAN]: 'gt',
+  [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'gte',
+};
+
 function resolveMemberName(
   expr: ParsedExpression,
   tableName: string
@@ -359,8 +186,6 @@ function resolveMemberName(
   return `${tableName}.${ref.column}`;
 }
 
-// Checks if an expression is a constant (possibly wrapped in CAST chains).
-// Used to gate filter extraction — only column-vs-constant comparisons are extractable.
 function isConstantLike(expr: ParsedExpression): boolean {
   if (expr.class === ExpressionClass.CONSTANT) return true;
   if (expr.class === ExpressionClass.CAST) {
@@ -426,6 +251,8 @@ function buildComparisonResult(
   return { member, operator, values: [String(value)] };
 }
 
+// ─── BETWEEN ──────────────────────────────────────────────────────────────────
+
 function isDateTypedConstant(expr: ParsedExpression): boolean {
   if (expr.class === ExpressionClass.CAST) {
     const cast = expr as ParsedExpression & { cast_type?: { id?: string }; child?: ParsedExpression };
@@ -470,6 +297,8 @@ function extractBetweenFilter(
   ];
 }
 
+// ─── IN / NOT IN / IS NULL ────────────────────────────────────────────────────
+
 const IN_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   [ExpressionType.COMPARE_IN]: 'in',
   [ExpressionType.COMPARE_NOT_IN]: 'notIn',
@@ -512,6 +341,8 @@ function extractOperatorFilter(
   return null;
 }
 
+// ─── LIKE / ILIKE ─────────────────────────────────────────────────────────────
+
 // DuckDB represents LIKE/ILIKE as FUNCTION nodes with these operator names
 const LIKE_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   '~~': 'contains',     // LIKE
@@ -543,4 +374,3 @@ function extractFunctionFilter(
 
   return { member, operator: likeOp, values: [inner] };
 }
-
