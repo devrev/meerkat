@@ -82,6 +82,8 @@ export async function buildBaseSQL(
   try {
     const query = astDeserializerQuery({ node: fromOnlyNode } as never);
     const rows = await getQueryOutput(query);
+    // DuckDB's json_deserialize_sql appends a trailing semicolon — strip it
+    // since this SQL gets wrapped as a subquery: FROM (...) AS t
     const baseSql = deserializeQuery(rows).replace(/;\s*$/, '');
     return baseSql;
   } catch {
