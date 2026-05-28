@@ -11,7 +11,6 @@
  */
 
 export {
-  fetchAggregateFunctions,
   isAggregateExpr,
   isNestedAggregateExpr,
   isWindowExpr,

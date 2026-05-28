@@ -16,7 +16,7 @@ import {
   ResultModifierType,
   SelectNode,
 } from '../types/duckdb-serialization-types';
-import { GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
+import { fetchDuckDBFunctions, GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
 import { DecomposeOutput, DuckDBSerializedAST } from './types';
 import {
   buildBaseSQL,
@@ -28,7 +28,6 @@ import {
   extractHavingFromAst,
   extractOrderFromAst,
   extractTableName,
-  fetchAggregateFunctions,
   generateAggregateName,
   getConstantValue,
   hasRecursiveCteInMap,
@@ -116,7 +115,7 @@ export async function sqlToMeerkat(
   const selectNode = node as SelectNode;
   const tableName = extractTableName(selectNode);
 
-  const aggregateFunctions = await fetchAggregateFunctions(getQueryOutput);
+  const aggregateFunctions = await fetchDuckDBFunctions(getQueryOutput, 'aggregate');
 
   const measures: Measure[] = [];
   const dimensions: Dimension[] = [];

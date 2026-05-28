@@ -4,15 +4,6 @@ import {
   OperatorExpression,
   ParsedExpression,
 } from '../../types/duckdb-serialization-types';
-import { fetchDuckDBFunctions, GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
-
-// Queries DuckDB's function catalog to get all registered aggregate functions.
-// This covers built-in, extension, and user-defined aggregates dynamically.
-export async function fetchAggregateFunctions(
-  getQueryOutput: GetQueryOutput
-): Promise<Set<string>> {
-  return fetchDuckDBFunctions(getQueryOutput, 'aggregate');
-}
 
 // Recursively checks if an expression contains an aggregate function anywhere in its tree.
 // Handles: FUNCTION (direct or nested), CAST(agg), OPERATOR(IS NULL/IN wrapping agg).
@@ -32,7 +23,9 @@ export function isAggregateExpr(
   }
   if (expr.class === ExpressionClass.OPERATOR) {
     const op = expr as OperatorExpression;
-    return op.children.some((child) => isAggregateExpr(child, aggregateFunctions));
+    return op.children.some((child) =>
+      isAggregateExpr(child, aggregateFunctions)
+    );
   }
   return false;
 }
@@ -62,5 +55,7 @@ export function isNestedAggregateExpr(
 ): boolean {
   if (!isDirectAggregate(expr, aggregateFunctions)) return false;
   const fn = expr as FunctionExpression;
-  return fn.children.some((child) => isAggregateExpr(child, aggregateFunctions));
+  return fn.children.some((child) =>
+    isAggregateExpr(child, aggregateFunctions)
+  );
 }
