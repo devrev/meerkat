@@ -44,22 +44,16 @@ import {
 /**
  * Decomposes a raw SQL SELECT query into a Meerkat TableSchema + Query pair.
  *
- * Strategy:
- * 1. Parse SQL into DuckDB's JSON AST via json_serialize_sql
- * 2. Classify SELECT expressions as measures (aggregates) or dimensions
- * 3. Extract WHERE filters that can be represented as Meerkat QueryFilters
- * 4. Extract HAVING filters matching known measures
- * 5. Build a base SQL containing only FROM/JOINs and non-extractable conditions
- * 6. Extract ORDER BY, LIMIT, OFFSET
- *
- * Non-extractable conditions (subqueries, complex expressions, cross-table refs)
- * are retained in the base SQL as residual clauses, ensuring correctness.
- *
- * Limitations:
- * - UNION/INTERSECT/EXCEPT and WITH RECURSIVE are rejected
- * - DISTINCT and SAMPLE are dropped from round-trip
- * - Window functions are skipped (kept in base SQL when QUALIFY exists)
- * - WHERE is not extracted when QUALIFY is present (affects window semantics)
+ * Pipeline:
+ * 1. Parse SQL → DuckDB JSON AST (via json_serialize_sql)
+ * 2. Validate: reject UNION, WITH RECURSIVE, non-SELECT
+ * 3. Fetch DuckDB catalog metadata (aggregate functions, type sets)
+ * 4. Classify SELECT expressions → measures (aggregates) or dimensions
+ * 5. Extract WHERE filters → Meerkat QueryFilters + residual for base SQL
+ * 6. Extract HAVING filters → measure filters (all-or-nothing)
+ * 7. Build base SQL (FROM/JOINs + residual WHERE/HAVING/QUALIFY)
+ * 8. Extract ORDER BY, LIMIT, OFFSET
+ * 9. Assemble final DecomposeOutput
  */
 
 export interface SqlToMeerkatInput {
@@ -73,10 +67,15 @@ export async function sqlToMeerkat(
   const { sql, getQueryOutput } = input;
   const warnings: string[] = [];
 
+  // ═══ STEP 1: Parse SQL into DuckDB's JSON AST ═══════════════════════════════
+  // Uses json_serialize_sql('...') which parses syntactically (no binding/execution)
   let parsedAst: DuckDBSerializedAST;
   try {
+    // Escape single quotes in the SQL for the json_serialize_sql('...') wrapper
     const serializeQuery = astSerializerQuery(sanitizeStringValue(sql));
+    // Execute the parse query via the provided DuckDB connection
     const rows = await getQueryOutput(serializeQuery);
+    // DuckDB returns the AST as a JSON string in the query result
     const jsonStr = deserializeQuery(rows);
     parsedAst = JSON.parse(jsonStr) as DuckDBSerializedAST;
   } catch (e) {
@@ -86,6 +85,8 @@ export async function sqlToMeerkat(
     };
   }
 
+  // ═══ STEP 2: Validate the parsed AST ════════════════════════════════════════
+  // json_serialize_sql sets error=true for syntax errors
   if (parsedAst.error) {
     return {
       success: false,
@@ -95,6 +96,7 @@ export async function sqlToMeerkat(
     };
   }
 
+  // Extract the first statement (multi-statement SQL uses only the first)
   const statement = parsedAst.statements?.[0];
   if (!statement?.node) {
     return { success: false, reason: 'No statement found in parsed AST' };
@@ -102,51 +104,63 @@ export async function sqlToMeerkat(
 
   const node = statement.node;
 
+  // Reject set operations (UNION, INTERSECT, EXCEPT) — can't decompose into single schema
   if (node.type === QueryNodeType.SET_OPERATION_NODE) {
     return { success: false, reason: 'UNION/INTERSECT/EXCEPT not supported' };
   }
+  // Only SELECT statements are supported
   if (node.type !== QueryNodeType.SELECT_NODE) {
     return { success: false, reason: `Unsupported query type: ${node.type}` };
   }
 
   const selectNode = node as SelectNode;
 
+  // Reject WITH RECURSIVE — can't represent recursive computation in Meerkat schema
   if (hasRecursiveCteInMap(selectNode)) {
     return { success: false, reason: 'WITH RECURSIVE not supported' };
   }
 
+  // Resolve the primary table name from the FROM clause
+  // This becomes the namespace prefix for all members (e.g. "tickets.status")
   const tableName = extractTableName(selectNode);
 
+  // ═══ STEP 3: Fetch DuckDB catalog metadata ══════════════════════════════════
+  // Parallel queries to DuckDB's system tables for dynamic classification
   const [aggregateFunctions, numericTypes, datetimeTypes] = await Promise.all([
-    fetchDuckDBFunctions(getQueryOutput, 'aggregate'),
-    fetchDuckDBTypes(getQueryOutput, 'NUMERIC'),
-    fetchDuckDBTypes(getQueryOutput, 'DATETIME'),
+    fetchDuckDBFunctions(getQueryOutput, 'aggregate'), // e.g. sum, count, avg...
+    fetchDuckDBTypes(getQueryOutput, 'NUMERIC'),       // e.g. INTEGER, DOUBLE...
+    fetchDuckDBTypes(getQueryOutput, 'DATETIME'),      // e.g. DATE, TIMESTAMP...
   ]);
   const typeSets = { numeric: numericTypes, datetime: datetimeTypes };
 
+  // ═══ STEP 4: Classify SELECT list expressions ══════════════════════════════
   const measures: Measure[] = [];
   const dimensions: Dimension[] = [];
-  const queryMeasures: string[] = [];
-  const queryDimensions: string[] = [];
-  const selectListOrder: (string | null)[] = [];
-  const usedNames = new Set<string>();
+  const queryMeasures: string[] = [];       // Qualified measure refs: "table.name"
+  const queryDimensions: string[] = [];     // Qualified dimension refs: "table.name"
+  const selectListOrder: (string | null)[] = []; // Position → name mapping for ORDER BY
+  const usedNames = new Set<string>();      // Tracks used names to prevent collisions
 
+  // Determine if this query has any aggregate context
   const hasAggregates = selectNode.select_list.some(
     (expr) => isAggregateExpr(expr, aggregateFunctions)
   );
   const hasGroupBy = selectNode.group_expressions.length > 0;
 
-  // Collect serializable expressions, tracking their position in the select list
+  // First pass: classify each expression and collect for batch serialization
   const exprBatch: { expr: ParsedExpression; isMeasure: boolean; selectIndex: number }[] = [];
 
   for (let idx = 0; idx < selectNode.select_list.length; idx++) {
     const expr = selectNode.select_list[idx];
 
+    // SELECT * — skip (can't classify, but allows hasStar check later)
     if (isStarExpr(expr)) {
       selectListOrder.push(null);
       continue;
     }
 
+    // Window functions (ROW_NUMBER, RANK, etc.) — skip from schema
+    // They're kept in base SQL when QUALIFY exists
     if (isWindowExpr(expr)) {
       warnings.push(
         `Skipped window function: ${expr.alias || exprToName(expr)}`
@@ -155,6 +169,7 @@ export async function sqlToMeerkat(
       continue;
     }
 
+    // Nested aggregates like COUNT(SUM(x)) — invalid, skip
     if (isNestedAggregateExpr(expr, aggregateFunctions)) {
       warnings.push(
         `Skipped nested aggregation: ${expr.alias || exprToName(expr)}`
@@ -163,41 +178,46 @@ export async function sqlToMeerkat(
       continue;
     }
 
+    // Classify: measure if query has aggregate context AND this expression contains an aggregate
     const isMeasure = (hasAggregates || hasGroupBy) && isAggregateExpr(expr, aggregateFunctions);
     exprBatch.push({ expr, isMeasure, selectIndex: selectListOrder.length });
-    selectListOrder.push(null);
+    selectListOrder.push(null); // Placeholder — filled after serialization
   }
 
-  // Single round-trip for all expression serialization
+  // Batch-serialize all expressions in a single DuckDB round-trip
+  // Strips aliases and query_location to get clean SQL like "sum(amount)"
   const exprsToSerialize = exprBatch.map(({ expr }) => {
     const copy = JSON.parse(JSON.stringify(expr));
-    copy.alias = '';
-    stripQueryLocationInPlace(copy);
+    copy.alias = '';                  // Remove alias so we get bare expression SQL
+    stripQueryLocationInPlace(copy);  // Remove byte offsets that affect serialization
     return copy;
   });
   const serializedSqls = await serializeExpressions(exprsToSerialize, getQueryOutput);
 
+  // Second pass: assign names and build schema entries
   for (let i = 0; i < exprBatch.length; i++) {
     const { expr, isMeasure, selectIndex } = exprBatch[i];
-    const exprSql = serializedSqls[i];
+    const exprSql = serializedSqls[i]; // The serialized SQL expression
 
     if (isMeasure) {
+      // Generate a unique name: use alias if available, otherwise auto-generate
       const name = deduplicateName(
         expr.alias || generateAggregateName(expr),
         usedNames
       );
       measures.push({ name, sql: exprSql, type: 'number' });
       queryMeasures.push(getNamespacedKey(tableName, name));
-      selectListOrder[selectIndex] = name;
+      selectListOrder[selectIndex] = name; // Record position for ORDER BY resolution
     } else {
       const name = deduplicateName(expr.alias || exprToName(expr), usedNames);
-      const dimType = inferTypeFromExpr(expr);
+      const dimType = inferTypeFromExpr(expr); // 'time' for date functions, else 'string'
       dimensions.push({ name, sql: exprSql, type: dimType });
       queryDimensions.push(getNamespacedKey(tableName, name));
       selectListOrder[selectIndex] = name;
     }
   }
 
+  // Bail if nothing was extractable (unless SELECT * is present)
   const hasStar = selectNode.select_list.some(isStarExpr);
   if (measures.length === 0 && dimensions.length === 0 && !hasStar) {
     return {
@@ -206,19 +226,22 @@ export async function sqlToMeerkat(
     };
   }
 
-  // Extract WHERE filters, separating extractable from non-extractable.
+  // ═══ STEP 5: Extract WHERE filters ══════════════════════════════════════════
   // Skip extraction when QUALIFY exists — WHERE affects window function
-  // computation and must stay in the base SQL.
+  // computation (execution order: WHERE → WINDOW → QUALIFY)
   let residualWhere: ParsedExpression | undefined;
   const allFilters: (QueryFilterWithValues | LogicalOrFilter)[] = [];
   const hasQualify = !!selectNode.qualify;
+
   if (selectNode.where_clause && !hasQualify) {
+    // Extract simple conditions as Meerkat filters; keep complex ones as residual
     const extracted = extractFiltersFromAst(selectNode.where_clause, tableName, typeSets);
     allFilters.push(...extracted.filters);
     residualWhere = extracted.residual;
     if (extracted.warnings.length > 0) {
       warnings.push(...extracted.warnings);
     }
+    // Add dimensions for filter columns not already in the SELECT list
     for (const f of extracted.filters) {
       if ('member' in f) {
         const newDims = ensureFilterColumnInSchema(
@@ -238,14 +261,16 @@ export async function sqlToMeerkat(
       }
     }
   } else if (selectNode.where_clause && hasQualify) {
+    // QUALIFY present — keep entire WHERE in base SQL to preserve window semantics
     residualWhere = selectNode.where_clause;
   }
 
-  // Extract HAVING as measure filters (all-or-nothing: if any condition
-  // can't be matched to a known measure, keep entire HAVING in base SQL
-  // and demote all measures to dimensions to prevent re-aggregation)
+  // ═══ STEP 6: Extract HAVING filters ═════════════════════════════════════════
+  // All-or-nothing: if any HAVING condition can't be matched to a known measure,
+  // keep entire HAVING in base SQL and demote all measures to dimensions
   let residualHaving: ParsedExpression | undefined;
   let havingDemoted = false;
+
   if (selectNode.having) {
     const havingFilters = extractHavingFromAst(
       selectNode.having,
@@ -253,11 +278,14 @@ export async function sqlToMeerkat(
       measures
     );
     if (havingFilters.length > 0) {
+      // All conditions matched measures — extract as filters
       allFilters.push(...havingFilters);
     } else {
+      // Some conditions couldn't be matched — keep HAVING in base SQL
       residualHaving = selectNode.having;
       havingDemoted = true;
       warnings.push('Non-extractable HAVING condition retained in base SQL');
+      // Demote measures to dimensions (base SQL handles aggregation + HAVING)
       for (const m of measures) {
         dimensions.push({ name: m.name, sql: m.name, type: 'number' });
         queryDimensions.push(getNamespacedKey(tableName, m.name));
@@ -265,16 +293,21 @@ export async function sqlToMeerkat(
     }
   }
 
+  // After demotion, measures become empty — use immutable derived values
   const finalMeasures = havingDemoted ? [] : measures;
   const finalQueryMeasures = havingDemoted ? [] : queryMeasures;
 
+  // Wrap multiple filters in an AND container (downstream requires single-element array)
   const queryFilters: MeerkatQueryFilter[] = wrapFilters(allFilters);
 
+  // ═══ STEP 7: Build base SQL ═════════════════════════════════════════════════
+  // The base SQL is what cubeQueryToSQL wraps as the innermost subquery
   const baseSQL = await buildBaseSQL(
     selectNode,
     residualWhere,
     residualHaving,
     getQueryOutput,
+    // When HAVING demoted: pass cleaned names so base SQL aliases match dimensions
     havingDemoted ? selectListOrder.map((name) => name || '') : undefined
   );
   if (baseSQL === null) {
@@ -284,7 +317,9 @@ export async function sqlToMeerkat(
     };
   }
 
-  // Extract ORDER BY
+  // ═══ STEP 8: Extract ORDER BY, LIMIT, OFFSET ═══════════════════════════════
+
+  // ORDER BY — resolve column refs, expressions, and positional references
   let order: Record<string, QueryOrderType> | undefined;
   const orderModifier = selectNode.modifiers.find(
     (m) => m.type === ResultModifierType.ORDER_MODIFIER
@@ -302,7 +337,7 @@ export async function sqlToMeerkat(
     }
   }
 
-  // Extract LIMIT/OFFSET
+  // LIMIT and OFFSET — extract from constant AST nodes
   let limit: number | undefined;
   let offset: number | undefined;
   const limitModifier = selectNode.modifiers.find(
@@ -316,6 +351,8 @@ export async function sqlToMeerkat(
       offset = parseIntConstant(getConstantValue(limitModifier.offset));
     }
   }
+
+  // ═══ STEP 9: Assemble output ═══════════════════════════════════════════════
 
   const tableSchema: TableSchema = {
     name: tableName,
@@ -336,15 +373,18 @@ export async function sqlToMeerkat(
   return { success: true, tableSchema, query, warnings };
 }
 
+// Wraps multiple filters in {and: [...]} for downstream compatibility.
+// cubeFilterToDuckdbAST expects a single-element filters array.
 function wrapFilters(
   filters: (QueryFilterWithValues | LogicalOrFilter)[]
 ): MeerkatQueryFilter[] {
   if (filters.length === 0) return [];
   if (filters.length === 1) return [filters[0]];
-  // Downstream cubeFilterToDuckdbAST requires a single-element array
   return [{ and: filters }];
 }
 
+// Converts a constant value (string or number) to an integer for LIMIT/OFFSET.
+// Returns undefined if the value can't be parsed as an integer.
 function parseIntConstant(value: string | number | null): number | undefined {
   if (value === null) return undefined;
   const n = typeof value === 'number' ? value : Number(value);
