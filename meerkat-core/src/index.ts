@@ -38,6 +38,7 @@ export { BASE_TABLE_NAME } from './utils/base-ast';
 export * from './utils/duckdb-ast-parse-serialize';
 export * from './utils/ast-constants';
 export * from './utils/ast-column-ref';
+export * from './utils/ast-table-ref';
 export * from './utils/cube-to-table-schema';
 export * from './utils/get-column-names-from-ast';
 export * from './utils/get-possible-nodes';
