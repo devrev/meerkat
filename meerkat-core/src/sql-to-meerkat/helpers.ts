@@ -173,6 +173,17 @@ export function getConstantTypeId(
   return val?.type?.id || null;
 }
 
+export function isNullConstant(expr: ParsedExpression): boolean {
+  if (expr.class === ExpressionClass.CAST) {
+    const cast = expr as ParsedExpression & { child?: ParsedExpression };
+    return cast.child ? isNullConstant(cast.child) : false;
+  }
+  if (expr.class !== ExpressionClass.CONSTANT) return false;
+  const constant = expr as ConstantExpression;
+  const val = constant.value as { is_null?: boolean } | undefined;
+  return val?.is_null === true;
+}
+
 export function getConstantValue(
   expr: ParsedExpression
 ): string | number | null {
@@ -192,16 +203,19 @@ export function getConstantValue(
   if (val?.is_null) return null;
   if (val?.value == null) return null;
 
+  const rawValue = val.value;
+  if (typeof rawValue !== 'string' && typeof rawValue !== 'number') return null;
+
   if (
     val.type?.id === 'DECIMAL' &&
-    typeof val.value === 'number' &&
+    typeof rawValue === 'number' &&
     typeof val.type.type_info?.scale === 'number' &&
     val.type.type_info.scale > 0
   ) {
-    return val.value / Math.pow(10, val.type.type_info.scale);
+    return rawValue / Math.pow(10, val.type.type_info.scale);
   }
 
-  return val.value;
+  return rawValue;
 }
 
 export function extractTableName(selectNode: SelectNode): string {

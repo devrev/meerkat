@@ -14,7 +14,7 @@ import {
   OperatorExpression,
   ParsedExpression,
 } from '../types/duckdb-serialization-types';
-import { getConstantValue, getConstantTypeId, getQualifiedColumnRef, matchMeasureFromExpr } from './helpers';
+import { getConstantValue, getConstantTypeId, getQualifiedColumnRef, isNullConstant, matchMeasureFromExpr } from './helpers';
 
 const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   [ExpressionType.COMPARE_EQUAL]: 'equals',
@@ -356,9 +356,7 @@ function buildComparisonResult(
   operator: QueryFilterWithValues['operator'] | undefined,
   compType: string
 ): QueryFilterWithValues | null {
-  const value = getConstantValue(constantExpr);
-
-  if (value === null) {
+  if (isNullConstant(constantExpr)) {
     if (compType === ExpressionType.COMPARE_EQUAL) {
       return { member, operator: 'notSet', values: [] };
     }
@@ -368,7 +366,8 @@ function buildComparisonResult(
     return null;
   }
 
-  if (!operator) return null;
+  const value = getConstantValue(constantExpr);
+  if (value === null || !operator) return null;
   return { member, operator, values: [String(value)] };
 }
 
