@@ -288,25 +288,8 @@ export function sanitizeForSerialize(sql: string): string {
   return sql.replace(/'/g, "''");
 }
 
-// Removes query_location fields from the AST tree (iterative DFS).
-// These are byte offsets into the original SQL text — irrelevant for serialization
-// and can cause DuckDB's json_deserialize_sql to produce different output.
-export function stripQueryLocationInPlace(root: unknown): void {
-  const stack: unknown[] = [root];
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current || typeof current !== 'object') continue;
-    if (Array.isArray(current)) {
-      current.forEach((item) => stack.push(item));
-      continue;
-    }
-    const record = current as Record<string, unknown>;
-    if (Object.prototype.hasOwnProperty.call(record, 'query_location')) {
-      delete record['query_location'];
-    }
-    Object.values(record).forEach((value) => stack.push(value));
-  }
-}
+// Re-export from shared utils for backward compatibility
+export { stripQueryLocationInPlace } from '../utils/duckdb-ast-parse-serialize';
 
 // Matches a HAVING expression to a known measure. Used to extract HAVING as measure filters.
 // Handles: alias reference, column ref (DuckDB resolves "HAVING cnt > 1" to COLUMN_REF),

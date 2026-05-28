@@ -1,5 +1,6 @@
 import { Query } from '../types/cube-types/query';
 import { TableSchema } from '../types/cube-types/table';
+import { QueryNode } from '../types/duckdb-serialization-types';
 
 /** Successful decomposition: the SQL was split into a reusable schema + query. */
 export interface DecomposeResult {
@@ -16,3 +17,10 @@ export interface DecomposeFailure {
 }
 
 export type DecomposeOutput = DecomposeResult | DecomposeFailure;
+
+/** Shape of DuckDB's json_serialize_sql output. */
+export interface DuckDBSerializedAST {
+  error: boolean;
+  error_message?: string;
+  statements?: { node: QueryNode }[];
+}

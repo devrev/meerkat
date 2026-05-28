@@ -75,7 +75,7 @@ const splitBatchSerializedExpressions = (
   return expressions;
 };
 
-const stripQueryLocationInPlace = (root: unknown): void => {
+export const stripQueryLocationInPlace = (root: unknown): void => {
   const stack: unknown[] = [root];
 
   while (stack.length > 0) {

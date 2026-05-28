@@ -17,7 +17,7 @@ import {
   SelectNode,
 } from '../types/duckdb-serialization-types';
 import { GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
-import { DecomposeOutput } from './types';
+import { DecomposeOutput, DuckDBSerializedAST } from './types';
 import { buildBaseSQL } from './build-base-sql';
 import {
   ensureFilterColumnInSchema,
@@ -75,13 +75,12 @@ export async function sqlToMeerkat(
   const { sql, getQueryOutput } = input;
   const warnings: string[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DuckDB JSON AST is untyped at top level
-  let parsedAst: any;
+  let parsedAst: DuckDBSerializedAST;
   try {
     const serializeQuery = astSerializerQuery(sanitizeForSerialize(sql));
     const rows = await getQueryOutput(serializeQuery);
     const jsonStr = deserializeQuery(rows);
-    parsedAst = JSON.parse(jsonStr);
+    parsedAst = JSON.parse(jsonStr) as DuckDBSerializedAST;
   } catch (e) {
     return {
       success: false,
@@ -89,7 +88,7 @@ export async function sqlToMeerkat(
     };
   }
 
-  if (parsedAst?.error) {
+  if (parsedAst.error) {
     return {
       success: false,
       reason: `DuckDB parse failed: ${
@@ -98,7 +97,7 @@ export async function sqlToMeerkat(
     };
   }
 
-  const statement = parsedAst?.statements?.[0];
+  const statement = parsedAst.statements?.[0];
   if (!statement?.node) {
     return { success: false, reason: 'No statement found in parsed AST' };
   }
