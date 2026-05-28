@@ -16,14 +16,14 @@ export {
   isNestedAggregateExpr,
   isWindowExpr,
   isStarExpr,
-} from './helpers/aggregate-detection';
+} from './aggregate-detection';
 
 export {
   exprToName,
   generateAggregateName,
   deduplicateName,
   inferTypeFromExpr,
-} from './helpers/naming';
+} from './naming';
 
 export {
   stripQueryLocationInPlace,
@@ -36,19 +36,19 @@ export {
   hasRecursiveCteInMap,
   sanitizeForSerialize,
   matchMeasureFromExpr,
-} from './helpers/ast-utils';
+} from './ast-utils';
 
-export type { QualifiedColumnRef } from './helpers/ast-utils';
+export type { QualifiedColumnRef } from './ast-utils';
 
 export {
   extractFiltersFromAst,
   extractHavingFromAst,
   ensureFilterColumnInSchema,
   ensureOrFilterColumnsInSchema,
-} from './helpers/extract-filters';
+} from './extract-filters';
 
-export type { FilterExtractionResult } from './helpers/extract-filters';
+export type { FilterExtractionResult } from './extract-filters';
 
-export { extractOrderFromAst } from './helpers/extract-order';
+export { extractOrderFromAst } from './extract-order';
 
-export { buildBaseSQL } from './helpers/build-base-sql';
+export { buildBaseSQL } from './build-base-sql';
