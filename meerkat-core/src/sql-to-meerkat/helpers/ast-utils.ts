@@ -4,6 +4,8 @@ import {
   ParsedExpression,
   QueryNodeType,
   SelectNode,
+  TableRef,
+  TableReferenceType,
 } from '../../types/duckdb-serialization-types';
 import { Measure } from '../../types/cube-types/table';
 import { isStarExpr } from './aggregate-detection';
@@ -26,35 +28,33 @@ export { stripQueryLocationInPlace } from '../../utils/duckdb-ast-parse-serializ
  * - No FROM clause: "query"
  */
 export function extractTableName(selectNode: SelectNode): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- from_table shape varies by type
-  const fromTable = selectNode.from_table as any;
-  if (!fromTable) return 'query';
-  return resolveTableRef(fromTable);
+  if (!selectNode.from_table) return 'query';
+  return resolveTableRef(selectNode.from_table);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- from_table shape varies by type
-function resolveTableRef(ref: any): string {
-  if (!ref) return 'query';
-  if (ref.type === 'BASE_TABLE') {
+function resolveTableRef(ref: TableRef): string {
+  if (ref.type === TableReferenceType.BASE_TABLE) {
     return ref.alias || ref.table_name || 'query';
   }
-  if (ref.type === 'SUBQUERY') {
+  if (ref.type === TableReferenceType.SUBQUERY) {
     return ref.alias || 'subquery';
   }
-  if (ref.type === 'JOIN') {
+  if (ref.type === TableReferenceType.JOIN) {
     return resolveTableRef(ref.left);
   }
   return ref.alias || 'query';
 }
 
 /** Checks if the CTE map contains any WITH RECURSIVE definitions. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- cte_map is deeply nested untyped JSON
-export function hasRecursiveCteInMap(node: any): boolean {
+export function hasRecursiveCteInMap(node: SelectNode): boolean {
   const cteMap = node.cte_map?.map;
   if (!Array.isArray(cteMap)) return false;
+  // Runtime shape: [{key, value: {query: {node: {type}}}}] — type definition is incomplete
   return cteMap.some(
-    (entry: any) =>
-      entry.value?.query?.node?.type === QueryNodeType.RECURSIVE_CTE_NODE
+    (entry: unknown) => {
+      const e = entry as { value?: { query?: { node?: { type?: string } } } };
+      return e.value?.query?.node?.type === QueryNodeType.RECURSIVE_CTE_NODE;
+    }
   );
 }
 

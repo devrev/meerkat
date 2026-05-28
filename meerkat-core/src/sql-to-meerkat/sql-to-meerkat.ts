@@ -108,11 +108,12 @@ export async function sqlToMeerkat(
     return { success: false, reason: `Unsupported query type: ${node.type}` };
   }
 
-  if (hasRecursiveCteInMap(node)) {
+  const selectNode = node as SelectNode;
+
+  if (hasRecursiveCteInMap(selectNode)) {
     return { success: false, reason: 'WITH RECURSIVE not supported' };
   }
 
-  const selectNode = node as SelectNode;
   const tableName = extractTableName(selectNode);
 
   const aggregateFunctions = await fetchDuckDBFunctions(getQueryOutput, 'aggregate');
