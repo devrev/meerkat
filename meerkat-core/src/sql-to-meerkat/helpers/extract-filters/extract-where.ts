@@ -1,22 +1,15 @@
 import {
-  LogicalAndFilter,
   LogicalOrFilter,
   QueryFilterWithValues,
 } from '../../../types/cube-types/query';
 import { Dimension } from '../../../types/cube-types/table';
 import {
-  BetweenExpression,
-  ComparisonExpression,
   ConjunctionExpression,
   ExpressionClass,
   ExpressionType,
-  FunctionExpression,
-  OperatorExpression,
   ParsedExpression,
 } from '../../../types/duckdb-serialization-types';
-import { extractComparisonFilter } from './extract-comparison';
-import { extractBetweenFilter } from './extract-between';
-import { extractOperatorFilter, extractFunctionFilter } from './extract-operators';
+import { tryExtractFilters, extractOrFilter } from './extract-or';
 
 export interface FilterExtractionResult {
   filters: (QueryFilterWithValues | LogicalOrFilter)[];
@@ -82,76 +75,4 @@ function buildResidualConjunction(
     alias: '',
     children: parts,
   } as ConjunctionExpression;
-}
-
-function extractOrFilter(
-  conj: ConjunctionExpression,
-  tableName: string,
-  memberTypes: Record<string, Dimension['type']>
-): LogicalOrFilter | null {
-  const orChildren: (QueryFilterWithValues | LogicalAndFilter)[] = [];
-  for (const child of conj.children) {
-    const branch = extractOrBranch(child, tableName, memberTypes);
-    if (!branch) return null;
-    orChildren.push(branch);
-  }
-  return { or: orChildren };
-}
-
-function extractOrBranch(
-  expr: ParsedExpression,
-  tableName: string,
-  memberTypes: Record<string, Dimension['type']>
-): QueryFilterWithValues | LogicalAndFilter | null {
-  if (
-    expr.class === ExpressionClass.CONJUNCTION &&
-    expr.type === ExpressionType.CONJUNCTION_AND
-  ) {
-    const andConj = expr as ConjunctionExpression;
-    const andMembers: (QueryFilterWithValues | LogicalOrFilter)[] = [];
-    for (const grandchild of andConj.children) {
-      const extracted = tryExtractFilters(grandchild, tableName, memberTypes);
-      if (!extracted) return null;
-      andMembers.push(...extracted);
-    }
-    return { and: andMembers } as LogicalAndFilter;
-  }
-
-  const extracted = tryExtractFilters(expr, tableName, memberTypes);
-  if (!extracted) return null;
-
-  if (extracted.length === 1 && 'member' in extracted[0]) {
-    return extracted[0] as QueryFilterWithValues;
-  }
-  return { and: extracted } as LogicalAndFilter;
-}
-
-function tryExtractFilters(
-  expr: ParsedExpression,
-  tableName: string,
-  memberTypes: Record<string, Dimension['type']>
-): (QueryFilterWithValues | LogicalOrFilter)[] | null {
-  if (expr.class === ExpressionClass.COMPARISON) {
-    const f = extractComparisonFilter(expr as ComparisonExpression, tableName, memberTypes);
-    return f ? [f] : null;
-  }
-  if (expr.class === ExpressionClass.BETWEEN) {
-    return extractBetweenFilter(expr as BetweenExpression, tableName, memberTypes);
-  }
-  if (expr.class === ExpressionClass.OPERATOR) {
-    const f = extractOperatorFilter(expr as OperatorExpression, tableName);
-    return f ? [f] : null;
-  }
-  if (expr.class === ExpressionClass.FUNCTION) {
-    const f = extractFunctionFilter(expr as FunctionExpression, tableName);
-    return f ? [f] : null;
-  }
-  if (
-    expr.class === ExpressionClass.CONJUNCTION &&
-    expr.type === ExpressionType.CONJUNCTION_OR
-  ) {
-    const orFilter = extractOrFilter(expr as ConjunctionExpression, tableName, memberTypes);
-    return orFilter ? [orFilter] : null;
-  }
-  return null;
 }
