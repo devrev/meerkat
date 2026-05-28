@@ -12,6 +12,13 @@ import {
 import { Dimension, Measure } from '../types/cube-types/table';
 import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
 
+/**
+ * Utility functions for DuckDB AST inspection.
+ *
+ * All functions operate on DuckDB's JSON-serialized AST nodes (from json_serialize_sql).
+ * They use expression class/type enums — never string parsing or regex on SQL text.
+ */
+
 export async function fetchAggregateFunctions(
   getQueryOutput: GetQueryOutput
 ): Promise<Set<string>> {

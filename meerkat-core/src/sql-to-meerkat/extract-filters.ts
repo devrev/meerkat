@@ -16,6 +16,22 @@ import {
 } from '../types/duckdb-serialization-types';
 import { getConstantValue, getConstantTypeId, getQualifiedColumnRef, isNullConstant, matchMeasureFromExpr } from './helpers';
 
+/**
+ * WHERE/HAVING filter extraction from DuckDB AST.
+ *
+ * Extracts simple column-vs-constant conditions as Meerkat QueryFilters.
+ * Non-extractable conditions (subqueries, function calls on columns, cross-table
+ * references) are returned as "residual" AST nodes to be kept in the base SQL.
+ *
+ * Supported patterns:
+ * - Comparisons: =, !=, >, >=, <, <= (with flipped-operand support)
+ * - NULL checks: IS NULL → notSet, IS NOT NULL → set
+ * - IN / NOT IN lists
+ * - BETWEEN (numeric → gte+lte pair, date-typed → inDateRange)
+ * - LIKE/ILIKE %value% → contains/notContains
+ * - OR/AND combinations (all-or-nothing: entire OR goes to residual if any branch fails)
+ */
+
 const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   [ExpressionType.COMPARE_EQUAL]: 'equals',
   [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',

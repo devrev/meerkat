@@ -9,6 +9,17 @@ import {
 } from '../types/duckdb-serialization-types';
 import { getColumnName, matchMeasureFromExpr } from './helpers';
 
+/**
+ * Extracts ORDER BY clauses into Meerkat's order format.
+ *
+ * Resolves ORDER BY entries by:
+ * - Column name → matches against known dimensions/measures
+ * - Aggregate expression → matches against measures via matchMeasureFromExpr
+ * - Positional reference (ORDER BY 1) → maps to selectListOrder index
+ *
+ * Unresolvable ORDER BY entries (expressions, unknown columns) are silently dropped.
+ */
+
 export function extractOrderFromAst(
   orders: OrderByNode[],
   tableName: string,

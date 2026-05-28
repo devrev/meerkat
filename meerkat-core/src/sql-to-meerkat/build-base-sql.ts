@@ -11,6 +11,20 @@ import {
 import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
 import { stripQueryLocationInPlace } from './helpers';
 
+/**
+ * Constructs the base SQL from the original AST, stripping extracted components.
+ *
+ * The base SQL is what cubeQueryToSQL wraps as a subquery. It contains:
+ * - FROM / JOIN clauses (always preserved)
+ * - Residual WHERE conditions that couldn't be extracted as filters
+ * - Residual HAVING when measure filters can't be matched
+ * - QUALIFY clause (preserved with original select list for window alias resolution)
+ * - CTE definitions (preserved via cte_map)
+ *
+ * Stripped: ORDER BY, LIMIT, OFFSET, SAMPLE, DISTINCT (handled by Query layer).
+ * When no residual HAVING/QUALIFY: select list becomes SELECT * (all columns available).
+ */
+
 export async function buildBaseSQL(
   selectNode: SelectNode,
   residualWhere: ParsedExpression | undefined,

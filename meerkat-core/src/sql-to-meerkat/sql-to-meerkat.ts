@@ -43,6 +43,27 @@ import {
   stripQueryLocationInPlace,
 } from './helpers';
 
+/**
+ * Decomposes a raw SQL SELECT query into a Meerkat TableSchema + Query pair.
+ *
+ * Strategy:
+ * 1. Parse SQL into DuckDB's JSON AST via json_serialize_sql
+ * 2. Classify SELECT expressions as measures (aggregates) or dimensions
+ * 3. Extract WHERE filters that can be represented as Meerkat QueryFilters
+ * 4. Extract HAVING filters matching known measures
+ * 5. Build a base SQL containing only FROM/JOINs and non-extractable conditions
+ * 6. Extract ORDER BY, LIMIT, OFFSET
+ *
+ * Non-extractable conditions (subqueries, complex expressions, cross-table refs)
+ * are retained in the base SQL as residual clauses, ensuring correctness.
+ *
+ * Limitations:
+ * - UNION/INTERSECT/EXCEPT and WITH RECURSIVE are rejected
+ * - DISTINCT and SAMPLE are dropped from round-trip
+ * - Window functions are skipped (kept in base SQL when QUALIFY exists)
+ * - WHERE is not extracted when QUALIFY is present (affects window semantics)
+ */
+
 export interface SqlToMeerkatInput {
   sql: string;
   getQueryOutput: GetQueryOutput;
