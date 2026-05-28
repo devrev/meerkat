@@ -19,6 +19,8 @@ import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
  * They use expression class/type enums — never string parsing or regex on SQL text.
  */
 
+// Queries DuckDB's function catalog to get all registered aggregate functions.
+// This covers built-in, extension, and user-defined aggregates dynamically.
 export async function fetchAggregateFunctions(
   getQueryOutput: GetQueryOutput
 ): Promise<Set<string>> {
@@ -28,6 +30,9 @@ export async function fetchAggregateFunctions(
   return new Set(rows.map((r) => r['function_name'].toLowerCase()));
 }
 
+// Recursively checks if an expression contains an aggregate function anywhere in its tree.
+// Handles: FUNCTION (direct or nested), CAST(agg), OPERATOR(IS NULL/IN wrapping agg).
+// Note: DuckDB represents arithmetic (+,-,*,/) as FUNCTION with is_operator=true, not OPERATOR.
 export function isAggregateExpr(
   expr: ParsedExpression,
   aggregateFunctions: ReadonlySet<string>
@@ -65,6 +70,8 @@ function isDirectAggregate(
   return aggregateFunctions.has(fn.function_name.toLowerCase());
 }
 
+// Detects invalid nested aggregates like COUNT(SUM(x)). These are syntactically
+// valid but rejected by DuckDB at execution — we skip them from the schema.
 export function isNestedAggregateExpr(
   expr: ParsedExpression,
   aggregateFunctions: ReadonlySet<string>
@@ -86,6 +93,9 @@ export function exprToName(expr: ParsedExpression): string {
   return 'col';
 }
 
+// Generates a readable auto-name for unaliased aggregate expressions.
+// Examples: COUNT(*) → "count", SUM(amount) → "sum_amount",
+// SUM(amount)/COUNT(*) → "sum_amount_count" (joins child names with _).
 export function generateAggregateName(expr: ParsedExpression): string {
   if (expr.class === ExpressionClass.OPERATOR) {
     const op = expr as OperatorExpression;
@@ -100,6 +110,7 @@ export function generateAggregateName(expr: ParsedExpression): string {
   const fn = expr as FunctionExpression;
   const fnName = fn.function_name.toLowerCase();
 
+  // DuckDB represents arithmetic operators (+,-,*,/) as FUNCTION with is_operator=true
   if ((fn as FunctionExpression & { is_operator?: boolean }).is_operator) {
     const parts = fn.children.map((child) => generateAggregateName(child));
     return parts.join('_');
@@ -117,6 +128,7 @@ export function generateAggregateName(expr: ParsedExpression): string {
   return `${fnName}_${childName}`;
 }
 
+// Sanitizes a name to valid SQL identifier chars and appends _N suffix on collision.
 export function deduplicateName(name: string, existing: Set<string>): string {
   const clean =
     name.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^_+|_+$/g, '') || 'col';
@@ -185,6 +197,8 @@ export function getConstantTypeId(
   return val?.type?.id || null;
 }
 
+// Checks if a constant is explicitly SQL NULL (is_null flag), recursing through CASTs.
+// Distinct from getConstantValue returning null (which also covers unrepresentable values).
 export function isNullConstant(expr: ParsedExpression): boolean {
   if (expr.class === ExpressionClass.CAST) {
     const cast = expr as ParsedExpression & { child?: ParsedExpression };
@@ -196,6 +210,11 @@ export function isNullConstant(expr: ParsedExpression): boolean {
   return val?.is_null === true;
 }
 
+// Extracts a scalar value from a constant AST node. Returns null if:
+// - The value is SQL NULL (is_null: true)
+// - The value is unrepresentable (HUGEINT object, undefined)
+// - The expression is not a constant/cast chain
+// DuckDB stores DECIMALs as scaled integers (e.g. 99.5 → value=995, scale=1).
 export function getConstantValue(
   expr: ParsedExpression
 ): string | number | null {
@@ -216,6 +235,7 @@ export function getConstantValue(
   if (val?.value == null) return null;
 
   const rawValue = val.value;
+  // HUGEINT produces {upper, lower} objects — not representable as string/number
   if (typeof rawValue !== 'string' && typeof rawValue !== 'number') return null;
 
   if (
@@ -268,6 +288,9 @@ export function sanitizeForSerialize(sql: string): string {
   return sql.replace(/'/g, "''");
 }
 
+// Removes query_location fields from the AST tree (iterative DFS).
+// These are byte offsets into the original SQL text — irrelevant for serialization
+// and can cause DuckDB's json_deserialize_sql to produce different output.
 export function stripQueryLocationInPlace(root: unknown): void {
   const stack: unknown[] = [root];
   while (stack.length > 0) {
@@ -285,6 +308,9 @@ export function stripQueryLocationInPlace(root: unknown): void {
   }
 }
 
+// Matches a HAVING expression to a known measure. Used to extract HAVING as measure filters.
+// Handles: alias reference, column ref (DuckDB resolves "HAVING cnt > 1" to COLUMN_REF),
+// CAST wrappers, and direct aggregate functions (matched against measure.sql).
 export function matchMeasureFromExpr(
   expr: ParsedExpression,
   measures: readonly Measure[]
@@ -293,6 +319,7 @@ export function matchMeasureFromExpr(
     const byAlias = measures.find((m) => m.name === expr.alias);
     if (byAlias) return byAlias;
   }
+  // DuckDB represents "HAVING alias > val" as COLUMN_REF, not the original aggregate
   if (expr.class === ExpressionClass.COLUMN_REF) {
     const colName = getColumnName(expr);
     if (colName) {

@@ -48,6 +48,7 @@ export function extractOrderFromAst(
         result[`${tableName}.${measure.name}`] = direction;
       }
     } else if (expr?.class === ExpressionClass.CONSTANT) {
+      // ORDER BY 1, ORDER BY 2 — positional reference (1-indexed in SQL, 0-indexed here)
       const idx = resolvePositionalIndex(expr);
       if (idx !== null) {
         const orderedNames = selectListOrder ?? [
@@ -56,6 +57,7 @@ export function extractOrderFromAst(
         ];
         if (idx >= 0 && idx < orderedNames.length) {
           const name = orderedNames[idx];
+          // null entries are skipped items (STAR, WINDOW) — can't order by them
           if (name !== null) {
             result[`${tableName}.${name}`] = direction;
           }

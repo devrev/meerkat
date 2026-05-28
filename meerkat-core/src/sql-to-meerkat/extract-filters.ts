@@ -41,6 +41,7 @@ const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']>
   [ExpressionType.COMPARE_LESSTHANOREQUALTO]: 'lte',
 };
 
+// When the literal is on the LEFT (e.g. "5 > col"), flip the operator for the column.
 const FLIPPED_COMPARISON_MAP: Record<string, QueryFilterWithValues['operator']> = {
   [ExpressionType.COMPARE_EQUAL]: 'equals',
   [ExpressionType.COMPARE_NOTEQUAL]: 'notEquals',
@@ -111,6 +112,8 @@ export function extractHavingFromAst(
   return filters;
 }
 
+// All-or-nothing: if ANY HAVING condition can't be matched to a measure, return null.
+// This prevents partial extraction that could double-filter or lose conditions.
 function tryExtractAllHaving(
   havingExpr: ParsedExpression,
   tableName: string,
@@ -168,6 +171,8 @@ function extractHavingComparison(
   return null;
 }
 
+// Adds a dimension to the schema for filter columns not already in the SELECT list.
+// This allows cubeQueryToSQL to reference the column when building the WHERE clause.
 export function ensureFilterColumnInSchema(
   filter: QueryFilterWithValues,
   dimensions: readonly Dimension[],
@@ -319,6 +324,8 @@ function tryExtractFilters(
   return null;
 }
 
+// Resolves a column ref to a qualified member name (e.g. "tickets.status").
+// Rejects cross-table references (e.g. u.team when tableName is "t") — those go to residual.
 function resolveMemberName(
   expr: ParsedExpression,
   tableName: string
@@ -329,6 +336,8 @@ function resolveMemberName(
   return `${tableName}.${ref.column}`;
 }
 
+// Checks if an expression is a constant (possibly wrapped in CAST chains).
+// Used to gate filter extraction — only column-vs-constant comparisons are extractable.
 function isConstantLike(expr: ParsedExpression): boolean {
   if (expr.class === ExpressionClass.CONSTANT) return true;
   if (expr.class === ExpressionClass.CAST) {
@@ -470,11 +479,12 @@ function extractOperatorFilter(
   return null;
 }
 
+// DuckDB represents LIKE/ILIKE as FUNCTION nodes with these operator names
 const LIKE_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
-  '~~': 'contains',
-  '~~*': 'contains',
-  '!~~': 'notContains',
-  '!~~*': 'notContains',
+  '~~': 'contains',     // LIKE
+  '~~*': 'contains',    // ILIKE
+  '!~~': 'notContains', // NOT LIKE
+  '!~~*': 'notContains', // NOT ILIKE
 };
 
 function extractFunctionFilter(

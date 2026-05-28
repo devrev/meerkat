@@ -50,6 +50,8 @@ export async function buildBaseSQL(
   ];
 
   let selectList = keepOriginalSelect ? clonedNode.select_list : starSelectList;
+  // When HAVING is demoted, patch aliases to match dimension names so
+  // cubeQueryToSQL can reference columns by their cleaned schema names.
   if (keepOriginalSelect && selectListAliases) {
     selectList = selectList.map((expr: ParsedExpression, i: number) => {
       if (selectListAliases[i]) {
