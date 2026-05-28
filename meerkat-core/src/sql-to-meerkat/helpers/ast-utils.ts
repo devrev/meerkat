@@ -32,16 +32,24 @@ export function extractTableName(selectNode: SelectNode): string {
   return resolveTableRef(selectNode.from_table);
 }
 
+// Resolves the "primary" table name from a FROM clause reference.
+// This name becomes the namespace prefix for all members (e.g. "t.status", "tickets.cnt").
 function resolveTableRef(ref: TableRef): string {
+  // FROM tickets AS t → use alias "t"; FROM tickets → use table_name "tickets"
   if (ref.type === TableReferenceType.BASE_TABLE) {
     return ref.alias || ref.table_name || 'query';
   }
+  // FROM (SELECT ...) AS sub → use alias "sub"; unnamed subquery → "subquery"
   if (ref.type === TableReferenceType.SUBQUERY) {
     return ref.alias || 'subquery';
   }
+  // FROM tickets t JOIN users u ON ... → recurse into LEFT (driving) table
+  // JOINs are left-associative: A JOIN B JOIN C → left=A-JOIN-B, right=C
   if (ref.type === TableReferenceType.JOIN) {
     return resolveTableRef(ref.left);
   }
+  // TABLE_FUNCTION (generate_series), EMPTY (no FROM), PIVOT, etc.
+  // Use alias if provided, otherwise generic "query" fallback
   return ref.alias || 'query';
 }
 
