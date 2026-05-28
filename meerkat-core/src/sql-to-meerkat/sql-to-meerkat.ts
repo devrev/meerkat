@@ -182,10 +182,13 @@ export async function sqlToMeerkat(
     };
   }
 
-  // Extract WHERE filters, separating extractable from non-extractable
+  // Extract WHERE filters, separating extractable from non-extractable.
+  // Skip extraction when QUALIFY exists — WHERE affects window function
+  // computation and must stay in the base SQL.
   let residualWhere: ParsedExpression | undefined;
   const allFilters: (QueryFilterWithValues | LogicalOrFilter)[] = [];
-  if (selectNode.where_clause) {
+  const hasQualify = !!selectNode.qualify;
+  if (selectNode.where_clause && !hasQualify) {
     const extracted = extractFiltersFromAst(selectNode.where_clause, tableName);
     allFilters.push(...extracted.filters);
     residualWhere = extracted.residual;
@@ -209,6 +212,8 @@ export async function sqlToMeerkat(
         if (newDims) dimensions.push(...newDims);
       }
     }
+  } else if (selectNode.where_clause && hasQualify) {
+    residualWhere = selectNode.where_clause;
   }
 
   // Extract HAVING as measure filters (all-or-nothing: if any condition
