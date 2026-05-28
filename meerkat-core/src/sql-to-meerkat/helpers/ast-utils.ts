@@ -58,10 +58,7 @@ export function hasRecursiveCteInMap(node: SelectNode): boolean {
   );
 }
 
-/** Escapes single quotes for embedding SQL inside json_serialize_sql('...'). */
-export function sanitizeForSerialize(sql: string): string {
-  return sql.replace(/'/g, "''");
-}
+export { sanitizeForSerialize } from '../../ast-serializer/ast-serializer';
 
 /**
  * Matches a HAVING expression to a known measure from the schema.
