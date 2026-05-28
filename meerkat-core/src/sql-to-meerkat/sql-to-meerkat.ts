@@ -16,7 +16,7 @@ import {
   ResultModifierType,
   SelectNode,
 } from '../types/duckdb-serialization-types';
-import { fetchDuckDBFunctions, GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
+import { fetchDuckDBFunctions, fetchDuckDBTypes, GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
 import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
 import { sanitizeStringValue } from '../member-formatters/sanitize-value';
 import { DecomposeOutput, DuckDBSerializedAST } from './types';
@@ -117,7 +117,12 @@ export async function sqlToMeerkat(
 
   const tableName = extractTableName(selectNode);
 
-  const aggregateFunctions = await fetchDuckDBFunctions(getQueryOutput, 'aggregate');
+  const [aggregateFunctions, numericTypes, datetimeTypes] = await Promise.all([
+    fetchDuckDBFunctions(getQueryOutput, 'aggregate'),
+    fetchDuckDBTypes(getQueryOutput, 'NUMERIC'),
+    fetchDuckDBTypes(getQueryOutput, 'DATETIME'),
+  ]);
+  const typeSets = { numeric: numericTypes, datetime: datetimeTypes };
 
   const measures: Measure[] = [];
   const dimensions: Dimension[] = [];
@@ -208,7 +213,7 @@ export async function sqlToMeerkat(
   const allFilters: (QueryFilterWithValues | LogicalOrFilter)[] = [];
   const hasQualify = !!selectNode.qualify;
   if (selectNode.where_clause && !hasQualify) {
-    const extracted = extractFiltersFromAst(selectNode.where_clause, tableName);
+    const extracted = extractFiltersFromAst(selectNode.where_clause, tableName, typeSets);
     allFilters.push(...extracted.filters);
     residualWhere = extracted.residual;
     if (extracted.warnings.length > 0) {

@@ -10,6 +10,7 @@ import {
   ParsedExpression,
 } from '../../../types/duckdb-serialization-types';
 import { tryExtractFilters, extractOrFilter } from './extract-or';
+import { TypeSets } from './filter-schema';
 
 export interface FilterExtractionResult {
   filters: (QueryFilterWithValues | LogicalOrFilter)[];
@@ -20,7 +21,8 @@ export interface FilterExtractionResult {
 
 export function extractFiltersFromAst(
   whereExpr: ParsedExpression,
-  tableName: string
+  tableName: string,
+  typeSets: TypeSets
 ): FilterExtractionResult {
   const filters: (QueryFilterWithValues | LogicalOrFilter)[] = [];
   const residualParts: ParsedExpression[] = [];
@@ -31,7 +33,7 @@ export function extractFiltersFromAst(
     const conj = whereExpr as ConjunctionExpression;
     if (whereExpr.type === ExpressionType.CONJUNCTION_AND) {
       for (const child of conj.children) {
-        const extracted = tryExtractFilters(child, tableName, memberTypes);
+        const extracted = tryExtractFilters(child, tableName, memberTypes, typeSets);
         if (extracted) {
           filters.push(...extracted);
         } else {
@@ -40,7 +42,7 @@ export function extractFiltersFromAst(
         }
       }
     } else if (whereExpr.type === ExpressionType.CONJUNCTION_OR) {
-      const orFilter = extractOrFilter(conj, tableName, memberTypes);
+      const orFilter = extractOrFilter(conj, tableName, memberTypes, typeSets);
       if (orFilter) {
         filters.push(orFilter);
       } else {
@@ -51,7 +53,7 @@ export function extractFiltersFromAst(
       }
     }
   } else {
-    const extracted = tryExtractFilters(whereExpr, tableName, memberTypes);
+    const extracted = tryExtractFilters(whereExpr, tableName, memberTypes, typeSets);
     if (extracted) {
       filters.push(...extracted);
     } else {

@@ -7,31 +7,31 @@ import { Dimension } from '../../../types/cube-types/table';
 import { ExpressionClass, ParsedExpression } from '../../../types/duckdb-serialization-types';
 import { getConstantTypeId } from '../../../utils/ast-constants';
 
-// Maps a DuckDB constant type ID to a Meerkat dimension type using the AST type info.
-const NUMERIC_TYPE_IDS = new Set([
-  'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT', 'FLOAT', 'DOUBLE',
-  'DECIMAL', 'HUGEINT', 'UINTEGER', 'UBIGINT', 'USMALLINT', 'UTINYINT',
-]);
-const DATE_TYPE_IDS = new Set([
-  'DATE', 'TIMESTAMP', 'TIMESTAMP WITH TIME ZONE', 'TIMESTAMP_S',
-  'TIMESTAMP_MS', 'TIMESTAMP_NS', 'INTERVAL', 'TIME',
-]);
+export interface TypeSets {
+  numeric: ReadonlySet<string>;
+  datetime: ReadonlySet<string>;
+}
 
-export function typeFromConstantExpr(expr: ParsedExpression): Dimension['type'] {
+// Infers Meerkat dimension type from a constant's DuckDB type ID.
+// Uses dynamically-fetched type sets from duckdb_types() catalog.
+export function typeFromConstantExpr(
+  expr: ParsedExpression,
+  typeSets: TypeSets
+): Dimension['type'] {
   const typeId = getConstantTypeId(expr);
   if (!typeId) {
     if (expr.class === ExpressionClass.CAST) {
       const cast = expr as ParsedExpression & { cast_type?: { id?: string }; child?: ParsedExpression };
       const castId = cast.cast_type?.id?.toUpperCase() || '';
-      if (DATE_TYPE_IDS.has(castId)) return 'time';
-      if (NUMERIC_TYPE_IDS.has(castId)) return 'number';
-      return cast.child ? typeFromConstantExpr(cast.child) : 'string';
+      if (typeSets.datetime.has(castId)) return 'time';
+      if (typeSets.numeric.has(castId)) return 'number';
+      return cast.child ? typeFromConstantExpr(cast.child, typeSets) : 'string';
     }
     return 'string';
   }
   const upper = typeId.toUpperCase();
-  if (NUMERIC_TYPE_IDS.has(upper)) return 'number';
-  if (DATE_TYPE_IDS.has(upper)) return 'time';
+  if (typeSets.numeric.has(upper)) return 'number';
+  if (typeSets.datetime.has(upper)) return 'time';
   return 'string';
 }
 

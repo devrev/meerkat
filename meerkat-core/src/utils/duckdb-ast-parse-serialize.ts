@@ -169,3 +169,14 @@ export async function fetchDuckDBFunctions(
   );
   return new Set(rows.map((r) => r['function_name'].toLowerCase()));
 }
+
+// Fetches type names from DuckDB's type catalog by category.
+export async function fetchDuckDBTypes(
+  getQueryOutput: GetQueryOutput,
+  typeCategory: 'NUMERIC' | 'DATETIME' | 'STRING'
+): Promise<Set<string>> {
+  const rows = await getQueryOutput(
+    `SELECT DISTINCT type_name FROM duckdb_types() WHERE type_category = '${typeCategory}'`
+  );
+  return new Set(rows.map((r) => r['type_name'].toUpperCase()));
+}

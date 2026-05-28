@@ -9,7 +9,7 @@ import {
 import { getConstantValue, isNullConstant } from '../../../utils/ast-constants';
 import { getQualifiedColumnRef } from '../../../utils/ast-column-ref';
 import { getNamespacedKey } from '../../../member-formatters/get-namespaced-key';
-import { typeFromConstantExpr } from './filter-schema';
+import { typeFromConstantExpr, TypeSets } from './filter-schema';
 
 const COMPARISON_OPERATOR_MAP: Record<string, QueryFilterWithValues['operator']> = {
   [ExpressionType.COMPARE_EQUAL]: 'equals',
@@ -55,14 +55,15 @@ export function isConstantLike(expr: ParsedExpression): boolean {
 export function extractComparisonFilter(
   expr: ComparisonExpression,
   tableName: string,
-  memberTypes: Record<string, Dimension['type']>
+  memberTypes: Record<string, Dimension['type']>,
+  typeSets: TypeSets
 ): QueryFilterWithValues | null {
   const memberLeft = resolveMemberName(expr.left, tableName);
   const memberRight = resolveMemberName(expr.right, tableName);
 
   if (memberLeft && isConstantLike(expr.right)) {
     if (!memberTypes[memberLeft]) {
-      memberTypes[memberLeft] = typeFromConstantExpr(expr.right);
+      memberTypes[memberLeft] = typeFromConstantExpr(expr.right, typeSets);
     }
     return buildComparisonResult(
       memberLeft,
@@ -74,7 +75,7 @@ export function extractComparisonFilter(
 
   if (memberRight && isConstantLike(expr.left)) {
     if (!memberTypes[memberRight]) {
-      memberTypes[memberRight] = typeFromConstantExpr(expr.left);
+      memberTypes[memberRight] = typeFromConstantExpr(expr.left, typeSets);
     }
     return buildComparisonResult(
       memberRight,

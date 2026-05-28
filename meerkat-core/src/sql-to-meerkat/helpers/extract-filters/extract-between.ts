@@ -7,7 +7,7 @@ import {
 } from '../../../types/duckdb-serialization-types';
 import { getConstantValue, getConstantTypeId } from '../../../utils/ast-constants';
 import { resolveMemberName } from './extract-comparison';
-import { typeFromConstantExpr } from './filter-schema';
+import { typeFromConstantExpr, TypeSets } from './filter-schema';
 
 function isDateTypedConstant(expr: ParsedExpression): boolean {
   if (expr.class === ExpressionClass.CAST) {
@@ -30,7 +30,8 @@ function isBetweenDateRange(expr: BetweenExpression): boolean {
 export function extractBetweenFilter(
   expr: BetweenExpression,
   tableName: string,
-  memberTypes: Record<string, Dimension['type']>
+  memberTypes: Record<string, Dimension['type']>,
+  typeSets: TypeSets
 ): QueryFilterWithValues[] | null {
   const member = resolveMemberName(expr.input, tableName);
   if (!member) return null;
@@ -46,7 +47,7 @@ export function extractBetweenFilter(
     ];
   }
 
-  if (!memberTypes[member]) memberTypes[member] = typeFromConstantExpr(expr.lower);
+  if (!memberTypes[member]) memberTypes[member] = typeFromConstantExpr(expr.lower, typeSets);
   return [
     { member, operator: 'gte', values: [String(lower)] },
     { member, operator: 'lte', values: [String(upper)] },

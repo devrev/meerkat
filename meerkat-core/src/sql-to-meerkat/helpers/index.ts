@@ -45,7 +45,7 @@ export {
   ensureOrFilterColumnsInSchema,
 } from './extract-filters';
 
-export type { FilterExtractionResult } from './extract-filters';
+export type { FilterExtractionResult, TypeSets } from './extract-filters';
 
 export { extractOrderFromAst } from './extract-order';
 

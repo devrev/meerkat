@@ -17,6 +17,7 @@ import {
 import { extractComparisonFilter } from './extract-comparison';
 import { extractBetweenFilter } from './extract-between';
 import { extractOperatorFilter, extractFunctionFilter } from './extract-operators';
+import { TypeSets } from './filter-schema';
 
 // Attempts to extract a single WHERE condition into Meerkat filter(s).
 // Dispatches by AST expression class to the appropriate leaf extractor.
@@ -24,14 +25,15 @@ import { extractOperatorFilter, extractFunctionFilter } from './extract-operator
 export function tryExtractFilters(
   expr: ParsedExpression,
   tableName: string,
-  memberTypes: Record<string, Dimension['type']>
+  memberTypes: Record<string, Dimension['type']>,
+  typeSets: TypeSets
 ): (QueryFilterWithValues | LogicalOrFilter)[] | null {
   if (expr.class === ExpressionClass.COMPARISON) {
-    const f = extractComparisonFilter(expr as ComparisonExpression, tableName, memberTypes);
+    const f = extractComparisonFilter(expr as ComparisonExpression, tableName, memberTypes, typeSets);
     return f ? [f] : null;
   }
   if (expr.class === ExpressionClass.BETWEEN) {
-    return extractBetweenFilter(expr as BetweenExpression, tableName, memberTypes);
+    return extractBetweenFilter(expr as BetweenExpression, tableName, memberTypes, typeSets);
   }
   if (expr.class === ExpressionClass.OPERATOR) {
     const f = extractOperatorFilter(expr as OperatorExpression, tableName);
@@ -45,7 +47,7 @@ export function tryExtractFilters(
     expr.class === ExpressionClass.CONJUNCTION &&
     expr.type === ExpressionType.CONJUNCTION_OR
   ) {
-    const orFilter = extractOrFilter(expr as ConjunctionExpression, tableName, memberTypes);
+    const orFilter = extractOrFilter(expr as ConjunctionExpression, tableName, memberTypes, typeSets);
     return orFilter ? [orFilter] : null;
   }
   return null;
@@ -55,11 +57,12 @@ export function tryExtractFilters(
 export function extractOrFilter(
   conj: ConjunctionExpression,
   tableName: string,
-  memberTypes: Record<string, Dimension['type']>
+  memberTypes: Record<string, Dimension['type']>,
+  typeSets: TypeSets
 ): LogicalOrFilter | null {
   const orChildren: (QueryFilterWithValues | LogicalAndFilter)[] = [];
   for (const child of conj.children) {
-    const branch = extractOrBranch(child, tableName, memberTypes);
+    const branch = extractOrBranch(child, tableName, memberTypes, typeSets);
     if (!branch) return null;
     orChildren.push(branch);
   }
@@ -70,7 +73,8 @@ export function extractOrFilter(
 function extractOrBranch(
   expr: ParsedExpression,
   tableName: string,
-  memberTypes: Record<string, Dimension['type']>
+  memberTypes: Record<string, Dimension['type']>,
+  typeSets: TypeSets
 ): QueryFilterWithValues | LogicalAndFilter | null {
   if (
     expr.class === ExpressionClass.CONJUNCTION &&
@@ -79,14 +83,14 @@ function extractOrBranch(
     const andConj = expr as ConjunctionExpression;
     const andMembers: (QueryFilterWithValues | LogicalOrFilter)[] = [];
     for (const grandchild of andConj.children) {
-      const extracted = tryExtractFilters(grandchild, tableName, memberTypes);
+      const extracted = tryExtractFilters(grandchild, tableName, memberTypes, typeSets);
       if (!extracted) return null;
       andMembers.push(...extracted);
     }
     return { and: andMembers } as LogicalAndFilter;
   }
 
-  const extracted = tryExtractFilters(expr, tableName, memberTypes);
+  const extracted = tryExtractFilters(expr, tableName, memberTypes, typeSets);
   if (!extracted) return null;
 
   if (extracted.length === 1 && 'member' in extracted[0]) {
