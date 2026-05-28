@@ -32,6 +32,8 @@ export async function buildBaseSQL(
   getQueryOutput: GetQueryOutput,
   selectListAliases?: readonly string[]
 ): Promise<string | null> {
+  // Deep clone via JSON round-trip (not structuredClone — target is es2015/lib es2020).
+  // Also strips undefined values, which aligns with DuckDB's null-as-missing-key behavior.
   const clonedNode = JSON.parse(JSON.stringify(selectNode));
   const hasResidualHaving = residualHaving !== undefined;
   const hasQualify = !!clonedNode.qualify;
