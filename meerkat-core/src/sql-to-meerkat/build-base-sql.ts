@@ -20,6 +20,8 @@ export async function buildBaseSQL(
 ): Promise<string | null> {
   const clonedNode = JSON.parse(JSON.stringify(selectNode));
   const hasResidualHaving = residualHaving !== undefined;
+  const hasQualify = !!clonedNode.qualify;
+  const keepOriginalSelect = hasResidualHaving || hasQualify;
 
   const starSelectList = [
     {
@@ -33,8 +35,8 @@ export async function buildBaseSQL(
     },
   ];
 
-  let selectList = hasResidualHaving ? clonedNode.select_list : starSelectList;
-  if (hasResidualHaving && selectListAliases) {
+  let selectList = keepOriginalSelect ? clonedNode.select_list : starSelectList;
+  if (keepOriginalSelect && selectListAliases) {
     selectList = selectList.map((expr: ParsedExpression, i: number) => {
       if (selectListAliases[i]) {
         return { ...expr, alias: selectListAliases[i] };
@@ -49,12 +51,12 @@ export async function buildBaseSQL(
     where_clause: residualWhere
       ? JSON.parse(JSON.stringify(residualWhere))
       : undefined,
-    group_expressions: hasResidualHaving ? clonedNode.group_expressions : [],
-    group_sets: hasResidualHaving ? clonedNode.group_sets : [],
+    group_expressions: keepOriginalSelect ? clonedNode.group_expressions : [],
+    group_sets: keepOriginalSelect ? clonedNode.group_sets : [],
     having: hasResidualHaving
       ? JSON.parse(JSON.stringify(residualHaving))
       : null,
-    qualify: null,
+    qualify: clonedNode.qualify || null,
     modifiers: [],
   };
 
