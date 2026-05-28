@@ -4,17 +4,14 @@ import {
   OperatorExpression,
   ParsedExpression,
 } from '../../types/duckdb-serialization-types';
-import { GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
+import { fetchDuckDBFunctions, GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
 
 // Queries DuckDB's function catalog to get all registered aggregate functions.
 // This covers built-in, extension, and user-defined aggregates dynamically.
 export async function fetchAggregateFunctions(
   getQueryOutput: GetQueryOutput
 ): Promise<Set<string>> {
-  const rows = await getQueryOutput(
-    "SELECT DISTINCT function_name FROM duckdb_functions() WHERE function_type = 'aggregate'"
-  );
-  return new Set(rows.map((r) => r['function_name'].toLowerCase()));
+  return fetchDuckDBFunctions(getQueryOutput, 'aggregate');
 }
 
 // Recursively checks if an expression contains an aggregate function anywhere in its tree.

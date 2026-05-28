@@ -158,3 +158,14 @@ export const serializeExpressions = async (
   const deserializedSql = deserializeQuery(rows);
   return splitBatchSerializedExpressions(deserializedSql, expressions.length);
 };
+
+// Fetches function names from DuckDB's catalog by type.
+export async function fetchDuckDBFunctions(
+  getQueryOutput: GetQueryOutput,
+  functionType: 'aggregate' | 'scalar'
+): Promise<Set<string>> {
+  const rows = await getQueryOutput(
+    `SELECT DISTINCT function_name FROM duckdb_functions() WHERE function_type = '${functionType}'`
+  );
+  return new Set(rows.map((r) => r['function_name'].toLowerCase()));
+}
