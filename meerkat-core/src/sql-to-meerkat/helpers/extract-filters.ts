@@ -2,8 +2,8 @@ import {
   LogicalAndFilter,
   LogicalOrFilter,
   QueryFilterWithValues,
-} from '../types/cube-types/query';
-import { Dimension, Measure } from '../types/cube-types/table';
+} from '../../types/cube-types/query';
+import { Dimension, Measure } from '../../types/cube-types/table';
 import {
   BetweenExpression,
   ComparisonExpression,
@@ -13,8 +13,8 @@ import {
   FunctionExpression,
   OperatorExpression,
   ParsedExpression,
-} from '../types/duckdb-serialization-types';
-import { getConstantValue, getConstantTypeId, getQualifiedColumnRef, isNullConstant, matchMeasureFromExpr } from './helpers';
+} from '../../types/duckdb-serialization-types';
+import { getConstantValue, getConstantTypeId, getQualifiedColumnRef, isNullConstant, matchMeasureFromExpr } from './ast-utils';
 
 /**
  * WHERE/HAVING filter extraction from DuckDB AST.

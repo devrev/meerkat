@@ -18,17 +18,15 @@ import {
 } from '../types/duckdb-serialization-types';
 import { GetQueryOutput, serializeExpressions } from '../utils/duckdb-ast-parse-serialize';
 import { DecomposeOutput, DuckDBSerializedAST } from './types';
-import { buildBaseSQL } from './build-base-sql';
 import {
+  buildBaseSQL,
+  deduplicateName,
   ensureFilterColumnInSchema,
   ensureOrFilterColumnsInSchema,
+  exprToName,
   extractFiltersFromAst,
   extractHavingFromAst,
-} from './extract-filters';
-import { extractOrderFromAst } from './extract-order';
-import {
-  deduplicateName,
-  exprToName,
+  extractOrderFromAst,
   extractTableName,
   fetchAggregateFunctions,
   generateAggregateName,

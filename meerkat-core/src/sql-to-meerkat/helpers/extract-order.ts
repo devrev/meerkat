@@ -1,13 +1,13 @@
-import { QueryOrderType } from '../types/cube-types/query';
-import { Dimension, Measure } from '../types/cube-types/table';
+import { QueryOrderType } from '../../types/cube-types/query';
+import { Dimension, Measure } from '../../types/cube-types/table';
 import {
   ConstantExpression,
   ExpressionClass,
   OrderByNode,
   OrderType,
   ParsedExpression,
-} from '../types/duckdb-serialization-types';
-import { getColumnName, matchMeasureFromExpr } from './helpers';
+} from '../../types/duckdb-serialization-types';
+import { getColumnName, matchMeasureFromExpr } from './ast-utils';
 
 /**
  * Extracts ORDER BY clauses into Meerkat's order format.

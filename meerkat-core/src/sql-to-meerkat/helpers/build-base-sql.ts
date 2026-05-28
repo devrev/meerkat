@@ -1,15 +1,15 @@
 import {
   astDeserializerQuery,
   deserializeQuery,
-} from '../ast-deserializer/ast-deserializer';
+} from '../../ast-deserializer/ast-deserializer';
 import {
   ExpressionClass,
   ExpressionType,
   ParsedExpression,
   SelectNode,
-} from '../types/duckdb-serialization-types';
-import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
-import { stripQueryLocationInPlace } from './helpers';
+} from '../../types/duckdb-serialization-types';
+import { GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
+import { stripQueryLocationInPlace } from './ast-utils';
 
 /**
  * Constructs the base SQL from the original AST, stripping extracted components.

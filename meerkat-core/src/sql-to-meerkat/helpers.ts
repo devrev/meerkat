@@ -1,13 +1,13 @@
 /**
- * Utility functions for DuckDB AST inspection.
+ * Barrel re-export for all helper modules.
  *
- * All functions operate on DuckDB's JSON-serialized AST nodes (from json_serialize_sql).
- * They use expression class/type enums — never string parsing or regex on SQL text.
- *
- * Split into focused modules:
- * - helpers/aggregate-detection: aggregate classification
- * - helpers/naming: name generation and type inference
- * - helpers/ast-utils: AST node inspection (constants, table refs, measure matching)
+ * Modules live under helpers/:
+ * - aggregate-detection: aggregate classification
+ * - naming: name generation and type inference
+ * - ast-utils: AST node inspection (constants, table refs, measure matching)
+ * - extract-filters: WHERE/HAVING filter extraction
+ * - extract-order: ORDER BY extraction
+ * - build-base-sql: base SQL construction
  */
 
 export {
@@ -39,3 +39,16 @@ export {
 } from './helpers/ast-utils';
 
 export type { QualifiedColumnRef } from './helpers/ast-utils';
+
+export {
+  extractFiltersFromAst,
+  extractHavingFromAst,
+  ensureFilterColumnInSchema,
+  ensureOrFilterColumnsInSchema,
+} from './helpers/extract-filters';
+
+export type { FilterExtractionResult } from './helpers/extract-filters';
+
+export { extractOrderFromAst } from './helpers/extract-order';
+
+export { buildBaseSQL } from './helpers/build-base-sql';
