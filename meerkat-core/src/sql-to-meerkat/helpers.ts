@@ -281,6 +281,13 @@ export function matchMeasureFromExpr(
     const byAlias = measures.find((m) => m.name === expr.alias);
     if (byAlias) return byAlias;
   }
+  if (expr.class === ExpressionClass.COLUMN_REF) {
+    const colName = getColumnName(expr);
+    if (colName) {
+      return measures.find((m) => m.name === colName) || null;
+    }
+    return null;
+  }
   if (expr.class === ExpressionClass.CAST) {
     const cast = expr as ParsedExpression & { child?: ParsedExpression };
     if (cast.child) return matchMeasureFromExpr(cast.child, measures);
