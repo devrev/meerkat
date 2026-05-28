@@ -51,6 +51,8 @@ export async function buildBaseSQL(
     },
   ];
 
+  // Keep original select_list when HAVING/QUALIFY need it (aliases, window defs, GROUP BY).
+  // Otherwise use SELECT * so all table columns are available to the outer query.
   let selectList = keepOriginalSelect ? clonedNode.select_list : starSelectList;
   // When HAVING is demoted, patch aliases to match dimension names so
   // cubeQueryToSQL can reference columns by their cleaned schema names.
