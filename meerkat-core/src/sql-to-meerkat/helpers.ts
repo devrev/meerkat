@@ -5,9 +5,9 @@
  * They use expression class/type enums — never string parsing or regex on SQL text.
  *
  * Split into focused modules:
- * - aggregate-detection: aggregate classification (isAggregateExpr, fetchAggregateFunctions)
- * - naming: name generation (generateAggregateName, deduplicateName, inferTypeFromExpr)
- * - ast-utils: AST node inspection (getConstantValue, extractTableName, matchMeasureFromExpr)
+ * - helpers/aggregate-detection: aggregate classification
+ * - helpers/naming: name generation and type inference
+ * - helpers/ast-utils: AST node inspection (constants, table refs, measure matching)
  */
 
 export {
@@ -16,14 +16,14 @@ export {
   isNestedAggregateExpr,
   isWindowExpr,
   isStarExpr,
-} from './aggregate-detection';
+} from './helpers/aggregate-detection';
 
 export {
   exprToName,
   generateAggregateName,
   deduplicateName,
   inferTypeFromExpr,
-} from './naming';
+} from './helpers/naming';
 
 export {
   stripQueryLocationInPlace,
@@ -36,6 +36,6 @@ export {
   hasRecursiveCteInMap,
   sanitizeForSerialize,
   matchMeasureFromExpr,
-} from './ast-utils';
+} from './helpers/ast-utils';
 
-export type { QualifiedColumnRef } from './ast-utils';
+export type { QualifiedColumnRef } from './helpers/ast-utils';

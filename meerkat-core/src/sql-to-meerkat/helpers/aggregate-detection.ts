@@ -3,8 +3,8 @@ import {
   FunctionExpression,
   OperatorExpression,
   ParsedExpression,
-} from '../types/duckdb-serialization-types';
-import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
+} from '../../types/duckdb-serialization-types';
+import { GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
 
 // Queries DuckDB's function catalog to get all registered aggregate functions.
 // This covers built-in, extension, and user-defined aggregates dynamically.

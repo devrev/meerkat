@@ -6,11 +6,11 @@ import {
   ParsedExpression,
   QueryNodeType,
   SelectNode,
-} from '../types/duckdb-serialization-types';
-import { Measure } from '../types/cube-types/table';
+} from '../../types/duckdb-serialization-types';
+import { Measure } from '../../types/cube-types/table';
 import { isStarExpr } from './aggregate-detection';
 
-export { stripQueryLocationInPlace } from '../utils/duckdb-ast-parse-serialize';
+export { stripQueryLocationInPlace } from '../../utils/duckdb-ast-parse-serialize';
 
 export interface QualifiedColumnRef {
   table: string | null;

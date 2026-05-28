@@ -4,8 +4,8 @@ import {
   FunctionExpression,
   OperatorExpression,
   ParsedExpression,
-} from '../types/duckdb-serialization-types';
-import { Dimension } from '../types/cube-types/table';
+} from '../../types/duckdb-serialization-types';
+import { Dimension } from '../../types/cube-types/table';
 import { isStarExpr } from './aggregate-detection';
 
 export function exprToName(expr: ParsedExpression): string {
