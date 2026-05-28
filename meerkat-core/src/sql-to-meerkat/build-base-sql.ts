@@ -15,7 +15,8 @@ export async function buildBaseSQL(
   selectNode: SelectNode,
   residualWhere: ParsedExpression | undefined,
   residualHaving: ParsedExpression | undefined,
-  getQueryOutput: GetQueryOutput
+  getQueryOutput: GetQueryOutput,
+  selectListAliases?: readonly string[]
 ): Promise<string | null> {
   const clonedNode = JSON.parse(JSON.stringify(selectNode));
   const hasResidualHaving = residualHaving !== undefined;
@@ -32,9 +33,19 @@ export async function buildBaseSQL(
     },
   ];
 
+  let selectList = hasResidualHaving ? clonedNode.select_list : starSelectList;
+  if (hasResidualHaving && selectListAliases) {
+    selectList = selectList.map((expr: ParsedExpression, i: number) => {
+      if (selectListAliases[i]) {
+        return { ...expr, alias: selectListAliases[i] };
+      }
+      return expr;
+    });
+  }
+
   const fromOnlyNode = {
     ...clonedNode,
-    select_list: hasResidualHaving ? clonedNode.select_list : starSelectList,
+    select_list: selectList,
     where_clause: residualWhere
       ? JSON.parse(JSON.stringify(residualWhere))
       : undefined,

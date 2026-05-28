@@ -30,6 +30,7 @@ import {
   deduplicateName,
   exprToName,
   extractTableName,
+  fetchAggregateFunctions,
   generateAggregateName,
   getConstantValue,
   hasRecursiveCteInMap,
@@ -97,6 +98,8 @@ export async function sqlToMeerkat(
   const selectNode = node as SelectNode;
   const tableName = extractTableName(selectNode);
 
+  const aggregateFunctions = await fetchAggregateFunctions(getQueryOutput);
+
   const measures: Measure[] = [];
   const dimensions: Dimension[] = [];
   const queryMeasures: string[] = [];
@@ -104,7 +107,9 @@ export async function sqlToMeerkat(
   const selectListOrder: (string | null)[] = [];
   const usedNames = new Set<string>();
 
-  const hasAggregates = selectNode.select_list.some(isAggregateExpr);
+  const hasAggregates = selectNode.select_list.some(
+    (expr) => isAggregateExpr(expr, aggregateFunctions)
+  );
   const hasGroupBy = selectNode.group_expressions.length > 0;
 
   // Collect serializable expressions, tracking their position in the select list
@@ -126,7 +131,7 @@ export async function sqlToMeerkat(
       continue;
     }
 
-    if (isNestedAggregateExpr(expr)) {
+    if (isNestedAggregateExpr(expr, aggregateFunctions)) {
       warnings.push(
         `Skipped nested aggregation: ${expr.alias || exprToName(expr)}`
       );
@@ -134,8 +139,7 @@ export async function sqlToMeerkat(
       continue;
     }
 
-    const isMeasure = (hasAggregates || hasGroupBy) && isAggregateExpr(expr);
-    // Reserve slot — will be filled after batch serialization
+    const isMeasure = (hasAggregates || hasGroupBy) && isAggregateExpr(expr, aggregateFunctions);
     exprBatch.push({ expr, isMeasure, selectIndex: selectListOrder.length });
     selectListOrder.push(null);
   }
@@ -211,6 +215,7 @@ export async function sqlToMeerkat(
   // can't be matched to a known measure, keep entire HAVING in base SQL
   // and demote all measures to dimensions to prevent re-aggregation)
   let residualHaving: ParsedExpression | undefined;
+  let havingDemoted = false;
   if (selectNode.having) {
     const havingFilters = extractHavingFromAst(
       selectNode.having,
@@ -221,15 +226,17 @@ export async function sqlToMeerkat(
       allFilters.push(...havingFilters);
     } else {
       residualHaving = selectNode.having;
+      havingDemoted = true;
       warnings.push('Non-extractable HAVING condition retained in base SQL');
       for (const m of measures) {
         dimensions.push({ name: m.name, sql: m.name, type: 'number' });
         queryDimensions.push(`${tableName}.${m.name}`);
       }
-      measures.length = 0;
-      queryMeasures.length = 0;
     }
   }
+
+  const finalMeasures = havingDemoted ? [] : measures;
+  const finalQueryMeasures = havingDemoted ? [] : queryMeasures;
 
   const queryFilters: MeerkatQueryFilter[] = wrapFilters(allFilters);
 
@@ -237,7 +244,8 @@ export async function sqlToMeerkat(
     selectNode,
     residualWhere,
     residualHaving,
-    getQueryOutput
+    getQueryOutput,
+    havingDemoted ? selectListOrder.map((name) => name || '') : undefined
   );
   if (baseSQL === null) {
     return {
@@ -256,7 +264,7 @@ export async function sqlToMeerkat(
       orderModifier.orders,
       tableName,
       dimensions,
-      measures,
+      finalMeasures,
       selectListOrder
     );
     if (Object.keys(extracted).length > 0) {
@@ -282,12 +290,12 @@ export async function sqlToMeerkat(
   const tableSchema: TableSchema = {
     name: tableName,
     sql: baseSQL,
-    measures,
+    measures: finalMeasures,
     dimensions,
   };
 
   const query: Query = {
-    measures: queryMeasures,
+    measures: finalQueryMeasures,
     dimensions: queryDimensions.length > 0 ? queryDimensions : undefined,
     filters: queryFilters.length > 0 ? queryFilters : undefined,
     order,

@@ -176,7 +176,7 @@ function inferFilterColumnType(filter: QueryFilterWithValues): Dimension['type']
   if (DATE_OPERATORS.has(filter.operator)) {
     return 'time';
   }
-  if (filter.values && filter.values.length > 0 && filter.values.every((v) => NUMERIC_PATTERN.test(v))) {
+  if (filter.values && filter.values.length > 0 && (filter.values as string[]).every((v) => NUMERIC_PATTERN.test(v))) {
     return 'number';
   }
   return 'string';
@@ -207,7 +207,7 @@ function collectFilterDimensions(
     if (added) newDims.push(...added);
   } else if ('or' in filter) {
     for (const child of (filter as LogicalOrFilter).or) {
-      collectFilterDimensions(child, dimensions, tableName, newDims);
+      collectFilterDimensions(child as QueryFilterWithValues | LogicalOrFilter | LogicalAndFilter, dimensions, tableName, newDims);
     }
   } else if ('and' in filter) {
     for (const child of (filter as LogicalAndFilter).and) {
@@ -240,35 +240,38 @@ function extractOrFilter(
 ): LogicalOrFilter | null {
   const orChildren: (QueryFilterWithValues | LogicalAndFilter)[] = [];
   for (const child of conj.children) {
-    if (
-      child.class === ExpressionClass.CONJUNCTION &&
-      child.type === ExpressionType.CONJUNCTION_AND
-    ) {
-      const andConj = child as ConjunctionExpression;
-      const andMembers: (QueryFilterWithValues | LogicalOrFilter)[] = [];
-      let allExtracted = true;
-      for (const grandchild of andConj.children) {
-        const extracted = tryExtractFilters(grandchild, tableName);
-        if (extracted) {
-          andMembers.push(...extracted);
-        } else {
-          allExtracted = false;
-          break;
-        }
-      }
-      if (!allExtracted) return null;
-      orChildren.push({ and: andMembers } as LogicalAndFilter);
-    } else {
-      const extracted = tryExtractFilters(child, tableName);
-      if (!extracted) return null;
-      if (extracted.length === 1) {
-        orChildren.push(extracted[0] as QueryFilterWithValues | LogicalAndFilter);
-      } else {
-        orChildren.push({ and: extracted } as LogicalAndFilter);
-      }
-    }
+    const branch = extractOrBranch(child, tableName);
+    if (!branch) return null;
+    orChildren.push(branch);
   }
   return { or: orChildren };
+}
+
+function extractOrBranch(
+  expr: ParsedExpression,
+  tableName: string
+): QueryFilterWithValues | LogicalAndFilter | null {
+  if (
+    expr.class === ExpressionClass.CONJUNCTION &&
+    expr.type === ExpressionType.CONJUNCTION_AND
+  ) {
+    const andConj = expr as ConjunctionExpression;
+    const andMembers: (QueryFilterWithValues | LogicalOrFilter)[] = [];
+    for (const grandchild of andConj.children) {
+      const extracted = tryExtractFilters(grandchild, tableName);
+      if (!extracted) return null;
+      andMembers.push(...extracted);
+    }
+    return { and: andMembers } as LogicalAndFilter;
+  }
+
+  const extracted = tryExtractFilters(expr, tableName);
+  if (!extracted) return null;
+
+  if (extracted.length === 1 && 'member' in extracted[0]) {
+    return extracted[0] as QueryFilterWithValues;
+  }
+  return { and: extracted } as LogicalAndFilter;
 }
 
 function tryExtractFilters(
@@ -311,10 +314,12 @@ function resolveMemberName(
 }
 
 function isConstantLike(expr: ParsedExpression): boolean {
-  return (
-    expr.class === ExpressionClass.CONSTANT ||
-    (expr.class === ExpressionClass.CAST && getConstantValue(expr) !== null)
-  );
+  if (expr.class === ExpressionClass.CONSTANT) return true;
+  if (expr.class === ExpressionClass.CAST) {
+    const cast = expr as ParsedExpression & { child?: ParsedExpression };
+    return cast.child ? isConstantLike(cast.child) : false;
+  }
+  return false;
 }
 
 function extractComparisonFilter(

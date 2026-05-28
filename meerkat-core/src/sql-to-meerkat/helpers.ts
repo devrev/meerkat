@@ -10,54 +10,33 @@ import {
   SelectNode,
 } from '../types/duckdb-serialization-types';
 import { Dimension, Measure } from '../types/cube-types/table';
+import { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
 
-export const AGGREGATE_FUNCTIONS = new Set([
-  'count',
-  'count_star',
-  'sum',
-  'avg',
-  'min',
-  'max',
-  'stddev',
-  'stddev_pop',
-  'stddev_samp',
-  'variance',
-  'var_pop',
-  'var_samp',
-  'median',
-  'percentile_cont',
-  'percentile_disc',
-  'quantile_cont',
-  'quantile_disc',
-  'approx_count_distinct',
-  'list',
-  'array_agg',
-  'string_agg',
-  'group_concat',
-  'listagg',
-  'first',
-  'last',
-  'any_value',
-  'bit_and',
-  'bit_or',
-  'bit_xor',
-  'bool_and',
-  'bool_or',
-]);
+export async function fetchAggregateFunctions(
+  getQueryOutput: GetQueryOutput
+): Promise<Set<string>> {
+  const rows = await getQueryOutput(
+    "SELECT DISTINCT function_name FROM duckdb_functions() WHERE function_type = 'aggregate'"
+  );
+  return new Set(rows.map((r) => r['function_name'].toLowerCase()));
+}
 
-export function isAggregateExpr(expr: ParsedExpression): boolean {
+export function isAggregateExpr(
+  expr: ParsedExpression,
+  aggregateFunctions: ReadonlySet<string>
+): boolean {
   if (expr.class === ExpressionClass.FUNCTION) {
     const fn = expr as FunctionExpression;
-    if (AGGREGATE_FUNCTIONS.has(fn.function_name.toLowerCase())) return true;
-    return fn.children.some(isAggregateExpr);
+    if (aggregateFunctions.has(fn.function_name.toLowerCase())) return true;
+    return fn.children.some((child) => isAggregateExpr(child, aggregateFunctions));
   }
   if (expr.class === ExpressionClass.CAST) {
     const cast = expr as ParsedExpression & { child?: ParsedExpression };
-    return cast.child ? isAggregateExpr(cast.child) : false;
+    return cast.child ? isAggregateExpr(cast.child, aggregateFunctions) : false;
   }
   if (expr.class === ExpressionClass.OPERATOR) {
     const op = expr as OperatorExpression;
-    return op.children.some(isAggregateExpr);
+    return op.children.some((child) => isAggregateExpr(child, aggregateFunctions));
   }
   return false;
 }
@@ -70,16 +49,22 @@ export function isStarExpr(expr: ParsedExpression): boolean {
   return expr.class === ExpressionClass.STAR;
 }
 
-function isDirectAggregate(expr: ParsedExpression): boolean {
+function isDirectAggregate(
+  expr: ParsedExpression,
+  aggregateFunctions: ReadonlySet<string>
+): boolean {
   if (expr.class !== ExpressionClass.FUNCTION) return false;
   const fn = expr as FunctionExpression;
-  return AGGREGATE_FUNCTIONS.has(fn.function_name.toLowerCase());
+  return aggregateFunctions.has(fn.function_name.toLowerCase());
 }
 
-export function isNestedAggregateExpr(expr: ParsedExpression): boolean {
-  if (!isDirectAggregate(expr)) return false;
+export function isNestedAggregateExpr(
+  expr: ParsedExpression,
+  aggregateFunctions: ReadonlySet<string>
+): boolean {
+  if (!isDirectAggregate(expr, aggregateFunctions)) return false;
   const fn = expr as FunctionExpression;
-  return fn.children.some(isAggregateExpr);
+  return fn.children.some((child) => isAggregateExpr(child, aggregateFunctions));
 }
 
 export function exprToName(expr: ParsedExpression): string {
@@ -95,6 +80,15 @@ export function exprToName(expr: ParsedExpression): string {
 }
 
 export function generateAggregateName(expr: ParsedExpression): string {
+  if (expr.class === ExpressionClass.OPERATOR) {
+    const op = expr as OperatorExpression;
+    const parts = op.children.map((child) => generateAggregateName(child));
+    return parts.join('_');
+  }
+  if (expr.class === ExpressionClass.CAST) {
+    const cast = expr as ParsedExpression & { child?: ParsedExpression };
+    return cast.child ? generateAggregateName(cast.child) : 'measure';
+  }
   if (expr.class !== ExpressionClass.FUNCTION) return 'measure';
   const fn = expr as FunctionExpression;
   const fnName = fn.function_name.toLowerCase();
