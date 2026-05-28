@@ -93,6 +93,11 @@ export function generateAggregateName(expr: ParsedExpression): string {
   const fn = expr as FunctionExpression;
   const fnName = fn.function_name.toLowerCase();
 
+  if ((fn as FunctionExpression & { is_operator?: boolean }).is_operator) {
+    const parts = fn.children.map((child) => generateAggregateName(child));
+    return parts.join('_');
+  }
+
   if (
     fnName === 'count_star' ||
     fn.children.length === 0 ||
