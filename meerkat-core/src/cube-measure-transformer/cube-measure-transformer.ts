@@ -3,6 +3,10 @@ import { getNamespacedKey } from '../member-formatters/get-namespaced-key';
 import { splitIntoDataSourceAndFields } from '../member-formatters/split-into-data-source-and-fields';
 import { Member } from '../types/cube-types/query';
 import { Measure, TableSchema } from '../types/cube-types/table';
+import {
+  findInDimensionSchema,
+  findInMeasureSchema,
+} from '../utils/find-in-table-schema';
 import { meerkatPlaceholderReplacer } from '../utils/meerkat-placeholder-replacer';
 
 export const cubeMeasureToSQLSelectString = (
@@ -20,8 +24,17 @@ export const cubeMeasureToSQLSelectString = (
       splitIntoDataSourceAndFields(measure);
 
     const aliasKey = getAliasForSQL(measure, tableSchema);
-    const measureSchema = tableSchema.measures.find(
-      (m) => m.name === measureKeyWithoutTable
+    /*
+     * Disambiguate by `__sourceTable` so that a measure key like
+     * `part.id___function__count` resolves to `part`'s measure even
+     * when `srutiobj`'s measure shares the same `name` in the merged
+     * schema. Falls back to the first match when no tagged member
+     * matches (single-table schema, or untagged callers).
+     */
+    const measureSchema = findInMeasureSchema(
+      measureKeyWithoutTable,
+      tableSchema,
+      tableSchemaName
     );
     if (!measureSchema) {
       continue;
@@ -76,10 +89,12 @@ const addDimensionToSQLProjection = (
   let newSelectString = selectString;
   for (let i = 0; i < dimensions.length; i++) {
     const dimension = dimensions[i];
-    const [_, dimensionKeyWithoutTable] =
+    const [tableSchemaName, dimensionKeyWithoutTable] =
       splitIntoDataSourceAndFields(dimension);
-    const dimensionSchema = tableSchema.dimensions.find(
-      (m) => m.name === dimensionKeyWithoutTable
+    const dimensionSchema = findInDimensionSchema(
+      dimensionKeyWithoutTable,
+      tableSchema,
+      tableSchemaName
     );
     const aliasKey = getAliasForSQL(dimension, tableSchema);
 

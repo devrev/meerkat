@@ -373,11 +373,28 @@ export const getCombinedTableSchema = (
 
   const combinedTableSchema = newTableSchema.reduce(
     (acc: TableSchema, schema: TableSchema) => {
+      /*
+       * Tag each flat-mapped member with its origin table so downstream
+       * lookups can disambiguate when two tables expose members of the
+       * same `name`. See `findInMeasureSchema`/`findInDimensionSchema`.
+       */
       return {
         name: 'MEERKAT_GENERATED_TABLE',
         sql: baseSql,
-        measures: [...acc.measures, ...schema.measures],
-        dimensions: [...acc.dimensions, ...schema.dimensions],
+        measures: [
+          ...acc.measures,
+          ...schema.measures.map((m) => ({
+            __sourceTable: schema.name,
+            ...m,
+          })),
+        ],
+        dimensions: [
+          ...acc.dimensions,
+          ...schema.dimensions.map((d) => ({
+            __sourceTable: schema.name,
+            ...d,
+          })),
+        ],
         joins: [],
       };
     },

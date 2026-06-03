@@ -19,6 +19,14 @@ export type Measure = {
   sql: string;
   type: MeasureType;
   alias?: string;
+  /**
+   * Origin table name. Set internally by `getCombinedTableSchema` when
+   * flat-mapping members from multiple tables into the merged schema, so
+   * downstream lookups can disambiguate when two tables expose members of
+   * the same `name` (e.g. `count(id)` exposed as `id___function__count` on
+   * each side of a join). Not part of the public schema-author contract.
+   */
+  __sourceTable?: string;
 };
 
 export type Dimension = {
@@ -30,6 +38,8 @@ export type Dimension = {
     shouldFlattenArray?: boolean;
   };
   alias?: string;
+  /** See {@link Measure.__sourceTable}. */
+  __sourceTable?: string;
 };
 
 export type Join = {

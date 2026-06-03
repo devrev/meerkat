@@ -22,7 +22,11 @@ export const getDimensionProjection = ({
   // Find the table access key
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
 
-  const foundMember = findInDimensionSchema(measureWithoutTable, tableSchema);
+  const foundMember = findInDimensionSchema(
+    measureWithoutTable,
+    tableSchema,
+    tableName
+  );
   if (!foundMember || tableName !== tableSchema.name) {
     // If the selected member is not found in the table schema or if it is already selected, continue.
     // If the selected member is not from the current table, don't create an alias.
@@ -56,7 +60,11 @@ export const getFilterMeasureProjection = ({
   measures: string[];
 }) => {
   const [tableName, measureWithoutTable] = splitIntoDataSourceAndFields(key);
-  const foundMember = findInMeasureSchema(measureWithoutTable, tableSchema);
+  const foundMember = findInMeasureSchema(
+    measureWithoutTable,
+    tableSchema,
+    tableName
+  );
   const isMeasure = measures.includes(key);
   if (!foundMember || isMeasure || tableName !== tableSchema.name) {
     // If the selected member is not found in the table schema or if it is already selected, continue.
@@ -83,8 +91,12 @@ const getFilterProjections = ({
   measures: string[];
   query: Query;
 }) => {
-  const [, memberWithoutTable] = splitIntoDataSourceAndFields(member);
-  const isDimension = findInDimensionSchema(memberWithoutTable, tableSchema);
+  const [tableName, memberWithoutTable] = splitIntoDataSourceAndFields(member);
+  const isDimension = findInDimensionSchema(
+    memberWithoutTable,
+    tableSchema,
+    tableName
+  );
   if (isDimension) {
     return getDimensionProjection({
       key: member,
@@ -93,7 +105,11 @@ const getFilterProjections = ({
       query,
     });
   }
-  const isMeasure = findInMeasureSchema(memberWithoutTable, tableSchema);
+  const isMeasure = findInMeasureSchema(
+    memberWithoutTable,
+    tableSchema,
+    tableName
+  );
   if (isMeasure) {
     return getFilterMeasureProjection({
       key: member,

@@ -112,11 +112,25 @@ export const getProjectionClause = (
   );
   const orderProjections = orderProjectionsArr.join(', ');
 
+  /*
+   * In a multi-table setting, two tables can expose measures of the same
+   * `name` (e.g. `id___function__count` on both sides of a join). When
+   * building this table's inner CTE we only want to scan the columns
+   * referenced by cubeQuery keys belonging to THIS table — otherwise the
+   * inner CTE for `srutiobj` would also try to project columns referenced
+   * by `part`'s measure. Constrain by both bare-name AND call-site table.
+   * Falls back to the legacy bare-name match when the schema has no name
+   * (legacy single-table callers).
+   */
   const usedMeasureObjects = tableSchema.measures.filter((measure) => {
     return (
       measures.findIndex((key) => {
-        const [, keyWithoutTable] = splitIntoDataSourceAndFields(key);
-        return keyWithoutTable === measure.name;
+        const [keyTableName, keyWithoutTable] = splitIntoDataSourceAndFields(
+          key
+        );
+        if (keyWithoutTable !== measure.name) return false;
+        if (!tableSchema.name) return true;
+        return keyTableName === tableSchema.name;
       }) !== -1
     );
   });

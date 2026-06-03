@@ -272,8 +272,20 @@ export const getCombinedTableSchemaV2 = (
   return {
     name: 'MEERKAT_GENERATED_TABLE',
     sql,
-    measures: activeTables.flatMap((s) => s.measures),
-    dimensions: activeTables.flatMap((s) => s.dimensions),
+    /*
+     * Tag each member with its origin table so downstream lookups can
+     * disambiguate when two tables expose members of the same `name`
+     * (e.g. `count(id)` exposed as `id___function__count` on each side
+     * of a join). See `findInMeasureSchema`/`findInDimensionSchema`.
+     * Preserves an existing `__sourceTable` if the member already
+     * carries one — handy for nested/synthesized schemas.
+     */
+    measures: activeTables.flatMap((s) =>
+      s.measures.map((m) => ({ __sourceTable: s.name, ...m }))
+    ),
+    dimensions: activeTables.flatMap((s) =>
+      s.dimensions.map((d) => ({ __sourceTable: s.name, ...d }))
+    ),
     joins: [],
   };
 };

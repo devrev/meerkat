@@ -1,30 +1,71 @@
 import { splitIntoDataSourceAndFields } from '../member-formatters';
-import { TableSchema } from '../types/cube-types';
+import { Dimension, Measure, TableSchema } from '../types/cube-types';
+
+/**
+ * Picks the member whose `__sourceTable` matches `sourceTable` when more
+ * than one entry shares the same `name`. Falls back to the first match
+ * (legacy behavior) when no `__sourceTable` is set or no source-table
+ * disambiguation is requested.
+ *
+ * Why: `getCombinedTableSchema` flat-maps members from every joined table
+ * into one merged schema. When two tables expose members of the same
+ * `name` (e.g. `count(id)` produces `id___function__count` on both sides
+ * of a join), a naive `find(m => m.name === ...)` returns only the first
+ * — so every cubeQuery key referencing that bare name resolves to one
+ * table's SQL. Tagging members with their origin table during flat-map
+ * and tie-breaking here keeps every cubeQuery key pointing at its own
+ * table's member.
+ */
+const pickMember = <T extends Measure | Dimension>(
+  members: T[],
+  name: string,
+  sourceTable: string | undefined
+): T | undefined => {
+  if (sourceTable) {
+    const sourceMatch = members.find(
+      (m) => m.name === name && m.__sourceTable === sourceTable
+    );
+    if (sourceMatch) return sourceMatch;
+  }
+  return members.find((m) => m.name === name);
+};
 
 export const findInDimensionSchema = (
   measure: string,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  sourceTable?: string
 ) => {
-  return tableSchema.dimensions.find((m) => m.name === measure);
+  return pickMember(tableSchema.dimensions, measure, sourceTable);
 };
 
 export const findInMeasureSchema = (
   measure: string,
-  tableSchema: TableSchema
+  tableSchema: TableSchema,
+  sourceTable?: string
 ) => {
-  return tableSchema.measures.find((m) => m.name === measure);
+  return pickMember(tableSchema.measures, measure, sourceTable);
 };
 
-export const findInSchema = (measure: string, tableSchema: TableSchema) => {
+export const findInSchema = (
+  measure: string,
+  tableSchema: TableSchema,
+  sourceTable?: string
+) => {
   /*
    ** Using the key passed as measureWithoutTable this function searches the table schema.
-   ** It returns either the first dimension or measure found.
+   ** It returns either the first dimension or measure found, preferring the
+   ** member whose `__sourceTable` matches `sourceTable` when supplied — see
+   ** `pickMember` above.
    */
-  const foundDimension = findInDimensionSchema(measure, tableSchema);
+  const foundDimension = findInDimensionSchema(
+    measure,
+    tableSchema,
+    sourceTable
+  );
   if (foundDimension) {
     return foundDimension;
   }
-  const foundMeasure = findInMeasureSchema(measure, tableSchema);
+  const foundMeasure = findInMeasureSchema(measure, tableSchema, sourceTable);
   if (foundMeasure) {
     return foundMeasure;
   }

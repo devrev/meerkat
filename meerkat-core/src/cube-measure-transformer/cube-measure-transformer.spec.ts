@@ -134,6 +134,46 @@ describe('cubeMeasureToSQLSelectString', () => {
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`
     );
   });
+
+  /*
+   * Regression: when two tables in a join expose measures of the same `name`
+   * (e.g. `count(id)` exposed as `id___function__count` on each side), the
+   * legacy `tableSchema.measures.find(m => m.name === <bare>)` returned only
+   * the FIRST match — so every cubeQuery key resolved to one table's SQL.
+   * `getCombinedTableSchema` now tags each flat-mapped member with
+   * `__sourceTable`, and the lookup tie-breaks by it.
+   */
+  it('disambiguates same-named measures by __sourceTable in a merged schema', () => {
+    const mergedSchema: TableSchema = {
+      name: 'MEERKAT_GENERATED_TABLE',
+      sql: '',
+      measures: [
+        {
+          __sourceTable: 'srutiobj',
+          name: 'id___function__count',
+          sql: 'count(srutiobj.id)',
+          type: 'number',
+        },
+        {
+          __sourceTable: 'part',
+          name: 'id___function__count',
+          sql: 'count(part.id)',
+          type: 'number',
+        },
+      ],
+      dimensions: [],
+    };
+    const measures: Member[] = [
+      'srutiobj.id___function__count',
+      'part.id___function__count',
+    ];
+
+    const result = cubeMeasureToSQLSelectString(measures, mergedSchema);
+
+    expect(result).toBe(
+      `SELECT count(srutiobj__id) AS srutiobj__id___function__count ,  count(part__id) AS part__id___function__count `
+    );
+  });
 });
 
 describe('getAllColumnUsedInMeasures', () => {
