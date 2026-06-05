@@ -38,7 +38,6 @@ export { BASE_TABLE_NAME } from './utils/base-ast';
 export * from './utils/duckdb-ast-parse-serialize';
 export * from './utils/cube-to-table-schema';
 export * from './utils/get-column-names-from-ast';
-export * from './prune-redundant-stars/prune-redundant-stars';
 export * from './utils/get-possible-nodes';
 export { meerkatPlaceholderReplacer } from './utils/meerkat-placeholder-replacer';
 export { ensureColumnAliasBatch } from './utils/ensure-sql-expression-column-alias';

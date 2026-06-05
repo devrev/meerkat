@@ -257,7 +257,9 @@ describe('generate-resolution-schemas', () => {
 
       const result = generateResolutionSchemas(config);
 
-      expect(result[0].sql).toBe('SELECT * FROM customers WHERE active = true');
+      expect(result[0].sql).toBe(
+        'SELECT orders__customer_id.id, orders__customer_id.name FROM (SELECT * FROM customers WHERE active = true) AS orders__customer_id'
+      );
     });
 
     it('should have empty measures array in resolution schema', () => {

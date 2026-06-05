@@ -10,7 +10,6 @@ import {
   Dimension,
   generateRowNumberSql,
   memberKeyToSafeKey,
-  pruneRedundantStarsOverJoins,
   Query,
   ResolutionConfig,
   ROW_ID_DIMENSION_NAME,
@@ -179,11 +178,5 @@ export const cubeQueryToSQLWithResolution = async ({
     ROW_ID_DIMENSION_NAME
   );
 
-  // Drop redundant post-join `*` projections so shared lookup columns can't
-  // collide (ISS-301213). Failures here degrade gracefully to the original SQL.
-  const { sql: prunedSql } = await pruneRedundantStarsOverJoins(
-    finalSql,
-    (query) => getQueryOutput(query, connection)
-  );
-  return prunedSql;
+  return finalSql;
 };

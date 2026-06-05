@@ -10,7 +10,6 @@ import {
   Dimension,
   generateRowNumberSql,
   memberKeyToSafeKey,
-  pruneRedundantStarsOverJoins,
   Query,
   ResolutionConfig,
   ROW_ID_DIMENSION_NAME,
@@ -19,7 +18,6 @@ import {
   wrapWithRowIdOrderingAndExclusion,
 } from '@devrev/meerkat-core';
 import { cubeQueryToSQL } from '../cube-to-sql/cube-to-sql';
-import { duckdbExec } from '../duckdb-exec';
 
 export interface CubeQueryToSQLWithResolutionParams {
   query: Query;
@@ -163,11 +161,5 @@ export const cubeQueryToSQLWithResolution = async ({
     ROW_ID_DIMENSION_NAME
   );
 
-  // Drop redundant post-join `*` projections so shared lookup columns can't
-  // collide (ISS-301213). Failures here degrade gracefully to the original SQL.
-  const { sql: prunedSql } = await pruneRedundantStarsOverJoins(
-    finalSql,
-    duckdbExec as (query: string) => Promise<Record<string, string>[]>
-  );
-  return prunedSql;
+  return finalSql;
 };
