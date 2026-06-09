@@ -194,13 +194,44 @@ describe('Comprehensive: String Filters', () => {
       
       const result = await duckdbExec(sql);
       const count = result[0]?.fact_all_types__count || 0;
-      
+
       // Should exclude 'high' (4/5 of data)
       expect(count).toBeGreaterThan(750000);
       expect(count).toBeLessThan(850000);
     });
+
+    // Regression: notContains with multiple values must join with AND, not OR.
+    // "none of [high, medium]" => NOT LIKE high AND NOT LIKE medium.
+    // With the previous OR bug the predicate was always true and the filter
+    // matched every row (~1M). Correct behaviour leaves low/critical/unknown
+    // (3/5 of data).
+    it('should filter string notContains with multiple values (none of)', async () => {
+      const query = {
+        measures: ['fact_all_types.count'],
+        filters: [
+          {
+            member: 'fact_all_types.priority',
+            operator: 'notContains',
+            values: ['high', 'medium'],
+          },
+        ],
+        dimensions: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [FACT_ALL_TYPES_SCHEMA],
+      });
+
+      const result = await duckdbExec(sql);
+      const count = result[0]?.fact_all_types__count || 0;
+
+      // Should exclude both 'high' and 'medium' (leaving 3/5 of data).
+      expect(count).toBeGreaterThan(550000);
+      expect(count).toBeLessThan(650000);
+    });
   });
-  
+
   describe('IN Operator', () => {
     it('should filter string IN with multiple values', async () => {
       const query = {
