@@ -9,8 +9,8 @@ import {
   CreateColumnRefOptions,
   valueBuilder,
 } from '../base-condition-builder/base-condition-builder';
+import { andDuckdbCondition } from '../and/and';
 import { CubeToParseExpressionTransform } from '../factory';
-import { orDuckdbCondition } from '../or/or';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const notContainsDuckdbCondition = (
@@ -79,13 +79,17 @@ export const notContainsTransform: CubeToParseExpressionTransform = (
   }
 
   /**
-   * If there are multiple values, we need to create an OR condition
+   * If there are multiple values, we need to create an AND condition.
+   * "notContains: [a, b, c]" means the member contains none of the values,
+   * i.e. NOT LIKE a AND NOT LIKE b AND NOT LIKE c (De Morgan's law).
+   * Using OR here would always be true for any value that differs from a
+   * single entry, effectively disabling the filter.
    */
-  const orCondition = orDuckdbCondition();
+  const andCondition = andDuckdbCondition();
   values.forEach((value) => {
-    orCondition.children.push(
+    andCondition.children.push(
       notContainsDuckdbCondition(member, value, memberInfo, options)
     );
   });
-  return orCondition;
+  return andCondition;
 };

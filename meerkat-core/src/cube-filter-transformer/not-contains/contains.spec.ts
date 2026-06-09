@@ -61,7 +61,7 @@ describe('Not Contains Transform Tests', () => {
       ).toEqual(expectedOutput);
     });
 
-    it('Should create an OR condition if there are multiple values', () => {
+    it('Should create an AND condition if there are multiple values', () => {
       const output = notContainsTransform(
         {
           member: 'country',
@@ -76,7 +76,7 @@ describe('Not Contains Transform Tests', () => {
         options
       ) as ConjunctionExpression;
       expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
-      expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
+      expect(output.type).toEqual(ExpressionType.CONJUNCTION_AND);
       expect(output.children.length).toEqual(3);
     });
   });
@@ -132,7 +132,7 @@ describe('Not Contains Transform Tests', () => {
       ).toEqual(expectedOutput);
     });
 
-    it('Should create an OR condition if there are multiple values', () => {
+    it('Should create an AND condition if there are multiple values', () => {
       const output = notContainsTransform(
         {
           member: 'country',
@@ -147,7 +147,7 @@ describe('Not Contains Transform Tests', () => {
         options
       ) as ConjunctionExpression;
       expect(output.class).toEqual(ExpressionClass.CONJUNCTION);
-      expect(output.type).toEqual(ExpressionType.CONJUNCTION_OR);
+      expect(output.type).toEqual(ExpressionType.CONJUNCTION_AND);
       expect(output.children.length).toEqual(3);
     });
   });
