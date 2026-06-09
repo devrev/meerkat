@@ -30,13 +30,5 @@
   },
   "keywords": [],
   "author": "devrev",
-  "license": "ISC",
-  "overrides": {
-    "duckdb": {
-      "node-gyp": "^11.5.0"
-    },
-    "tar": "7.5.13",
-    "@tootallnate/once": "3.0.1",
-    "ip-address": "10.2.0"
-  }
+  "license": "ISC"
 }
