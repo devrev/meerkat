@@ -51,28 +51,27 @@ describe('cubeMeasureToSQLSelectString', () => {
 
   it('should construct a SQL select string with COUNT(*) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure1'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
+    const result = cubeMeasureToSQLSelectString(measures, [tableSchema]);
     expect(result).toBe(`SELECT COUNT(*) AS temp__measure1 `);
   });
 
   it('should construct a SQL select string with SUM(total) when provided with correct measure', () => {
     const measures: Member[] = ['temp.measure2'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
+    const result = cubeMeasureToSQLSelectString(measures, [tableSchema]);
     expect(result).toBe(`SELECT SUM(total) AS temp__measure2 `);
   });
 
   it('should substitute "*" for all columns in the cube', () => {
     const measures: Member[] = ['*'];
-    const result = cubeMeasureToSQLSelectString(measures, tableSchema);
+    const result = cubeMeasureToSQLSelectString(measures, [tableSchema]);
     expect(result).toBe(`SELECT test.*`);
   });
 
   it('should use alias for measures when provided', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
-    const result = cubeMeasureToSQLSelectString(
-      measures,
-      tableSchemaWithAliases
-    );
+    const result = cubeMeasureToSQLSelectString(measures, [
+      tableSchemaWithAliases,
+    ]);
     expect(result).toBe(
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2" `
     );
@@ -84,7 +83,7 @@ describe('cubeMeasureToSQLSelectString', () => {
     const result = applyProjectionToSQLQuery(
       [],
       measures,
-      tableSchema,
+      [tableSchema],
       sqlToReplace
     );
     expect(result).toBe(
@@ -98,7 +97,7 @@ describe('cubeMeasureToSQLSelectString', () => {
     const result = applyProjectionToSQLQuery(
       [],
       measures,
-      tableSchema,
+      [tableSchema],
       sqlToReplace
     );
     expect(result).toBe(
@@ -113,7 +112,7 @@ describe('cubeMeasureToSQLSelectString', () => {
     const result = applyProjectionToSQLQuery(
       dimensions,
       measures,
-      tableSchema,
+      [tableSchema],
       sqlToReplace
     );
     expect(result).toBe(
@@ -127,12 +126,59 @@ describe('cubeMeasureToSQLSelectString', () => {
     const result = applyProjectionToSQLQuery(
       [],
       measures,
-      tableSchemaWithAliases,
+      [tableSchemaWithAliases],
       sqlToReplace
     );
     expect(result).toBe(
       `SELECT COUNT(*) AS "alias_measure1" ,  SUM(total) AS "alias_measure2"  FROM my_table`
     );
+  });
+
+  // Regression: in a merged combined schema produced by joins, two source
+  // tables can contribute measures (or dimensions) sharing the same name.
+  // Prior to source-table tagging, `find(m => m.name === ...)` picked the
+  // first match for every member — so `part.id___function__count` reused
+  // `issue.id___function__count`'s SQL and emitted `count(issue.id) AS
+  // part__id___function__count`, which referenced `issue` outside its scope
+  // and broke the binder.
+  it('should disambiguate same-named measures across source tables', () => {
+    const issueSchema: TableSchema = {
+      name: 'issue',
+      sql: 'select * from devrev.issue',
+      measures: [
+        {
+          name: 'id___function__count',
+          sql: 'count({MEERKAT}.id)',
+          type: 'number',
+        },
+      ],
+      dimensions: [{ name: 'id', sql: 'issue.id', type: 'string' }],
+    };
+    const partSchema: TableSchema = {
+      name: 'part',
+      sql: 'select * from devrev.part',
+      measures: [
+        {
+          name: 'id___function__count',
+          sql: 'count({MEERKAT}.id)',
+          type: 'number',
+        },
+      ],
+      dimensions: [{ name: 'id', sql: 'part.id', type: 'string' }],
+    };
+    const measures: Member[] = [
+      'issue.id___function__count',
+      'part.id___function__count',
+    ];
+    const result = cubeMeasureToSQLSelectString(measures, [
+      issueSchema,
+      partSchema,
+    ]);
+    // Each measure must reference its own source table's id column via the
+    // aliased safe-key, not the other table's raw column.
+    expect(result).toContain('count(issue__id) AS issue__id___function__count');
+    expect(result).toContain('count(part__id) AS part__id___function__count');
+    expect(result).not.toContain('count(issue.id) AS part__id___function__count');
   });
 });
 
