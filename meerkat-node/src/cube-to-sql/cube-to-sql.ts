@@ -91,7 +91,7 @@ export const cubeQueryToSQL = async ({
   const queryWithProjections = applyProjectionToSQLQuery(
     dimensions,
     measures,
-    updatedTableSchema,
+    updatedTableSchemas,
     replaceBaseTableName
   );
 
