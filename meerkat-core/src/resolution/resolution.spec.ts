@@ -349,7 +349,7 @@ describe('Generate resolution schemas', () => {
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column1.id, base_table__column1.display_id FROM (<resolution_table_sql>) AS base_table__column1',
         measures: [],
         dimensions: [
           {
@@ -362,7 +362,7 @@ describe('Generate resolution schemas', () => {
       },
       {
         name: 'base_table__column2',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column2.id, base_table__column2.display_name FROM (<resolution_table_sql>) AS base_table__column2',
         measures: [],
         dimensions: [
           {
@@ -505,7 +505,7 @@ describe('Generate resolution schemas', () => {
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column1.id, base_table__column1.display_id FROM (<resolution_table_sql>) AS base_table__column1',
         measures: [],
         dimensions: [
           {
@@ -573,7 +573,7 @@ describe('Generate resolution schemas', () => {
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column1.id, base_table__column1.display_id FROM (<resolution_table_sql>) AS base_table__column1',
         measures: [],
         dimensions: [
           {

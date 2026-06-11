@@ -156,8 +156,10 @@ export const cubeQueryToSQLWithResolution = async ({
   });
 
   // Wrap with row_id ordering and exclusion
-  return wrapWithRowIdOrderingAndExclusion(
+  const finalSql = wrapWithRowIdOrderingAndExclusion(
     sqlWithAliases,
     ROW_ID_DIMENSION_NAME
   );
+
+  return finalSql;
 };

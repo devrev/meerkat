@@ -3,6 +3,25 @@ import { TableSchema } from '../../types/cube-types/table';
 import { findInDimensionSchemas } from '../../utils/find-in-table-schema';
 import { ResolutionConfig } from '../types';
 
+/**
+ * Narrows a lookup table's SQL to project only the columns required by the
+ * resolution join (`joinColumn` + `resolutionColumns`). This prevents
+ * unrelated columns (e.g. `devrev_copy`) from leaking through the `SELECT *`
+ * wrapper that `cubeQueryToSQL` adds, which would cause "Ambiguous reference"
+ * errors when multiple lookup tables share a raw column name (ISS-301213).
+ */
+const buildNarrowedLookupSql = (
+  baseSql: string,
+  schemaName: string,
+  neededColumns: string[]
+): string => {
+  const uniqueCols = [...new Set(neededColumns)];
+  const projection = uniqueCols
+    .map((col) => `${schemaName}.${col}`)
+    .join(', ');
+  return `SELECT ${projection} FROM (${baseSql}) AS ${schemaName}`;
+};
+
 export const generateResolutionSchemas = (config: ResolutionConfig) => {
   const resolutionSchemas: TableSchema[] = [];
   config.columnConfigs.forEach((colConfig) => {
@@ -15,12 +34,19 @@ export const generateResolutionSchemas = (config: ResolutionConfig) => {
 
     const baseName = memberKeyToSafeKey(colConfig.name);
 
+    const neededColumns = [colConfig.joinColumn, ...colConfig.resolutionColumns];
+    const narrowedSql = buildNarrowedLookupSql(
+      tableSchema.sql,
+      baseName,
+      neededColumns
+    );
+
     // For each column that needs to be resolved, create a copy of the relevant table schema.
     // We use the name of the column in the base query as the table schema name
     // to avoid conflicts.
     const resolutionSchema: TableSchema = {
       name: baseName,
-      sql: tableSchema.sql,
+      sql: narrowedSql,
       measures: [],
       dimensions: colConfig.resolutionColumns.map((col) => {
         const dimension = findInDimensionSchemas(
