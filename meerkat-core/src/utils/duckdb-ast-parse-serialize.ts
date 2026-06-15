@@ -75,7 +75,7 @@ const splitBatchSerializedExpressions = (
   return expressions;
 };
 
-const stripQueryLocationInPlace = (root: unknown): void => {
+export const stripQueryLocationInPlace = (root: unknown): void => {
   const stack: unknown[] = [root];
 
   while (stack.length > 0) {
@@ -158,3 +158,25 @@ export const serializeExpressions = async (
   const deserializedSql = deserializeQuery(rows);
   return splitBatchSerializedExpressions(deserializedSql, expressions.length);
 };
+
+// Fetches function names from DuckDB's catalog by type.
+export async function fetchDuckDBFunctions(
+  getQueryOutput: GetQueryOutput,
+  functionType: 'aggregate' | 'scalar'
+): Promise<Set<string>> {
+  const rows = await getQueryOutput(
+    `SELECT DISTINCT function_name FROM duckdb_functions() WHERE function_type = '${functionType}'`
+  );
+  return new Set(rows.map((r) => r['function_name'].toLowerCase()));
+}
+
+// Fetches type names from DuckDB's type catalog by category.
+export async function fetchDuckDBTypes(
+  getQueryOutput: GetQueryOutput,
+  typeCategory: 'NUMERIC' | 'DATETIME' | 'STRING'
+): Promise<Set<string>> {
+  const rows = await getQueryOutput(
+    `SELECT DISTINCT type_name FROM duckdb_types() WHERE type_category = '${typeCategory}'`
+  );
+  return new Set(rows.map((r) => r['type_name'].toUpperCase()));
+}
