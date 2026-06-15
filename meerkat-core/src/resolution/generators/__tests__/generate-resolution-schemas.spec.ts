@@ -95,7 +95,7 @@ describe('generate-resolution-schemas', () => {
       const result = generateResolutionSchemas(config);
 
       expect(result[0].dimensions[0].sql).toBe(
-        'orders__customer_id.display_name'
+        'orders__customer_id."orders__customer_id__display_name"'
       );
     });
 
@@ -257,7 +257,12 @@ describe('generate-resolution-schemas', () => {
 
       const result = generateResolutionSchemas(config);
 
-      expect(result[0].sql).toBe('SELECT * FROM customers WHERE active = true');
+      // The lookup SQL is rewritten to project declared columns (plus the join
+      // column) under table-qualified aliases, so the bare `*` over the join
+      // can no longer expose colliding raw column names (ISS-301213).
+      expect(result[0].sql).toBe(
+        'SELECT orders__customer_id."name" AS "orders__customer_id__name", orders__customer_id."id" AS "orders__customer_id__id" FROM (SELECT * FROM customers WHERE active = true) AS orders__customer_id'
+      );
     });
 
     it('should have empty measures array in resolution schema', () => {
@@ -301,7 +306,9 @@ describe('generate-resolution-schemas', () => {
 
       expect(result[0].name).toBe('orders__tag_ids');
       expect(result[0].dimensions[0].name).toBe('orders__tag_ids__tag_name');
-      expect(result[0].dimensions[0].sql).toBe('orders__tag_ids.tag_name');
+      expect(result[0].dimensions[0].sql).toBe(
+        'orders__tag_ids."orders__tag_ids__tag_name"'
+      );
     });
 
     it('should handle multiple resolution columns from same source', () => {
@@ -329,19 +336,19 @@ describe('generate-resolution-schemas', () => {
       expect(result[0].dimensions).toHaveLength(3);
       expect(result[0].dimensions[0]).toEqual({
         name: 'orders__user_id__first_name',
-        sql: 'orders__user_id.first_name',
+        sql: 'orders__user_id."orders__user_id__first_name"',
         type: 'string',
         alias: 'orders__user_id__first_name',
       });
       expect(result[0].dimensions[1]).toEqual({
         name: 'orders__user_id__last_name',
-        sql: 'orders__user_id.last_name',
+        sql: 'orders__user_id."orders__user_id__last_name"',
         type: 'string',
         alias: 'orders__user_id__last_name',
       });
       expect(result[0].dimensions[2]).toEqual({
         name: 'orders__user_id__email',
-        sql: 'orders__user_id.email',
+        sql: 'orders__user_id."orders__user_id__email"',
         type: 'string',
         alias: 'orders__user_id__email',
       });

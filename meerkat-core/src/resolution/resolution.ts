@@ -7,6 +7,7 @@ import { memberKeyToSafeKey } from '../member-formatters/member-key-to-safe-key'
 import { Member, Query } from '../types/cube-types/query';
 import { Dimension, Measure, TableSchema } from '../types/cube-types/table';
 import { isArrayTypeMember } from '../utils/is-array-member-type';
+import { resolutionJoinColumnAlias } from './generators/generate-resolution-schemas';
 import {
   BASE_DATA_SOURCE_NAME,
   ResolutionColumnConfig,
@@ -92,10 +93,16 @@ export const createBaseTableSchema = (
     joins: resolutionConfig.columnConfigs.map((columnConfig) => {
       const targetTable = memberKeyToSafeKey(columnConfig.name);
       return {
+        // The lookup's join column is projected under a table-qualified alias
+        // (see buildQualifiedLookupSql), so reference that alias, not the raw
+        // column name which the lookup subquery no longer exposes.
         sql: `${BASE_DATA_SOURCE_NAME}.${constructAliasForSQL(
           columnConfig.name,
           schemaByName[columnConfig.name]?.alias
-        )} = ${targetTable}.${columnConfig.joinColumn}`,
+        )} = ${targetTable}."${resolutionJoinColumnAlias(
+          columnConfig.name,
+          columnConfig.joinColumn
+        )}"`,
       };
     }),
   };

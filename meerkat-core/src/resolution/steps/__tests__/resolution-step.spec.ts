@@ -196,7 +196,7 @@ describe('resolution-step', () => {
         'orders__owner_id__display_name'
       );
       expect(resolutionSchema.dimensions[0].sql).toBe(
-        'orders__owner_id.display_name'
+        'orders__owner_id."orders__owner_id__display_name"'
       );
     });
 
