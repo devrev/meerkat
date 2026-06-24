@@ -32,9 +32,17 @@ export const FileLoader = ({ children }: { children: JSX.Element }) => {
       });
 
       // Create views for raw and memory file manager after registering the files
-      if (fileManagerType === 'raw' || fileManagerType === 'memory') {
-        await dbm.query(generateViewQuery('taxi', ['taxi.parquet']));
-        await dbm.query(generateViewQuery('taxi_json', ['taxi_json.parquet']));
+      if (
+        fileManagerType === 'raw' ||
+        fileManagerType === 'memory' ||
+        fileManagerType === 'opfs'
+      ) {
+        const useTable = fileManagerType === 'opfs';
+
+        await dbm.query(generateViewQuery('taxi', ['taxi.parquet'], useTable));
+        await dbm.query(
+          generateViewQuery('taxi_json', ['taxi_json.parquet'], useTable)
+        );
       }
 
       setIsFileLoader(true);
