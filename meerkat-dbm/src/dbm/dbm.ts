@@ -23,6 +23,13 @@ export class DBM extends TableLockManager {
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
+  private recycleDBTimeout: NodeJS.Timeout | null = null;
+  // Ensures the intermediate recycle fires at most once per idle period.
+  private recycledThisIdle = false;
+  // Set while a recycle/shutdown teardown is mid-flight. Queries acquiring a
+  // connection wait on this so they never bind to an instance that teardown is
+  // about to terminate. Cleared when the teardown that set it completes.
+  private teardownInProgress: Promise<void> | null = null;
   private onDuckDBShutdown?: () => void;
   private onCreateConnection?: (
     connection: AsyncDuckDBConnection
@@ -50,6 +57,53 @@ export class DBM extends TableLockManager {
     this.instanceManager = instanceManager;
     this.onDuckDBShutdown = onDuckDBShutdown;
     this.onCreateConnection = onCreateConnection;
+
+    this._validateIdleOptions();
+  }
+
+  /**
+   * Fail fast on a misconfigured idle policy. The recycle is the early action
+   * and the shutdown is the late one, so when both are set the recycle must
+   * fire strictly before the shutdown. Otherwise the shutdown's terminateDB
+   * would run first and a still-pending recycle would re-instantiate the
+   * engine we just tore down.
+   */
+  private _validateIdleOptions() {
+    const recycle = this.options?.recycleInactiveTime;
+    const shutdown = this.options?.shutdownInactiveTime;
+    if (
+      recycle !== undefined &&
+      shutdown !== undefined &&
+      recycle >= shutdown
+    ) {
+      throw new Error(
+        `Invalid idle options: recycleInactiveTime (${recycle}ms) must be less than shutdownInactiveTime (${shutdown}ms).`
+      );
+    }
+  }
+
+  /**
+   * Run a teardown (recycle/shutdown) body under a barrier so a query that
+   * arrives mid-teardown waits in _getConnection instead of binding to an
+   * instance that is about to be terminated. The body's synchronous prefix runs
+   * before this records the promise, but it contains no await, so no query can
+   * interleave before the barrier is in place.
+   */
+  private _runTeardown(body: () => Promise<void>): Promise<void> {
+    // body() runs synchronously up to its first await before returning, but it
+    // has no synchronous-prefix await that touches the connection, so recording
+    // the barrier here still happens before any query can interleave.
+    const promise = body();
+    const barrier = promise.catch(() => undefined);
+    this.teardownInProgress = barrier;
+    barrier.then(() => {
+      // Only clear if this teardown is still the active one — a later teardown
+      // may have replaced the barrier in the meantime.
+      if (this.teardownInProgress === barrier) {
+        this.teardownInProgress = null;
+      }
+    });
+    return promise;
   }
 
   private async _shutdown() {
@@ -60,38 +114,125 @@ export class DBM extends TableLockManager {
       return;
     }
 
-    if (this.connection) {
-      await this.connection.close();
-      this.connection = null;
+    // A shutdown supersedes any pending recycle — clear it so it can't fire
+    // afterwards and re-instantiate the engine we are about to terminate.
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
     }
-    this.logger.debug('Shutting down the DB');
-    if (this.onDuckDBShutdown) {
-      this.onDuckDBShutdown();
-    }
-    await this.fileManager.onDBShutdownHandler();
-    await this.instanceManager.terminateDB();
+
+    await this._runTeardown(async () => {
+      if (this.connection) {
+        await this.connection.close();
+        this.connection = null;
+      }
+      this.logger.debug('Shutting down the DB');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      await this.fileManager.onDBShutdownHandler();
+      await this.instanceManager.terminateDB();
+    });
   }
 
-  private _startShutdownInactiveTimer() {
-    if (!this.options?.shutdownInactiveTime) {
+  /**
+   * Tear down the engine and immediately re-instantiate it. Reclaims the
+   * worker's high-water memory while leaving a warm engine for the next query.
+   * Mirrors _shutdown()'s cleanup so the consumer's caches stay consistent,
+   * then eagerly re-acquires the DB so the cold instantiate is paid now (during
+   * idle) rather than on the next user-facing query.
+   */
+  /**
+   * True while any query is pending or executing. The queue is drained by
+   * _startQueryExecution shifting an item off before it runs, so a length of 0
+   * does not by itself mean idle — check the running flag and current item too.
+   */
+  private _isBusy() {
+    return (
+      this.queriesQueue.length > 0 ||
+      this.queryQueueRunning ||
+      this.currentQueryItem !== undefined
+    );
+  }
+
+  private async _recycle() {
+    if (this.shutdownLock) {
       return;
     }
-    /**
-     * Clear the previous timer if any, it can happen if we try to shutdown the DB before the timer is complete after the queue is empty
-     */
+    await this._runTeardown(async () => {
+      if (this.connection) {
+        await this.connection.close();
+        this.connection = null;
+      }
+      this.logger.debug('Recycling the DB (idle teardown + restart)');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      await this.fileManager.onDBShutdownHandler();
+      await this.instanceManager.terminateDB();
+      // Re-instantiate eagerly so the next query hits a warm engine.
+      await this.instanceManager.getDB();
+    });
+  }
+
+  /**
+   * Arm the idle timers when the query queue drains. Two independent timers:
+   *  - recycleInactiveTime (optional, earlier): teardown + restart ONCE, gated
+   *    by shouldRecycle(). Reclaims memory without losing the warm engine.
+   *  - shutdownInactiveTime (later): full shutdown, no restart.
+   * Both re-arm on each queue-drain; recycle is throttled to once per idle
+   * period via recycledThisIdle (reset whenever new activity re-arms timers).
+   */
+  private _startShutdownInactiveTimer() {
+    this.recycledThisIdle = false;
+
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
+    }
     if (this.terminateDBTimeout) {
       clearTimeout(this.terminateDBTimeout);
+      this.terminateDBTimeout = null;
     }
-    this.terminateDBTimeout = setTimeout(async () => {
-      /**
-       * Check if there is any query in the queue
-       */
-      if (this.queriesQueue.length > 0) {
-        this.logger.debug('Query queue is not empty, not shutting down the DB');
-        return;
-      }
-      await this._shutdown();
-    }, this.options.shutdownInactiveTime);
+
+    if (this.options?.recycleInactiveTime) {
+      this.recycleDBTimeout = setTimeout(async () => {
+        // Still idle? A running queue means a query was shifted off the queue
+        // and is executing, so queriesQueue.length alone is not enough.
+        if (this._isBusy() || this.recycledThisIdle) {
+          return;
+        }
+        // Consult the consumer-supplied gate (defaults to always-recycle).
+        const shouldRecycle = this.options?.shouldRecycle
+          ? await this.options.shouldRecycle()
+          : true;
+        if (!shouldRecycle) {
+          return;
+        }
+        // Re-check idle after the (possibly async) gate resolved — a query may
+        // have arrived and started executing while shouldRecycle() awaited.
+        if (this._isBusy() || this.recycledThisIdle) {
+          return;
+        }
+        this.recycledThisIdle = true;
+        await this._recycle();
+      }, this.options.recycleInactiveTime);
+    }
+
+    if (this.options?.shutdownInactiveTime) {
+      this.terminateDBTimeout = setTimeout(async () => {
+        /**
+         * Check if there is any query in the queue
+         */
+        if (this.queriesQueue.length > 0) {
+          this.logger.debug(
+            'Query queue is not empty, not shutting down the DB'
+          );
+          return;
+        }
+        await this._shutdown();
+      }, this.options.shutdownInactiveTime);
+    }
   }
 
   private _emitEvent(event: DBMEvent) {
@@ -101,6 +242,12 @@ export class DBM extends TableLockManager {
   }
 
   private async _getConnection() {
+    // Wait out any in-flight teardown so we never bind a connection to an
+    // instance that recycle/shutdown is about to terminate. Loop because a new
+    // teardown can begin while we awaited the previous one.
+    while (this.teardownInProgress) {
+      await this.teardownInProgress;
+    }
     if (!this.connection) {
       const db = await this.instanceManager.getDB();
       this.connection = await db.connect();
@@ -116,6 +263,13 @@ export class DBM extends TableLockManager {
     tables: TableConfig[],
     options?: QueryOptions
   ) {
+    // Wait out any in-flight teardown before touching the DB. mountFileBuffer
+    // registers buffers into the instance via getDB(), so it must not run
+    // against an instance recycle/shutdown is about to terminate.
+    while (this.teardownInProgress) {
+      await this.teardownInProgress;
+    }
+
     /**
      * Load all the files into the database
      */

@@ -7,7 +7,7 @@ import {
 import { FileData, Table } from '../../types';
 import { DBM } from '../dbm';
 import { DBMConstructorOptions, TableConfig } from '../types';
-import { InstanceManager } from './mock';
+import { InstanceManager, mockDB } from './mock';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
@@ -416,6 +416,212 @@ describe('DBM', () => {
        * Expect instanceManager.terminateDB to not be called
        */
       expect(instanceManager.terminateDB).not.toBeCalled();
+    });
+  });
+
+  describe('recycle the db test', () => {
+    const buildDbm = (
+      recycleOpts: {
+        recycleInactiveTime?: number;
+        shutdownInactiveTime?: number;
+        shouldRecycle?: () => boolean | Promise<boolean>;
+      },
+      onShutdown?: () => void
+    ) => {
+      const instanceManager = new InstanceManager();
+      instanceManager.terminateDB = jest.fn();
+      const getDBSpy = jest.spyOn(instanceManager, 'getDB');
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+        onDuckDBShutdown: onShutdown,
+        options: recycleOpts,
+      });
+      return { dbm, instanceManager, getDBSpy };
+    };
+
+    it('recycles (terminate + restart) at recycleInactiveTime, then shuts down at shutdownInactiveTime', async () => {
+      const onDuckDBShutdown = jest.fn();
+      const { dbm, instanceManager, getDBSpy } = buildDbm(
+        { recycleInactiveTime: 100, shutdownInactiveTime: 300 },
+        onDuckDBShutdown
+      );
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      getDBSpy.mockClear();
+
+      // Before recycle window: nothing fired.
+      await new Promise((r) => setTimeout(r, 50));
+      expect(instanceManager.terminateDB).not.toBeCalled();
+
+      // After recycle window: terminate + restart (getDB) once.
+      await new Promise((r) => setTimeout(r, 100));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+      expect(getDBSpy).toBeCalledTimes(1); // eager restart
+
+      // After shutdown window: final shutdown terminates again, no restart.
+      await new Promise((r) => setTimeout(r, 200));
+      expect(instanceManager.terminateDB).toBeCalledTimes(2);
+      expect(getDBSpy).toBeCalledTimes(1);
+    });
+
+    it('skips the recycle when shouldRecycle returns false', async () => {
+      const { dbm, instanceManager, getDBSpy } = buildDbm({
+        recycleInactiveTime: 100,
+        shutdownInactiveTime: 300,
+        shouldRecycle: () => false,
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      getDBSpy.mockClear();
+
+      // Past the recycle window — gate said no, so no terminate yet.
+      await new Promise((r) => setTimeout(r, 180));
+      expect(instanceManager.terminateDB).not.toBeCalled();
+      expect(getDBSpy).not.toBeCalled();
+
+      // Final shutdown still fires.
+      await new Promise((r) => setTimeout(r, 180));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+    });
+
+    it('recycles at most once per idle period', async () => {
+      const { dbm, instanceManager } = buildDbm({
+        recycleInactiveTime: 100,
+        // No shutdown — isolate recycle behavior.
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+
+      // Wait well past multiple recycle windows.
+      await new Promise((r) => setTimeout(r, 400));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+    });
+
+    it('re-arms the recycle after new activity', async () => {
+      const { dbm, instanceManager } = buildDbm({ recycleInactiveTime: 100 });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      await new Promise((r) => setTimeout(r, 150));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+
+      // New query → idle period resets → recycle can fire again.
+      await dbm.queryWithTables({ query: 'SELECT 2', tables });
+      await new Promise((r) => setTimeout(r, 150));
+      expect(instanceManager.terminateDB).toBeCalledTimes(2);
+    });
+
+    it('does not recycle if a query starts executing while shouldRecycle awaits', async () => {
+      // A slow async gate widens the window between the idle re-check and the
+      // recycle. A query that arrives in that window must suppress the recycle
+      // so _recycle() never tears down a live connection mid-query.
+      let resolveGate: (value: boolean) => void = () => undefined;
+      const shouldRecycle = () =>
+        new Promise<boolean>((resolve) => {
+          resolveGate = resolve;
+        });
+
+      const { dbm, instanceManager } = buildDbm({
+        recycleInactiveTime: 100,
+        shouldRecycle,
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+
+      // Let the recycle timer fire and enter the (pending) gate.
+      await new Promise((r) => setTimeout(r, 150));
+      expect(instanceManager.terminateDB).not.toBeCalled();
+
+      // A new query arrives and begins executing while the gate is pending.
+      const queryPromise = dbm.queryWithTables({ query: 'SELECT 2', tables });
+
+      // Gate now resolves true — the post-await idle re-check must see the
+      // busy queue and skip the recycle.
+      resolveGate(true);
+      await queryPromise;
+
+      expect(instanceManager.terminateDB).not.toBeCalled();
+    });
+
+    it('waits for an in-flight recycle before binding a connection (no dead connection)', async () => {
+      // Reproduces the teardown/getConnection race: a query that arrives while
+      // _recycle() is terminating the instance must NOT bind to the instance
+      // being destroyed. With the barrier it waits until the recycle finishes
+      // (terminate + warm re-instantiate), then connects to the fresh instance.
+      const events: string[] = [];
+
+      const instanceManager = new InstanceManager();
+      instanceManager.getDB = jest.fn(async () => {
+        events.push('getDB');
+        return mockDB as unknown as Awaited<
+          ReturnType<typeof instanceManager.getDB>
+        >;
+      });
+      // Slow terminate so the recycle is still mid-flight when the next query
+      // arrives — this is the window the barrier must cover.
+      instanceManager.terminateDB = jest.fn(
+        () =>
+          new Promise<void>((resolve) =>
+            setTimeout(() => {
+              events.push('terminate-done');
+              resolve();
+            }, 150)
+          )
+      );
+      const connectSpy = jest.spyOn(mockDB, 'connect');
+
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+        options: { recycleInactiveTime: 100 },
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      connectSpy.mockClear();
+      connectSpy.mockImplementation(async () => {
+        events.push('connect');
+        return {
+          query: async (q: string) => [q],
+          cancelSent: async () => true,
+          close: async () => undefined,
+        } as unknown as Awaited<ReturnType<typeof mockDB.connect>>;
+      });
+
+      // Let the recycle fire; terminate is now in flight.
+      await new Promise((r) => setTimeout(r, 120));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+
+      // Query arrives mid-recycle. It must block on the barrier, not connect now.
+      const result = await dbm.queryWithTables({ query: 'SELECT 2', tables });
+
+      // Let the recycle's slow terminate + re-instantiate fully settle so the
+      // event ordering is complete before we assert on it.
+      await new Promise((r) => setTimeout(r, 250));
+
+      // The query succeeded against the warm instance...
+      expect(result).toEqual(['SELECT 2']);
+      // ...the teardown actually finished its terminate...
+      expect(events).toContain('terminate-done');
+      // ...and crucially the query connected only AFTER that terminate, i.e. it
+      // bound to the fresh instance, never the one being torn down.
+      expect(events.indexOf('connect')).toBeGreaterThan(
+        events.indexOf('terminate-done')
+      );
+
+      connectSpy.mockRestore();
+    });
+
+    it('throws when recycleInactiveTime is not less than shutdownInactiveTime', () => {
+      expect(() =>
+        buildDbm({ recycleInactiveTime: 300, shutdownInactiveTime: 300 })
+      ).toThrow(/recycleInactiveTime/);
+      expect(() =>
+        buildDbm({ recycleInactiveTime: 400, shutdownInactiveTime: 300 })
+      ).toThrow(/recycleInactiveTime/);
     });
   });
 

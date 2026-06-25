@@ -29,6 +29,13 @@ export class DBMParallel extends TableLockManager {
   private iFrameRunnerManager: IFrameRunnerManager;
   private counter = 0;
   private terminateDBTimeout: NodeJS.Timeout | null = null;
+  private recycleDBTimeout: NodeJS.Timeout | null = null;
+  // Ensures the intermediate recycle fires at most once per idle period.
+  private recycledThisIdle = false;
+  // Set while a recycle/shutdown teardown is mid-flight. Queries wait on this
+  // so they never start runners that teardown is about to stop. Cleared when
+  // the teardown that set it completes.
+  private teardownInProgress: Promise<void> | null = null;
   private activeNumberOfQueries = 0;
   private activeQueries: Map<
     string,
@@ -58,44 +65,143 @@ export class DBMParallel extends TableLockManager {
     this.options = options;
     this.onDuckDBShutdown = onDuckDBShutdown;
     this.iFrameRunnerManager = iFrameRunnerManager;
+
+    this._validateIdleOptions();
+  }
+
+  /**
+   * Fail fast on a misconfigured idle policy. The recycle is the early action
+   * and the shutdown is the late one, so when both are set the recycle must
+   * fire strictly before the shutdown. Otherwise the shutdown's teardown would
+   * run first and a still-pending recycle would restart the runners we just
+   * stopped.
+   */
+  private _validateIdleOptions() {
+    const recycle = this.options?.recycleInactiveTime;
+    const shutdown = this.options?.shutdownInactiveTime;
+    if (
+      recycle !== undefined &&
+      shutdown !== undefined &&
+      recycle >= shutdown
+    ) {
+      throw new Error(
+        `Invalid idle options: recycleInactiveTime (${recycle}ms) must be less than shutdownInactiveTime (${shutdown}ms).`
+      );
+    }
+  }
+
+  /**
+   * Run a teardown (recycle/shutdown) body under a barrier so a query that
+   * arrives mid-teardown waits in queryWithTables instead of starting runners
+   * that teardown is about to stop. body()'s synchronous prefix runs before the
+   * barrier is recorded, but it has no synchronous-prefix await, so no query can
+   * interleave before the barrier is in place.
+   */
+  private _runTeardown(body: () => Promise<void>): Promise<void> {
+    const promise = body();
+    const barrier = promise.catch(() => undefined);
+    this.teardownInProgress = barrier;
+    barrier.then(() => {
+      if (this.teardownInProgress === barrier) {
+        this.teardownInProgress = null;
+      }
+    });
+    return promise;
   }
 
   private async _shutdown() {
-    this.logger.debug('Shutting down the DB');
-    if (this.onDuckDBShutdown) {
-      this.onDuckDBShutdown();
+    // A shutdown supersedes any pending recycle — clear it so it can't fire
+    // afterwards and restart the runners we are about to stop.
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
     }
-    /**
-     * This will remove all the iframes
-     */
-    this.iFrameRunnerManager.stopRunners();
-    /**
-     * This will remove all the file buffers from main thread
-     */
-    await this.fileManager.onDBShutdownHandler();
+    await this._runTeardown(async () => {
+      this.logger.debug('Shutting down the DB');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      /**
+       * This will remove all the iframes
+       */
+      this.iFrameRunnerManager.stopRunners();
+      /**
+       * This will remove all the file buffers from main thread
+       */
+      await this.fileManager.onDBShutdownHandler();
+    });
   }
 
+  /**
+   * Tear down the runners and immediately restart them — reclaims iframe/worker
+   * memory while keeping the engine warm for the next query. Mirrors _shutdown()
+   * cleanup, then re-starts the runners eagerly.
+   */
+  private async _recycle() {
+    await this._runTeardown(async () => {
+      this.logger.debug('Recycling the DB (idle teardown + restart)');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      this.iFrameRunnerManager.stopRunners();
+      await this.fileManager.onDBShutdownHandler();
+      // Re-create the runners eagerly so the next query hits warm iframes.
+      this.iFrameRunnerManager.startRunners();
+    });
+  }
+
+  /**
+   * Arm the idle timers when no queries are active. Two independent timers:
+   *  - recycleInactiveTime (optional, earlier): teardown + restart ONCE, gated
+   *    by shouldRecycle(). Reclaims memory without losing the warm engine.
+   *  - shutdownInactiveTime (later): full shutdown, no restart.
+   * Recycle is throttled to once per idle period via recycledThisIdle.
+   */
   private _startShutdownInactiveTimer() {
-    if (!this.options?.shutdownInactiveTime) {
-      return;
+    this.recycledThisIdle = false;
+
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
     }
-    /**
-     * Clear the previous timer if any, it can happen if we try to shutdown the DB before the timer is complete after the queue is empty
-     */
     if (this.terminateDBTimeout) {
       clearTimeout(this.terminateDBTimeout);
+      this.terminateDBTimeout = null;
     }
 
-    this.terminateDBTimeout = setTimeout(async () => {
-      /**
-       * Check if there is any query in the queue
-       */
-      if (this.activeNumberOfQueries > 0) {
-        this.logger.debug('Query queue is not empty, not shutting down the DB');
-        return;
-      }
-      await this._shutdown();
-    }, this.options.shutdownInactiveTime);
+    if (this.options?.recycleInactiveTime) {
+      this.recycleDBTimeout = setTimeout(async () => {
+        if (this.activeNumberOfQueries > 0 || this.recycledThisIdle) {
+          return;
+        }
+        const shouldRecycle = this.options?.shouldRecycle
+          ? await this.options.shouldRecycle()
+          : true;
+        if (!shouldRecycle) {
+          return;
+        }
+        if (this.activeNumberOfQueries > 0 || this.recycledThisIdle) {
+          return;
+        }
+        this.recycledThisIdle = true;
+        await this._recycle();
+      }, this.options.recycleInactiveTime);
+    }
+
+    if (this.options?.shutdownInactiveTime) {
+      this.terminateDBTimeout = setTimeout(async () => {
+        /**
+         * Check if there is any query in the queue
+         */
+        if (this.activeNumberOfQueries > 0) {
+          this.logger.debug(
+            'Query queue is not empty, not shutting down the DB'
+          );
+          return;
+        }
+        await this._shutdown();
+      }, this.options.shutdownInactiveTime);
+    }
   }
 
   private _signalListener(
@@ -154,6 +260,14 @@ export class DBMParallel extends TableLockManager {
        * Tracking the number of active queries to shutdown the DB after inactivity
        */
       this.activeNumberOfQueries++;
+      /**
+       * Wait out any in-flight teardown so we don't start runners that recycle/
+       * shutdown is about to stop. Loop because a new teardown can begin while
+       * we awaited the previous one.
+       */
+      while (this.teardownInProgress) {
+        await this.teardownInProgress;
+      }
       /**
        * StartRunners will start the runners if they are not already running
        */

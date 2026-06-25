@@ -29,6 +29,7 @@ While `duckdb-wasm` is incredibly powerful, using it directly in a complex web a
 ### 🚀 Database Management
 
 - **Instance Management**: Automated lifecycle management for DuckDB instances.
+- **Idle Recycle & Shutdown**: Reclaim a worker's high-water memory after inactivity by recycling the engine (teardown + warm restart) before the final shutdown, with a consumer-supplied gate.
 - **Connection Pooling**: Efficient management of database connections.
 - **Query Queueing**: Intelligent scheduling of queries for sequential or parallel execution.
 - **Table Locking**: Ensures thread-safe table operations during concurrent access.
@@ -120,6 +121,14 @@ const dbm = new DBM({
   fileManager,
   onEvent: (event) => console.info('DBM Event:', event),
   options: {
+    // Optional intermediate "recycle" after 2s of inactivity: tear down the
+    // DuckDB instance and immediately re-instantiate it. Reclaims the worker's
+    // high-water memory (WASM linear memory only grows) while keeping the
+    // engine warm for the next query. Must be less than shutdownInactiveTime.
+    recycleInactiveTime: 2000,
+    // Optional gate consulted before each recycle. Return false to skip it
+    // (e.g. nothing worth reclaiming). Defaults to always-recycle when omitted.
+    shouldRecycle: () => true,
     // Automatically shut down the DuckDB instance after 5s of inactivity
     shutdownInactiveTime: 5000,
   },

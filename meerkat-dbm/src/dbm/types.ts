@@ -48,6 +48,27 @@ export interface DBMConstructorOptions {
      * If not specified, the DB will not shutdown.
      */
     shutdownInactiveTime?: number;
+
+    /**
+     * @description
+     * Optional intermediate "recycle" before the final shutdown. After this much
+     * inactivity (in ms), the DB is torn down and immediately re-instantiated —
+     * reclaiming the worker's high-water memory while keeping the engine warm for
+     * the next query. Fires at most once per idle period. Requires
+     * `shutdownInactiveTime` to be set and larger than this value (the recycle is
+     * the early action; the shutdown is the late one). Gated by `shouldRecycle`.
+     * If not specified, no intermediate recycle happens.
+     */
+    recycleInactiveTime?: number;
+
+    /**
+     * @description
+     * Predicate consulted before an idle recycle. Return false to skip the recycle
+     * (e.g. when the engine holds no data worth reclaiming, so the recycle would
+     * only cost a needless re-instantiate). Only consulted when `recycleInactiveTime`
+     * is set. Defaults to always-recycle when omitted.
+     */
+    shouldRecycle?: () => boolean | Promise<boolean>;
   };
 
   /**
