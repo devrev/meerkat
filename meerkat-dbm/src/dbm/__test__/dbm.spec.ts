@@ -419,6 +419,101 @@ describe('DBM', () => {
     });
   });
 
+  describe('recycle the db test', () => {
+    const buildDbm = (
+      recycleOpts: {
+        recycleInactiveTime?: number;
+        shutdownInactiveTime?: number;
+        shouldRecycle?: () => boolean | Promise<boolean>;
+      },
+      onShutdown?: () => void
+    ) => {
+      const instanceManager = new InstanceManager();
+      instanceManager.terminateDB = jest.fn();
+      const getDBSpy = jest.spyOn(instanceManager, 'getDB');
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+        onDuckDBShutdown: onShutdown,
+        options: recycleOpts,
+      });
+      return { dbm, instanceManager, getDBSpy };
+    };
+
+    it('recycles (terminate + restart) at recycleInactiveTime, then shuts down at shutdownInactiveTime', async () => {
+      const onDuckDBShutdown = jest.fn();
+      const { dbm, instanceManager, getDBSpy } = buildDbm(
+        { recycleInactiveTime: 100, shutdownInactiveTime: 300 },
+        onDuckDBShutdown
+      );
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      getDBSpy.mockClear();
+
+      // Before recycle window: nothing fired.
+      await new Promise((r) => setTimeout(r, 50));
+      expect(instanceManager.terminateDB).not.toBeCalled();
+
+      // After recycle window: terminate + restart (getDB) once.
+      await new Promise((r) => setTimeout(r, 100));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+      expect(getDBSpy).toBeCalledTimes(1); // eager restart
+
+      // After shutdown window: final shutdown terminates again, no restart.
+      await new Promise((r) => setTimeout(r, 200));
+      expect(instanceManager.terminateDB).toBeCalledTimes(2);
+      expect(getDBSpy).toBeCalledTimes(1);
+    });
+
+    it('skips the recycle when shouldRecycle returns false', async () => {
+      const { dbm, instanceManager, getDBSpy } = buildDbm({
+        recycleInactiveTime: 100,
+        shutdownInactiveTime: 300,
+        shouldRecycle: () => false,
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      getDBSpy.mockClear();
+
+      // Past the recycle window — gate said no, so no terminate yet.
+      await new Promise((r) => setTimeout(r, 180));
+      expect(instanceManager.terminateDB).not.toBeCalled();
+      expect(getDBSpy).not.toBeCalled();
+
+      // Final shutdown still fires.
+      await new Promise((r) => setTimeout(r, 180));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+    });
+
+    it('recycles at most once per idle period', async () => {
+      const { dbm, instanceManager } = buildDbm({
+        recycleInactiveTime: 100,
+        // No shutdown — isolate recycle behavior.
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+
+      // Wait well past multiple recycle windows.
+      await new Promise((r) => setTimeout(r, 400));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+    });
+
+    it('re-arms the recycle after new activity', async () => {
+      const { dbm, instanceManager } = buildDbm({ recycleInactiveTime: 100 });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      await new Promise((r) => setTimeout(r, 150));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+
+      // New query → idle period resets → recycle can fire again.
+      await dbm.queryWithTables({ query: 'SELECT 2', tables });
+      await new Promise((r) => setTimeout(r, 150));
+      expect(instanceManager.terminateDB).toBeCalledTimes(2);
+    });
+  });
+
   describe('cancel query execution', () => {
     it('should cancel the current executing query when abort is emitted', async () => {
       const abortController1 = new AbortController();

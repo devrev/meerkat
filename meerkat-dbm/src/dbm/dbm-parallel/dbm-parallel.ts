@@ -29,6 +29,9 @@ export class DBMParallel extends TableLockManager {
   private iFrameRunnerManager: IFrameRunnerManager;
   private counter = 0;
   private terminateDBTimeout: NodeJS.Timeout | null = null;
+  private recycleDBTimeout: NodeJS.Timeout | null = null;
+  // Ensures the intermediate recycle fires at most once per idle period.
+  private recycledThisIdle = false;
   private activeNumberOfQueries = 0;
   private activeQueries: Map<
     string,
@@ -75,27 +78,74 @@ export class DBMParallel extends TableLockManager {
     await this.fileManager.onDBShutdownHandler();
   }
 
-  private _startShutdownInactiveTimer() {
-    if (!this.options?.shutdownInactiveTime) {
-      return;
+  /**
+   * Tear down the runners and immediately restart them — reclaims iframe/worker
+   * memory while keeping the engine warm for the next query. Mirrors _shutdown()
+   * cleanup, then re-starts the runners eagerly.
+   */
+  private async _recycle() {
+    this.logger.debug('Recycling the DB (idle teardown + restart)');
+    if (this.onDuckDBShutdown) {
+      this.onDuckDBShutdown();
     }
-    /**
-     * Clear the previous timer if any, it can happen if we try to shutdown the DB before the timer is complete after the queue is empty
-     */
+    this.iFrameRunnerManager.stopRunners();
+    await this.fileManager.onDBShutdownHandler();
+    // Re-create the runners eagerly so the next query hits warm iframes.
+    this.iFrameRunnerManager.startRunners();
+  }
+
+  /**
+   * Arm the idle timers when no queries are active. Two independent timers:
+   *  - recycleInactiveTime (optional, earlier): teardown + restart ONCE, gated
+   *    by shouldRecycle(). Reclaims memory without losing the warm engine.
+   *  - shutdownInactiveTime (later): full shutdown, no restart.
+   * Recycle is throttled to once per idle period via recycledThisIdle.
+   */
+  private _startShutdownInactiveTimer() {
+    this.recycledThisIdle = false;
+
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
+    }
     if (this.terminateDBTimeout) {
       clearTimeout(this.terminateDBTimeout);
+      this.terminateDBTimeout = null;
     }
 
-    this.terminateDBTimeout = setTimeout(async () => {
-      /**
-       * Check if there is any query in the queue
-       */
-      if (this.activeNumberOfQueries > 0) {
-        this.logger.debug('Query queue is not empty, not shutting down the DB');
-        return;
-      }
-      await this._shutdown();
-    }, this.options.shutdownInactiveTime);
+    if (this.options?.recycleInactiveTime) {
+      this.recycleDBTimeout = setTimeout(async () => {
+        if (this.activeNumberOfQueries > 0 || this.recycledThisIdle) {
+          return;
+        }
+        const shouldRecycle = this.options?.shouldRecycle
+          ? await this.options.shouldRecycle()
+          : true;
+        if (!shouldRecycle) {
+          return;
+        }
+        if (this.activeNumberOfQueries > 0 || this.recycledThisIdle) {
+          return;
+        }
+        this.recycledThisIdle = true;
+        await this._recycle();
+      }, this.options.recycleInactiveTime);
+    }
+
+    if (this.options?.shutdownInactiveTime) {
+      this.terminateDBTimeout = setTimeout(async () => {
+        /**
+         * Check if there is any query in the queue
+         */
+        if (this.activeNumberOfQueries > 0) {
+          this.logger.debug(
+            'Query queue is not empty, not shutting down the DB'
+          );
+          return;
+        }
+        await this._shutdown();
+      }, this.options.shutdownInactiveTime);
+    }
   }
 
   private _signalListener(

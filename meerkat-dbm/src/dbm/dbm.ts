@@ -23,6 +23,9 @@ export class DBM extends TableLockManager {
   private onEvent?: (event: DBMEvent) => void;
   private options: DBMConstructorOptions['options'];
   private terminateDBTimeout: NodeJS.Timeout | null = null;
+  private recycleDBTimeout: NodeJS.Timeout | null = null;
+  // Ensures the intermediate recycle fires at most once per idle period.
+  private recycledThisIdle = false;
   private onDuckDBShutdown?: () => void;
   private onCreateConnection?: (
     connection: AsyncDuckDBConnection
@@ -72,26 +75,87 @@ export class DBM extends TableLockManager {
     await this.instanceManager.terminateDB();
   }
 
-  private _startShutdownInactiveTimer() {
-    if (!this.options?.shutdownInactiveTime) {
+  /**
+   * Tear down the engine and immediately re-instantiate it. Reclaims the
+   * worker's high-water memory while leaving a warm engine for the next query.
+   * Mirrors _shutdown()'s cleanup so the consumer's caches stay consistent,
+   * then eagerly re-acquires the DB so the cold instantiate is paid now (during
+   * idle) rather than on the next user-facing query.
+   */
+  private async _recycle() {
+    if (this.shutdownLock) {
       return;
     }
-    /**
-     * Clear the previous timer if any, it can happen if we try to shutdown the DB before the timer is complete after the queue is empty
-     */
+    if (this.connection) {
+      await this.connection.close();
+      this.connection = null;
+    }
+    this.logger.debug('Recycling the DB (idle teardown + restart)');
+    if (this.onDuckDBShutdown) {
+      this.onDuckDBShutdown();
+    }
+    await this.fileManager.onDBShutdownHandler();
+    await this.instanceManager.terminateDB();
+    // Re-instantiate eagerly so the next query hits a warm engine.
+    await this.instanceManager.getDB();
+  }
+
+  /**
+   * Arm the idle timers when the query queue drains. Two independent timers:
+   *  - recycleInactiveTime (optional, earlier): teardown + restart ONCE, gated
+   *    by shouldRecycle(). Reclaims memory without losing the warm engine.
+   *  - shutdownInactiveTime (later): full shutdown, no restart.
+   * Both re-arm on each queue-drain; recycle is throttled to once per idle
+   * period via recycledThisIdle (reset whenever new activity re-arms timers).
+   */
+  private _startShutdownInactiveTimer() {
+    this.recycledThisIdle = false;
+
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
+    }
     if (this.terminateDBTimeout) {
       clearTimeout(this.terminateDBTimeout);
+      this.terminateDBTimeout = null;
     }
-    this.terminateDBTimeout = setTimeout(async () => {
-      /**
-       * Check if there is any query in the queue
-       */
-      if (this.queriesQueue.length > 0) {
-        this.logger.debug('Query queue is not empty, not shutting down the DB');
-        return;
-      }
-      await this._shutdown();
-    }, this.options.shutdownInactiveTime);
+
+    if (this.options?.recycleInactiveTime) {
+      this.recycleDBTimeout = setTimeout(async () => {
+        // Still idle?
+        if (this.queriesQueue.length > 0 || this.recycledThisIdle) {
+          return;
+        }
+        // Consult the consumer-supplied gate (defaults to always-recycle).
+        const shouldRecycle = this.options?.shouldRecycle
+          ? await this.options.shouldRecycle()
+          : true;
+        if (!shouldRecycle) {
+          return;
+        }
+        // Re-check idle after the (possibly async) gate resolved.
+        if (this.queriesQueue.length > 0 || this.recycledThisIdle) {
+          return;
+        }
+        this.recycledThisIdle = true;
+        await this._recycle();
+      }, this.options.recycleInactiveTime);
+    }
+
+    if (this.options?.shutdownInactiveTime) {
+      this.terminateDBTimeout = setTimeout(async () => {
+        /**
+         * Check if there is any query in the queue
+         */
+        if (this.queriesQueue.length > 0) {
+          this.logger.debug(
+            'Query queue is not empty, not shutting down the DB'
+          );
+          return;
+        }
+        await this._shutdown();
+      }, this.options.shutdownInactiveTime);
+    }
   }
 
   private _emitEvent(event: DBMEvent) {
