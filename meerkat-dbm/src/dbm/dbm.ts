@@ -53,6 +53,29 @@ export class DBM extends TableLockManager {
     this.instanceManager = instanceManager;
     this.onDuckDBShutdown = onDuckDBShutdown;
     this.onCreateConnection = onCreateConnection;
+
+    this._validateIdleOptions();
+  }
+
+  /**
+   * Fail fast on a misconfigured idle policy. The recycle is the early action
+   * and the shutdown is the late one, so when both are set the recycle must
+   * fire strictly before the shutdown. Otherwise the shutdown's terminateDB
+   * would run first and a still-pending recycle would re-instantiate the
+   * engine we just tore down.
+   */
+  private _validateIdleOptions() {
+    const recycle = this.options?.recycleInactiveTime;
+    const shutdown = this.options?.shutdownInactiveTime;
+    if (
+      recycle !== undefined &&
+      shutdown !== undefined &&
+      recycle >= shutdown
+    ) {
+      throw new Error(
+        `Invalid idle options: recycleInactiveTime (${recycle}ms) must be less than shutdownInactiveTime (${shutdown}ms).`
+      );
+    }
   }
 
   private async _shutdown() {
@@ -61,6 +84,13 @@ export class DBM extends TableLockManager {
      */
     if (this.shutdownLock) {
       return;
+    }
+
+    // A shutdown supersedes any pending recycle — clear it so it can't fire
+    // afterwards and re-instantiate the engine we are about to terminate.
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
     }
 
     if (this.connection) {
@@ -82,6 +112,19 @@ export class DBM extends TableLockManager {
    * then eagerly re-acquires the DB so the cold instantiate is paid now (during
    * idle) rather than on the next user-facing query.
    */
+  /**
+   * True while any query is pending or executing. The queue is drained by
+   * _startQueryExecution shifting an item off before it runs, so a length of 0
+   * does not by itself mean idle — check the running flag and current item too.
+   */
+  private _isBusy() {
+    return (
+      this.queriesQueue.length > 0 ||
+      this.queryQueueRunning ||
+      this.currentQueryItem !== undefined
+    );
+  }
+
   private async _recycle() {
     if (this.shutdownLock) {
       return;
@@ -122,8 +165,9 @@ export class DBM extends TableLockManager {
 
     if (this.options?.recycleInactiveTime) {
       this.recycleDBTimeout = setTimeout(async () => {
-        // Still idle?
-        if (this.queriesQueue.length > 0 || this.recycledThisIdle) {
+        // Still idle? A running queue means a query was shifted off the queue
+        // and is executing, so queriesQueue.length alone is not enough.
+        if (this._isBusy() || this.recycledThisIdle) {
           return;
         }
         // Consult the consumer-supplied gate (defaults to always-recycle).
@@ -133,8 +177,9 @@ export class DBM extends TableLockManager {
         if (!shouldRecycle) {
           return;
         }
-        // Re-check idle after the (possibly async) gate resolved.
-        if (this.queriesQueue.length > 0 || this.recycledThisIdle) {
+        // Re-check idle after the (possibly async) gate resolved — a query may
+        // have arrived and started executing while shouldRecycle() awaited.
+        if (this._isBusy() || this.recycledThisIdle) {
           return;
         }
         this.recycledThisIdle = true;

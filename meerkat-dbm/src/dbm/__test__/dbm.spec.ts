@@ -512,6 +512,47 @@ describe('DBM', () => {
       await new Promise((r) => setTimeout(r, 150));
       expect(instanceManager.terminateDB).toBeCalledTimes(2);
     });
+
+    it('does not recycle if a query starts executing while shouldRecycle awaits', async () => {
+      // A slow async gate widens the window between the idle re-check and the
+      // recycle. A query that arrives in that window must suppress the recycle
+      // so _recycle() never tears down a live connection mid-query.
+      let resolveGate: (value: boolean) => void = () => undefined;
+      const shouldRecycle = () =>
+        new Promise<boolean>((resolve) => {
+          resolveGate = resolve;
+        });
+
+      const { dbm, instanceManager } = buildDbm({
+        recycleInactiveTime: 100,
+        shouldRecycle,
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+
+      // Let the recycle timer fire and enter the (pending) gate.
+      await new Promise((r) => setTimeout(r, 150));
+      expect(instanceManager.terminateDB).not.toBeCalled();
+
+      // A new query arrives and begins executing while the gate is pending.
+      const queryPromise = dbm.queryWithTables({ query: 'SELECT 2', tables });
+
+      // Gate now resolves true — the post-await idle re-check must see the
+      // busy queue and skip the recycle.
+      resolveGate(true);
+      await queryPromise;
+
+      expect(instanceManager.terminateDB).not.toBeCalled();
+    });
+
+    it('throws when recycleInactiveTime is not less than shutdownInactiveTime', () => {
+      expect(() =>
+        buildDbm({ recycleInactiveTime: 300, shutdownInactiveTime: 300 })
+      ).toThrow(/recycleInactiveTime/);
+      expect(() =>
+        buildDbm({ recycleInactiveTime: 400, shutdownInactiveTime: 300 })
+      ).toThrow(/recycleInactiveTime/);
+    });
   });
 
   describe('cancel query execution', () => {

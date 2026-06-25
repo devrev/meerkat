@@ -61,9 +61,38 @@ export class DBMParallel extends TableLockManager {
     this.options = options;
     this.onDuckDBShutdown = onDuckDBShutdown;
     this.iFrameRunnerManager = iFrameRunnerManager;
+
+    this._validateIdleOptions();
+  }
+
+  /**
+   * Fail fast on a misconfigured idle policy. The recycle is the early action
+   * and the shutdown is the late one, so when both are set the recycle must
+   * fire strictly before the shutdown. Otherwise the shutdown's teardown would
+   * run first and a still-pending recycle would restart the runners we just
+   * stopped.
+   */
+  private _validateIdleOptions() {
+    const recycle = this.options?.recycleInactiveTime;
+    const shutdown = this.options?.shutdownInactiveTime;
+    if (
+      recycle !== undefined &&
+      shutdown !== undefined &&
+      recycle >= shutdown
+    ) {
+      throw new Error(
+        `Invalid idle options: recycleInactiveTime (${recycle}ms) must be less than shutdownInactiveTime (${shutdown}ms).`
+      );
+    }
   }
 
   private async _shutdown() {
+    // A shutdown supersedes any pending recycle — clear it so it can't fire
+    // afterwards and restart the runners we are about to stop.
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
+    }
     this.logger.debug('Shutting down the DB');
     if (this.onDuckDBShutdown) {
       this.onDuckDBShutdown();
