@@ -7,7 +7,7 @@ import {
 import { FileData, Table } from '../../types';
 import { DBM } from '../dbm';
 import { DBMConstructorOptions, TableConfig } from '../types';
-import { InstanceManager } from './mock';
+import { InstanceManager, mockDB } from './mock';
 
 export class MockFileManager implements FileManagerType {
   private fileBufferStore: Record<string, FileBufferStore> = {};
@@ -543,6 +543,76 @@ describe('DBM', () => {
       await queryPromise;
 
       expect(instanceManager.terminateDB).not.toBeCalled();
+    });
+
+    it('waits for an in-flight recycle before binding a connection (no dead connection)', async () => {
+      // Reproduces the teardown/getConnection race: a query that arrives while
+      // _recycle() is terminating the instance must NOT bind to the instance
+      // being destroyed. With the barrier it waits until the recycle finishes
+      // (terminate + warm re-instantiate), then connects to the fresh instance.
+      const events: string[] = [];
+
+      const instanceManager = new InstanceManager();
+      instanceManager.getDB = jest.fn(async () => {
+        events.push('getDB');
+        return mockDB as unknown as Awaited<
+          ReturnType<typeof instanceManager.getDB>
+        >;
+      });
+      // Slow terminate so the recycle is still mid-flight when the next query
+      // arrives — this is the window the barrier must cover.
+      instanceManager.terminateDB = jest.fn(
+        () =>
+          new Promise<void>((resolve) =>
+            setTimeout(() => {
+              events.push('terminate-done');
+              resolve();
+            }, 150)
+          )
+      );
+      const connectSpy = jest.spyOn(mockDB, 'connect');
+
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+        options: { recycleInactiveTime: 100 },
+      });
+
+      await dbm.queryWithTables({ query: 'SELECT 1', tables });
+      connectSpy.mockClear();
+      connectSpy.mockImplementation(async () => {
+        events.push('connect');
+        return {
+          query: async (q: string) => [q],
+          cancelSent: async () => true,
+          close: async () => undefined,
+        } as unknown as Awaited<ReturnType<typeof mockDB.connect>>;
+      });
+
+      // Let the recycle fire; terminate is now in flight.
+      await new Promise((r) => setTimeout(r, 120));
+      expect(instanceManager.terminateDB).toBeCalledTimes(1);
+
+      // Query arrives mid-recycle. It must block on the barrier, not connect now.
+      const result = await dbm.queryWithTables({ query: 'SELECT 2', tables });
+
+      // Let the recycle's slow terminate + re-instantiate fully settle so the
+      // event ordering is complete before we assert on it.
+      await new Promise((r) => setTimeout(r, 250));
+
+      // The query succeeded against the warm instance...
+      expect(result).toEqual(['SELECT 2']);
+      // ...the teardown actually finished its terminate...
+      expect(events).toContain('terminate-done');
+      // ...and crucially the query connected only AFTER that terminate, i.e. it
+      // bound to the fresh instance, never the one being torn down.
+      expect(events.indexOf('connect')).toBeGreaterThan(
+        events.indexOf('terminate-done')
+      );
+
+      connectSpy.mockRestore();
     });
 
     it('throws when recycleInactiveTime is not less than shutdownInactiveTime', () => {

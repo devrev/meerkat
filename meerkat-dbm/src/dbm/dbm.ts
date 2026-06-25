@@ -26,6 +26,10 @@ export class DBM extends TableLockManager {
   private recycleDBTimeout: NodeJS.Timeout | null = null;
   // Ensures the intermediate recycle fires at most once per idle period.
   private recycledThisIdle = false;
+  // Set while a recycle/shutdown teardown is mid-flight. Queries acquiring a
+  // connection wait on this so they never bind to an instance that teardown is
+  // about to terminate. Cleared when the teardown that set it completes.
+  private teardownInProgress: Promise<void> | null = null;
   private onDuckDBShutdown?: () => void;
   private onCreateConnection?: (
     connection: AsyncDuckDBConnection
@@ -78,6 +82,30 @@ export class DBM extends TableLockManager {
     }
   }
 
+  /**
+   * Run a teardown (recycle/shutdown) body under a barrier so a query that
+   * arrives mid-teardown waits in _getConnection instead of binding to an
+   * instance that is about to be terminated. The body's synchronous prefix runs
+   * before this records the promise, but it contains no await, so no query can
+   * interleave before the barrier is in place.
+   */
+  private _runTeardown(body: () => Promise<void>): Promise<void> {
+    // body() runs synchronously up to its first await before returning, but it
+    // has no synchronous-prefix await that touches the connection, so recording
+    // the barrier here still happens before any query can interleave.
+    const promise = body();
+    const barrier = promise.catch(() => undefined);
+    this.teardownInProgress = barrier;
+    barrier.then(() => {
+      // Only clear if this teardown is still the active one — a later teardown
+      // may have replaced the barrier in the meantime.
+      if (this.teardownInProgress === barrier) {
+        this.teardownInProgress = null;
+      }
+    });
+    return promise;
+  }
+
   private async _shutdown() {
     /**
      * If the shutdown lock is true, then don't shutdown the DB
@@ -93,16 +121,18 @@ export class DBM extends TableLockManager {
       this.recycleDBTimeout = null;
     }
 
-    if (this.connection) {
-      await this.connection.close();
-      this.connection = null;
-    }
-    this.logger.debug('Shutting down the DB');
-    if (this.onDuckDBShutdown) {
-      this.onDuckDBShutdown();
-    }
-    await this.fileManager.onDBShutdownHandler();
-    await this.instanceManager.terminateDB();
+    await this._runTeardown(async () => {
+      if (this.connection) {
+        await this.connection.close();
+        this.connection = null;
+      }
+      this.logger.debug('Shutting down the DB');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      await this.fileManager.onDBShutdownHandler();
+      await this.instanceManager.terminateDB();
+    });
   }
 
   /**
@@ -129,18 +159,20 @@ export class DBM extends TableLockManager {
     if (this.shutdownLock) {
       return;
     }
-    if (this.connection) {
-      await this.connection.close();
-      this.connection = null;
-    }
-    this.logger.debug('Recycling the DB (idle teardown + restart)');
-    if (this.onDuckDBShutdown) {
-      this.onDuckDBShutdown();
-    }
-    await this.fileManager.onDBShutdownHandler();
-    await this.instanceManager.terminateDB();
-    // Re-instantiate eagerly so the next query hits a warm engine.
-    await this.instanceManager.getDB();
+    await this._runTeardown(async () => {
+      if (this.connection) {
+        await this.connection.close();
+        this.connection = null;
+      }
+      this.logger.debug('Recycling the DB (idle teardown + restart)');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      await this.fileManager.onDBShutdownHandler();
+      await this.instanceManager.terminateDB();
+      // Re-instantiate eagerly so the next query hits a warm engine.
+      await this.instanceManager.getDB();
+    });
   }
 
   /**
@@ -210,6 +242,12 @@ export class DBM extends TableLockManager {
   }
 
   private async _getConnection() {
+    // Wait out any in-flight teardown so we never bind a connection to an
+    // instance that recycle/shutdown is about to terminate. Loop because a new
+    // teardown can begin while we awaited the previous one.
+    while (this.teardownInProgress) {
+      await this.teardownInProgress;
+    }
     if (!this.connection) {
       const db = await this.instanceManager.getDB();
       this.connection = await db.connect();
@@ -225,6 +263,13 @@ export class DBM extends TableLockManager {
     tables: TableConfig[],
     options?: QueryOptions
   ) {
+    // Wait out any in-flight teardown before touching the DB. mountFileBuffer
+    // registers buffers into the instance via getDB(), so it must not run
+    // against an instance recycle/shutdown is about to terminate.
+    while (this.teardownInProgress) {
+      await this.teardownInProgress;
+    }
+
     /**
      * Load all the files into the database
      */

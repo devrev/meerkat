@@ -32,6 +32,10 @@ export class DBMParallel extends TableLockManager {
   private recycleDBTimeout: NodeJS.Timeout | null = null;
   // Ensures the intermediate recycle fires at most once per idle period.
   private recycledThisIdle = false;
+  // Set while a recycle/shutdown teardown is mid-flight. Queries wait on this
+  // so they never start runners that teardown is about to stop. Cleared when
+  // the teardown that set it completes.
+  private teardownInProgress: Promise<void> | null = null;
   private activeNumberOfQueries = 0;
   private activeQueries: Map<
     string,
@@ -86,6 +90,25 @@ export class DBMParallel extends TableLockManager {
     }
   }
 
+  /**
+   * Run a teardown (recycle/shutdown) body under a barrier so a query that
+   * arrives mid-teardown waits in queryWithTables instead of starting runners
+   * that teardown is about to stop. body()'s synchronous prefix runs before the
+   * barrier is recorded, but it has no synchronous-prefix await, so no query can
+   * interleave before the barrier is in place.
+   */
+  private _runTeardown(body: () => Promise<void>): Promise<void> {
+    const promise = body();
+    const barrier = promise.catch(() => undefined);
+    this.teardownInProgress = barrier;
+    barrier.then(() => {
+      if (this.teardownInProgress === barrier) {
+        this.teardownInProgress = null;
+      }
+    });
+    return promise;
+  }
+
   private async _shutdown() {
     // A shutdown supersedes any pending recycle — clear it so it can't fire
     // afterwards and restart the runners we are about to stop.
@@ -93,18 +116,20 @@ export class DBMParallel extends TableLockManager {
       clearTimeout(this.recycleDBTimeout);
       this.recycleDBTimeout = null;
     }
-    this.logger.debug('Shutting down the DB');
-    if (this.onDuckDBShutdown) {
-      this.onDuckDBShutdown();
-    }
-    /**
-     * This will remove all the iframes
-     */
-    this.iFrameRunnerManager.stopRunners();
-    /**
-     * This will remove all the file buffers from main thread
-     */
-    await this.fileManager.onDBShutdownHandler();
+    await this._runTeardown(async () => {
+      this.logger.debug('Shutting down the DB');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      /**
+       * This will remove all the iframes
+       */
+      this.iFrameRunnerManager.stopRunners();
+      /**
+       * This will remove all the file buffers from main thread
+       */
+      await this.fileManager.onDBShutdownHandler();
+    });
   }
 
   /**
@@ -113,14 +138,16 @@ export class DBMParallel extends TableLockManager {
    * cleanup, then re-starts the runners eagerly.
    */
   private async _recycle() {
-    this.logger.debug('Recycling the DB (idle teardown + restart)');
-    if (this.onDuckDBShutdown) {
-      this.onDuckDBShutdown();
-    }
-    this.iFrameRunnerManager.stopRunners();
-    await this.fileManager.onDBShutdownHandler();
-    // Re-create the runners eagerly so the next query hits warm iframes.
-    this.iFrameRunnerManager.startRunners();
+    await this._runTeardown(async () => {
+      this.logger.debug('Recycling the DB (idle teardown + restart)');
+      if (this.onDuckDBShutdown) {
+        this.onDuckDBShutdown();
+      }
+      this.iFrameRunnerManager.stopRunners();
+      await this.fileManager.onDBShutdownHandler();
+      // Re-create the runners eagerly so the next query hits warm iframes.
+      this.iFrameRunnerManager.startRunners();
+    });
   }
 
   /**
@@ -233,6 +260,14 @@ export class DBMParallel extends TableLockManager {
        * Tracking the number of active queries to shutdown the DB after inactivity
        */
       this.activeNumberOfQueries++;
+      /**
+       * Wait out any in-flight teardown so we don't start runners that recycle/
+       * shutdown is about to stop. Loop because a new teardown can begin while
+       * we awaited the previous one.
+       */
+      while (this.teardownInProgress) {
+        await this.teardownInProgress;
+      }
       /**
        * StartRunners will start the runners if they are not already running
        */
