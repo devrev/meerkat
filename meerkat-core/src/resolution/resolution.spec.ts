@@ -155,10 +155,10 @@ describe('Create base table schema', () => {
       ],
       joins: [
         {
-          sql: '__base_query.base_table__column1 = base_table__column1.id',
+          sql: '__base_query.base_table__column1 = base_table__column1."base_table__column1__id"',
         },
         {
-          sql: '__base_query.base_table__column2 = base_table__column2.id',
+          sql: '__base_query.base_table__column2 = base_table__column2."base_table__column2__id"',
         },
       ],
     });
@@ -269,10 +269,10 @@ describe('Create base table schema', () => {
       ],
       joins: [
         {
-          sql: '__base_query."Column 1" = base_table__column1.id',
+          sql: '__base_query."Column 1" = base_table__column1."base_table__column1__id"',
         },
         {
-          sql: '__base_query."Column 2" = base_table__column2.id',
+          sql: '__base_query."Column 2" = base_table__column2."base_table__column2__id"',
         },
       ],
     });
@@ -349,12 +349,12 @@ describe('Generate resolution schemas', () => {
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column1."id" AS "base_table__column1__id", base_table__column1."display_id" AS "base_table__column1__display_id", base_table__column1."display_name" AS "base_table__column1__display_name" FROM (<resolution_table_sql>) AS base_table__column1',
         measures: [],
         dimensions: [
           {
             name: 'base_table__column1__display_id',
-            sql: 'base_table__column1.display_id',
+            sql: 'base_table__column1."base_table__column1__display_id"',
             type: 'string',
             alias: 'base_table__column1__display_id',
           },
@@ -362,18 +362,18 @@ describe('Generate resolution schemas', () => {
       },
       {
         name: 'base_table__column2',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column2."id" AS "base_table__column2__id", base_table__column2."display_id" AS "base_table__column2__display_id", base_table__column2."display_name" AS "base_table__column2__display_name" FROM (<resolution_table_sql>) AS base_table__column2',
         measures: [],
         dimensions: [
           {
             name: 'base_table__column2__id',
-            sql: 'base_table__column2.id',
+            sql: 'base_table__column2."base_table__column2__id"',
             type: 'string',
             alias: 'base_table__column2__id',
           },
           {
             name: 'base_table__column2__display_name',
-            sql: 'base_table__column2.display_name',
+            sql: 'base_table__column2."base_table__column2__display_name"',
             type: 'string',
             alias: 'base_table__column2__display_name',
           },
@@ -505,12 +505,12 @@ describe('Generate resolution schemas', () => {
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column1."id" AS "base_table__column1__id", base_table__column1."display_id" AS "base_table__column1__display_id" FROM (<resolution_table_sql>) AS base_table__column1',
         measures: [],
         dimensions: [
           {
             name: 'base_table__column1__display_id',
-            sql: 'base_table__column1.display_id',
+            sql: 'base_table__column1."base_table__column1__display_id"',
             type: 'string',
             alias: 'base_table__column1__display_id',
           },
@@ -573,12 +573,12 @@ describe('Generate resolution schemas', () => {
     expect(schemas).toEqual([
       {
         name: 'base_table__column1',
-        sql: '<resolution_table_sql>',
+        sql: 'SELECT base_table__column1."id" AS "base_table__column1__id", base_table__column1."display_id" AS "base_table__column1__display_id" FROM (<resolution_table_sql>) AS base_table__column1',
         measures: [],
         dimensions: [
           {
             name: 'base_table__column1__display_id',
-            sql: 'base_table__column1.display_id',
+            sql: 'base_table__column1."base_table__column1__display_id"',
             type: 'string',
             alias: 'base_table__column1__display_id',
           },
