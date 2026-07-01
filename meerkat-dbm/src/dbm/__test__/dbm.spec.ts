@@ -721,56 +721,75 @@ describe('DBM', () => {
     });
   });
 
-  describe('stale worker self-heal', () => {
-    const buildDbm = (connectImpl: () => Promise<unknown>) => {
+  describe('shutdown does not fire while a query is in flight', () => {
+    it('does not terminate the worker when the shutdown timer elapses mid-query', async () => {
       const instanceManager = new InstanceManager();
-      const getDBSpy = jest.spyOn(instanceManager, 'getDB').mockResolvedValue({
-        connect: connectImpl,
-      } as unknown as Awaited<ReturnType<typeof instanceManager.getDB>>);
+      instanceManager.terminateDB = jest.fn();
+      const onDuckDBShutdown = jest.fn();
+
       const dbm = new DBM({
         instanceManager,
         fileManager,
         logger: log,
         onEvent: () => undefined,
+        onDuckDBShutdown,
+        options: {
+          shutdownInactiveTime: 100,
+        },
       });
-      return { dbm, getDBSpy };
-    };
 
-    it('re-acquires the engine and retries once when the worker was terminated', async () => {
-      const query = jest
-        .fn()
-        .mockRejectedValueOnce(
-          new Error('cannot send a message since the worker is not set!:RUN_QUERY')
-        )
-        .mockResolvedValueOnce(['ok']);
-      const close = jest.fn();
-      const { dbm, getDBSpy } = buildDbm(async () => ({ query, close }));
+      // preQuery holds the query in flight (currentQueryItem set, queue empty)
+      // well past shutdownInactiveTime, reproducing the mid-query window where
+      // the shutdown timer previously fired and killed the worker.
+      const result = await dbm.queryWithTables({
+        query: 'SELECT * FROM table1',
+        tables,
+        options: {
+          preQuery: async () => {
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            // The shutdown timer has elapsed by now; it must have seen the
+            // in-flight query and skipped terminateDB.
+            expect(instanceManager.terminateDB).not.toBeCalled();
+          },
+        },
+      });
 
-      const result = await dbm.query('SELECT 1');
+      expect(result).toEqual(['SELECT * FROM table1']);
+      // Still not terminated immediately after the query resolves.
+      expect(instanceManager.terminateDB).not.toBeCalled();
 
-      expect(result).toEqual(['ok']);
-      expect(query).toBeCalledTimes(2);
-      // Cold boot for the first connection + re-acquire for the retry.
-      expect(getDBSpy).toBeCalledTimes(2);
+      // Once idle, the re-armed timer shuts down normally.
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      expect(instanceManager.terminateDB).toBeCalled();
+      expect(onDuckDBShutdown).toBeCalled();
     });
 
-    it('does not retry on an unrelated query error', async () => {
-      const query = jest.fn().mockRejectedValue(new Error('Parser Error: syntax'));
-      const { dbm, getDBSpy } = buildDbm(async () => ({ query, close: jest.fn() }));
+    it('cancels the pending shutdown timer when a new query starts', async () => {
+      const instanceManager = new InstanceManager();
+      instanceManager.terminateDB = jest.fn();
 
-      await expect(dbm.query('SELECT 1')).rejects.toThrow('Parser Error: syntax');
-      expect(query).toBeCalledTimes(1);
-      expect(getDBSpy).toBeCalledTimes(1);
-    });
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+        options: {
+          shutdownInactiveTime: 100,
+        },
+      });
 
-    it('propagates the error when the retry also hits a stale worker', async () => {
-      const query = jest
-        .fn()
-        .mockRejectedValue(new Error('worker is not set'));
-      const { dbm } = buildDbm(async () => ({ query, close: jest.fn() }));
+      // First query drains the queue and arms the shutdown timer.
+      await dbm.queryWithTables({ query: 'SELECT * FROM table1', tables });
 
-      await expect(dbm.query('SELECT 1')).rejects.toThrow('worker is not set');
-      expect(query).toBeCalledTimes(2);
+      // Start a second query before the timer elapses. Starting it must cancel
+      // the pending timer so it never fires against this query.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await dbm.queryWithTables({ query: 'SELECT * FROM table2', tables });
+
+      // The original timer's window has now fully passed; it must not have
+      // fired because starting the second query cleared it.
+      await new Promise((resolve) => setTimeout(resolve, 70));
+      expect(instanceManager.terminateDB).not.toBeCalled();
     });
   });
 });
