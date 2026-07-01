@@ -1,6 +1,6 @@
 {
   "name": "@devrev/meerkat-dbm",
-  "version": "0.1.45",
+  "version": "0.1.46",
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.32.0",
     "apache-arrow": "^17.0.0",

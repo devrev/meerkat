@@ -1,4 +1,4 @@
-import { AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
+import { AsyncDuckDB, AsyncDuckDBConnection } from '@duckdb/duckdb-wasm';
 import { Table } from 'apache-arrow/table';
 import uniqBy from 'lodash/uniqBy';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +17,12 @@ export class DBM extends TableLockManager {
   private fileManager: FileManagerType;
   private instanceManager: InstanceManagerType;
   private connection: AsyncDuckDBConnection | null = null;
+  // The engine instance `connection` was bound to. terminateDB() followed by a
+  // fresh getDB() hands back a NEW AsyncDuckDB object — the new object itself
+  // reports isDetached() === false, so that check alone can't tell a fresh
+  // engine apart from the one the cached connection actually belongs to.
+  // Comparing this reference is what catches the stale-connection case.
+  private connectionDb: AsyncDuckDB | null = null;
   private queriesQueue: QueryQueueItem[] = [];
 
   private logger: DBMLogger;
@@ -125,6 +131,7 @@ export class DBM extends TableLockManager {
       if (this.connection) {
         await this.connection.close();
         this.connection = null;
+        this.connectionDb = null;
       }
       this.logger.debug('Shutting down the DB');
       if (this.onDuckDBShutdown) {
@@ -163,6 +170,7 @@ export class DBM extends TableLockManager {
       if (this.connection) {
         await this.connection.close();
         this.connection = null;
+        this.connectionDb = null;
       }
       this.logger.debug('Recycling the DB (idle teardown + restart)');
       if (this.onDuckDBShutdown) {
@@ -248,9 +256,28 @@ export class DBM extends TableLockManager {
     while (this.teardownInProgress) {
       await this.teardownInProgress;
     }
+
+    const db = await this.instanceManager.getDB();
+
+    /**
+     * A query can race a teardown that already finished (or a shared engine
+     * terminated by another DBM instance). terminateDB() followed by getDB()
+     * hands back a NEW AsyncDuckDB object, so `db !== this.connectionDb` is the
+     * primary staleness signal — the fresh object itself always reports
+     * isDetached() === false, so that check alone can't catch this case.
+     * db.isDetached() stays as a secondary check for the same-instance
+     * detach case. duckdb-wasm never throws for either: AsyncDuckDB.postTask on
+     * a detached instance only console.errors and resolves undefined, so a
+     * stale cached connection would silently misbehave rather than reject.
+     */
+    if (this.connection && (db !== this.connectionDb || db.isDetached())) {
+      this.connection = null;
+      this.connectionDb = null;
+    }
+
     if (!this.connection) {
-      const db = await this.instanceManager.getDB();
       this.connection = await db.connect();
+      this.connectionDb = db;
       if (this.onCreateConnection) {
         await this.onCreateConnection(this.connection);
       }
@@ -523,18 +550,6 @@ export class DBM extends TableLockManager {
     return promise;
   }
 
-  /**
-   * The idle teardown terminates the underlying worker to reclaim memory. A
-   * query can race a completed teardown (or a shared engine terminated by
-   * another DBM), leaving a cached connection bound to a dead worker. duckdb-wasm
-   * surfaces this as "worker is not set". The teardown barrier in _getConnection
-   * only covers an in-flight teardown, not one that already finished.
-   */
-  private _isStaleWorkerError(error: unknown): boolean {
-    const message = error instanceof Error ? error.message : String(error);
-    return message.includes('worker is not set');
-  }
-
   async query(query: string): Promise<Table<any>> {
     /**
      * Get the connection or create a new one
@@ -544,21 +559,7 @@ export class DBM extends TableLockManager {
     /**
      * Execute the query
      */
-    try {
-      return await connection.query(query);
-    } catch (error) {
-      if (!this._isStaleWorkerError(error)) {
-        throw error;
-      }
-      /**
-       * Drop the dead connection and re-acquire. _getConnection re-instantiates
-       * the engine via instanceManager.getDB(), so the retry runs against a
-       * fresh worker. Retried once — a second stale failure propagates.
-       */
-      this.connection = null;
-      const freshConnection = await this._getConnection();
-      return freshConnection.query(query);
-    }
+    return connection.query(query);
   }
 
   /**

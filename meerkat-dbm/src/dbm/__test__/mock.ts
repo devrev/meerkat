@@ -2,6 +2,7 @@ import { AsyncDuckDB } from '@duckdb/duckdb-wasm';
 import { InstanceManagerType } from '../instance-manager';
 
 export const mockDB = {
+  isDetached: () => false,
   registerFileBuffer: async (name: string, buffer: Uint8Array) => {
     return new Promise((resolve) => {
       setTimeout(() => {

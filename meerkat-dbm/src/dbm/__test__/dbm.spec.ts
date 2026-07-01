@@ -722,54 +722,99 @@ describe('DBM', () => {
   });
 
   describe('stale worker self-heal', () => {
-    const buildDbm = (connectImpl: () => Promise<unknown>) => {
+    // duckdb-wasm never throws when the worker is gone: AsyncDuckDB.postTask on
+    // a detached/terminated instance only console.errors and resolves
+    // undefined, so a stale cached connection would silently misbehave rather
+    // than reject. There is no exception to catch, so DBM must detect
+    // staleness itself before issuing the query.
+    const buildDb = (isDetached: boolean, connectImpl: () => Promise<unknown>) => ({
+      isDetached: () => isDetached,
+      connect: connectImpl,
+    });
+
+    it('reconnects when getDB() returns a different engine instance than the cached connection is bound to', async () => {
+      // terminateDB() + a fresh getDB() hands back a NEW AsyncDuckDB object.
+      // The new object itself reports isDetached() === false, so identity is
+      // the only signal that distinguishes it from the instance the cached
+      // connection actually belongs to.
       const instanceManager = new InstanceManager();
-      const getDBSpy = jest.spyOn(instanceManager, 'getDB').mockResolvedValue({
-        connect: connectImpl,
-      } as unknown as Awaited<ReturnType<typeof instanceManager.getDB>>);
+      const staleConnect = jest.fn().mockResolvedValue({ query: jest.fn(), close: jest.fn() });
+      const freshQuery = jest.fn().mockResolvedValue(['ok']);
+      const freshConnect = jest.fn().mockResolvedValue({ query: freshQuery, close: jest.fn() });
+
+      const dbA = buildDb(false, staleConnect);
+      const dbB = buildDb(false, freshConnect);
+
+      const getDBSpy = jest
+        .spyOn(instanceManager, 'getDB')
+        .mockResolvedValueOnce(dbA as unknown as Awaited<ReturnType<typeof instanceManager.getDB>>)
+        .mockResolvedValueOnce(dbB as unknown as Awaited<ReturnType<typeof instanceManager.getDB>>);
+
       const dbm = new DBM({
         instanceManager,
         fileManager,
         logger: log,
         onEvent: () => undefined,
       });
-      return { dbm, getDBSpy };
-    };
 
-    it('re-acquires the engine and retries once when the worker was terminated', async () => {
-      const query = jest
-        .fn()
-        .mockRejectedValueOnce(
-          new Error('cannot send a message since the worker is not set!:RUN_QUERY')
-        )
-        .mockResolvedValueOnce(['ok']);
-      const close = jest.fn();
-      const { dbm, getDBSpy } = buildDbm(async () => ({ query, close }));
+      await dbm.query('SELECT 1');
+      expect(staleConnect).toBeCalledTimes(1);
 
-      const result = await dbm.query('SELECT 1');
+      const result = await dbm.query('SELECT 2');
 
       expect(result).toEqual(['ok']);
-      expect(query).toBeCalledTimes(2);
-      // Cold boot for the first connection + re-acquire for the retry.
+      expect(freshQuery).toBeCalledWith('SELECT 2');
+      expect(staleConnect).toBeCalledTimes(1);
+      expect(freshConnect).toBeCalledTimes(1);
       expect(getDBSpy).toBeCalledTimes(2);
     });
 
-    it('does not retry on an unrelated query error', async () => {
-      const query = jest.fn().mockRejectedValue(new Error('Parser Error: syntax'));
-      const { dbm, getDBSpy } = buildDbm(async () => ({ query, close: jest.fn() }));
+    it('reconnects when the same engine instance reports detached', async () => {
+      const instanceManager = new InstanceManager();
+      const query = jest.fn().mockResolvedValue(['ok']);
+      const connect = jest.fn().mockResolvedValue({ query, close: jest.fn() });
+      let isDetached = false;
+      const db = { isDetached: () => isDetached, connect };
 
-      await expect(dbm.query('SELECT 1')).rejects.toThrow('Parser Error: syntax');
-      expect(query).toBeCalledTimes(1);
-      expect(getDBSpy).toBeCalledTimes(1);
+      jest
+        .spyOn(instanceManager, 'getDB')
+        .mockResolvedValue(db as unknown as Awaited<ReturnType<typeof instanceManager.getDB>>);
+
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+      });
+
+      await dbm.query('SELECT 1');
+      isDetached = true;
+      await dbm.query('SELECT 2');
+
+      expect(connect).toBeCalledTimes(2);
     });
 
-    it('propagates the error when the retry also hits a stale worker', async () => {
-      const query = jest
-        .fn()
-        .mockRejectedValue(new Error('worker is not set'));
-      const { dbm } = buildDbm(async () => ({ query, close: jest.fn() }));
+    it('reuses the cached connection when the engine is unchanged and not detached', async () => {
+      const instanceManager = new InstanceManager();
+      const query = jest.fn().mockResolvedValue(['ok']);
+      const connect = jest.fn().mockResolvedValue({ query, close: jest.fn() });
+      const db = buildDb(false, connect);
 
-      await expect(dbm.query('SELECT 1')).rejects.toThrow('worker is not set');
+      jest
+        .spyOn(instanceManager, 'getDB')
+        .mockResolvedValue(db as unknown as Awaited<ReturnType<typeof instanceManager.getDB>>);
+
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+      });
+
+      await dbm.query('SELECT 1');
+      await dbm.query('SELECT 2');
+
+      expect(connect).toBeCalledTimes(1);
       expect(query).toBeCalledTimes(2);
     });
   });
