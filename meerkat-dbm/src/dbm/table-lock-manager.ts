@@ -103,4 +103,16 @@ export class TableLockManager {
     const tableLock = this.tableLockRegistry[tableName];
     return tableLock ? tableLock.readersCount > 0 || tableLock.writer : false;
   }
+
+  /**
+   * True if any table currently holds a reader or writer lock. Used to detect
+   * work in flight outside the query queue — e.g. file-buffer registration
+   * holds a write lock across its (multi-second) download, during which the
+   * engine must not be torn down.
+   */
+  hasActiveLocks(): boolean {
+    return Object.values(this.tableLockRegistry).some(
+      (lock) => lock.readersCount > 0 || lock.writer
+    );
+  }
 }

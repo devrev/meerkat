@@ -143,15 +143,20 @@ export class DBM extends TableLockManager {
    * idle) rather than on the next user-facing query.
    */
   /**
-   * True while any query is pending or executing. The queue is drained by
-   * _startQueryExecution shifting an item off before it runs, so a length of 0
-   * does not by itself mean idle — check the running flag and current item too.
+   * True while any work is in flight against the engine. Beyond the query queue
+   * (drained by _startQueryExecution shifting an item off before it runs, so a
+   * length of 0 does not by itself mean idle), this also covers work that
+   * touches the engine OUTSIDE the queue — notably file-buffer registration,
+   * which holds a table lock across its download and registers buffers directly
+   * on the worker. If the idle timer tore the worker down during that window,
+   * the registration's postTask would hit a dead worker ("worker is not set").
    */
   private _isBusy() {
     return (
       this.queriesQueue.length > 0 ||
       this.queryQueueRunning ||
-      this.currentQueryItem !== undefined
+      this.currentQueryItem !== undefined ||
+      this.hasActiveLocks()
     );
   }
 
@@ -222,12 +227,15 @@ export class DBM extends TableLockManager {
     if (this.options?.shutdownInactiveTime) {
       this.terminateDBTimeout = setTimeout(async () => {
         // A query that has been shifted off the queue is executing with
-        // queriesQueue.length === 0 (currentQueryItem set, queue running).
-        // Guarding on _isBusy() — same as the recycle timer — stops the
-        // shutdown from terminating the worker while a query is in flight,
-        // which otherwise kills the duckdb-wasm worker mid-postTask.
+        // queriesQueue.length === 0 (currentQueryItem set, queue running), and
+        // file registration holds a table lock outside the queue. Guarding on
+        // _isBusy() stops the shutdown from terminating the worker mid-flight.
+        // Re-arm (rather than drop) so the engine still idles down once the
+        // in-flight work — which may not end via a queue drain, e.g. a
+        // download-only registration — finishes.
         if (this._isBusy()) {
-          this.logger.debug('Query in flight, not shutting down the DB');
+          this.logger.debug('Work in flight, deferring shutdown');
+          this._startShutdownInactiveTimer();
           return;
         }
         await this._shutdown();
@@ -547,9 +555,20 @@ export class DBM extends TableLockManager {
   }
 
   /**
-   * Set the shutdown lock to prevent the DB from shutting down
+   * Set the shutdown lock to prevent the DB from shutting down while a caller
+   * holds it. Consumers hold the lock across multi-step operations that touch
+   * the engine outside the query queue (e.g. registering file buffers before
+   * querying), which _isBusy() cannot see.
+   *
+   * Releasing the lock re-arms the idle timers. Without this, a timer that
+   * fired while the lock was held returns early and is never rescheduled, so
+   * the engine would stay warm forever and never reclaim memory — defeating
+   * the whole idle-shutdown mechanism.
    */
   public async setShutdownLock(state: boolean) {
     this.shutdownLock = state;
+    if (!state && !this._isBusy()) {
+      this._startShutdownInactiveTimer();
+    }
   }
 }
