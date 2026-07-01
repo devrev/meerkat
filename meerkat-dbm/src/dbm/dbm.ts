@@ -221,13 +221,13 @@ export class DBM extends TableLockManager {
 
     if (this.options?.shutdownInactiveTime) {
       this.terminateDBTimeout = setTimeout(async () => {
-        /**
-         * Check if there is any query in the queue
-         */
-        if (this.queriesQueue.length > 0) {
-          this.logger.debug(
-            'Query queue is not empty, not shutting down the DB'
-          );
+        // A query that has been shifted off the queue is executing with
+        // queriesQueue.length === 0 (currentQueryItem set, queue running).
+        // Guarding on _isBusy() — same as the recycle timer — stops the
+        // shutdown from terminating the worker while a query is in flight,
+        // which otherwise kills the duckdb-wasm worker mid-postTask.
+        if (this._isBusy()) {
+          this.logger.debug('Query in flight, not shutting down the DB');
           return;
         }
         await this._shutdown();
@@ -443,6 +443,17 @@ export class DBM extends TableLockManager {
       this.logger.debug('Query queue is already running');
       return;
     }
+    // A query armed on the previous queue-drain keeps counting down through the
+    // start of this one. Cancel it now so the idle recycle/shutdown can't fire
+    // mid-query; both re-arm when the queue next drains (_stopQueryQueue).
+    if (this.recycleDBTimeout) {
+      clearTimeout(this.recycleDBTimeout);
+      this.recycleDBTimeout = null;
+    }
+    if (this.terminateDBTimeout) {
+      clearTimeout(this.terminateDBTimeout);
+      this.terminateDBTimeout = null;
+    }
     this.logger.debug('Starting query queue');
     this.queryQueueRunning = true;
     this._startQueryExecution();
@@ -523,18 +534,6 @@ export class DBM extends TableLockManager {
     return promise;
   }
 
-  /**
-   * The idle teardown terminates the underlying worker to reclaim memory. A
-   * query can race a completed teardown (or a shared engine terminated by
-   * another DBM), leaving a cached connection bound to a dead worker. duckdb-wasm
-   * surfaces this as "worker is not set". The teardown barrier in _getConnection
-   * only covers an in-flight teardown, not one that already finished.
-   */
-  private _isStaleWorkerError(error: unknown): boolean {
-    const message = error instanceof Error ? error.message : String(error);
-    return message.includes('worker is not set');
-  }
-
   async query(query: string): Promise<Table<any>> {
     /**
      * Get the connection or create a new one
@@ -544,21 +543,7 @@ export class DBM extends TableLockManager {
     /**
      * Execute the query
      */
-    try {
-      return await connection.query(query);
-    } catch (error) {
-      if (!this._isStaleWorkerError(error)) {
-        throw error;
-      }
-      /**
-       * Drop the dead connection and re-acquire. _getConnection re-instantiates
-       * the engine via instanceManager.getDB(), so the retry runs against a
-       * fresh worker. Retried once — a second stale failure propagates.
-       */
-      this.connection = null;
-      const freshConnection = await this._getConnection();
-      return freshConnection.query(query);
-    }
+    return connection.query(query);
   }
 
   /**
