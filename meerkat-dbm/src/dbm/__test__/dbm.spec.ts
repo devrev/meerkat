@@ -791,5 +791,40 @@ describe('DBM', () => {
       await new Promise((resolve) => setTimeout(resolve, 70));
       expect(instanceManager.terminateDB).not.toBeCalled();
     });
+
+    it('does not terminate the worker while a table lock is held outside the query queue', async () => {
+      // File-buffer registration holds a table lock across its download and
+      // registers buffers directly on the worker — outside the query queue.
+      // The idle shutdown must treat a held lock as busy, else it terminates
+      // the worker mid-registration ("worker is not set").
+      const instanceManager = new InstanceManager();
+      instanceManager.terminateDB = jest.fn();
+
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+        options: {
+          shutdownInactiveTime: 100,
+        },
+      });
+
+      // Arm the shutdown timer via a completed query (queue drains).
+      await dbm.queryWithTables({ query: 'SELECT * FROM table1', tables });
+
+      // Simulate registration: acquire a table lock and hold it across the
+      // shutdown window, as fetchAndRegisterChunksWithIndexedDb does.
+      await dbm.lockTables(['table1']);
+
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Timer elapsed while the lock was held — must not have terminated.
+      expect(instanceManager.terminateDB).not.toBeCalled();
+
+      // Release the lock; the re-armed timer then shuts down once idle.
+      dbm.unlockTables(['table1']);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      expect(instanceManager.terminateDB).toBeCalled();
+    });
   });
 });
