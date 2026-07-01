@@ -523,6 +523,18 @@ export class DBM extends TableLockManager {
     return promise;
   }
 
+  /**
+   * The idle teardown terminates the underlying worker to reclaim memory. A
+   * query can race a completed teardown (or a shared engine terminated by
+   * another DBM), leaving a cached connection bound to a dead worker. duckdb-wasm
+   * surfaces this as "worker is not set". The teardown barrier in _getConnection
+   * only covers an in-flight teardown, not one that already finished.
+   */
+  private _isStaleWorkerError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes('worker is not set');
+  }
+
   async query(query: string): Promise<Table<any>> {
     /**
      * Get the connection or create a new one
@@ -532,7 +544,21 @@ export class DBM extends TableLockManager {
     /**
      * Execute the query
      */
-    return connection.query(query);
+    try {
+      return await connection.query(query);
+    } catch (error) {
+      if (!this._isStaleWorkerError(error)) {
+        throw error;
+      }
+      /**
+       * Drop the dead connection and re-acquire. _getConnection re-instantiates
+       * the engine via instanceManager.getDB(), so the retry runs against a
+       * fresh worker. Retried once — a second stale failure propagates.
+       */
+      this.connection = null;
+      const freshConnection = await this._getConnection();
+      return freshConnection.query(query);
+    }
   }
 
   /**

@@ -720,4 +720,57 @@ describe('DBM', () => {
       );
     });
   });
+
+  describe('stale worker self-heal', () => {
+    const buildDbm = (connectImpl: () => Promise<unknown>) => {
+      const instanceManager = new InstanceManager();
+      const getDBSpy = jest.spyOn(instanceManager, 'getDB').mockResolvedValue({
+        connect: connectImpl,
+      } as unknown as Awaited<ReturnType<typeof instanceManager.getDB>>);
+      const dbm = new DBM({
+        instanceManager,
+        fileManager,
+        logger: log,
+        onEvent: () => undefined,
+      });
+      return { dbm, getDBSpy };
+    };
+
+    it('re-acquires the engine and retries once when the worker was terminated', async () => {
+      const query = jest
+        .fn()
+        .mockRejectedValueOnce(
+          new Error('cannot send a message since the worker is not set!:RUN_QUERY')
+        )
+        .mockResolvedValueOnce(['ok']);
+      const close = jest.fn();
+      const { dbm, getDBSpy } = buildDbm(async () => ({ query, close }));
+
+      const result = await dbm.query('SELECT 1');
+
+      expect(result).toEqual(['ok']);
+      expect(query).toBeCalledTimes(2);
+      // Cold boot for the first connection + re-acquire for the retry.
+      expect(getDBSpy).toBeCalledTimes(2);
+    });
+
+    it('does not retry on an unrelated query error', async () => {
+      const query = jest.fn().mockRejectedValue(new Error('Parser Error: syntax'));
+      const { dbm, getDBSpy } = buildDbm(async () => ({ query, close: jest.fn() }));
+
+      await expect(dbm.query('SELECT 1')).rejects.toThrow('Parser Error: syntax');
+      expect(query).toBeCalledTimes(1);
+      expect(getDBSpy).toBeCalledTimes(1);
+    });
+
+    it('propagates the error when the retry also hits a stale worker', async () => {
+      const query = jest
+        .fn()
+        .mockRejectedValue(new Error('worker is not set'));
+      const { dbm } = buildDbm(async () => ({ query, close: jest.fn() }));
+
+      await expect(dbm.query('SELECT 1')).rejects.toThrow('worker is not set');
+      expect(query).toBeCalledTimes(2);
+    });
+  });
 });
