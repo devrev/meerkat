@@ -1,7 +1,14 @@
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
+import {
+  JoinFilterCondition,
+  JoinFilterExpression,
+  JoinFilterOperand,
+  Query,
+  StructuredJoin,
+  TableSchema,
+} from '../../types/cube-types';
 import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
-import { Query, StructuredJoin, TableSchema } from '../../types/cube-types';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';
 const ARRAY_DIMENSION_TYPES = new Set(['string_array', 'number_array']);
@@ -88,7 +95,8 @@ const collectArrayJoinSources = (
  * the names emitted in the SELECT list stay in lock-step with the names
  * referenced in the ON clause.
  */
-const getUnnestAlias = (column: string): string => `${UNNEST_ALIAS_PREFIX}${column}`;
+const getUnnestAlias = (column: string): string =>
+  `${UNNEST_ALIAS_PREFIX}${column}`;
 
 /**
  * `<unnestAlias> AS <table.unnestAlias safe-key>` — re-aliases the unnested
@@ -96,9 +104,14 @@ const getUnnestAlias = (column: string): string => `${UNNEST_ALIAS_PREFIX}${colu
  * via the same `tableName____mk_u_<col>` identifier they use for any other
  * member.
  */
-const buildSafeKeyAliasProjection = (tableName: string, column: string): string => {
+const buildSafeKeyAliasProjection = (
+  tableName: string,
+  column: string
+): string => {
   const unnestAlias = getUnnestAlias(column);
-  return `${unnestAlias} AS ${memberKeyToSafeKey(`${tableName}.${unnestAlias}`)}`;
+  return `${unnestAlias} AS ${memberKeyToSafeKey(
+    `${tableName}.${unnestAlias}`
+  )}`;
 };
 
 const wrapTableSqlForArrayFrom = (
@@ -124,9 +137,57 @@ const wrapTableSqlForArrayFrom = (
   )}`;
 };
 
+const escapeValue = (value: unknown): string => {
+  if (value === null || value === undefined) return 'NULL';
+  return `'${String(value).replace(/'/g, "''")}'`;
+};
+
+const conditionToSql = (cond: JoinFilterCondition): string => {
+  const { key, operator, json_value } = cond;
+  switch (operator) {
+    case 'equals':
+      return `${key} = ${escapeValue(json_value)}`;
+    case 'not_equals':
+      return `${key} != ${escapeValue(json_value)}`;
+    case 'null':
+      return `${key} IS NULL`;
+    case 'not_null':
+      return `${key} IS NOT NULL`;
+    case 'empty':
+      return `${key} = ''`;
+    case 'not_empty':
+      return `${key} != ''`;
+    default:
+      throw new Error(`Unsupported join condition operator: ${operator}`);
+  }
+};
+
+const operandToSql = (operand: JoinFilterOperand): string => {
+  if (operand.type === 'condition' && operand.condition) {
+    return conditionToSql(operand.condition);
+  }
+  if (operand.type === 'expression' && operand.expression) {
+    return expressionToSql(operand.expression);
+  }
+  throw new Error(
+    'Invalid join filter operand: missing condition or expression'
+  );
+};
+
+const expressionToSql = (expr: JoinFilterExpression): string => {
+  const parts = expr.operands.map(operandToSql);
+  if (parts.length === 1) return parts[0];
+  const joiner = expr.operator === 'and' ? ' AND ' : ' OR ';
+  return `(${parts.join(joiner)})`;
+};
+
 const buildPredicate = (edge: StructuredJoin, fromIsArray: boolean): string => {
-  const leftColumn = fromIsArray ? getUnnestAlias(edge.from.column) : edge.from.column;
-  return `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
+  const leftColumn = fromIsArray
+    ? getUnnestAlias(edge.from.column)
+    : edge.from.column;
+  const basePredicate = `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
+  if (!edge.condition) return basePredicate;
+  return `${basePredicate} AND ${expressionToSql(edge.condition)}`;
 };
 
 export const createDirectedGraphV2 = (
@@ -141,7 +202,9 @@ export const createDirectedGraphV2 = (
     for (const edge of path) {
       const { from, to } = edge;
       if (from.table === to.table) {
-        throw new Error(`Invalid structured join: self-join on "${from.table}"`);
+        throw new Error(
+          `Invalid structured join: self-join on "${from.table}"`
+        );
       }
       if (!tableSchemaSqlMap[from.table] || !tableSchemaSqlMap[to.table]) {
         continue;
@@ -158,7 +221,10 @@ export const createDirectedGraphV2 = (
       }
       graph[from.table] ??= {};
       graph[from.table][to.table] ??= {};
-      graph[from.table][to.table][from.column] = buildPredicate(edge, fromIsArray);
+      graph[from.table][to.table][from.column] = buildPredicate(
+        edge,
+        fromIsArray
+      );
     }
   }
   return graph;
@@ -223,7 +289,9 @@ export const generateSqlQueryV2 = (
             rightArrayCols,
             tableSchemas
           )
-        : `(${tableSchemaSqlMap[edge.to.table]}) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
+        : `(${tableSchemaSqlMap[edge.to.table]}) AS ${quoteIdentifierIfNeeded(
+            edge.to.table
+          )}`;
       query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
   }
