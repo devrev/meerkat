@@ -9,14 +9,13 @@ import { buildDimIssueFixture } from './helpers/dim-issue-fixture';
  * expressions) plus ~72 measures. Projects the small fixed set of members from
  * the user's input, empty filters, ordered by a row-order column.
  *
- * Measured stage split for this shape (per generation, warm, in-memory DuckDB):
- *   getFinalBaseSQL          ~0.13ms  (CPU: wrapped projection build)
- *   deserialize round-trip   ~0.12ms  (DuckDB I/O: AST -> SQL text)
- *   applyProjectionToSQLQuery~0.05ms  (CPU: outer projection build)
- *   everything else          <0.01ms
- * The two DuckDB round-trips (getFinalBaseSQL also does one internally via
- * getWrappedBaseQueryWithProjections when the base has expressions) plus the
- * projection deserialize dominate. CPU work is real but secondary.
+ * This shape has NO filter params, so the only DuckDB round-trip in generation
+ * is the preBaseQuery deserialize (AST -> SQL text). The AST-free
+ * `buildPreBaseQuerySync` fast-path removes it: measured in isolation the
+ * preBaseQuery step drops from ~0.14ms (round-trip) to ~0.004ms (~31x), taking
+ * full cubeQueryToSQL for this input from ~0.38ms down to ~0.25ms. The
+ * remaining cost is pure CPU (getFinalBaseSQL wrapped-projection build +
+ * applyProjectionToSQLQuery), no DuckDB.
  */
 
 describe('dim_issue end-to-end generation', () => {
