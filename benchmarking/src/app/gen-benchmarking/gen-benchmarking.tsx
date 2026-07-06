@@ -25,7 +25,7 @@ const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
  * Emits results into `#gen_results` (JSON) for puppeteer to read.
  */
 const ITER = 30;
-const PARALLEL = 25;
+const PARALLEL_SWEEP = [1, 5, 10, 25, 50, 100];
 
 const avg = async (fn: () => Promise<void>, iterations: number) => {
   await fn(); // warmup
@@ -99,29 +99,51 @@ export const GenBenchmarking = () => {
       const fastSeqMs = await avg(fastGen, ITER);
       const baselineSeqMs = await avg(baselineGen, ITER);
 
-      const fireBatch = async (fn: () => Promise<unknown>) => {
-        const start = performance.now();
-        await Promise.all(Array.from({ length: PARALLEL }, fn));
-        return performance.now() - start;
-      };
-      await fireBatch(fastGen);
-      const batchFastMs = await fireBatch(fastGen);
-      await fireBatch(baselineGen);
-      const batchBaselineMs = await fireBatch(baselineGen);
-
-      // Head-of-line blocking: the wasm worker is single-threaded. Kick off a
-      // heavy data query (occupies the worker), then immediately time a
-      // generation. Baseline generation must queue behind the heavy query on
-      // the worker; the fast path runs on the main thread, unaffected.
+      // Load real data first so the concurrent heavy query actually occupies
+      // the worker (realistic contention). Do this BEFORE the sweep.
       await connection.query(
         `INSERT INTO dim_issue (id, __fdl_row_order__) SELECT CAST(i AS VARCHAR), i FROM range(200000) t(i);`
       );
       const heavyQuery = `SELECT COUNT(*) FROM (SELECT id FROM dim_issue ORDER BY __fdl_row_order__ DESC LIMIT 100000) a JOIN dim_issue b ON a.id = b.id;`;
 
-      const measureUnderLoad = async (gen: () => Promise<unknown>) => {
+      const median = (xs: number[]) =>
+        xs.slice().sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+
+      // Sweep: fire N generations concurrently WHILE a heavy data query runs on
+      // the worker. Measures how long the batch of generations takes to finish
+      // under realistic worker contention. Median of 5 to suppress noise.
+      const batchUnderLoad = async (fn: () => Promise<unknown>, n: number) => {
         const heavy = connection.query(heavyQuery); // occupy the worker
+        const start = performance.now();
+        await Promise.all(Array.from({ length: n }, fn));
+        const ms = performance.now() - start;
+        await heavy;
+        return ms;
+      };
+
+      const sweep: any[] = [];
+      for (const n of PARALLEL_SWEEP) {
+        const fastRuns: number[] = [];
+        const baseRuns: number[] = [];
+        for (let r = 0; r < 5; r += 1) {
+          fastRuns.push(await batchUnderLoad(fastGen, n));
+          baseRuns.push(await batchUnderLoad(baselineGen, n));
+        }
+        const fast = median(fastRuns);
+        const baseline = median(baseRuns);
+        sweep.push({
+          n,
+          fastMs: Number(fast.toFixed(3)),
+          baselineMs: Number(baseline.toFixed(3)),
+          speedup: Number((baseline / fast).toFixed(2)),
+        });
+      }
+
+      // Head-of-line blocking: single heavy data query + ONE generation.
+      const measureUnderLoad = async (gen: () => Promise<unknown>) => {
+        const heavy = connection.query(heavyQuery);
         const s = performance.now();
-        await gen(); // how long until generation completes?
+        await gen();
         const genLatency = performance.now() - s;
         await heavy;
         return genLatency;
@@ -135,10 +157,7 @@ export const GenBenchmarking = () => {
         fastSeqMs: Number(fastSeqMs.toFixed(4)),
         baselineSeqMs: Number(baselineSeqMs.toFixed(4)),
         seqSpeedup: Number((baselineSeqMs / fastSeqMs).toFixed(2)),
-        parallel: PARALLEL,
-        batchFastMs: Number(batchFastMs.toFixed(4)),
-        batchBaselineMs: Number(batchBaselineMs.toFixed(4)),
-        batchSpeedup: Number((batchBaselineMs / batchFastMs).toFixed(2)),
+        parallelSweep: sweep,
         genLatencyUnderWorkerLoad: {
           fastMs: Number(fastUnderLoadMs.toFixed(4)),
           baselineMs: Number(baselineUnderLoadMs.toFixed(4)),
