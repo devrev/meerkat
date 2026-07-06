@@ -7,6 +7,8 @@ import {
   applyProjectionToSQLQuery,
   applySQLExpressions,
   astDeserializerQuery,
+  buildPreBaseQuerySync,
+  canBuildPreBaseQuerySync,
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
@@ -23,6 +25,36 @@ const getQueryOutput = async (
   const queryOutput = await connection.query(query);
   const parsedOutputQuery = queryOutput.toArray().map((row) => row.toJSON());
   return parsedOutputQuery;
+};
+
+/**
+ * Produce the outer query skeleton (`preBaseQuery`).
+ *
+ * For queries without a projection-filter WHERE clause we build the string
+ * synchronously in TS, skipping the `cubeToDuckdbAST -> json_deserialize_sql`
+ * DuckDB round-trip. In the browser each round-trip is a message hop to the
+ * duckdb-wasm Web Worker, so skipping it is more valuable than in node.
+ * Otherwise we fall back to the AST round-trip so the WHERE operator grammar
+ * stays correct.
+ */
+const getPreBaseQuery = async (
+  query: Query,
+  updatedTableSchema: TableSchema,
+  connection: AsyncDuckDBConnection
+): Promise<string> => {
+  if (canBuildPreBaseQuerySync(query)) {
+    return buildPreBaseQuerySync(query, updatedTableSchema);
+  }
+
+  const ast = cubeToDuckdbAST(query, updatedTableSchema, {
+    filterType: 'PROJECTION_FILTER',
+  });
+  if (!ast) {
+    throw new Error('Could not generate AST');
+  }
+  const arrowResult = await connection.query(astDeserializerQuery(ast));
+  const parsedOutputQuery = arrowResult.toArray().map((row) => row.toJSON());
+  return deserializeQuery(parsedOutputQuery);
 };
 
 export interface CubeQueryToSQLParams {
@@ -57,20 +89,11 @@ export const cubeQueryToSQL = async ({
     query
   );
 
-  const ast = cubeToDuckdbAST(query, updatedTableSchema, {
-    filterType: 'PROJECTION_FILTER',
-  });
-  if (!ast) {
-    throw new Error('Could not generate AST');
-  }
-
-  const queryTemp = astDeserializerQuery(ast);
-
-  // The projection-AST deserialize and the PROJECTION_FILTER param resolution
-  // are independent DuckDB round-trips, so run them concurrently instead of
-  // one-after-the-other.
-  const [arrowResult, filterParamsSQL] = await Promise.all([
-    connection.query(queryTemp),
+  // The preBaseQuery build (AST round-trip or AST-free) and the
+  // PROJECTION_FILTER param resolution are independent, so run them
+  // concurrently.
+  const [preBaseQuery, filterParamsSQL] = await Promise.all([
+    getPreBaseQuery(query, updatedTableSchema, connection),
     getFilterParamsSQL({
       getQueryOutput: (query) => getQueryOutput(query, connection),
       query,
@@ -78,8 +101,6 @@ export const cubeQueryToSQL = async ({
       filterType: 'PROJECTION_FILTER',
     }),
   ]);
-  const parsedOutputQuery = arrowResult.toArray().map((row) => row.toJSON());
-  const preBaseQuery = deserializeQuery(parsedOutputQuery);
 
   const filterParamQuery = applyFilterParamsToBaseSQL(
     updatedTableSchema.sql,

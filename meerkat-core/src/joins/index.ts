@@ -15,8 +15,8 @@ export const getCombinedTableSchema = (
   return getCombinedTableSchemaV1(tableSchema, cubeQuery);
 };
 
+export type { Graph } from './v1/joins';
 export {
-  Graph,
   checkLoopInJoinPath,
   createDirectedGraph,
   generateSqlQuery,

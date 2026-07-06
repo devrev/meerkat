@@ -6,6 +6,7 @@ import { ParallelIndexedDBMProvider } from './dbm-context/parallel-indexed-dbm-c
 import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-context';
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
+import { GenBenchmarking } from './gen-benchmarking/gen-benchmarking';
 import { NativeAppFileLoader } from './file-loader/native-app-file-loader';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 
@@ -35,6 +36,7 @@ export function App() {
         </ul>
       </nav>
       <Routes>
+        <Route path="/gen-benchmark" element={<GenBenchmarking />} />
         <Route
           path="/raw-dbm"
           element={
