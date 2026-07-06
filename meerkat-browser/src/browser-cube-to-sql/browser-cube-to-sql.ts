@@ -66,16 +66,20 @@ export const cubeQueryToSQL = async ({
 
   const queryTemp = astDeserializerQuery(ast);
 
-  const arrowResult = await connection.query(queryTemp);
+  // The projection-AST deserialize and the PROJECTION_FILTER param resolution
+  // are independent DuckDB round-trips, so run them concurrently instead of
+  // one-after-the-other.
+  const [arrowResult, filterParamsSQL] = await Promise.all([
+    connection.query(queryTemp),
+    getFilterParamsSQL({
+      getQueryOutput: (query) => getQueryOutput(query, connection),
+      query,
+      tableSchema: updatedTableSchema,
+      filterType: 'PROJECTION_FILTER',
+    }),
+  ]);
   const parsedOutputQuery = arrowResult.toArray().map((row) => row.toJSON());
-
   const preBaseQuery = deserializeQuery(parsedOutputQuery);
-  const filterParamsSQL = await getFilterParamsSQL({
-    getQueryOutput: (query) => getQueryOutput(query, connection),
-    query,
-    tableSchema: updatedTableSchema,
-    filterType: 'PROJECTION_FILTER',
-  });
 
   const filterParamQuery = applyFilterParamsToBaseSQL(
     updatedTableSchema.sql,
