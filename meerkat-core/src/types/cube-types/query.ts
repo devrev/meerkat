@@ -141,12 +141,10 @@ interface JoinNode {
 export type JoinConditionOperator =
   | 'equals'
   | 'not_equals'
-  | 'contains'
   | 'empty'
   | 'not_empty'
   | 'not_null'
-  | 'null'
-  | 'range';
+  | 'null';
 
 /** A filter condition on a join edge (e.g. link_type_id = '1234'). */
 export interface JoinFilterCondition {

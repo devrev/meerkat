@@ -138,25 +138,34 @@ const wrapTableSqlForArrayFrom = (
 };
 
 const escapeValue = (value: unknown): string => {
-  if (value === null || value === undefined) return 'NULL';
   return `'${String(value).replace(/'/g, "''")}'`;
+};
+
+const quoteKey = (key: string): string => {
+  return key
+    .split('.')
+    .map((part) => quoteIdentifierIfNeeded(part))
+    .join('.');
 };
 
 const conditionToSql = (cond: JoinFilterCondition): string => {
   const { key, operator, json_value } = cond;
+  const quotedKey = quoteKey(key);
   switch (operator) {
     case 'equals':
-      return `${key} = ${escapeValue(json_value)}`;
+      if (json_value === null || json_value === undefined) return `${quotedKey} IS NULL`;
+      return `${quotedKey} = ${escapeValue(json_value)}`;
     case 'not_equals':
-      return `${key} != ${escapeValue(json_value)}`;
+      if (json_value === null || json_value === undefined) return `${quotedKey} IS NOT NULL`;
+      return `${quotedKey} != ${escapeValue(json_value)}`;
     case 'null':
-      return `${key} IS NULL`;
+      return `${quotedKey} IS NULL`;
     case 'not_null':
-      return `${key} IS NOT NULL`;
+      return `${quotedKey} IS NOT NULL`;
     case 'empty':
-      return `${key} = ''`;
+      return `${quotedKey} = ''`;
     case 'not_empty':
-      return `${key} != ''`;
+      return `${quotedKey} != ''`;
     default:
       throw new Error(`Unsupported join condition operator: ${operator}`);
   }
