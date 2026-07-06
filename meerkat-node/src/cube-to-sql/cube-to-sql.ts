@@ -7,6 +7,8 @@ import {
   applyProjectionToSQLQuery,
   applySQLExpressions,
   astDeserializerQuery,
+  buildPreBaseQuerySync,
+  canBuildPreBaseQuerySync,
   cubeToDuckdbAST,
   deserializeQuery,
   detectApplyContextParamsToBaseSQL,
@@ -15,6 +17,34 @@ import {
   getFinalBaseSQL,
 } from '@devrev/meerkat-core';
 import { duckdbExec } from '../duckdb-exec';
+
+/**
+ * Produce the outer query skeleton (`preBaseQuery`).
+ *
+ * For queries without a projection-filter WHERE clause we build the string
+ * synchronously in TS, skipping the `cubeToDuckdbAST -> json_deserialize_sql`
+ * DuckDB round-trip. Otherwise we fall back to the AST round-trip so the WHERE
+ * operator grammar stays correct.
+ */
+const getPreBaseQuery = async (
+  query: Query,
+  updatedTableSchema: TableSchema
+): Promise<string> => {
+  if (canBuildPreBaseQuerySync(query)) {
+    return buildPreBaseQuerySync(query, updatedTableSchema);
+  }
+
+  const ast = cubeToDuckdbAST(query, updatedTableSchema, {
+    filterType: 'PROJECTION_FILTER',
+  });
+  if (!ast) {
+    throw new Error('Could not generate AST');
+  }
+  const queryOutput = (await duckdbExec(
+    astDeserializerQuery(ast)
+  )) as Record<string, string>[];
+  return deserializeQuery(queryOutput);
+};
 
 export interface CubeQueryToSQLParams {
   query: Query;
@@ -43,24 +73,18 @@ export const cubeQueryToSQL = async ({
 
   const updatedTableSchema = getCombinedTableSchema(updatedTableSchemas, query);
 
-  const ast = cubeToDuckdbAST(query, updatedTableSchema, {
-    filterType: 'PROJECTION_FILTER',
-  });
-  if (!ast) {
-    throw new Error('Could not generate AST');
-  }
-
-  const queryTemp = astDeserializerQuery(ast);
-
-  const queryOutput = (await duckdbExec(queryTemp)) as Record<string, string>[];
-  const preBaseQuery = deserializeQuery(queryOutput);
-
-  const filterParamsSQL = await getFilterParamsSQL({
-    query,
-    tableSchema: updatedTableSchema,
-    filterType: 'PROJECTION_FILTER',
-    getQueryOutput: duckdbExec,
-  });
+  // The preBaseQuery build (AST round-trip or AST-free) and the
+  // PROJECTION_FILTER param resolution are independent, so run them
+  // concurrently.
+  const [preBaseQuery, filterParamsSQL] = await Promise.all([
+    getPreBaseQuery(query, updatedTableSchema),
+    getFilterParamsSQL({
+      query,
+      tableSchema: updatedTableSchema,
+      filterType: 'PROJECTION_FILTER',
+      getQueryOutput: duckdbExec,
+    }),
+  ]);
 
   const filterParamQuery = applyFilterParamsToBaseSQL(
     updatedTableSchema.sql,

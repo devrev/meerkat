@@ -1,6 +1,7 @@
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
-import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
+import type { Graph } from '../v1/joins';
+import { quoteIdentifierIfNeeded } from '../v1/joins';
 import { Query, StructuredJoin, TableSchema } from '../../types/cube-types';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';

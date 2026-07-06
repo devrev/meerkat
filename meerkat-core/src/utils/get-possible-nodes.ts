@@ -1,4 +1,5 @@
-import { Graph, checkLoopInJoinPath, createDirectedGraph } from '../joins';
+import type { Graph } from '../joins';
+import { checkLoopInJoinPath, createDirectedGraph } from '../joins';
 import {
   Dimension,
   JoinPath,
