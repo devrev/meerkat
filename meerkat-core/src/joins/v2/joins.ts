@@ -203,6 +203,35 @@ const buildPredicate = (edge: StructuredJoin, fromIsArray: boolean): string => {
 
 const BRIDGE_TABLES = new Set(['link']);
 
+const aliasBridgeTables = (paths: StructuredJoin[][]): StructuredJoin[][] =>
+  paths.map((path) => {
+    const seen = new Map<string, number>();
+    if (path[0]) seen.set(path[0].from.table, 1);
+
+    const result: StructuredJoin[] = [];
+    for (let i = 0; i < path.length; i++) {
+      const edge = path[i];
+      const count = seen.get(edge.to.table) ?? 0;
+      seen.set(edge.to.table, count + 1);
+
+      if (count === 0 || !BRIDGE_TABLES.has(edge.to.table)) {
+        result.push(edge);
+        continue;
+      }
+
+      const alias = `${edge.to.table}__${count}`;
+      result.push({ ...edge, to: { ...edge.to, table: alias } });
+
+      if (i + 1 < path.length && path[i + 1].from.table === edge.to.table) {
+        path[i + 1] = {
+          ...path[i + 1],
+          from: { ...path[i + 1].from, table: alias },
+        };
+      }
+    }
+    return result;
+  });
+
 export const createDirectedGraphV2 = (
   tableSchemas: TableSchema[],
   tableSchemaSqlMap: { [key: string]: string },
@@ -230,10 +259,7 @@ export const createDirectedGraphV2 = (
         );
       }
       if (graph[from.table]?.[to.table]?.[from.column]) {
-        if (!BRIDGE_TABLES.has(to.table)) {
-          throw new Error('An invalid path was detected.');
-        }
-        continue;
+        throw new Error('An invalid path was detected.');
       }
       graph[from.table] ??= {};
       graph[from.table][to.table] ??= {};
@@ -282,53 +308,37 @@ export const generateSqlQueryV2 = (
     tableSchemas
   );
 
+  const resolvedPaths = aliasBridgeTables(paths);
+
   const visited = new Map<string, StructuredJoin>();
-  const bridgeAliasCount = new Map<string, number>();
-  const lastBridgeAlias = new Map<string, string>();
 
-  for (const path of paths) {
+  for (const path of resolvedPaths) {
     for (const edge of path) {
-      const fromAlias = lastBridgeAlias.get(edge.from.table) ?? edge.from.table;
-      lastBridgeAlias.delete(edge.from.table);
-
       const prev = visited.get(edge.to.table);
       if (prev?.from.table === edge.from.table) continue;
-      if (prev && !BRIDGE_TABLES.has(edge.to.table)) {
+      if (prev) {
         throw new Error(
           `Path ambiguity, node ${edge.to.table} visited from different sources`
         );
       }
+      visited.set(edge.to.table, edge);
 
-      let toAlias = edge.to.table;
-      if (prev && BRIDGE_TABLES.has(edge.to.table)) {
-        const count = (bridgeAliasCount.get(edge.to.table) ?? 0) + 1;
-        bridgeAliasCount.set(edge.to.table, count);
-        toAlias = `${edge.to.table}__${count}`;
-        lastBridgeAlias.set(edge.to.table, toAlias);
-      } else {
-        visited.set(edge.to.table, edge);
-      }
-
-      const resolvedEdge: StructuredJoin = {
-        ...edge,
-        from: { ...edge.from, table: fromAlias },
-        to: { ...edge.to, table: toAlias },
-      };
       const onClause = buildPredicate(
-        resolvedEdge,
+        edge,
         isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
       );
+      const baseSql =
+        tableSchemaSqlMap[edge.to.table] ??
+        tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')];
       const rightArrayCols = arraySourcesByTable.get(edge.to.table);
       const rightSubquery = rightArrayCols?.size
         ? wrapTableSqlForArrayFrom(
-            tableSchemaSqlMap[edge.to.table],
-            toAlias,
+            baseSql,
+            edge.to.table,
             rightArrayCols,
             tableSchemas
           )
-        : `(${tableSchemaSqlMap[edge.to.table]}) AS ${quoteIdentifierIfNeeded(
-            toAlias
-          )}`;
+        : `(${baseSql}) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
       query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
   }
