@@ -251,7 +251,7 @@ export const createDirectedGraphV2 = (
         );
       }
       if (graph[from.table]?.[to.table]?.[from.column]) {
-        throw new Error('An invalid path was detected.');
+        continue;
       }
       graph[from.table] ??= {};
       graph[from.table][to.table] ??= {};
@@ -317,16 +317,23 @@ export const generateSqlQueryV2 = (
 
       const onClause =
         directedGraph[edge.from.table]?.[edge.to.table]?.[edge.from.column] ??
-        buildPredicate(edge, isArrayColumn(tableSchemas, edge.from.table, edge.from.column));
+        buildPredicate(
+          edge,
+          isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
+        );
       const rightArrayCols = arraySourcesByTable.get(edge.to.table);
       const rightSubquery = rightArrayCols?.size
         ? wrapTableSqlForArrayFrom(
-            tableSchemaSqlMap[edge.to.table] ?? tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
+            tableSchemaSqlMap[edge.to.table] ??
+              tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
             edge.to.table,
             rightArrayCols,
             tableSchemas
           )
-        : `(${tableSchemaSqlMap[edge.to.table] ?? tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]}) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
+        : `(${
+            tableSchemaSqlMap[edge.to.table] ??
+            tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]
+          }) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
       query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
   }
