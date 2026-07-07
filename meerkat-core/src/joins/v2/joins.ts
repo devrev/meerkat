@@ -141,33 +141,25 @@ const escapeValue = (value: unknown): string => {
   return `'${String(value).replace(/'/g, "''")}'`;
 };
 
-const quoteKey = (key: string): string => {
-  return key
-    .split('.')
-    .map((part) => quoteIdentifierIfNeeded(part))
-    .join('.');
-};
-
 const conditionToSql = (cond: JoinFilterCondition): string => {
   const { key, operator, json_value } = cond;
-  const quotedKey = quoteKey(key);
   switch (operator) {
     case 'equals':
       if (json_value === null || json_value === undefined)
-        return `${quotedKey} IS NULL`;
-      return `${quotedKey} = ${escapeValue(json_value)}`;
+        return `${key} IS NULL`;
+      return `${key} = ${escapeValue(json_value)}`;
     case 'not_equals':
       if (json_value === null || json_value === undefined)
-        return `${quotedKey} IS NOT NULL`;
-      return `${quotedKey} != ${escapeValue(json_value)}`;
+        return `${key} IS NOT NULL`;
+      return `${key} != ${escapeValue(json_value)}`;
     case 'null':
-      return `${quotedKey} IS NULL`;
+      return `${key} IS NULL`;
     case 'not_null':
-      return `${quotedKey} IS NOT NULL`;
+      return `${key} IS NOT NULL`;
     case 'empty':
-      return `${quotedKey} = ''`;
+      return `${key} = ''`;
     case 'not_empty':
-      return `${quotedKey} != ''`;
+      return `${key} != ''`;
     default:
       throw new Error(`Unsupported join condition operator: ${operator}`);
   }
