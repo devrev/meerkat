@@ -274,7 +274,7 @@ export const createDirectedGraphV2 = (
 export const generateSqlQueryV2 = (
   paths: StructuredJoin[][],
   tableSchemaSqlMap: { [key: string]: string },
-  _directedGraph: Graph,
+  directedGraph: Graph,
   tableSchemas: TableSchema[]
 ): string => {
   if (paths.length === 0) {
@@ -315,22 +315,18 @@ export const generateSqlQueryV2 = (
       }
       visited.set(edge.to.table, edge);
 
-      const onClause = buildPredicate(
-        edge,
-        isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
-      );
-      const baseSql =
-        tableSchemaSqlMap[edge.to.table] ??
-        tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')];
+      const onClause =
+        directedGraph[edge.from.table]?.[edge.to.table]?.[edge.from.column] ??
+        buildPredicate(edge, isArrayColumn(tableSchemas, edge.from.table, edge.from.column));
       const rightArrayCols = arraySourcesByTable.get(edge.to.table);
       const rightSubquery = rightArrayCols?.size
         ? wrapTableSqlForArrayFrom(
-            baseSql,
+            tableSchemaSqlMap[edge.to.table] ?? tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
             edge.to.table,
             rightArrayCols,
             tableSchemas
           )
-        : `(${baseSql}) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
+        : `(${tableSchemaSqlMap[edge.to.table] ?? tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]}) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
       query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
   }
