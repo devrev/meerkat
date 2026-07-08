@@ -244,13 +244,16 @@ export class DBM extends TableLockManager {
   }
 
   private _emitEvent(event: DBMEvent, options?: QueryOptions) {
-    if (this.onEvent) {
-      this.onEvent(event);
-    }
-    // Also deliver to the per-query callback for the query that emitted this
-    // event, if one was supplied on its options.
+    // Route exclusively: an event that belongs to a query with a per-query
+    // callback goes to that callback only; everything else (cross-query gauges,
+    // load-time events, or queries that supplied no per-query callback) goes to
+    // the instance-level sink. The two sinks never both fire for one event.
     if (options?.onEvent) {
       options.onEvent(event);
+      return;
+    }
+    if (this.onEvent) {
+      this.onEvent(event);
     }
   }
 

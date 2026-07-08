@@ -56,12 +56,6 @@ export interface BrowserRunnerPreQueryMessage {
 export interface BrowserRunnerOnEventMessage {
   type: typeof BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT;
   payload: DBMEvent;
-  /**
-   * Id of the query this event belongs to (echoed from the EXEC_QUERY payload),
-   * so the runner manager can dispatch to the query's per-query `onEvent`.
-   * Optional for back-compat with older runner bundles that don't echo it.
-   */
-  queryId?: string;
 }
 
 export interface BrowserRunnerCancelQueryMessage {

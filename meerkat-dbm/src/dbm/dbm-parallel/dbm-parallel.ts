@@ -298,10 +298,12 @@ export class DBMParallel extends TableLockManager {
         signal,
       });
 
-      // Register the per-query onEvent so runner-emitted events for THIS query
-      // (echoed back with queryId on RUNNER_ON_EVENT) reach it.
+      // Register the per-query onEvent against the runner executing this query.
+      // The runner runs one query at a time, so RUNNER_ON_EVENT arriving on this
+      // runner belongs to this query and reaches its callback — no queryId needs
+      // to cross postMessage.
       this.iFrameRunnerManager.registerQueryEventCallback(
-        queryId,
+        runners[this.counter],
         options?.onEvent
       );
 
@@ -373,10 +375,15 @@ export class DBMParallel extends TableLockManager {
       if (queryInfo?.signal && queryInfo.abortHandler) {
         queryInfo.signal.removeEventListener('abort', queryInfo.abortHandler);
       }
-      this.activeQueries.delete(queryId);
       // Remove the per-query event callback now the query is done so the map
-      // never leaks entries for completed/aborted queries.
-      this.iFrameRunnerManager.unregisterQueryEventCallback(queryId);
+      // never leaks entries for completed/aborted queries. Keyed by the runner
+      // this query ran on.
+      if (queryInfo) {
+        this.iFrameRunnerManager.unregisterQueryEventCallback(
+          queryInfo.runnerId
+        );
+      }
+      this.activeQueries.delete(queryId);
 
       /**
        * Stop the runner if there are no active queries

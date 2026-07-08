@@ -46,10 +46,12 @@ export class IFrameRunnerManager {
   private runnerURL: string;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
-  // Per-query event callbacks (QueryOptions.onEvent), keyed by the query id that
-  // rides on EXEC_QUERY and is echoed back on RUNNER_ON_EVENT. Lets a
-  // runner-emitted event reach the callback scoped to just that query.
-  private perQueryEventCallbacks: Map<string, (event: DBMEvent) => void> =
+  // Per-query event callbacks (QueryOptions.onEvent), keyed by the id of the
+  // runner executing that query. A runner runs at most one query at a time, so
+  // the runnerId that RUNNER_ON_EVENT arrives on uniquely identifies the query
+  // whose callback should receive the event — no queryId needs to cross
+  // postMessage.
+  private perRunnerEventCallbacks: Map<string, (event: DBMEvent) => void> =
     new Map();
 
   private fetchTableFileBuffers: (
@@ -76,16 +78,16 @@ export class IFrameRunnerManager {
   }
 
   public registerQueryEventCallback(
-    queryId: string,
+    runnerId: string,
     onEvent?: (event: DBMEvent) => void
   ) {
     if (onEvent) {
-      this.perQueryEventCallbacks.set(queryId, onEvent);
+      this.perRunnerEventCallbacks.set(runnerId, onEvent);
     }
   }
 
-  public unregisterQueryEventCallback(queryId: string) {
-    this.perQueryEventCallbacks.delete(queryId);
+  public unregisterQueryEventCallback(runnerId: string) {
+    this.perRunnerEventCallbacks.delete(runnerId);
   }
 
   private addIFrameManager(uuid: string) {
@@ -180,18 +182,15 @@ export class IFrameRunnerManager {
       }
 
       case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT: {
-        if (this.onEvent) {
-          this.onEvent(message.message.payload);
-        }
-        // Dispatch to the per-query callback for the query this event belongs
-        // to. `queryId` is echoed by the runner on the message (undefined for
-        // older runner bundles, which then reach only the instance onEvent).
-        const { queryId } = message.message;
-        const perQueryOnEvent = queryId
-          ? this.perQueryEventCallbacks.get(queryId)
-          : undefined;
+        // Route exclusively by the runner the event arrived on. A runner runs
+        // one query at a time, so a registered callback identifies that query;
+        // deliver to it alone. Otherwise fall back to the instance sink. The
+        // two never both fire for one event.
+        const perQueryOnEvent = this.perRunnerEventCallbacks.get(runnerId);
         if (perQueryOnEvent) {
           perQueryOnEvent(message.message.payload);
+        } else if (this.onEvent) {
+          this.onEvent(message.message.payload);
         }
         break;
       }

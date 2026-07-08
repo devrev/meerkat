@@ -111,50 +111,69 @@ describe('IFrameRunnerManager', () => {
     );
   });
 
-  const onEventMessage = (queryId?: string) => ({
+  const onEventMessage = () => ({
     uuid: 'mock-uuid',
     message: {
       type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
       payload: { event_name: 'query_execution_duration', duration: 5 },
-      queryId,
     },
     target_app: 'runner',
-    timestamp: Date.now(),
+    timestamp: 0,
   });
 
-  it('dispatches RUNNER_ON_EVENT to the per-query callback registered for its queryId', () => {
+  it('dispatches RUNNER_ON_EVENT to the per-query callback registered for the emitting runner', () => {
     const onEvent = jest.fn();
-    manager.registerQueryEventCallback('q-1', onEvent);
+    manager.registerQueryEventCallback('0', onEvent);
 
-    manager['messageListener']('0', onEventMessage('q-1') as never);
+    manager['messageListener']('0', onEventMessage() as never);
 
     expect(onEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ event_name: 'query_execution_duration', duration: 5 })
+      expect.objectContaining({
+        event_name: 'query_execution_duration',
+        duration: 5,
+      })
     );
   });
 
   it('stops dispatching after the per-query callback is unregistered', () => {
     const onEvent = jest.fn();
-    manager.registerQueryEventCallback('q-2', onEvent);
-    manager.unregisterQueryEventCallback('q-2');
+    manager.registerQueryEventCallback('0', onEvent);
+    manager.unregisterQueryEventCallback('0');
 
-    manager['messageListener']('0', onEventMessage('q-2') as never);
+    manager['messageListener']('0', onEventMessage() as never);
 
     expect(onEvent).not.toHaveBeenCalled();
   });
 
-  it('does not dispatch to a per-query callback registered under a different queryId', () => {
+  it('does not dispatch to a callback registered for a different runner', () => {
     const onEvent = jest.fn();
-    manager.registerQueryEventCallback('q-a', onEvent);
+    manager.registerQueryEventCallback('0', onEvent);
 
-    manager['messageListener']('0', onEventMessage('q-b') as never);
+    manager['messageListener']('1', onEventMessage() as never);
 
     expect(onEvent).not.toHaveBeenCalled();
   });
 
-  it('does not throw when a RUNNER_ON_EVENT carries no queryId (older runner bundle)', () => {
-    expect(() =>
-      manager['messageListener']('0', onEventMessage(undefined) as never)
-    ).not.toThrow();
+  it('routes exclusively: the instance onEvent does not fire when a per-runner callback is registered', () => {
+    const instanceOnEvent = jest.fn();
+    manager['onEvent'] = instanceOnEvent;
+    const perQueryOnEvent = jest.fn();
+    manager.registerQueryEventCallback('0', perQueryOnEvent);
+
+    manager['messageListener']('0', onEventMessage() as never);
+
+    expect(perQueryOnEvent).toHaveBeenCalledTimes(1);
+    expect(instanceOnEvent).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the instance onEvent when no per-runner callback is registered', () => {
+    const instanceOnEvent = jest.fn();
+    manager['onEvent'] = instanceOnEvent;
+
+    manager['messageListener']('0', onEventMessage() as never);
+
+    expect(instanceOnEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event_name: 'query_execution_duration' })
+    );
   });
 });

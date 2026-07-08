@@ -206,6 +206,37 @@ describe('DBM', () => {
       expect(emittedNames).toContain('mount_file_buffer_duration');
     });
 
+    it('routes exclusively: query-lifecycle events skip the instance onEvent when a per-query onEvent is supplied', async () => {
+      const instanceOnEvent = jest.fn();
+      const perQueryOnEvent = jest.fn();
+
+      const dbmWithSink = new DBM({
+        instanceManager: new InstanceManager(),
+        fileManager,
+        logger: log,
+        onEvent: instanceOnEvent,
+        options: { shutdownInactiveTime: 100 },
+        onCreateConnection,
+      });
+
+      await dbmWithSink.queryWithTables({
+        query: 'SELECT * FROM table1',
+        tables: tables,
+        options: { onEvent: perQueryOnEvent },
+      });
+
+      const perQueryNames = perQueryOnEvent.mock.calls.map(
+        (call) => call[0].event_name
+      );
+      expect(perQueryNames).toContain('query_execution_duration');
+      // The same events must NOT also reach the instance sink.
+      const instanceNames = instanceOnEvent.mock.calls.map(
+        (call) => call[0].event_name
+      );
+      expect(instanceNames).not.toContain('query_execution_duration');
+      expect(instanceNames).not.toContain('mount_file_buffer_duration');
+    });
+
     it('should not invoke a per-query onEvent registered on a different query', async () => {
       const onEventA = jest.fn();
 
