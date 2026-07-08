@@ -298,10 +298,6 @@ export class DBMParallel extends TableLockManager {
         signal,
       });
 
-      // Register the per-query onEvent against the runner executing this query.
-      // The runner runs one query at a time, so RUNNER_ON_EVENT arriving on this
-      // runner belongs to this query and reaches its callback — no queryId needs
-      // to cross postMessage.
       this.iFrameRunnerManager.registerQueryEventCallback(
         runners[this.counter],
         options?.onEvent
@@ -329,8 +325,8 @@ export class DBMParallel extends TableLockManager {
               tables,
               options: {
                 ...options,
-                // Don't pass signal/onEvent to iframe as they're not
-                // serializable; onEvent is dispatched main-side by queryId.
+                // Not serializable across postMessage; onEvent is dispatched
+                // main-side.
                 signal: undefined,
                 onEvent: undefined,
               },
@@ -375,9 +371,6 @@ export class DBMParallel extends TableLockManager {
       if (queryInfo?.signal && queryInfo.abortHandler) {
         queryInfo.signal.removeEventListener('abort', queryInfo.abortHandler);
       }
-      // Remove the per-query event callback now the query is done so the map
-      // never leaks entries for completed/aborted queries. Keyed by the runner
-      // this query ran on.
       if (queryInfo) {
         this.iFrameRunnerManager.unregisterQueryEventCallback(
           queryInfo.runnerId

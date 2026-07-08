@@ -243,11 +243,6 @@ export class DBM extends TableLockManager {
     }
   }
 
-  /**
-   * Emit an event scoped to a single query run. It goes to that query's
-   * per-query callback when one was supplied, otherwise to the instance sink.
-   * Callers use this only for events that belong to one `queryWithTables` run.
-   */
   private _emitQueryEvent(event: DBMEvent, options?: QueryOptions) {
     if (options?.onEvent) {
       options.onEvent(event);
@@ -258,10 +253,6 @@ export class DBM extends TableLockManager {
     }
   }
 
-  /**
-   * Emit a cross-query / load-time event. It has no single owning query, so it
-   * always goes to the instance-level sink.
-   */
   private _emitInstanceEvent(event: DBMEvent) {
     if (this.onEvent) {
       this.onEvent(event);

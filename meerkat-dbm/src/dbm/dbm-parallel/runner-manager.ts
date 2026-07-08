@@ -46,11 +46,6 @@ export class IFrameRunnerManager {
   private runnerURL: string;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
-  // Per-query event callbacks (QueryOptions.onEvent), keyed by the id of the
-  // runner executing that query. A runner runs at most one query at a time, so
-  // the runnerId that RUNNER_ON_EVENT arrives on uniquely identifies the query
-  // whose callback should receive the event — no queryId needs to cross
-  // postMessage.
   private perRunnerEventCallbacks: Map<string, (event: DBMEvent) => void> =
     new Map();
 
@@ -182,10 +177,6 @@ export class IFrameRunnerManager {
       }
 
       case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT: {
-        // The runner decides scope at the emit site and tags the message. A
-        // 'query' event belongs to this runner's in-flight query (one query per
-        // runner) and goes to that query's callback; anything else goes to the
-        // instance sink. A single event never reaches both.
         const payload = message.message.payload;
         const perQueryOnEvent = this.perRunnerEventCallbacks.get(runnerId);
         if (message.message.scope === 'query' && perQueryOnEvent) {

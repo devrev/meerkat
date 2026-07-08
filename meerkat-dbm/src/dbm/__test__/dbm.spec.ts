@@ -229,7 +229,6 @@ describe('DBM', () => {
         (call) => call[0].event_name
       );
       expect(perQueryNames).toContain('query_execution_duration');
-      // The same events must NOT also reach the instance sink.
       const instanceNames = instanceOnEvent.mock.calls.map(
         (call) => call[0].event_name
       );
@@ -247,7 +246,6 @@ describe('DBM', () => {
       });
       onEventA.mockClear();
 
-      // A second query without onEventA must not reach it.
       await dbm.queryWithTables({
         query: 'SELECT * FROM table1',
         tables: tables,

@@ -184,7 +184,6 @@ describe('IFrameRunnerManager', () => {
     const perQueryOnEvent = jest.fn();
     manager.registerQueryEventCallback('0', perQueryOnEvent);
 
-    // The runner tags clone_buffer_duration (buffer setup) as instance scope.
     manager['messageListener'](
       '0',
       {

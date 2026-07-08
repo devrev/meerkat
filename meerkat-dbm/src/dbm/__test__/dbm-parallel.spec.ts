@@ -480,16 +480,13 @@ describe('DBMParallel', () => {
         options: { onEvent },
       });
 
-      // The callback is registered main-side, keyed by the query id...
       expect(iFrameRunnerManager.registerQueryEventCallback).toHaveBeenCalledWith(
         expect.any(String),
         onEvent
       );
-      // ...and unregistered once the query completes.
       expect(iFrameRunnerManager.unregisterQueryEventCallback).toHaveBeenCalledWith(
         expect.any(String)
       );
-      // ...and never serialized across the postMessage boundary.
       expect(runnerMock.communication.sendRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           payload: expect.objectContaining({
