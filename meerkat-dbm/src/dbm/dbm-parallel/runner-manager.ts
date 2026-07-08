@@ -17,9 +17,10 @@ export interface IFrameRunnerManagerConstructor {
   totalRunners: number;
   logger: DBMLogger;
   /**
-   * @deprecated Prefer the per-query {@link QueryOptions.onEvent}. This
-   * instance-level callback fires for events from every query and is retained
-   * for back-compat; per-query events are dispatched via
+   * Instance-level callback for events that are not scoped to a single query
+   * (e.g. runner-side `clone_buffer_duration`, emitted inside the iframe where
+   * a per-query callback cannot be reached across `postMessage`). Query-
+   * lifecycle events are dispatched per-query via
    * {@link IFrameRunnerManager.registerQueryEventCallback}.
    */
   onEvent?: (event: DBMEvent) => void;

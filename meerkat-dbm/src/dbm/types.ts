@@ -27,13 +27,17 @@ export interface DBMConstructorOptions {
 
   /**
    * @description
-   * A callback function that handles events emitted by the DBM.
+   * Instance-level callback for events that are NOT scoped to a single query.
+   * It receives cross-query and load-time events — `query_queue_length` (a
+   * queue gauge that spans queries), `json_to_buffer_conversion_duration`
+   * (emitted at `registerJSON`/load time, outside any `queryWithTables` run),
+   * and runner-side `clone_buffer_duration` (emitted inside the iframe runner,
+   * which a per-query callback cannot cross via `postMessage`).
    *
-   * @deprecated Prefer the per-query {@link QueryOptions.onEvent}, which scopes
-   * events to a single `queryWithTables` run (parallel/iframe path included).
-   * This instance-level callback fires for events from every query on the
-   * instance, so callers must correlate by `metadata` to attribute them — the
-   * per-query callback removes that need. Retained for back-compat.
+   * For events that DO belong to one query run — `mount_file_buffer_duration`,
+   * `query_execution_duration`, `query_queue_duration` — prefer the per-query
+   * {@link QueryOptions.onEvent}, which scopes them without correlating on
+   * `metadata`. Those query-lifecycle events fire on BOTH sinks.
    */
   onEvent?: (event: DBMEvent) => void;
 
@@ -106,10 +110,18 @@ export interface QueryOptions {
   /**
    * @description
    * Per-query event callback. Invoked (in addition to the instance-level
-   * `onEvent`) for every DBMEvent emitted while executing THIS query, so a
-   * caller can scope engine-phase timings to a single query run without
-   * correlating on `metadata`. For the parallel/iframe path the callback stays
-   * in the calling window; the runner manager dispatches to it by the query's id.
+   * `onEvent`) for the query-lifecycle events of THIS query —
+   * `mount_file_buffer_duration`, `query_execution_duration` and
+   * `query_queue_duration` — so a caller can scope those timings to a single
+   * query run without correlating on `metadata`.
+   *
+   * Cross-query and load-time events (`query_queue_length`,
+   * `json_to_buffer_conversion_duration`, runner-side `clone_buffer_duration`)
+   * are NOT delivered here — they have no single owning query and reach only the
+   * instance-level {@link DBMConstructorOptions.onEvent}.
+   *
+   * For the parallel/iframe path the callback stays in the calling window; the
+   * runner manager dispatches to it by the query's id.
    */
   onEvent?: (event: DBMEvent) => void;
 
