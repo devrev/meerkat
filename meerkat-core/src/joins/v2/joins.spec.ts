@@ -236,6 +236,78 @@ describe('joins-v2', () => {
     );
   });
 
+  it('aliases bridge tables when isBridge is set and same table appears multiple times in a path', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'target_id', 'link_type_id']),
+      scalar('part', ['id']),
+      scalar('user', ['id']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' }, isBridge: true },
+        { from: { table: 'link', column: 'target_id' }, to: { table: 'part', column: 'id' } },
+        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' }, isBridge: true },
+        { from: { table: 'link', column: 'target_id' }, to: { table: 'user', column: 'id' } },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
+
+    expect(sql).toContain('issue.id = link.source_id');
+    expect(sql).toContain('link.target_id = part.id');
+    expect(sql).toContain('issue.id = link__1.source_id');
+    expect(sql).toContain('link__1.target_id = user.id');
+  });
+
+  it('aliases bridge tables across separate paths', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'target_id', 'link_type_id']),
+      scalar('part', ['id']),
+      scalar('user', ['id']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' }, isBridge: true },
+        { from: { table: 'link', column: 'target_id' }, to: { table: 'part', column: 'id' } },
+      ],
+      [
+        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' }, isBridge: true },
+        { from: { table: 'link', column: 'target_id' }, to: { table: 'user', column: 'id' } },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
+
+    expect(sql).toContain('issue.id = link.source_id');
+    expect(sql).toContain('link.target_id = part.id');
+    expect(sql).toContain('issue.id = link__1.source_id');
+    expect(sql).toContain('link__1.target_id = user.id');
+  });
+
+  it('does not alias when isBridge is not set even if table repeats', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'target_id']),
+      scalar('part', ['id']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
+        { from: { table: 'link', column: 'target_id' }, to: { table: 'part', column: 'id' } },
+        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
+
+    expect(sql).not.toContain('link__1');
+  });
+
   it('throws when condition is present but getQueryOutput is not provided', async () => {
     const schemas = [
       scalar('issue', ['id']),

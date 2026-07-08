@@ -165,20 +165,18 @@ const conditionFilterToAST = (
   );
 };
 
-const BRIDGE_TABLES = new Set(['link']);
+const aliasBridgeTables = (paths: StructuredJoin[][]): StructuredJoin[][] => {
+  const seen = new Map<string, number>();
+  if (paths[0]?.[0]) seen.set(paths[0][0].from.table, 1);
 
-const aliasBridgeTables = (paths: StructuredJoin[][]): StructuredJoin[][] =>
-  paths.map((path) => {
-    const seen = new Map<string, number>();
-    if (path[0]) seen.set(path[0].from.table, 1);
-
+  return paths.map((path) => {
     const result: StructuredJoin[] = [];
     for (let i = 0; i < path.length; i++) {
       const edge = path[i];
       const count = seen.get(edge.to.table) ?? 0;
       seen.set(edge.to.table, count + 1);
 
-      if (count === 0 || !BRIDGE_TABLES.has(edge.to.table)) {
+      if (count === 0 || !edge.isBridge) {
         result.push(edge);
         continue;
       }
@@ -195,6 +193,7 @@ const aliasBridgeTables = (paths: StructuredJoin[][]): StructuredJoin[][] =>
     }
     return result;
   });
+};
 
 export const createDirectedGraphV2 = (
   tableSchemas: TableSchema[],
@@ -340,7 +339,7 @@ const hasLoop = (paths: StructuredJoin[][]): boolean => {
     const visited = new Set<string>();
     if (path[0]) visited.add(path[0].from.table);
     for (const edge of path) {
-      if (BRIDGE_TABLES.has(edge.to.table)) continue;
+      if (edge.isBridge) continue;
       if (visited.has(edge.to.table)) return true;
       visited.add(edge.to.table);
     }
