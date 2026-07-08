@@ -1,5 +1,5 @@
-import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
 import { cubeFilterToDuckdbAST } from '../../cube-filter-transformer/factory';
+import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import {
   MeerkatQueryFilter,
@@ -8,9 +8,12 @@ import {
   TableSchema,
 } from '../../types/cube-types';
 import { ParsedExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
-import { serializeExpressions, GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
-import { cubeFiltersEnrichment } from '../../utils/cube-filter-enrichment';
 import { getBaseAST } from '../../utils/base-ast';
+import { cubeFiltersEnrichment } from '../../utils/cube-filter-enrichment';
+import {
+  GetQueryOutput,
+  serializeExpressions,
+} from '../../utils/duckdb-ast-parse-serialize';
 import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';
@@ -140,17 +143,6 @@ const wrapTableSqlForArrayFrom = (
   )}`;
 };
 
-const conditionFilterToAST = (
-  condition: MeerkatQueryFilter,
-  tableSchema: TableSchema | undefined
-): ParsedExpression | null => {
-  if (!tableSchema) return null;
-  const filters = [JSON.parse(JSON.stringify(condition))];
-  const enriched = cubeFiltersEnrichment(filters, tableSchema);
-  if (!enriched) return null;
-  return cubeFilterToDuckdbAST(enriched, getBaseAST(), { isAlias: false }) ?? null;
-};
-
 const buildEquiJoinPredicate = (
   edge: StructuredJoin,
   fromIsArray: boolean
@@ -159,6 +151,18 @@ const buildEquiJoinPredicate = (
     ? getUnnestAlias(edge.from.column)
     : edge.from.column;
   return `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
+};
+const conditionFilterToAST = (
+  condition: MeerkatQueryFilter,
+  tableSchema: TableSchema | undefined
+): ParsedExpression | null => {
+  if (!tableSchema) return null;
+  const filters = [JSON.parse(JSON.stringify(condition))];
+  const enriched = cubeFiltersEnrichment(filters, tableSchema);
+  if (!enriched) return null;
+  return (
+    cubeFilterToDuckdbAST(enriched, getBaseAST(), { isAlias: false }) ?? null
+  );
 };
 
 const BRIDGE_TABLES = new Set(['link']);
@@ -284,8 +288,13 @@ export const generateSqlQueryV2 = async (
       }
       visited.set(edge.to.table, edge);
 
+      const toTable = edge.to.table;
+      const toTableOriginal = toTable.replace(/__\d+$/, '');
+      const toTableSql =
+        tableSchemaSqlMap[toTable] ?? tableSchemaSqlMap[toTableOriginal];
+
       let onClause =
-        directedGraph[edge.from.table]?.[edge.to.table]?.[edge.from.column] ??
+        directedGraph[edge.from.table]?.[toTable]?.[edge.from.column] ??
         buildEquiJoinPredicate(
           edge,
           isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
@@ -298,28 +307,27 @@ export const generateSqlQueryV2 = async (
           );
         }
         const toTableSchema = tableSchemas.find(
-          (s) => s.name === edge.to.table || s.name === edge.to.table.replace(/__\d+$/, '')
+          (s) => s.name === toTable || s.name === toTableOriginal
         );
         const ast = conditionFilterToAST(edge.condition, toTableSchema);
         if (ast) {
-          const [conditionSql] = await serializeExpressions([ast], getQueryOutput);
+          const [conditionSql] = await serializeExpressions(
+            [ast],
+            getQueryOutput
+          );
           onClause = `${onClause} AND ${conditionSql}`;
         }
       }
 
-      const rightArrayCols = arraySourcesByTable.get(edge.to.table);
+      const rightArrayCols = arraySourcesByTable.get(toTable);
       const rightSubquery = rightArrayCols?.size
         ? wrapTableSqlForArrayFrom(
-            tableSchemaSqlMap[edge.to.table] ??
-              tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
-            edge.to.table,
+            toTableSql,
+            toTable,
             rightArrayCols,
             tableSchemas
           )
-        : `(${
-            tableSchemaSqlMap[edge.to.table] ??
-            tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]
-          }) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
+        : `(${toTableSql}) AS ${quoteIdentifierIfNeeded(toTable)}`;
       query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
   }
