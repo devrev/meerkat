@@ -1,27 +1,16 @@
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
-import { andDuckdbCondition } from '../../cube-filter-transformer/and/and';
-import { orDuckdbCondition } from '../../cube-filter-transformer/or/or';
-import {
-  baseDuckdbCondition,
-  createColumnRef,
-} from '../../cube-filter-transformer/base-condition-builder/base-condition-builder';
+import { cubeFilterToDuckdbAST } from '../../cube-filter-transformer/factory';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import {
-  JoinFilterCondition,
-  JoinFilterExpression,
-  JoinFilterOperand,
+  MeerkatQueryFilter,
   Query,
   StructuredJoin,
   TableSchema,
 } from '../../types/cube-types';
-import { Dimension, Measure } from '../../types/cube-types/table';
-import {
-  ExpressionClass,
-  ExpressionType,
-} from '../../types/duckdb-serialization-types/serialization/Expression';
 import { ParsedExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
 import { serializeExpressions, GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
-import { findInSchema } from '../../utils/find-in-table-schema';
+import { cubeFiltersEnrichment } from '../../utils/cube-filter-enrichment';
+import { getBaseAST } from '../../utils/base-ast';
 import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';
@@ -151,118 +140,15 @@ const wrapTableSqlForArrayFrom = (
   )}`;
 };
 
-const getMemberInfo = (
-  key: string,
+const conditionFilterToAST = (
+  condition: MeerkatQueryFilter,
   tableSchema: TableSchema | undefined
-): Measure | Dimension => {
-  if (tableSchema) {
-    const memberInfo = findInSchema(key, tableSchema);
-    if (memberInfo) return memberInfo;
-  }
-  return { name: key, sql: key, type: 'string' };
-};
-
-const conditionToAST = (
-  cond: JoinFilterCondition,
-  tableSchema: TableSchema | undefined
-): ParsedExpression => {
-  const { key, operator, json_value } = cond;
-  const columnRef = createColumnRef(key, { isAlias: true });
-  const memberInfo = getMemberInfo(key, tableSchema);
-
-  switch (operator) {
-    case 'equals':
-      if (json_value === null || json_value === undefined) {
-        return {
-          class: ExpressionClass.OPERATOR,
-          type: ExpressionType.OPERATOR_IS_NULL,
-          alias: '',
-          children: [columnRef],
-        };
-      }
-      return baseDuckdbCondition(
-        key,
-        ExpressionType.COMPARE_EQUAL,
-        String(json_value),
-        memberInfo,
-        { isAlias: true }
-      );
-    case 'not_equals':
-      if (json_value === null || json_value === undefined) {
-        return {
-          class: ExpressionClass.OPERATOR,
-          type: ExpressionType.OPERATOR_IS_NOT_NULL,
-          alias: '',
-          children: [columnRef],
-        };
-      }
-      return baseDuckdbCondition(
-        key,
-        ExpressionType.COMPARE_NOTEQUAL,
-        String(json_value),
-        memberInfo,
-        { isAlias: true }
-      );
-    case 'null':
-      return {
-        class: ExpressionClass.OPERATOR,
-        type: ExpressionType.OPERATOR_IS_NULL,
-        alias: '',
-        children: [columnRef],
-      };
-    case 'not_null':
-      return {
-        class: ExpressionClass.OPERATOR,
-        type: ExpressionType.OPERATOR_IS_NOT_NULL,
-        alias: '',
-        children: [columnRef],
-      };
-    case 'empty':
-      return baseDuckdbCondition(
-        key,
-        ExpressionType.COMPARE_EQUAL,
-        '',
-        memberInfo,
-        { isAlias: true }
-      );
-    case 'not_empty':
-      return baseDuckdbCondition(
-        key,
-        ExpressionType.COMPARE_NOTEQUAL,
-        '',
-        memberInfo,
-        { isAlias: true }
-      );
-    default:
-      throw new Error(`Unsupported join condition operator: ${operator}`);
-  }
-};
-
-const operandToAST = (
-  operand: JoinFilterOperand,
-  tableSchema: TableSchema | undefined
-): ParsedExpression => {
-  if (operand.type === 'condition' && operand.condition) {
-    return conditionToAST(operand.condition, tableSchema);
-  }
-  if (operand.type === 'expression' && operand.expression) {
-    return expressionToAST(operand.expression, tableSchema);
-  }
-  throw new Error(
-    'Invalid join filter operand: missing condition or expression'
-  );
-};
-
-const expressionToAST = (
-  expr: JoinFilterExpression,
-  tableSchema: TableSchema | undefined
-): ParsedExpression => {
-  const parts = expr.operands.map((op) => operandToAST(op, tableSchema));
-  if (parts.length === 1) return parts[0];
-  const conjunction =
-    expr.operator === 'and' ? andDuckdbCondition() : orDuckdbCondition();
-  conjunction.children = parts;
-  return conjunction;
+): ParsedExpression | null => {
+  if (!tableSchema) return null;
+  const filters = [JSON.parse(JSON.stringify(condition))];
+  const enriched = cubeFiltersEnrichment(filters, tableSchema);
+  if (!enriched) return null;
+  return cubeFilterToDuckdbAST(enriched, getBaseAST(), { isAlias: false }) ?? null;
 };
 
 const buildEquiJoinPredicate = (
@@ -416,8 +302,13 @@ export const generateSqlQueryV2 = async (
         const toTableSchema = tableSchemas.find(
           (s) => s.name === edge.to.table || s.name === edge.to.table.replace(/__\d+$/, '')
         );
-        conditionIndexByEdge.push(conditionASTs.length);
-        conditionASTs.push(expressionToAST(edge.condition, toTableSchema));
+        const ast = conditionFilterToAST(edge.condition, toTableSchema);
+        if (ast) {
+          conditionIndexByEdge.push(conditionASTs.length);
+          conditionASTs.push(ast);
+        } else {
+          conditionIndexByEdge.push(-1);
+        }
       } else {
         conditionIndexByEdge.push(-1);
       }

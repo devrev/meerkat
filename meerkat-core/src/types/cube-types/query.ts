@@ -137,41 +137,11 @@ interface JoinNode {
    */
 }
 
-/** Operator for filter conditions on join edges. */
-export type JoinConditionOperator =
-  | 'equals'
-  | 'not_equals'
-  | 'empty'
-  | 'not_empty'
-  | 'not_null'
-  | 'null';
-
-/** A filter condition on a join edge (e.g. link_type_id = '1234'). */
-export interface JoinFilterCondition {
-  key: string;
-  operator: JoinConditionOperator;
-  json_value?: unknown;
-  value_type: 'json_value' | 'part_value' | 'relative_date_value' | 'template_value';
-}
-
-/** An operand in a join filter expression — either a leaf condition or a nested expression. */
-export interface JoinFilterOperand {
-  type: 'condition' | 'expression';
-  condition?: JoinFilterCondition;
-  expression?: JoinFilterExpression;
-}
-
-/** A filter expression (AND/OR) applied to the intermediate table in a link-type join. */
-export interface JoinFilterExpression {
-  operator: 'and' | 'or';
-  operands: JoinFilterOperand[];
-}
-
 /** Structured join edge used by `joinPathsV2`. See `joins/v2/`. */
 export type StructuredJoin = {
   from: { table: string; column: string };
   to: { table: string; column: string };
-  condition?: JoinFilterExpression;
+  condition?: MeerkatQueryFilter;
 };
 
 /**

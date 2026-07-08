@@ -1,4 +1,4 @@
-import { JoinFilterExpression, StructuredJoin, TableSchema } from '../../types/cube-types';
+import { MeerkatQueryFilter, StructuredJoin, TableSchema } from '../../types/cube-types';
 import { GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
 import { createDirectedGraphV2, generateSqlQueryV2 } from './joins';
 
@@ -242,19 +242,10 @@ describe('joins-v2', () => {
       scalar('link', ['id', 'source_id', 'link_type_id']),
     ];
     const sqlMap = sqlMapOf(schemas);
-    const condition: JoinFilterExpression = {
-      operator: 'and',
-      operands: [
-        {
-          type: 'condition',
-          condition: {
-            key: 'link_type_id',
-            operator: 'equals',
-            json_value: '1234',
-            value_type: 'json_value',
-          },
-        },
-      ],
+    const condition: MeerkatQueryFilter = {
+      member: 'link.link_type_id',
+      operator: 'equals',
+      values: ['1234'],
     };
     const paths: StructuredJoin[][] = [
       [
@@ -277,19 +268,10 @@ describe('joins-v2', () => {
       scalar('link', ['id', 'source_id', 'link_type_id']),
     ];
     const sqlMap = sqlMapOf(schemas);
-    const condition: JoinFilterExpression = {
-      operator: 'and',
-      operands: [
-        {
-          type: 'condition',
-          condition: {
-            key: 'link_type_id',
-            operator: 'equals',
-            json_value: '1234',
-            value_type: 'json_value',
-          },
-        },
-      ],
+    const condition: MeerkatQueryFilter = {
+      member: 'link.link_type_id',
+      operator: 'equals',
+      values: ['1234'],
     };
     const paths: StructuredJoin[][] = [
       [
@@ -335,18 +317,9 @@ describe('joins-v2', () => {
           from: { table: 'issue', column: 'id' },
           to: { table: 'link', column: 'source_id' },
           condition: {
-            operator: 'and',
-            operands: [
-              {
-                type: 'condition',
-                condition: {
-                  key: 'link_type_id',
-                  operator: 'equals',
-                  json_value: 'type_a',
-                  value_type: 'json_value',
-                },
-              },
-            ],
+            member: 'link.link_type_id',
+            operator: 'equals',
+            values: ['type_a'],
           },
         },
         {
@@ -381,7 +354,7 @@ describe('joins-v2', () => {
     expect(sql).not.toContain("AND (link_type_id = 'type_a') AND");
   });
 
-  it('handles IS NULL condition (null operator)', async () => {
+  it('handles notSet condition (IS NULL)', async () => {
     const schemas = [
       scalar('issue', ['id']),
       scalar('link', ['id', 'source_id', 'deleted_at']),
@@ -393,17 +366,8 @@ describe('joins-v2', () => {
           from: { table: 'issue', column: 'id' },
           to: { table: 'link', column: 'source_id' },
           condition: {
-            operator: 'and',
-            operands: [
-              {
-                type: 'condition',
-                condition: {
-                  key: 'deleted_at',
-                  operator: 'null',
-                  value_type: 'json_value',
-                },
-              },
-            ],
+            member: 'link.deleted_at',
+            operator: 'notSet',
           },
         },
       ],
@@ -435,34 +399,18 @@ describe('joins-v2', () => {
       scalar('link', ['id', 'source_id', 'link_type_id']),
     ];
     const sqlMap = sqlMapOf(schemas);
+    const condition: MeerkatQueryFilter = {
+      or: [
+        { member: 'link.link_type_id', operator: 'equals', values: ['type_a'] },
+        { member: 'link.link_type_id', operator: 'equals', values: ['type_b'] },
+      ],
+    };
     const paths: StructuredJoin[][] = [
       [
         {
           from: { table: 'issue', column: 'id' },
           to: { table: 'link', column: 'source_id' },
-          condition: {
-            operator: 'or',
-            operands: [
-              {
-                type: 'condition',
-                condition: {
-                  key: 'link_type_id',
-                  operator: 'equals',
-                  json_value: 'type_a',
-                  value_type: 'json_value',
-                },
-              },
-              {
-                type: 'condition',
-                condition: {
-                  key: 'link_type_id',
-                  operator: 'equals',
-                  json_value: 'type_b',
-                  value_type: 'json_value',
-                },
-              },
-            ],
-          },
+          condition,
         },
       ],
     ];
