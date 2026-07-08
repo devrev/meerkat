@@ -3,7 +3,7 @@ import { Table } from 'apache-arrow/table';
 import uniqBy from 'lodash/uniqBy';
 import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager';
-import { DBMEvent, DBMLogger } from '../logger';
+import { DBMEvent, DBMLogger, isQueryScopedEvent } from '../logger';
 import { InstanceManagerType } from './instance-manager';
 import { TableLockManager } from './table-lock-manager';
 import {
@@ -244,11 +244,11 @@ export class DBM extends TableLockManager {
   }
 
   private _emitEvent(event: DBMEvent, options?: QueryOptions) {
-    // Route exclusively: an event that belongs to a query with a per-query
-    // callback goes to that callback only; everything else (cross-query gauges,
-    // load-time events, or queries that supplied no per-query callback) goes to
-    // the instance-level sink. The two sinks never both fire for one event.
-    if (options?.onEvent) {
+    // Route by the event's own scope, not by which callbacks exist. Query-
+    // scoped events go to the per-query callback (when supplied); cross-query
+    // and load-time events go to the instance-level sink. A single event never
+    // reaches both.
+    if (isQueryScopedEvent(event) && options?.onEvent) {
       options.onEvent(event);
       return;
     }

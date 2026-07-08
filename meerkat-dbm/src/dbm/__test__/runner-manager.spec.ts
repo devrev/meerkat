@@ -176,4 +176,30 @@ describe('IFrameRunnerManager', () => {
       expect.objectContaining({ event_name: 'query_execution_duration' })
     );
   });
+
+  it('routes a cross-query event to the instance sink even while a per-runner callback is registered', () => {
+    const instanceOnEvent = jest.fn();
+    manager['onEvent'] = instanceOnEvent;
+    const perQueryOnEvent = jest.fn();
+    manager.registerQueryEventCallback('0', perQueryOnEvent);
+
+    // clone_buffer_duration is runner-side buffer setup, not query-scoped.
+    manager['messageListener'](
+      '0',
+      {
+        uuid: 'mock-uuid',
+        message: {
+          type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
+          payload: { event_name: 'clone_buffer_duration', duration: 9 },
+        },
+        target_app: 'runner',
+        timestamp: 0,
+      } as never
+    );
+
+    expect(instanceOnEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event_name: 'clone_buffer_duration' })
+    );
+    expect(perQueryOnEvent).not.toHaveBeenCalled();
+  });
 });

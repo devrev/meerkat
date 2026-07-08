@@ -1,5 +1,5 @@
 import { FileBufferStore } from '../../file-manager/file-manager-type';
-import { DBMEvent, DBMLogger } from '../../logger';
+import { DBMEvent, DBMLogger, isQueryScopedEvent } from '../../logger';
 import { Table } from '../../types';
 import {
   BROWSER_RUNNER_TYPE,
@@ -182,15 +182,18 @@ export class IFrameRunnerManager {
       }
 
       case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT: {
-        // Route exclusively by the runner the event arrived on. A runner runs
-        // one query at a time, so a registered callback identifies that query;
-        // deliver to it alone. Otherwise fall back to the instance sink. The
-        // two never both fire for one event.
+        // Route by the event's own scope. The runner emits both query-scoped
+        // events (mount/query_execution/query_queue) and cross-query ones
+        // (clone_buffer_duration) on this same channel. A runner runs one query
+        // at a time, so a callback registered for this runner belongs to its
+        // in-flight query; query-scoped events go there, everything else to the
+        // instance sink. A single event never reaches both.
+        const payload = message.message.payload;
         const perQueryOnEvent = this.perRunnerEventCallbacks.get(runnerId);
-        if (perQueryOnEvent) {
-          perQueryOnEvent(message.message.payload);
+        if (isQueryScopedEvent(payload) && perQueryOnEvent) {
+          perQueryOnEvent(payload);
         } else if (this.onEvent) {
-          this.onEvent(message.message.payload);
+          this.onEvent(payload);
         }
         break;
       }
