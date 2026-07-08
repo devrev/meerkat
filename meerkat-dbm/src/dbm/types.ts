@@ -28,6 +28,12 @@ export interface DBMConstructorOptions {
   /**
    * @description
    * A callback function that handles events emitted by the DBM.
+   *
+   * @deprecated Prefer the per-query {@link QueryOptions.onEvent}, which scopes
+   * events to a single `queryWithTables` run (parallel/iframe path included).
+   * This instance-level callback fires for events from every query on the
+   * instance, so callers must correlate by `metadata` to attribute them — the
+   * per-query callback removes that need. Retained for back-compat.
    */
   onEvent?: (event: DBMEvent) => void;
 
@@ -96,6 +102,16 @@ export interface QueryOptions {
    * Additional information for the query, which will be emitted in the DBM events.
    */
   metadata?: object;
+
+  /**
+   * @description
+   * Per-query event callback. Invoked (in addition to the instance-level
+   * `onEvent`) for every DBMEvent emitted while executing THIS query, so a
+   * caller can scope engine-phase timings to a single query run without
+   * correlating on `metadata`. For the parallel/iframe path the callback stays
+   * in the calling window; the runner manager dispatches to it by the query's id.
+   */
+  onEvent?: (event: DBMEvent) => void;
 
   /**
    * @description

@@ -243,9 +243,14 @@ export class DBM extends TableLockManager {
     }
   }
 
-  private _emitEvent(event: DBMEvent) {
+  private _emitEvent(event: DBMEvent, options?: QueryOptions) {
     if (this.onEvent) {
       this.onEvent(event);
+    }
+    // Also deliver to the per-query callback for the query that emitted this
+    // event, if one was supplied on its options.
+    if (options?.onEvent) {
+      options.onEvent(event);
     }
   }
 
@@ -292,11 +297,14 @@ export class DBM extends TableLockManager {
       query
     );
 
-    this._emitEvent({
-      event_name: 'mount_file_buffer_duration',
-      duration: endMountTime - startMountTime,
-      metadata: options?.metadata,
-    });
+    this._emitEvent(
+      {
+        event_name: 'mount_file_buffer_duration',
+        duration: endMountTime - startMountTime,
+        metadata: options?.metadata,
+      },
+      options
+    );
 
     const tablesFileData = await this.fileManager.getFilesNameForTables(tables);
 
@@ -323,11 +331,14 @@ export class DBM extends TableLockManager {
       query
     );
 
-    this._emitEvent({
-      event_name: 'query_execution_duration',
-      duration: queryQueueDuration,
-      metadata: options?.metadata,
-    });
+    this._emitEvent(
+      {
+        event_name: 'query_execution_duration',
+        duration: queryQueueDuration,
+        metadata: options?.metadata,
+      },
+      options
+    );
 
     return result;
   }
@@ -388,11 +399,14 @@ export class DBM extends TableLockManager {
         this.currentQueryItem.query
       );
 
-      this._emitEvent({
-        event_name: 'query_queue_duration',
-        duration: startTime - this.currentQueryItem.timestamp,
-        metadata,
-      });
+      this._emitEvent(
+        {
+          event_name: 'query_queue_duration',
+          duration: startTime - this.currentQueryItem.timestamp,
+          metadata: this.currentQueryItem.options?.metadata ?? metadata,
+        },
+        this.currentQueryItem.options
+      );
 
       /**
        * Execute the query

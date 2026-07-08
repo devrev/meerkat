@@ -16,6 +16,12 @@ export interface IFrameRunnerManagerConstructor {
   fetchPreQuery: (runnerId: string, tables: Table[]) => string[];
   totalRunners: number;
   logger: DBMLogger;
+  /**
+   * @deprecated Prefer the per-query {@link QueryOptions.onEvent}. This
+   * instance-level callback fires for events from every query and is retained
+   * for back-compat; per-query events are dispatched via
+   * {@link IFrameRunnerManager.registerQueryEventCallback}.
+   */
   onEvent?: (event: DBMEvent) => void;
 }
 
@@ -39,6 +45,11 @@ export class IFrameRunnerManager {
   private runnerURL: string;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
+  // Per-query event callbacks (QueryOptions.onEvent), keyed by the query id that
+  // rides on EXEC_QUERY and is echoed back on RUNNER_ON_EVENT. Lets a
+  // runner-emitted event reach the callback scoped to just that query.
+  private perQueryEventCallbacks: Map<string, (event: DBMEvent) => void> =
+    new Map();
 
   private fetchTableFileBuffers: (
     tables: TableConfig[]
@@ -61,6 +72,19 @@ export class IFrameRunnerManager {
     this.totalRunners = totalRunners;
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.fetchPreQuery = fetchPreQuery;
+  }
+
+  public registerQueryEventCallback(
+    queryId: string,
+    onEvent?: (event: DBMEvent) => void
+  ) {
+    if (onEvent) {
+      this.perQueryEventCallbacks.set(queryId, onEvent);
+    }
+  }
+
+  public unregisterQueryEventCallback(queryId: string) {
+    this.perQueryEventCallbacks.delete(queryId);
   }
 
   private addIFrameManager(uuid: string) {
@@ -154,11 +178,22 @@ export class IFrameRunnerManager {
         break;
       }
 
-      case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT:
+      case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT: {
         if (this.onEvent) {
           this.onEvent(message.message.payload);
         }
+        // Dispatch to the per-query callback for the query this event belongs
+        // to. `queryId` is echoed by the runner on the message (undefined for
+        // older runner bundles, which then reach only the instance onEvent).
+        const { queryId } = message.message;
+        const perQueryOnEvent = queryId
+          ? this.perQueryEventCallbacks.get(queryId)
+          : undefined;
+        if (perQueryOnEvent) {
+          perQueryOnEvent(message.message.payload);
+        }
         break;
+      }
 
       case BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY: {
         if (this.fetchPreQuery) {

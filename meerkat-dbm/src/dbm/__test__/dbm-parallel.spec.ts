@@ -25,6 +25,8 @@ const iFrameRunnerManager = {
   addIFrameManager: jest.fn(),
   areRunnersRunning: jest.fn(),
   messageListener: jest.fn(),
+  registerQueryEventCallback: jest.fn(),
+  unregisterQueryEventCallback: jest.fn(),
 } as unknown as jest.Mocked<IFrameRunnerManager>;
 
 const runnerMock = {
@@ -460,6 +462,38 @@ describe('DBMParallel', () => {
             options: expect.objectContaining({
               signal: undefined,
             }),
+          }),
+        })
+      );
+    });
+
+    it('registers the per-query onEvent and strips it from the iframe options', async () => {
+      const onEvent = jest.fn();
+
+      runnerMock.communication.sendRequest.mockResolvedValue({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+
+      await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { onEvent },
+      });
+
+      // The callback is registered main-side, keyed by the query id...
+      expect(iFrameRunnerManager.registerQueryEventCallback).toHaveBeenCalledWith(
+        expect.any(String),
+        onEvent
+      );
+      // ...and unregistered once the query completes.
+      expect(iFrameRunnerManager.unregisterQueryEventCallback).toHaveBeenCalledWith(
+        expect.any(String)
+      );
+      // ...and never serialized across the postMessage boundary.
+      expect(runnerMock.communication.sendRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            options: expect.objectContaining({ onEvent: undefined }),
           }),
         })
       );

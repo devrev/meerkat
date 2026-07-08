@@ -298,6 +298,13 @@ export class DBMParallel extends TableLockManager {
         signal,
       });
 
+      // Register the per-query onEvent so runner-emitted events for THIS query
+      // (echoed back with queryId on RUNNER_ON_EVENT) reach it.
+      this.iFrameRunnerManager.registerQueryEventCallback(
+        queryId,
+        options?.onEvent
+      );
+
       const abortPromise = new Promise<never>((_, reject) => {
         this._signalListener(queryId, runners[this.counter], reject, signal);
       });
@@ -320,8 +327,10 @@ export class DBMParallel extends TableLockManager {
               tables,
               options: {
                 ...options,
-                // Don't pass signal to iframe as it's not serializable
+                // Don't pass signal/onEvent to iframe as they're not
+                // serializable; onEvent is dispatched main-side by queryId.
                 signal: undefined,
+                onEvent: undefined,
               },
             },
           }
@@ -365,6 +374,9 @@ export class DBMParallel extends TableLockManager {
         queryInfo.signal.removeEventListener('abort', queryInfo.abortHandler);
       }
       this.activeQueries.delete(queryId);
+      // Remove the per-query event callback now the query is done so the map
+      // never leaks entries for completed/aborted queries.
+      this.iFrameRunnerManager.unregisterQueryEventCallback(queryId);
 
       /**
        * Stop the runner if there are no active queries
