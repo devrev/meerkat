@@ -1,16 +1,18 @@
 import type { Query } from '../types/cube-types';
+import type { GetQueryOutput } from '../utils/duckdb-ast-parse-serialize';
 import { hasJoinPathsV2 } from './accessors';
 import { getCombinedTableSchemaV2 } from './v2/joins';
 import { getCombinedTableSchema as getCombinedTableSchemaV1 } from './v1/joins';
 
 export { hasAnyJoinPaths, hasJoinPathsV2 } from './accessors';
 
-export const getCombinedTableSchema = (
+export const getCombinedTableSchema = async (
   tableSchema: Parameters<typeof getCombinedTableSchemaV1>[0],
-  cubeQuery: Query
+  cubeQuery: Query,
+  getQueryOutput?: GetQueryOutput
 ) => {
   if (hasJoinPathsV2(cubeQuery)) {
-    return getCombinedTableSchemaV2(tableSchema, cubeQuery);
+    return getCombinedTableSchemaV2(tableSchema, cubeQuery, getQueryOutput);
   }
   return getCombinedTableSchemaV1(tableSchema, cubeQuery);
 };

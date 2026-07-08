@@ -41,7 +41,7 @@ export const cubeQueryToSQL = async ({
     })
   );
 
-  const updatedTableSchema = getCombinedTableSchema(updatedTableSchemas, query);
+  const updatedTableSchema = await getCombinedTableSchema(updatedTableSchemas, query, duckdbExec);
 
   const ast = cubeToDuckdbAST(query, updatedTableSchema, {
     filterType: 'PROJECTION_FILTER',

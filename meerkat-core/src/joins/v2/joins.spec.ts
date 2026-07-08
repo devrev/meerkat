@@ -1,4 +1,5 @@
-import { StructuredJoin, TableSchema } from '../../types/cube-types';
+import { JoinFilterExpression, StructuredJoin, TableSchema } from '../../types/cube-types';
+import { GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
 import { createDirectedGraphV2, generateSqlQueryV2 } from './joins';
 
 const scalar = (name: string, cols: string[] = ['id']): TableSchema => ({
@@ -43,7 +44,7 @@ const sqlMapOf = (schemas: TableSchema[]): { [k: string]: string } =>
   );
 
 describe('joins-v2', () => {
-  it('emits a plain equi-join when from is scalar', () => {
+  it('emits a plain equi-join when from is scalar', async () => {
     const schemas = [scalar('orders', ['id', 'customer_id']), scalar('customers')];
     const sqlMap = sqlMapOf(schemas);
     const paths: StructuredJoin[][] = [
@@ -55,13 +56,13 @@ describe('joins-v2', () => {
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     expect(sql).not.toMatch(/UNNEST/);
     expect(sql).toContain('orders.customer_id = customers.id');
   });
 
-  it('wraps the base with UNNEST when from.column is array-typed', () => {
+  it('wraps the base with UNNEST when from.column is array-typed', async () => {
     const schemas = [
       withArrayCols('issues', ['id'], ['owned_by_ids']),
       scalar('users'),
@@ -76,14 +77,14 @@ describe('joins-v2', () => {
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     expect(sql).toContain('UNNEST(owned_by_ids) AS __mk_u_owned_by_ids');
     expect(sql).toContain('issues.__mk_u_owned_by_ids = users.id');
     expect(sql).not.toMatch(/CONTAINS/i);
   });
 
-  it('shares one UNNEST projection across edges on the same base array column', () => {
+  it('shares one UNNEST projection across edges on the same base array column', async () => {
     const schemas = [
       withArrayCols('issues', ['id'], ['owned_by_ids']),
       scalar('users'),
@@ -103,14 +104,14 @@ describe('joins-v2', () => {
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     expect(sql.match(/UNNEST\(owned_by_ids\)/g)).toHaveLength(1);
     expect(sql).toContain('issues.__mk_u_owned_by_ids = users.id');
     expect(sql).toContain('issues.__mk_u_owned_by_ids = admins.id');
   });
 
-  it('inlines dim.sql for composite-child synthetic array columns whose name is not a real column', () => {
+  it('inlines dim.sql for composite-child synthetic array columns whose name is not a real column', async () => {
     // The synthetic dim `tags_$0_tag_id` is not a real column on the
     // base table — only the parent `tags` struct array is. UNNEST must
     // reference the dim's `sql` expression, not the synthetic name.
@@ -141,7 +142,7 @@ describe('joins-v2', () => {
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     expect(sql).toContain(
       "UNNEST(json_extract_string(tags, '$[*].tag_id')) AS __mk_u_tags_$0_tag_id"
@@ -149,7 +150,7 @@ describe('joins-v2', () => {
     expect(sql).toContain('parts.__mk_u_tags_$0_tag_id = tags.id');
   });
 
-  it('wraps a multi-hop intermediate table when its from.column is array-typed', () => {
+  it('wraps a multi-hop intermediate table when its from.column is array-typed', async () => {
     const schemas = [
       scalar('tickets', ['id', 'part_id']),
       withArrayCols('parts', ['id'], ['tag_ids']),
@@ -169,14 +170,14 @@ describe('joins-v2', () => {
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     expect(sql).toContain('tickets.part_id = parts.id');
     expect(sql).toContain('UNNEST(tag_ids) AS __mk_u_tag_ids');
     expect(sql).toContain('parts.__mk_u_tag_ids = tags.id');
   });
 
-  it('strips table qualifier from CAST-wrapped array dim sql (ensureTableSchemasAlias output)', () => {
+  it('strips table qualifier from CAST-wrapped array dim sql (ensureTableSchemasAlias output)', async () => {
     // After ensureTableSchemasAlias runs, the dim's sql becomes
     // `CAST(issue.owned_by_ids AS VARCHAR[])` instead of plain `owned_by_ids`.
     // The UNNEST wrap must strip the `issue.` qualifier since the inner
@@ -208,7 +209,7 @@ describe('joins-v2', () => {
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = generateSqlQueryV2(paths, sqlMap, graph, schemas);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     // The UNNEST expression must NOT contain `issue.` since it's in an unnamed subquery scope
     expect(sql).toContain('UNNEST(CAST(owned_by_ids AS VARCHAR[]))');
@@ -233,6 +234,259 @@ describe('joins-v2', () => {
     expect(() => createDirectedGraphV2(schemas, sqlMap, paths)).toThrow(
       /array-array joins are not supported/
     );
+  });
+
+  it('throws when condition is present but getQueryOutput is not provided', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'link_type_id']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const condition: JoinFilterExpression = {
+      operator: 'and',
+      operands: [
+        {
+          type: 'condition',
+          condition: {
+            key: 'link_type_id',
+            operator: 'equals',
+            json_value: '1234',
+            value_type: 'json_value',
+          },
+        },
+      ],
+    };
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+          condition,
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    await expect(
+      generateSqlQueryV2(paths, sqlMap, graph, schemas)
+    ).rejects.toThrow(/getQueryOutput is required/);
+  });
+
+  it('appends serialized condition to ON clause when getQueryOutput is provided', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'link_type_id']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const condition: JoinFilterExpression = {
+      operator: 'and',
+      operands: [
+        {
+          type: 'condition',
+          condition: {
+            key: 'link_type_id',
+            operator: 'equals',
+            json_value: '1234',
+            value_type: 'json_value',
+          },
+        },
+      ],
+    };
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+          condition,
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+
+    const mockGetQueryOutput: GetQueryOutput = async () => {
+      return [
+        {
+          result: "SELECT (link_type_id = '1234') AS __meerkat_batch_expr_0__;",
+        },
+      ];
+    };
+
+    const sql = await generateSqlQueryV2(
+      paths,
+      sqlMap,
+      graph,
+      schemas,
+      mockGetQueryOutput
+    );
+
+    expect(sql).toContain('issue.id = link.source_id');
+    expect(sql).toContain("AND (link_type_id = '1234')");
+  });
+
+  it('serializes multiple conditions across edges in a single batch', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'target_id', 'link_type_id']),
+      scalar('part', ['id']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+          condition: {
+            operator: 'and',
+            operands: [
+              {
+                type: 'condition',
+                condition: {
+                  key: 'link_type_id',
+                  operator: 'equals',
+                  json_value: 'type_a',
+                  value_type: 'json_value',
+                },
+              },
+            ],
+          },
+        },
+        {
+          from: { table: 'link', column: 'target_id' },
+          to: { table: 'part', column: 'id' },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+
+    let callCount = 0;
+    const mockGetQueryOutput: GetQueryOutput = async () => {
+      callCount++;
+      return [
+        {
+          result: "SELECT (link_type_id = 'type_a') AS __meerkat_batch_expr_0__;",
+        },
+      ];
+    };
+
+    const sql = await generateSqlQueryV2(
+      paths,
+      sqlMap,
+      graph,
+      schemas,
+      mockGetQueryOutput
+    );
+
+    expect(callCount).toBe(1);
+    expect(sql).toContain("issue.id = link.source_id AND (link_type_id = 'type_a')");
+    expect(sql).toContain('link.target_id = part.id');
+    expect(sql).not.toContain("AND (link_type_id = 'type_a') AND");
+  });
+
+  it('handles IS NULL condition (null operator)', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'deleted_at']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+          condition: {
+            operator: 'and',
+            operands: [
+              {
+                type: 'condition',
+                condition: {
+                  key: 'deleted_at',
+                  operator: 'null',
+                  value_type: 'json_value',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+
+    const mockGetQueryOutput: GetQueryOutput = async () => {
+      return [
+        {
+          result: 'SELECT (deleted_at IS NULL) AS __meerkat_batch_expr_0__;',
+        },
+      ];
+    };
+
+    const sql = await generateSqlQueryV2(
+      paths,
+      sqlMap,
+      graph,
+      schemas,
+      mockGetQueryOutput
+    );
+
+    expect(sql).toContain('issue.id = link.source_id AND (deleted_at IS NULL)');
+  });
+
+  it('handles OR expression with multiple conditions', async () => {
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'link_type_id']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+          condition: {
+            operator: 'or',
+            operands: [
+              {
+                type: 'condition',
+                condition: {
+                  key: 'link_type_id',
+                  operator: 'equals',
+                  json_value: 'type_a',
+                  value_type: 'json_value',
+                },
+              },
+              {
+                type: 'condition',
+                condition: {
+                  key: 'link_type_id',
+                  operator: 'equals',
+                  json_value: 'type_b',
+                  value_type: 'json_value',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+
+    const mockGetQueryOutput: GetQueryOutput = async () => {
+      return [
+        {
+          result:
+            "SELECT ((link_type_id = 'type_a') OR (link_type_id = 'type_b')) AS __meerkat_batch_expr_0__;",
+        },
+      ];
+    };
+
+    const sql = await generateSqlQueryV2(
+      paths,
+      sqlMap,
+      graph,
+      schemas,
+      mockGetQueryOutput
+    );
+
+    expect(sql).toContain('issue.id = link.source_id AND');
+    expect(sql).toContain("(link_type_id = 'type_a') OR (link_type_id = 'type_b')");
   });
 
 });

@@ -1,4 +1,10 @@
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
+import { andDuckdbCondition } from '../../cube-filter-transformer/and/and';
+import { orDuckdbCondition } from '../../cube-filter-transformer/or/or';
+import {
+  baseDuckdbCondition,
+  createColumnRef,
+} from '../../cube-filter-transformer/base-condition-builder/base-condition-builder';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import {
   JoinFilterCondition,
@@ -8,6 +14,14 @@ import {
   StructuredJoin,
   TableSchema,
 } from '../../types/cube-types';
+import { Dimension, Measure } from '../../types/cube-types/table';
+import {
+  ExpressionClass,
+  ExpressionType,
+} from '../../types/duckdb-serialization-types/serialization/Expression';
+import { ParsedExpression } from '../../types/duckdb-serialization-types/serialization/ParsedExpression';
+import { serializeExpressions, GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
+import { findInSchema } from '../../utils/find-in-table-schema';
 import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';
@@ -137,60 +151,128 @@ const wrapTableSqlForArrayFrom = (
   )}`;
 };
 
-const escapeValue = (value: unknown): string => {
-  return `'${String(value).replace(/'/g, "''")}'`;
+const getMemberInfo = (
+  key: string,
+  tableSchema: TableSchema | undefined
+): Measure | Dimension => {
+  if (tableSchema) {
+    const memberInfo = findInSchema(key, tableSchema);
+    if (memberInfo) return memberInfo;
+  }
+  return { name: key, sql: key, type: 'string' };
 };
 
-const conditionToSql = (cond: JoinFilterCondition): string => {
+const conditionToAST = (
+  cond: JoinFilterCondition,
+  tableSchema: TableSchema | undefined
+): ParsedExpression => {
   const { key, operator, json_value } = cond;
+  const columnRef = createColumnRef(key, { isAlias: true });
+  const memberInfo = getMemberInfo(key, tableSchema);
+
   switch (operator) {
     case 'equals':
-      if (json_value === null || json_value === undefined)
-        return `${key} IS NULL`;
-      return `${key} = ${escapeValue(json_value)}`;
+      if (json_value === null || json_value === undefined) {
+        return {
+          class: ExpressionClass.OPERATOR,
+          type: ExpressionType.OPERATOR_IS_NULL,
+          alias: '',
+          children: [columnRef],
+        };
+      }
+      return baseDuckdbCondition(
+        key,
+        ExpressionType.COMPARE_EQUAL,
+        String(json_value),
+        memberInfo,
+        { isAlias: true }
+      );
     case 'not_equals':
-      if (json_value === null || json_value === undefined)
-        return `${key} IS NOT NULL`;
-      return `${key} != ${escapeValue(json_value)}`;
+      if (json_value === null || json_value === undefined) {
+        return {
+          class: ExpressionClass.OPERATOR,
+          type: ExpressionType.OPERATOR_IS_NOT_NULL,
+          alias: '',
+          children: [columnRef],
+        };
+      }
+      return baseDuckdbCondition(
+        key,
+        ExpressionType.COMPARE_NOTEQUAL,
+        String(json_value),
+        memberInfo,
+        { isAlias: true }
+      );
     case 'null':
-      return `${key} IS NULL`;
+      return {
+        class: ExpressionClass.OPERATOR,
+        type: ExpressionType.OPERATOR_IS_NULL,
+        alias: '',
+        children: [columnRef],
+      };
     case 'not_null':
-      return `${key} IS NOT NULL`;
+      return {
+        class: ExpressionClass.OPERATOR,
+        type: ExpressionType.OPERATOR_IS_NOT_NULL,
+        alias: '',
+        children: [columnRef],
+      };
     case 'empty':
-      return `${key} = ''`;
+      return baseDuckdbCondition(
+        key,
+        ExpressionType.COMPARE_EQUAL,
+        '',
+        memberInfo,
+        { isAlias: true }
+      );
     case 'not_empty':
-      return `${key} != ''`;
+      return baseDuckdbCondition(
+        key,
+        ExpressionType.COMPARE_NOTEQUAL,
+        '',
+        memberInfo,
+        { isAlias: true }
+      );
     default:
       throw new Error(`Unsupported join condition operator: ${operator}`);
   }
 };
 
-const operandToSql = (operand: JoinFilterOperand): string => {
+const operandToAST = (
+  operand: JoinFilterOperand,
+  tableSchema: TableSchema | undefined
+): ParsedExpression => {
   if (operand.type === 'condition' && operand.condition) {
-    return conditionToSql(operand.condition);
+    return conditionToAST(operand.condition, tableSchema);
   }
   if (operand.type === 'expression' && operand.expression) {
-    return expressionToSql(operand.expression);
+    return expressionToAST(operand.expression, tableSchema);
   }
   throw new Error(
     'Invalid join filter operand: missing condition or expression'
   );
 };
 
-const expressionToSql = (expr: JoinFilterExpression): string => {
-  const parts = expr.operands.map(operandToSql);
+const expressionToAST = (
+  expr: JoinFilterExpression,
+  tableSchema: TableSchema | undefined
+): ParsedExpression => {
+  const parts = expr.operands.map((op) => operandToAST(op, tableSchema));
   if (parts.length === 1) return parts[0];
-  const joiner = expr.operator === 'and' ? ' AND ' : ' OR ';
-  return `(${parts.join(joiner)})`;
+  const conjunction =
+    expr.operator === 'and' ? andDuckdbCondition() : orDuckdbCondition();
+  conjunction.children = parts;
+  return conjunction;
 };
 
-const buildPredicate = (edge: StructuredJoin, fromIsArray: boolean): string => {
+const buildEquiJoinPredicate = (
+  edge: StructuredJoin,
+  fromIsArray: boolean
+): string => {
   const leftColumn = fromIsArray
     ? getUnnestAlias(edge.from.column)
     : edge.from.column;
-  const basePredicate = `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
-  if (!edge.condition) return basePredicate;
-  return `${basePredicate} AND ${expressionToSql(edge.condition)}`;
+  return `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
 };
 
 const BRIDGE_TABLES = new Set(['link']);
@@ -255,7 +337,7 @@ export const createDirectedGraphV2 = (
       }
       graph[from.table] ??= {};
       graph[from.table][to.table] ??= {};
-      graph[from.table][to.table][from.column] = buildPredicate(
+      graph[from.table][to.table][from.column] = buildEquiJoinPredicate(
         edge,
         fromIsArray
       );
@@ -271,12 +353,13 @@ export const createDirectedGraphV2 = (
  * gets UNNEST projections so the join becomes a hash-joinable equi-join
  * (`base.__mk_u_col = right.col`) instead of a `CONTAINS(...)` scan.
  */
-export const generateSqlQueryV2 = (
+export const generateSqlQueryV2 = async (
   paths: StructuredJoin[][],
   tableSchemaSqlMap: { [key: string]: string },
   directedGraph: Graph,
-  tableSchemas: TableSchema[]
-): string => {
+  tableSchemas: TableSchema[],
+  getQueryOutput?: GetQueryOutput
+): Promise<string> => {
   if (paths.length === 0) {
     throw new Error(
       'Invalid path, multiple data sources are present without a join path.'
@@ -304,6 +387,11 @@ export const generateSqlQueryV2 = (
 
   const visited = new Map<string, StructuredJoin>();
 
+  // Collect edges in visitation order and their condition ASTs
+  const edgeOrder: { edge: StructuredJoin; equiJoin: string }[] = [];
+  const conditionASTs: ParsedExpression[] = [];
+  const conditionIndexByEdge: number[] = [];
+
   for (const path of resolvedPaths) {
     for (const edge of path) {
       const prev = visited.get(edge.to.table);
@@ -315,27 +403,59 @@ export const generateSqlQueryV2 = (
       }
       visited.set(edge.to.table, edge);
 
-      const onClause =
+      const equiJoin =
         directedGraph[edge.from.table]?.[edge.to.table]?.[edge.from.column] ??
-        buildPredicate(
+        buildEquiJoinPredicate(
           edge,
           isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
         );
-      const rightArrayCols = arraySourcesByTable.get(edge.to.table);
-      const rightSubquery = rightArrayCols?.size
-        ? wrapTableSqlForArrayFrom(
-            tableSchemaSqlMap[edge.to.table] ??
-              tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
-            edge.to.table,
-            rightArrayCols,
-            tableSchemas
-          )
-        : `(${
-            tableSchemaSqlMap[edge.to.table] ??
-            tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]
-          }) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
-      query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
+
+      edgeOrder.push({ edge, equiJoin });
+
+      if (edge.condition) {
+        const toTableSchema = tableSchemas.find(
+          (s) => s.name === edge.to.table || s.name === edge.to.table.replace(/__\d+$/, '')
+        );
+        conditionIndexByEdge.push(conditionASTs.length);
+        conditionASTs.push(expressionToAST(edge.condition, toTableSchema));
+      } else {
+        conditionIndexByEdge.push(-1);
+      }
     }
+  }
+
+  // Batch-serialize all condition ASTs to SQL in one DuckDB call
+  let conditionSqls: string[] = [];
+  if (conditionASTs.length > 0) {
+    if (!getQueryOutput) {
+      throw new Error(
+        'getQueryOutput is required when join edges have filter conditions'
+      );
+    }
+    conditionSqls = await serializeExpressions(conditionASTs, getQueryOutput);
+  }
+
+  // Build the final JOIN SQL
+  for (let i = 0; i < edgeOrder.length; i++) {
+    const { edge, equiJoin } = edgeOrder[i];
+    const condIdx = conditionIndexByEdge[i];
+    const onClause =
+      condIdx >= 0 ? `${equiJoin} AND ${conditionSqls[condIdx]}` : equiJoin;
+
+    const rightArrayCols = arraySourcesByTable.get(edge.to.table);
+    const rightSubquery = rightArrayCols?.size
+      ? wrapTableSqlForArrayFrom(
+          tableSchemaSqlMap[edge.to.table] ??
+            tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
+          edge.to.table,
+          rightArrayCols,
+          tableSchemas
+        )
+      : `(${
+          tableSchemaSqlMap[edge.to.table] ??
+          tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]
+        }) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
+    query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
   }
 
   return query;
@@ -354,10 +474,11 @@ const hasLoop = (paths: StructuredJoin[][]): boolean => {
   return false;
 };
 
-export const getCombinedTableSchemaV2 = (
+export const getCombinedTableSchemaV2 = async (
   tableSchema: TableSchema[],
-  cubeQuery: Query
-): TableSchema => {
+  cubeQuery: Query,
+  getQueryOutput?: GetQueryOutput
+): Promise<TableSchema> => {
   if (tableSchema.length === 1) return tableSchema[0];
 
   // joinPathsV2 callers control which tables participate; everyone else
@@ -378,7 +499,13 @@ export const getCombinedTableSchemaV2 = (
     activeTables.map((s) => [s.name, s.sql])
   );
   const graph = createDirectedGraphV2(activeTables, tableSchemaSqlMap, paths);
-  const sql = generateSqlQueryV2(paths, tableSchemaSqlMap, graph, activeTables);
+  const sql = await generateSqlQueryV2(
+    paths,
+    tableSchemaSqlMap,
+    graph,
+    activeTables,
+    getQueryOutput
+  );
 
   return {
     name: 'MEERKAT_GENERATED_TABLE',

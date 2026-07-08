@@ -41,7 +41,7 @@ const withArrayCols = (
 });
 
 describe('joins router', () => {
-  it('routes to v2 when joinPathsV2 is set', () => {
+  it('routes to v2 when joinPathsV2 is set', async () => {
     const schemas = [
       withArrayCols('issues', ['id'], ['owned_by_ids']),
       scalar('users'),
@@ -58,12 +58,12 @@ describe('joins router', () => {
         ],
       ],
     };
-    const result = getCombinedTableSchema(schemas, cubeQuery);
+    const result = await getCombinedTableSchema(schemas, cubeQuery);
     expect(result.sql).toContain('UNNEST(owned_by_ids)');
     expect(result.sql).not.toMatch(/CONTAINS/i);
   });
 
-  it('routes to v1 when joinPathsV2 is absent', () => {
+  it('routes to v1 when joinPathsV2 is absent', async () => {
     const schemas = [
       {
         ...scalar('orders', ['id', 'customer_id']),
@@ -76,7 +76,7 @@ describe('joins router', () => {
       dimensions: ['customers.id'],
       joinPaths: [[{ left: 'orders', right: 'customers', on: 'customer_id' }]],
     };
-    const result = getCombinedTableSchema(schemas, cubeQuery);
+    const result = await getCombinedTableSchema(schemas, cubeQuery);
     expect(result.sql).toContain('orders.customer_id = customers.id');
     expect(result.sql).not.toMatch(/UNNEST/);
   });
