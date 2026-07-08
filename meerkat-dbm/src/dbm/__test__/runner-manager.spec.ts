@@ -111,21 +111,22 @@ describe('IFrameRunnerManager', () => {
     );
   });
 
-  const onEventMessage = () => ({
+  const onEventMessage = (scope?: 'query' | 'instance') => ({
     uuid: 'mock-uuid',
     message: {
       type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
       payload: { event_name: 'query_execution_duration', duration: 5 },
+      scope,
     },
     target_app: 'runner',
     timestamp: 0,
   });
 
-  it('dispatches RUNNER_ON_EVENT to the per-query callback registered for the emitting runner', () => {
+  it('dispatches a query-scoped RUNNER_ON_EVENT to the callback registered for the emitting runner', () => {
     const onEvent = jest.fn();
     manager.registerQueryEventCallback('0', onEvent);
 
-    manager['messageListener']('0', onEventMessage() as never);
+    manager['messageListener']('0', onEventMessage('query') as never);
 
     expect(onEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -140,7 +141,7 @@ describe('IFrameRunnerManager', () => {
     manager.registerQueryEventCallback('0', onEvent);
     manager.unregisterQueryEventCallback('0');
 
-    manager['messageListener']('0', onEventMessage() as never);
+    manager['messageListener']('0', onEventMessage('query') as never);
 
     expect(onEvent).not.toHaveBeenCalled();
   });
@@ -149,18 +150,18 @@ describe('IFrameRunnerManager', () => {
     const onEvent = jest.fn();
     manager.registerQueryEventCallback('0', onEvent);
 
-    manager['messageListener']('1', onEventMessage() as never);
+    manager['messageListener']('1', onEventMessage('query') as never);
 
     expect(onEvent).not.toHaveBeenCalled();
   });
 
-  it('routes exclusively: the instance onEvent does not fire when a per-runner callback is registered', () => {
+  it('routes exclusively: the instance onEvent does not fire for a query-scoped event when a per-runner callback is registered', () => {
     const instanceOnEvent = jest.fn();
     manager['onEvent'] = instanceOnEvent;
     const perQueryOnEvent = jest.fn();
     manager.registerQueryEventCallback('0', perQueryOnEvent);
 
-    manager['messageListener']('0', onEventMessage() as never);
+    manager['messageListener']('0', onEventMessage('query') as never);
 
     expect(perQueryOnEvent).toHaveBeenCalledTimes(1);
     expect(instanceOnEvent).not.toHaveBeenCalled();
@@ -170,20 +171,20 @@ describe('IFrameRunnerManager', () => {
     const instanceOnEvent = jest.fn();
     manager['onEvent'] = instanceOnEvent;
 
-    manager['messageListener']('0', onEventMessage() as never);
+    manager['messageListener']('0', onEventMessage('query') as never);
 
     expect(instanceOnEvent).toHaveBeenCalledWith(
       expect.objectContaining({ event_name: 'query_execution_duration' })
     );
   });
 
-  it('routes a cross-query event to the instance sink even while a per-runner callback is registered', () => {
+  it('routes an instance-scoped event to the instance sink even while a per-runner callback is registered', () => {
     const instanceOnEvent = jest.fn();
     manager['onEvent'] = instanceOnEvent;
     const perQueryOnEvent = jest.fn();
     manager.registerQueryEventCallback('0', perQueryOnEvent);
 
-    // clone_buffer_duration is runner-side buffer setup, not query-scoped.
+    // The runner tags clone_buffer_duration (buffer setup) as instance scope.
     manager['messageListener'](
       '0',
       {
@@ -191,6 +192,7 @@ describe('IFrameRunnerManager', () => {
         message: {
           type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
           payload: { event_name: 'clone_buffer_duration', duration: 9 },
+          scope: 'instance',
         },
         target_app: 'runner',
         timestamp: 0,
@@ -200,6 +202,18 @@ describe('IFrameRunnerManager', () => {
     expect(instanceOnEvent).toHaveBeenCalledWith(
       expect.objectContaining({ event_name: 'clone_buffer_duration' })
     );
+    expect(perQueryOnEvent).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the instance sink when a RUNNER_ON_EVENT carries no scope (older runner bundle)', () => {
+    const instanceOnEvent = jest.fn();
+    manager['onEvent'] = instanceOnEvent;
+    const perQueryOnEvent = jest.fn();
+    manager.registerQueryEventCallback('0', perQueryOnEvent);
+
+    manager['messageListener']('0', onEventMessage(undefined) as never);
+
+    expect(instanceOnEvent).toHaveBeenCalledTimes(1);
     expect(perQueryOnEvent).not.toHaveBeenCalled();
   });
 });

@@ -3,7 +3,7 @@ import { Table } from 'apache-arrow/table';
 import uniqBy from 'lodash/uniqBy';
 import { v4 as uuidv4 } from 'uuid';
 import { FileManagerType } from '../file-manager';
-import { DBMEvent, DBMLogger, isQueryScopedEvent } from '../logger';
+import { DBMEvent, DBMLogger } from '../logger';
 import { InstanceManagerType } from './instance-manager';
 import { TableLockManager } from './table-lock-manager';
 import {
@@ -243,15 +243,26 @@ export class DBM extends TableLockManager {
     }
   }
 
-  private _emitEvent(event: DBMEvent, options?: QueryOptions) {
-    // Route by the event's own scope, not by which callbacks exist. Query-
-    // scoped events go to the per-query callback (when supplied); cross-query
-    // and load-time events go to the instance-level sink. A single event never
-    // reaches both.
-    if (isQueryScopedEvent(event) && options?.onEvent) {
+  /**
+   * Emit an event scoped to a single query run. It goes to that query's
+   * per-query callback when one was supplied, otherwise to the instance sink.
+   * Callers use this only for events that belong to one `queryWithTables` run.
+   */
+  private _emitQueryEvent(event: DBMEvent, options?: QueryOptions) {
+    if (options?.onEvent) {
       options.onEvent(event);
       return;
     }
+    if (this.onEvent) {
+      this.onEvent(event);
+    }
+  }
+
+  /**
+   * Emit a cross-query / load-time event. It has no single owning query, so it
+   * always goes to the instance-level sink.
+   */
+  private _emitInstanceEvent(event: DBMEvent) {
     if (this.onEvent) {
       this.onEvent(event);
     }
@@ -300,7 +311,7 @@ export class DBM extends TableLockManager {
       query
     );
 
-    this._emitEvent(
+    this._emitQueryEvent(
       {
         event_name: 'mount_file_buffer_duration',
         duration: endMountTime - startMountTime,
@@ -334,7 +345,7 @@ export class DBM extends TableLockManager {
       query
     );
 
-    this._emitEvent(
+    this._emitQueryEvent(
       {
         event_name: 'query_execution_duration',
         duration: queryQueueDuration,
@@ -367,7 +378,7 @@ export class DBM extends TableLockManager {
   private async _startQueryExecution(metadata?: object) {
     this.logger.debug('Query queue length:', this.queriesQueue.length);
 
-    this._emitEvent({
+    this._emitInstanceEvent({
       event_name: 'query_queue_length',
       value: this.queriesQueue.length,
       metadata,
@@ -402,7 +413,7 @@ export class DBM extends TableLockManager {
         this.currentQueryItem.query
       );
 
-      this._emitEvent(
+      this._emitQueryEvent(
         {
           event_name: 'query_queue_duration',
           duration: startTime - this.currentQueryItem.timestamp,

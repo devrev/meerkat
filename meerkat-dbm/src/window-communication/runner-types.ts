@@ -56,6 +56,13 @@ export interface BrowserRunnerPreQueryMessage {
 export interface BrowserRunnerOnEventMessage {
   type: typeof BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT;
   payload: DBMEvent;
+  /**
+   * Routing scope decided at the emit site inside the runner. `'query'` events
+   * belong to the runner's in-flight query and go to that query's per-query
+   * callback; anything else (or omitted) goes to the instance sink. Optional so
+   * an older runner bundle that doesn't set it falls back to the instance sink.
+   */
+  scope?: 'query' | 'instance';
 }
 
 export interface BrowserRunnerCancelQueryMessage {
