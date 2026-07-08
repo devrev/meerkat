@@ -273,11 +273,6 @@ export const generateSqlQueryV2 = async (
 
   const visited = new Map<string, StructuredJoin>();
 
-  // Collect edges in visitation order and their condition ASTs
-  const edgeOrder: { edge: StructuredJoin; equiJoin: string }[] = [];
-  const conditionASTs: ParsedExpression[] = [];
-  const conditionIndexByEdge: number[] = [];
-
   for (const path of resolvedPaths) {
     for (const edge of path) {
       const prev = visited.get(edge.to.table);
@@ -289,64 +284,44 @@ export const generateSqlQueryV2 = async (
       }
       visited.set(edge.to.table, edge);
 
-      const equiJoin =
+      let onClause =
         directedGraph[edge.from.table]?.[edge.to.table]?.[edge.from.column] ??
         buildEquiJoinPredicate(
           edge,
           isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
         );
 
-      edgeOrder.push({ edge, equiJoin });
-
       if (edge.condition) {
+        if (!getQueryOutput) {
+          throw new Error(
+            'getQueryOutput is required when join edges have filter conditions'
+          );
+        }
         const toTableSchema = tableSchemas.find(
           (s) => s.name === edge.to.table || s.name === edge.to.table.replace(/__\d+$/, '')
         );
         const ast = conditionFilterToAST(edge.condition, toTableSchema);
         if (ast) {
-          conditionIndexByEdge.push(conditionASTs.length);
-          conditionASTs.push(ast);
-        } else {
-          conditionIndexByEdge.push(-1);
+          const [conditionSql] = await serializeExpressions([ast], getQueryOutput);
+          onClause = `${onClause} AND ${conditionSql}`;
         }
-      } else {
-        conditionIndexByEdge.push(-1);
       }
+
+      const rightArrayCols = arraySourcesByTable.get(edge.to.table);
+      const rightSubquery = rightArrayCols?.size
+        ? wrapTableSqlForArrayFrom(
+            tableSchemaSqlMap[edge.to.table] ??
+              tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
+            edge.to.table,
+            rightArrayCols,
+            tableSchemas
+          )
+        : `(${
+            tableSchemaSqlMap[edge.to.table] ??
+            tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]
+          }) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
+      query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
-  }
-
-  // Batch-serialize all condition ASTs to SQL in one DuckDB call
-  let conditionSqls: string[] = [];
-  if (conditionASTs.length > 0) {
-    if (!getQueryOutput) {
-      throw new Error(
-        'getQueryOutput is required when join edges have filter conditions'
-      );
-    }
-    conditionSqls = await serializeExpressions(conditionASTs, getQueryOutput);
-  }
-
-  // Build the final JOIN SQL
-  for (let i = 0; i < edgeOrder.length; i++) {
-    const { edge, equiJoin } = edgeOrder[i];
-    const condIdx = conditionIndexByEdge[i];
-    const onClause =
-      condIdx >= 0 ? `${equiJoin} AND ${conditionSqls[condIdx]}` : equiJoin;
-
-    const rightArrayCols = arraySourcesByTable.get(edge.to.table);
-    const rightSubquery = rightArrayCols?.size
-      ? wrapTableSqlForArrayFrom(
-          tableSchemaSqlMap[edge.to.table] ??
-            tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')],
-          edge.to.table,
-          rightArrayCols,
-          tableSchemas
-        )
-      : `(${
-          tableSchemaSqlMap[edge.to.table] ??
-          tableSchemaSqlMap[edge.to.table.replace(/__\d+$/, '')]
-        }) AS ${quoteIdentifierIfNeeded(edge.to.table)}`;
-    query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
   }
 
   return query;
