@@ -47,3 +47,4 @@ export type {
   EnsureColumnAliasBatchResult,
 } from './utils/ensure-sql-expression-column-alias';
 export * from './utils/ensure-table-schema-alias-sql';
+export * from './instrumentation/sql-generation-event';
