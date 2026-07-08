@@ -527,5 +527,38 @@ describe('DBMParallel', () => {
       // Logger should not have been called since it was a user-initiated abort
       expect(loggerMock.error).not.toHaveBeenCalled();
     });
+
+    it('unregisters the per-query onEvent when the query is aborted', async () => {
+      const abortController = new AbortController();
+      const onEvent = jest.fn();
+
+      runnerMock.communication.sendRequest.mockImplementation(
+        () =>
+          new Promise(() => {
+            // Never resolves
+          })
+      );
+
+      const queryPromise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal, onEvent },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      abortController.abort();
+
+      await expect(queryPromise).rejects.toThrow('Query aborted by user');
+
+      // The callback registered for this runner must be torn down even though
+      // the abort handler cleared activeQueries first.
+      const registeredRunnerId = (
+        iFrameRunnerManager.registerQueryEventCallback as jest.Mock
+      ).mock.calls[0][0];
+      expect(iFrameRunnerManager.unregisterQueryEventCallback).toHaveBeenCalledWith(
+        registeredRunnerId
+      );
+    });
   });
 });
