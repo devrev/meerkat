@@ -222,7 +222,7 @@ export const createDirectedGraphV2 = (
         );
       }
       if (graph[from.table]?.[to.table]?.[from.column]) {
-        throw new Error('An invalid path was detected.');
+        continue;
       }
       graph[from.table] ??= {};
       graph[from.table][to.table] ??= {};
