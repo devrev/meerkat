@@ -222,7 +222,7 @@ export const createDirectedGraphV2 = (
         );
       }
       if (graph[from.table]?.[to.table]?.[from.column]) {
-        continue;
+        throw new Error('An invalid path was detected.');
       }
       graph[from.table] ??= {};
       graph[from.table][to.table] ??= {};
@@ -279,8 +279,10 @@ export const generateSqlQueryV2 = async (
   for (const path of resolvedPaths) {
     for (const edge of path) {
       const prev = visited.get(edge.to.table);
-      if (prev?.from.table === edge.from.table) continue;
       if (prev) {
+        const prevFrom = prev.from.table.replace(/__\d+$/, '');
+        const currFrom = edge.from.table.replace(/__\d+$/, '');
+        if (prevFrom === currFrom) continue;
         throw new Error(
           `Path ambiguity, node ${edge.to.table} visited from different sources`
         );
