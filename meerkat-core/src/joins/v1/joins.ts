@@ -1,10 +1,5 @@
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
-import {
-  JoinPath,
-  Query,
-  TableSchema,
-  isJoinNode,
-} from '../../types/cube-types';
+import { JoinPath, Query, TableSchema, isJoinNode } from '../../types/cube-types';
 
 /**
  * Regex pattern to match a CONTAINS function call in join SQL.
@@ -25,8 +20,7 @@ import {
  * - "  contains( table1.items , table2.id )  "
  * - "CONTAINS(\"quoted.table\".col, other.col)"
  */
-const CONTAINS_FUNCTION_REGEX =
-  /^\s*CONTAINS\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*$/i;
+const CONTAINS_FUNCTION_REGEX = /^\s*CONTAINS\s*\(\s*(.+?)\s*,\s*(.+?)\s*\)\s*$/i;
 
 /**
  * Regex pattern to validate table.column reference format.
