@@ -1,4 +1,5 @@
 import { cubeFilterToDuckdbAST } from '../../cube-filter-transformer/factory';
+import { traverseMeerkatQueryFilter } from '../../filter-params/filter-params-ast';
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import {
@@ -165,18 +166,64 @@ const conditionFilterToAST = (
   );
 };
 
-const aliasBridgeTables = (paths: StructuredJoin[][]): StructuredJoin[][] => {
+const getReferencedTables = (cubeQuery: Query): Set<string> => {
+  const tables = new Set<string>();
+  const extractTable = (member: string) => {
+    const dotIndex = member.indexOf('.');
+    if (dotIndex > 0) tables.add(member.slice(0, dotIndex));
+  };
+
+  cubeQuery.measures.forEach(extractTable);
+  cubeQuery.dimensions?.forEach(extractTable);
+  if (cubeQuery.filters) {
+    traverseMeerkatQueryFilter(cubeQuery.filters, (filter) => {
+      extractTable(filter.member);
+    });
+  }
+  if (cubeQuery.order) {
+    Object.keys(cubeQuery.order).forEach(extractTable);
+  }
+  return tables;
+};
+
+const inferBridgeTables = (
+  paths: StructuredJoin[][],
+  cubeQuery: Query
+): Set<string> => {
+  const referenced = getReferencedTables(cubeQuery);
+  const bridges = new Set<string>();
+  for (const path of paths) {
+    for (const edge of path) {
+      if (!referenced.has(edge.to.table)) {
+        bridges.add(edge.to.table);
+      }
+    }
+  }
+  return bridges;
+};
+
+const aliasBridgeTables = (
+  paths: StructuredJoin[][],
+  bridgeTables: Set<string>
+): StructuredJoin[][] => {
   const seen = new Map<string, number>();
   if (paths[0]?.[0]) seen.set(paths[0][0].from.table, 1);
 
   return paths.map((path) => {
     const result: StructuredJoin[] = [];
+    let nextFromAlias: string | undefined;
+
     for (let i = 0; i < path.length; i++) {
-      const edge = path[i];
+      let edge = path[i];
+      if (nextFromAlias) {
+        edge = { ...edge, from: { ...edge.from, table: nextFromAlias } };
+        nextFromAlias = undefined;
+      }
+
       const count = seen.get(edge.to.table) ?? 0;
       seen.set(edge.to.table, count + 1);
 
-      if (count === 0 || !edge.isBridge) {
+      if (count === 0 || !bridgeTables.has(edge.to.table)) {
         result.push(edge);
         continue;
       }
@@ -185,10 +232,7 @@ const aliasBridgeTables = (paths: StructuredJoin[][]): StructuredJoin[][] => {
       result.push({ ...edge, to: { ...edge.to, table: alias } });
 
       if (i + 1 < path.length && path[i + 1].from.table === edge.to.table) {
-        path[i + 1] = {
-          ...path[i + 1],
-          from: { ...path[i + 1].from, table: alias },
-        };
+        nextFromAlias = alias;
       }
     }
     return result;
@@ -247,7 +291,8 @@ export const generateSqlQueryV2 = async (
   tableSchemaSqlMap: { [key: string]: string },
   directedGraph: Graph,
   tableSchemas: TableSchema[],
-  getQueryOutput?: GetQueryOutput
+  getQueryOutput?: GetQueryOutput,
+  bridgeTables?: Set<string>
 ): Promise<string> => {
   if (paths.length === 0) {
     throw new Error(
@@ -272,9 +317,12 @@ export const generateSqlQueryV2 = async (
     tableSchemas
   );
 
-  const resolvedPaths = aliasBridgeTables(paths);
+  const resolvedPaths = aliasBridgeTables(paths, bridgeTables ?? new Set());
 
   const visited = new Map<string, StructuredJoin>();
+  const edgeOrder: { edge: StructuredJoin; equiJoin: string }[] = [];
+  const conditionASTs: ParsedExpression[] = [];
+  const conditionIndexByEdge: number[] = [];
 
   for (const path of resolvedPaths) {
     for (const edge of path) {
@@ -289,59 +337,79 @@ export const generateSqlQueryV2 = async (
       }
       visited.set(edge.to.table, edge);
 
-      const toTable = edge.to.table;
-      const toTableOriginal = toTable.replace(/__\d+$/, '');
-      const toTableSql =
-        tableSchemaSqlMap[toTable] ?? tableSchemaSqlMap[toTableOriginal];
-
-      let onClause =
-        directedGraph[edge.from.table]?.[toTable]?.[edge.from.column] ??
+      const equiJoin =
+        directedGraph[edge.from.table]?.[edge.to.table]?.[edge.from.column] ??
         buildEquiJoinPredicate(
           edge,
           isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
         );
 
+      edgeOrder.push({ edge, equiJoin });
+
       if (edge.condition) {
-        if (!getQueryOutput) {
-          throw new Error(
-            'getQueryOutput is required when join edges have filter conditions'
-          );
-        }
+        const toTable = edge.to.table;
+        const toTableOriginal = toTable.replace(/__\d+$/, '');
         const toTableSchema = tableSchemas.find(
           (s) => s.name === toTable || s.name === toTableOriginal
         );
         const ast = conditionFilterToAST(edge.condition, toTableSchema);
         if (ast) {
-          const [conditionSql] = await serializeExpressions(
-            [ast],
-            getQueryOutput
-          );
-          onClause = `${onClause} AND ${conditionSql}`;
+          conditionIndexByEdge.push(conditionASTs.length);
+          conditionASTs.push(ast);
+        } else {
+          conditionIndexByEdge.push(-1);
         }
+      } else {
+        conditionIndexByEdge.push(-1);
       }
-
-      const rightArrayCols = arraySourcesByTable.get(toTable);
-      const rightSubquery = rightArrayCols?.size
-        ? wrapTableSqlForArrayFrom(
-            toTableSql,
-            toTable,
-            rightArrayCols,
-            tableSchemas
-          )
-        : `(${toTableSql}) AS ${quoteIdentifierIfNeeded(toTable)}`;
-      query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
     }
+  }
+
+  let conditionSqls: string[] = [];
+  if (conditionASTs.length > 0) {
+    if (!getQueryOutput) {
+      throw new Error(
+        'getQueryOutput is required when join edges have filter conditions'
+      );
+    }
+    conditionSqls = await serializeExpressions(conditionASTs, getQueryOutput);
+  }
+
+  for (let i = 0; i < edgeOrder.length; i++) {
+    const { edge, equiJoin } = edgeOrder[i];
+    const condIdx = conditionIndexByEdge[i];
+    const onClause =
+      condIdx >= 0 ? `${equiJoin} AND ${conditionSqls[condIdx]}` : equiJoin;
+
+    const toTable = edge.to.table;
+    const toTableOriginal = toTable.replace(/__\d+$/, '');
+    const toTableSql =
+      tableSchemaSqlMap[toTable] ?? tableSchemaSqlMap[toTableOriginal];
+
+    const rightArrayCols = arraySourcesByTable.get(toTable);
+    const rightSubquery = rightArrayCols?.size
+      ? wrapTableSqlForArrayFrom(
+          toTableSql,
+          toTable,
+          rightArrayCols,
+          tableSchemas
+        )
+      : `(${toTableSql}) AS ${quoteIdentifierIfNeeded(toTable)}`;
+    query += ` LEFT JOIN ${rightSubquery}  ON ${onClause}`;
   }
 
   return query;
 };
 
-const hasLoop = (paths: StructuredJoin[][]): boolean => {
+const hasLoop = (
+  paths: StructuredJoin[][],
+  bridgeTables: Set<string>
+): boolean => {
   for (const path of paths) {
     const visited = new Set<string>();
     if (path[0]) visited.add(path[0].from.table);
     for (const edge of path) {
-      if (edge.isBridge) continue;
+      if (bridgeTables.has(edge.to.table)) continue;
       if (visited.has(edge.to.table)) return true;
       visited.add(edge.to.table);
     }
@@ -364,7 +432,8 @@ export const getCombinedTableSchemaV2 = async (
   if (activeTables.length === 1) return activeTables[0];
 
   const paths = cubeQuery.joinPathsV2 ?? [];
-  if (hasLoop(paths)) {
+  const bridgeTables = inferBridgeTables(paths, cubeQuery);
+  if (hasLoop(paths, bridgeTables)) {
     throw new Error(
       `A loop was detected in the joins. ${JSON.stringify(paths)}`
     );
@@ -379,7 +448,8 @@ export const getCombinedTableSchemaV2 = async (
     tableSchemaSqlMap,
     graph,
     activeTables,
-    getQueryOutput
+    getQueryOutput,
+    bridgeTables
   );
 
   return {
