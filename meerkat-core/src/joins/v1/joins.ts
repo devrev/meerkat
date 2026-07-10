@@ -259,7 +259,7 @@ export const createDirectedGraph = (
         directedGraph[table1][table2] &&
         directedGraph[table1][table2][joinOn])
     ) {
-      return;
+      throw new Error('An invalid path was detected.');
     }
     if (!directedGraph[table1]) directedGraph[table1] = {};
     if (!directedGraph[table1][table2]) directedGraph[table1][table2] = {};
