@@ -180,9 +180,6 @@ const getReferencedTables = (cubeQuery: Query): Set<string> => {
       extractTable(filter.member);
     });
   }
-  if (cubeQuery.order) {
-    Object.keys(cubeQuery.order).forEach(extractTable);
-  }
   return tables;
 };
 
