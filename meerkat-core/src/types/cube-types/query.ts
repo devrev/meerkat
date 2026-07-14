@@ -141,6 +141,7 @@ interface JoinNode {
 export type StructuredJoin = {
   from: { table: string; column: string };
   to: { table: string; column: string };
+  condition?: MeerkatQueryFilter;
 };
 
 /**
