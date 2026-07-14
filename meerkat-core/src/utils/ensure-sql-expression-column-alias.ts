@@ -4,6 +4,8 @@ import {
   QueryNode,
   QueryNodeType,
   ResultModifier,
+  TableRef,
+  TableReferenceType,
 } from '../types/duckdb-serialization-types';
 import {
   isColumnRefExpression,
@@ -164,6 +166,45 @@ const isLimitLikeModifier = (
   );
 };
 
+const collectTableRefBoundIdentifiers = (
+  tableRef: TableRef | undefined,
+  bound: Set<string> = new Set()
+): Set<string> => {
+  if (!tableRef) return bound;
+
+  if (tableRef.alias) {
+    bound.add(tableRef.alias);
+  }
+
+  switch (tableRef.type) {
+    case TableReferenceType.SUBQUERY:
+    case TableReferenceType.TABLE_FUNCTION:
+      tableRef.column_name_alias.forEach((name) => bound.add(name));
+      return bound;
+
+    case TableReferenceType.PIVOT:
+      tableRef.column_name_alias.forEach((name) => bound.add(name));
+      collectTableRefBoundIdentifiers(tableRef.source, bound);
+      return bound;
+
+    case TableReferenceType.JOIN:
+      collectTableRefBoundIdentifiers(tableRef.left, bound);
+      collectTableRefBoundIdentifiers(tableRef.right, bound);
+      return bound;
+
+    case TableReferenceType.EXPRESSION_LIST:
+      tableRef.expected_names.forEach((name) => bound.add(name));
+      return bound;
+
+    case TableReferenceType.BASE_TABLE:
+      tableRef.column_name_alias.forEach((name) => bound.add(name));
+      return bound;
+
+    default:
+      return bound;
+  }
+};
+
 const ensureQueryNodeAlias = (
   node: QueryNode,
   tableName?: string,
@@ -173,12 +214,20 @@ const ensureQueryNodeAlias = (
   if (isSelectNode(node)) {
     let changed = false;
 
+    const fromBoundIdentifiers = collectTableRefBoundIdentifiers(
+      node.from_table
+    );
+    const nodeScopedIdentifiers =
+      fromBoundIdentifiers.size > 0
+        ? new Set([...scopedIdentifiers, ...fromBoundIdentifiers])
+        : scopedIdentifiers;
+
     node.select_list.forEach((expression) => {
       changed =
         ensureParsedExpressionAlias(
           expression,
           tableName,
-          scopedIdentifiers,
+          nodeScopedIdentifiers,
           knownTableNames
         ) || changed;
     });
@@ -187,7 +236,7 @@ const ensureQueryNodeAlias = (
         ? ensureParsedExpressionAlias(
             node.where_clause,
             tableName,
-            scopedIdentifiers,
+            nodeScopedIdentifiers,
             knownTableNames
           )
         : false) || changed;
@@ -196,7 +245,7 @@ const ensureQueryNodeAlias = (
         ensureParsedExpressionAlias(
           expression,
           tableName,
-          scopedIdentifiers,
+          nodeScopedIdentifiers,
           knownTableNames
         ) || changed;
     });
@@ -205,7 +254,7 @@ const ensureQueryNodeAlias = (
         ? ensureParsedExpressionAlias(
             node.having,
             tableName,
-            scopedIdentifiers,
+            nodeScopedIdentifiers,
             knownTableNames
           )
         : false) || changed;
@@ -214,7 +263,7 @@ const ensureQueryNodeAlias = (
         ? ensureParsedExpressionAlias(
             node.qualify,
             tableName,
-            scopedIdentifiers,
+            nodeScopedIdentifiers,
             knownTableNames
           )
         : false) || changed;
@@ -224,7 +273,7 @@ const ensureQueryNodeAlias = (
         changed =
           ensureOrderByNodesAlias(
             modifier.orders,
-            scopedIdentifiers,
+            nodeScopedIdentifiers,
             tableName,
             knownTableNames
           ) || changed;
@@ -237,7 +286,7 @@ const ensureQueryNodeAlias = (
               ensureParsedExpressionAlias(
                 target,
                 tableName,
-                scopedIdentifiers,
+                nodeScopedIdentifiers,
                 knownTableNames
               ) || changed)
         );
@@ -249,7 +298,7 @@ const ensureQueryNodeAlias = (
             ? ensureParsedExpressionAlias(
                 modifier.limit,
                 tableName,
-                scopedIdentifiers,
+                nodeScopedIdentifiers,
                 knownTableNames
               )
             : false) || changed;
@@ -258,7 +307,7 @@ const ensureQueryNodeAlias = (
             ? ensureParsedExpressionAlias(
                 modifier.offset,
                 tableName,
-                scopedIdentifiers,
+                nodeScopedIdentifiers,
                 knownTableNames
               )
             : false) || changed;

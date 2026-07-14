@@ -1,8 +1,14 @@
 import {
+  AggregateHandling,
   ExpressionClass,
   ExpressionType,
   ParsedExpression,
+  QueryNode,
+  QueryNodeType,
   ResultModifierType,
+  SubqueryType,
+  TableRef,
+  TableReferenceType,
 } from '../types/duckdb-serialization-types';
 import {
   isCaseExpression,
@@ -13,6 +19,7 @@ import {
   isFunctionExpression,
   isLambdaExpression,
   isOperatorExpression,
+  isSelectNode,
 } from '../types/utils';
 import {
   DEFERRED_ENSURE_COLUMN_ALIAS_SCENARIOS,
@@ -273,8 +280,62 @@ const serializeExpression = (node: ParsedExpression): string => {
     )}`;
   }
 
+  if ((node as ParsedExpression).class === ExpressionClass.SUBQUERY) {
+    return serializeSelectNodeForTest(
+      (node as unknown as { subquery: { node: QueryNode } }).subquery.node
+    );
+  }
+
   throw new Error(
     `Unsupported expression class in test serializer: ${node.class}`
+  );
+};
+
+/**
+ * Minimal SELECT-node serializer for the FROM-alias scope-tracking tests. Handles the exact
+ * subset our fixtures produce: `SELECT <expr> FROM <tableRef>`. Not intended to grow into a
+ * general query serializer — if you need to test more query shapes, extend deliberately.
+ */
+const serializeSelectNodeForTest = (node: QueryNode): string => {
+  if (!isSelectNode(node)) {
+    throw new Error(
+      `Test SELECT serializer only handles SelectNode; got ${node.type}`
+    );
+  }
+  const selectList = node.select_list
+    .map((expr) => serializeExpression(expr))
+    .join(', ');
+  const fromClause = node.from_table
+    ? ` FROM ${serializeTableRefForTest(node.from_table)}`
+    : '';
+  return `(SELECT ${selectList}${fromClause})`;
+};
+
+const serializeTableRefForTest = (tableRef: TableRef): string => {
+  if (tableRef.type === TableReferenceType.TABLE_FUNCTION) {
+    const fnName = (tableRef.function as { function_name: string })
+      .function_name;
+    const args = (
+      tableRef.function as { children: ParsedExpression[] }
+    ).children
+      .map((c) => serializeExpression(c))
+      .join(', ');
+    const columnAliasList =
+      tableRef.column_name_alias.length > 0
+        ? `(${tableRef.column_name_alias.join(', ')})`
+        : '';
+    return `${fnName}(${args}) AS ${tableRef.alias}${columnAliasList}`;
+  }
+  if (tableRef.type === TableReferenceType.SUBQUERY) {
+    const inner = serializeSelectNodeForTest(tableRef.subquery.node);
+    const columnAliasList =
+      tableRef.column_name_alias.length > 0
+        ? `(${tableRef.column_name_alias.join(', ')})`
+        : '';
+    return `${inner} AS ${tableRef.alias}${columnAliasList}`;
+  }
+  throw new Error(
+    `Test TableRef serializer only handles TABLE_FUNCTION / SUBQUERY; got ${tableRef.type}`
   );
 };
 
@@ -421,6 +482,187 @@ const expressionAstBySql: Record<string, ParsedExpression> = {
       ],
     }),
 };
+
+/**
+ * Test-only AST helpers for the FROM-alias scope-tracking scenarios. Each builder shapes the
+ * minimal ParsedExpression / QueryNode / TableRef structure DuckDB's serializer would emit,
+ * without pulling in real duckdb-wasm. Kept adjacent to the fixtures they support.
+ */
+const createSelectNode = ({
+  selectList,
+  fromTable,
+}: {
+  selectList: ParsedExpression[];
+  fromTable?: TableRef;
+}): QueryNode =>
+  ({
+    type: QueryNodeType.SELECT_NODE,
+    select_list: selectList,
+    from_table: fromTable,
+    group_expressions: [],
+    group_sets: [],
+    aggregate_handling: AggregateHandling.STANDARD_HANDLING,
+    having: null,
+    sample: null,
+    qualify: null,
+    modifiers: [],
+    cte_map: { map: [] as unknown as never },
+  } as unknown as QueryNode);
+
+const createScalarSubquery = (node: QueryNode): ParsedExpression =>
+  ({
+    class: ExpressionClass.SUBQUERY,
+    type: ExpressionType.SUBQUERY,
+    alias: '',
+    subquery_type: SubqueryType.SCALAR,
+    subquery: { node },
+    comparison_type: ExpressionType.INVALID,
+  } as unknown as ParsedExpression);
+
+const createTableFunctionRef = ({
+  functionName,
+  args,
+  alias,
+  columnAliases,
+}: {
+  functionName: string;
+  args: ParsedExpression[];
+  alias: string;
+  columnAliases: string[];
+}): TableRef =>
+  ({
+    type: TableReferenceType.TABLE_FUNCTION,
+    alias,
+    sample: null,
+    function: createFunction({ functionName, children: args }),
+    column_name_alias: columnAliases,
+  } as unknown as TableRef);
+
+const createSubqueryRef = ({
+  node,
+  alias,
+  columnAliases,
+}: {
+  node: QueryNode;
+  alias: string;
+  columnAliases: string[];
+}): TableRef =>
+  ({
+    type: TableReferenceType.SUBQUERY,
+    alias,
+    sample: null,
+    subquery: { node },
+    column_name_alias: columnAliases,
+  } as unknown as TableRef);
+
+/*
+ * Scenario 1: `(SELECT avg(v) FROM UNNEST(ticket.surveys_aggregation) AS t(v))`
+ *
+ * The correlated scalar subquery references the outer table's `surveys_aggregation` column
+ * (properly qualified) and reduces its unnested elements via `avg(v)`. `v` is bound by the
+ * UNNEST table-function's column alias — before the fix, `ensureParsedExpressionAlias`
+ * rewrote it to `avg(ticket.v)`. After the fix, `v` should stay bare.
+ */
+const unnestSubqueryScenarioAst = createScalarSubquery(
+  createSelectNode({
+    selectList: [
+      createFunction({
+        functionName: 'avg',
+        children: [createColumnRef('v')],
+      }),
+    ],
+    fromTable: createTableFunctionRef({
+      functionName: 'UNNEST',
+      args: [createColumnRef(['ticket', 'surveys_aggregation'])],
+      alias: 't',
+      columnAliases: ['v'],
+    }),
+  })
+);
+
+/*
+ * Scenario 2: same UNNEST subquery + an outer bare column reference (`total`) — sanity
+ * check that identifiers bound *inside* the subquery only scope the subquery, and outer
+ * bare identifiers still get the tableName prefix.
+ */
+const unnestSubqueryPlusOuterBareColAst = createFunction({
+  functionName: '+',
+  isOperator: true,
+  children: [unnestSubqueryScenarioAst, createColumnRef('total')],
+});
+// Cheap way to give both directions of the operator a fixture key without a second AST:
+// the serializer always renders operator-style function nodes as `<lhs> <function_name> <rhs>`.
+
+/*
+ * Scenario 3: `(SELECT v FROM (SELECT amount FROM devrev.ticket) AS t(v))`
+ *
+ * Plain (non-UNNEST) subquery with a column alias. `v` is bound by `column_name_alias` on
+ * the outer SUBQUERY table ref; before the fix it would be treated as a bare unbound
+ * identifier of the outer table. Inner `amount` should still be prefixed with `ticket`.
+ */
+const subqueryWithColumnAliasAst = createScalarSubquery(
+  createSelectNode({
+    selectList: [createColumnRef('v')],
+    fromTable: createSubqueryRef({
+      node: createSelectNode({
+        selectList: [createColumnRef('amount')],
+        fromTable: undefined,
+      }),
+      alias: 't',
+      columnAliases: ['v'],
+    }),
+  })
+);
+
+/*
+ * Scenario 4: `(SELECT avg(v) FROM UNNEST(list_transform(ticket.surveys_aggregation, x -> x.average)) AS t(v))`
+ *
+ * Combines an UNNEST-alias-bound `v` (must stay bare) with a lambda-bound `x` (must stay bare
+ * as it already did) and an unqualified `ticket.surveys_aggregation` reference (already
+ * two-part with root === tableName, must stay untouched). This exercises the interaction
+ * between the pre-existing lambda scoping and the new FROM-alias scoping.
+ */
+const unnestSubqueryWithLambdaAst = createScalarSubquery(
+  createSelectNode({
+    selectList: [
+      createFunction({
+        functionName: 'avg',
+        children: [createColumnRef('v')],
+      }),
+    ],
+    fromTable: createTableFunctionRef({
+      functionName: 'UNNEST',
+      args: [
+        createFunction({
+          functionName: 'list_transform',
+          children: [
+            createColumnRef(['ticket', 'surveys_aggregation']),
+            createLambda({
+              lhs: createColumnRef('x'),
+              expr: createColumnRef(['x', 'average']),
+            }),
+          ],
+        }),
+      ],
+      alias: 't',
+      columnAliases: ['v'],
+    }),
+  })
+);
+
+// Register the new fixtures alongside the existing expressionAstBySql entries so the shared
+// parseExpressions mock can look them up by their canonical SQL string.
+const FROM_ALIAS_SCOPE_FIXTURES: Record<string, ParsedExpression> = {
+  '(SELECT AVG(v) FROM UNNEST(ticket.surveys_aggregation) AS t(v))':
+    unnestSubqueryScenarioAst,
+  '(SELECT AVG(v) FROM UNNEST(ticket.surveys_aggregation) AS t(v)) + total':
+    unnestSubqueryPlusOuterBareColAst,
+  '(SELECT v FROM (SELECT amount) AS t(v))': subqueryWithColumnAliasAst,
+  '(SELECT AVG(v) FROM UNNEST(LIST_TRANSFORM(ticket.surveys_aggregation, x -> x.average)) AS t(v))':
+    unnestSubqueryWithLambdaAst,
+};
+
+Object.assign(expressionAstBySql, FROM_ALIAS_SCOPE_FIXTURES);
 
 const parseExpressionFixtures = async (sqls: string[]) => {
   return sqls.map((sql) => {
@@ -889,4 +1131,66 @@ describe.skip('single-item batch aliasing pending scenarios', () => {
       expect(result).toBe(scenario.expectedSql);
     });
   }
+});
+
+/**
+ * These scenarios cover the FROM-side alias scope introduced by `collectTableRefBoundIdentifiers`.
+ * The bug they guard against: bare identifiers inside a scalar subquery (`SELECT avg(v) FROM
+ * UNNEST(...) AS t(v)`) were treated as unqualified column refs on the outer table, so `v` got
+ * rewritten to `<outerTable>.v` and the query failed to bind. The fix harvests the FROM-side
+ * `column_name_alias` (and the table alias itself) into the scoped-identifiers set before
+ * walking the SELECT list, WHERE, GROUP BY, etc. — mirroring how lambda-bound identifiers are
+ * already handled.
+ */
+describe('FROM-side alias scope (UNNEST / subquery column alias)', () => {
+  it('does not prefix UNNEST-alias-bound identifiers inside a scalar subquery', async () => {
+    const result = await ensureSingleColumnAlias(
+      '(SELECT AVG(v) FROM UNNEST(ticket.surveys_aggregation) AS t(v))',
+      'ticket'
+    );
+
+    expect(result).toBe(
+      '(SELECT AVG(v) FROM UNNEST(ticket.surveys_aggregation) AS t(v))'
+    );
+  });
+
+  it('still prefixes bare identifiers OUTSIDE the subquery scope', async () => {
+    // Same subquery as above, but composed with a bare `total` reference at the outer
+    // expression level. The subquery's `v` stays bare; `total` — which lives OUTSIDE the
+    // subquery, so `v`'s scope shouldn't apply — should be prefixed with the outer table.
+    const result = await ensureSingleColumnAlias(
+      '(SELECT AVG(v) FROM UNNEST(ticket.surveys_aggregation) AS t(v)) + total',
+      'ticket'
+    );
+
+    expect(result).toBe(
+      '(SELECT AVG(v) FROM UNNEST(ticket.surveys_aggregation) AS t(v)) + ticket.total'
+    );
+  });
+
+  it('does not prefix column-alias identifiers on a plain (non-UNNEST) subquery in FROM', async () => {
+    // `v` is bound by the outer SUBQUERY table ref's column_name_alias. Before the fix,
+    // the walker would descend into `SELECT v` and see `v` as an unbound bare column,
+    // rewriting it to `ticket.v`. After the fix, `v` stays bare because the FROM-ref's
+    // column_name_alias `['v']` is harvested into scope.
+    const result = await ensureSingleColumnAlias(
+      '(SELECT v FROM (SELECT amount) AS t(v))',
+      'ticket'
+    );
+
+    expect(result).toBe('(SELECT v FROM (SELECT amount) AS t(v))');
+  });
+
+  it('composes with lambda-bound identifiers inside the UNNEST expression', async () => {
+    // Lambda `x -> x.average` already scoped `x` before this patch; this test ensures the
+    // new FROM-alias scope (`v`) coexists with lambda scoping without regressing either.
+    const result = await ensureSingleColumnAlias(
+      '(SELECT AVG(v) FROM UNNEST(LIST_TRANSFORM(ticket.surveys_aggregation, x -> x.average)) AS t(v))',
+      'ticket'
+    );
+
+    expect(result).toBe(
+      '(SELECT AVG(v) FROM UNNEST(LIST_TRANSFORM(ticket.surveys_aggregation, x -> x.average)) AS t(v))'
+    );
+  });
 });
