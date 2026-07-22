@@ -200,15 +200,6 @@ const inferBridgeTables = (
   return bridges;
 };
 
-/**
- * When a bridge table is aliased (e.g. `link` → `link__1`), rewrite any
- * condition members that still qualify columns with the original table name
- * so ON-clause filters bind to the aliased instance, not the first join.
- *
- * Without this, equi-joins correctly use `link__1.target_id` while the
- * condition still references `link.link_type_id` — always FALSE against the
- * first link's type — so the second linked path never resolves.
- */
 const rewriteConditionTableAlias = (
   condition: MeerkatQueryFilter,
   originalTable: string,
