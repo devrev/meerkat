@@ -25,6 +25,8 @@ const iFrameRunnerManager = {
   addIFrameManager: jest.fn(),
   areRunnersRunning: jest.fn(),
   messageListener: jest.fn(),
+  registerQueryEventCallback: jest.fn(),
+  unregisterQueryEventCallback: jest.fn(),
 } as unknown as jest.Mocked<IFrameRunnerManager>;
 
 const runnerMock = {
@@ -465,6 +467,35 @@ describe('DBMParallel', () => {
       );
     });
 
+    it('registers the per-query onEvent and strips it from the iframe options', async () => {
+      const onEvent = jest.fn();
+
+      runnerMock.communication.sendRequest.mockResolvedValue({
+        message: { isError: false, data: [{ data: 1 }] },
+      });
+
+      await dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { onEvent },
+      });
+
+      expect(iFrameRunnerManager.registerQueryEventCallback).toHaveBeenCalledWith(
+        expect.any(String),
+        onEvent
+      );
+      expect(iFrameRunnerManager.unregisterQueryEventCallback).toHaveBeenCalledWith(
+        expect.any(String)
+      );
+      expect(runnerMock.communication.sendRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            options: expect.objectContaining({ onEvent: undefined }),
+          }),
+        })
+      );
+    });
+
     it('should not log error when query is aborted by user', async () => {
       const abortController = new AbortController();
 
@@ -495,6 +526,39 @@ describe('DBMParallel', () => {
 
       // Logger should not have been called since it was a user-initiated abort
       expect(loggerMock.error).not.toHaveBeenCalled();
+    });
+
+    it('unregisters the per-query onEvent when the query is aborted', async () => {
+      const abortController = new AbortController();
+      const onEvent = jest.fn();
+
+      runnerMock.communication.sendRequest.mockImplementation(
+        () =>
+          new Promise(() => {
+            // Never resolves
+          })
+      );
+
+      const queryPromise = dbmParallel.queryWithTables({
+        query: 'SELECT * FROM table',
+        tables: [],
+        options: { signal: abortController.signal, onEvent },
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      abortController.abort();
+
+      await expect(queryPromise).rejects.toThrow('Query aborted by user');
+
+      // The callback registered for this runner must be torn down even though
+      // the abort handler cleared activeQueries first.
+      const registeredRunnerId = (
+        iFrameRunnerManager.registerQueryEventCallback as jest.Mock
+      ).mock.calls[0][0];
+      expect(iFrameRunnerManager.unregisterQueryEventCallback).toHaveBeenCalledWith(
+        registeredRunnerId
+      );
     });
   });
 });

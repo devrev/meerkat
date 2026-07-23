@@ -27,7 +27,18 @@ export interface DBMConstructorOptions {
 
   /**
    * @description
-   * A callback function that handles events emitted by the DBM.
+   * Instance-level callback for events that are NOT scoped to a single query.
+   * It receives cross-query and load-time events — `query_queue_length` (a
+   * queue gauge that spans queries), `json_to_buffer_conversion_duration`
+   * (emitted at `registerJSON`/load time, outside any `queryWithTables` run),
+   * and runner-side `clone_buffer_duration` (emitted inside the iframe runner,
+   * which a per-query callback cannot cross via `postMessage`).
+   *
+   * For events that DO belong to one query run — `mount_file_buffer_duration`,
+   * `query_execution_duration`, `query_queue_duration` — use the per-query
+   * {@link QueryOptions.onEvent}. Routing is exclusive: when a query supplies
+   * its own callback those events go there and NOT here; when it does not, they
+   * fall back to this instance sink.
    */
   onEvent?: (event: DBMEvent) => void;
 
@@ -96,6 +107,26 @@ export interface QueryOptions {
    * Additional information for the query, which will be emitted in the DBM events.
    */
   metadata?: object;
+
+  /**
+   * @description
+   * Per-query event callback for the query-lifecycle events of THIS query —
+   * `mount_file_buffer_duration`, `query_execution_duration` and
+   * `query_queue_duration` — so a caller can scope those timings to a single
+   * query run without correlating on `metadata`. Routing is exclusive: when
+   * this callback is supplied those events go here and NOT to the instance-level
+   * {@link DBMConstructorOptions.onEvent}.
+   *
+   * Cross-query and load-time events (`query_queue_length`,
+   * `json_to_buffer_conversion_duration`, runner-side `clone_buffer_duration`)
+   * are NOT delivered here — they have no single owning query and reach only the
+   * instance sink.
+   *
+   * For the parallel/iframe path the callback stays in the calling window; the
+   * runner manager dispatches to it by the id of the runner executing the query
+   * (one query per runner), so no query id crosses `postMessage`.
+   */
+  onEvent?: (event: DBMEvent) => void;
 
   /**
    * @description

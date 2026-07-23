@@ -243,7 +243,17 @@ export class DBM extends TableLockManager {
     }
   }
 
-  private _emitEvent(event: DBMEvent) {
+  private _emitQueryEvent(event: DBMEvent, options?: QueryOptions) {
+    if (options?.onEvent) {
+      options.onEvent(event);
+      return;
+    }
+    if (this.onEvent) {
+      this.onEvent(event);
+    }
+  }
+
+  private _emitInstanceEvent(event: DBMEvent) {
     if (this.onEvent) {
       this.onEvent(event);
     }
@@ -292,11 +302,14 @@ export class DBM extends TableLockManager {
       query
     );
 
-    this._emitEvent({
-      event_name: 'mount_file_buffer_duration',
-      duration: endMountTime - startMountTime,
-      metadata: options?.metadata,
-    });
+    this._emitQueryEvent(
+      {
+        event_name: 'mount_file_buffer_duration',
+        duration: endMountTime - startMountTime,
+        metadata: options?.metadata,
+      },
+      options
+    );
 
     const tablesFileData = await this.fileManager.getFilesNameForTables(tables);
 
@@ -323,11 +336,14 @@ export class DBM extends TableLockManager {
       query
     );
 
-    this._emitEvent({
-      event_name: 'query_execution_duration',
-      duration: queryQueueDuration,
-      metadata: options?.metadata,
-    });
+    this._emitQueryEvent(
+      {
+        event_name: 'query_execution_duration',
+        duration: queryQueueDuration,
+        metadata: options?.metadata,
+      },
+      options
+    );
 
     return result;
   }
@@ -353,7 +369,7 @@ export class DBM extends TableLockManager {
   private async _startQueryExecution(metadata?: object) {
     this.logger.debug('Query queue length:', this.queriesQueue.length);
 
-    this._emitEvent({
+    this._emitInstanceEvent({
       event_name: 'query_queue_length',
       value: this.queriesQueue.length,
       metadata,
@@ -388,11 +404,14 @@ export class DBM extends TableLockManager {
         this.currentQueryItem.query
       );
 
-      this._emitEvent({
-        event_name: 'query_queue_duration',
-        duration: startTime - this.currentQueryItem.timestamp,
-        metadata,
-      });
+      this._emitQueryEvent(
+        {
+          event_name: 'query_queue_duration',
+          duration: startTime - this.currentQueryItem.timestamp,
+          metadata: this.currentQueryItem.options?.metadata ?? metadata,
+        },
+        this.currentQueryItem.options
+      );
 
       /**
        * Execute the query

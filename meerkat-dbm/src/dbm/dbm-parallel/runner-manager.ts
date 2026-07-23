@@ -16,6 +16,13 @@ export interface IFrameRunnerManagerConstructor {
   fetchPreQuery: (runnerId: string, tables: Table[]) => string[];
   totalRunners: number;
   logger: DBMLogger;
+  /**
+   * Instance-level callback for events that are not scoped to a single query
+   * (e.g. runner-side `clone_buffer_duration`, emitted inside the iframe where
+   * a per-query callback cannot be reached across `postMessage`). Query-
+   * lifecycle events are dispatched per-query via
+   * {@link IFrameRunnerManager.registerQueryEventCallback}.
+   */
   onEvent?: (event: DBMEvent) => void;
 }
 
@@ -39,6 +46,8 @@ export class IFrameRunnerManager {
   private runnerURL: string;
   private logger: DBMLogger;
   private onEvent?: (event: DBMEvent) => void;
+  private perRunnerEventCallbacks: Map<string, (event: DBMEvent) => void> =
+    new Map();
 
   private fetchTableFileBuffers: (
     tables: TableConfig[]
@@ -61,6 +70,19 @@ export class IFrameRunnerManager {
     this.totalRunners = totalRunners;
     this.fetchTableFileBuffers = fetchTableFileBuffers;
     this.fetchPreQuery = fetchPreQuery;
+  }
+
+  public registerQueryEventCallback(
+    runnerId: string,
+    onEvent?: (event: DBMEvent) => void
+  ) {
+    if (onEvent) {
+      this.perRunnerEventCallbacks.set(runnerId, onEvent);
+    }
+  }
+
+  public unregisterQueryEventCallback(runnerId: string) {
+    this.perRunnerEventCallbacks.delete(runnerId);
   }
 
   private addIFrameManager(uuid: string) {
@@ -154,11 +176,16 @@ export class IFrameRunnerManager {
         break;
       }
 
-      case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT:
-        if (this.onEvent) {
-          this.onEvent(message.message.payload);
+      case BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT: {
+        const payload = message.message.payload;
+        const perQueryOnEvent = this.perRunnerEventCallbacks.get(runnerId);
+        if (message.message.scope === 'query' && perQueryOnEvent) {
+          perQueryOnEvent(payload);
+        } else if (this.onEvent) {
+          this.onEvent(payload);
         }
         break;
+      }
 
       case BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY: {
         if (this.fetchPreQuery) {

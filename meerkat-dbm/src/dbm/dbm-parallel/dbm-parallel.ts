@@ -254,6 +254,10 @@ export class DBMParallel extends TableLockManager {
     // Deduplicate tables by name
     const tables = uniqBy(_tables, 'name');
 
+    // Hoisted so the finally block can unregister the per-query event callback
+    // even when the query is aborted (the abort handler clears activeQueries).
+    let selectedRunnerId: string | undefined;
+
     try {
       const start = performance.now();
       /**
@@ -279,9 +283,12 @@ export class DBMParallel extends TableLockManager {
       const runners = this.iFrameRunnerManager.getRunnerIds();
       this.counter = roundRobin(this.counter, runners.length - 1);
 
-      const runner = this.iFrameRunnerManager.iFrameManagers.get(
-        runners[this.counter]
-      );
+      selectedRunnerId = runners[this.counter];
+      // Local const so narrowing to `string` survives into the closures below;
+      // the hoisted `let` is reserved for the finally block.
+      const runnerId = selectedRunnerId;
+
+      const runner = this.iFrameRunnerManager.iFrameManagers.get(runnerId);
 
       /**
        * StartRunners only initiates the runners, it does not guarantee that the runner is ready to accept the query
@@ -294,12 +301,17 @@ export class DBMParallel extends TableLockManager {
       }
 
       this.activeQueries.set(queryId, {
-        runnerId: runners[this.counter],
+        runnerId,
         signal,
       });
 
+      this.iFrameRunnerManager.registerQueryEventCallback(
+        runnerId,
+        options?.onEvent
+      );
+
       const abortPromise = new Promise<never>((_, reject) => {
-        this._signalListener(queryId, runners[this.counter], reject, signal);
+        this._signalListener(queryId, runnerId, reject, signal);
       });
 
       /**
@@ -320,8 +332,10 @@ export class DBMParallel extends TableLockManager {
               tables,
               options: {
                 ...options,
-                // Don't pass signal to iframe as it's not serializable
+                // Not serializable across postMessage; onEvent is dispatched
+                // main-side.
                 signal: undefined,
+                onEvent: undefined,
               },
             },
           }
@@ -363,6 +377,13 @@ export class DBMParallel extends TableLockManager {
       const queryInfo = this.activeQueries.get(queryId);
       if (queryInfo?.signal && queryInfo.abortHandler) {
         queryInfo.signal.removeEventListener('abort', queryInfo.abortHandler);
+      }
+      // Unregister independently of activeQueries: on an aborted query the abort
+      // handler has already removed the activeQueries entry, so gating this on
+      // queryInfo would leak the runner's event callback (and misroute trailing
+      // events). Guarded only against an early throw before a runner was picked.
+      if (selectedRunnerId !== undefined) {
+        this.iFrameRunnerManager.unregisterQueryEventCallback(selectedRunnerId);
       }
       this.activeQueries.delete(queryId);
 
