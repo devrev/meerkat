@@ -106,9 +106,15 @@
     "duckdb": {
       "node-gyp": "^11.5.0"
     },
+    "@verdaccio/config": {
+      "js-yaml": "4.3.0"
+    },
+    "verdaccio": {
+      "js-yaml": "4.3.0"
+    },
     "axios": "1.17.0",
     "qs": "6.15.2",
-    "tar": "7.5.13",
+    "tar": "7.5.19",
     "vitest": "^4.0.18",
     "@tootallnate/once": ">=3.0.1",
     "picomatch": ">=4.0.4",
