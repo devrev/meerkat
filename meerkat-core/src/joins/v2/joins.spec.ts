@@ -1,4 +1,8 @@
-import { MeerkatQueryFilter, StructuredJoin, TableSchema } from '../../types/cube-types';
+import {
+  MeerkatQueryFilter,
+  StructuredJoin,
+  TableSchema,
+} from '../../types/cube-types';
 import { GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
 import { createDirectedGraphV2, generateSqlQueryV2 } from './joins';
 
@@ -45,7 +49,10 @@ const sqlMapOf = (schemas: TableSchema[]): { [k: string]: string } =>
 
 describe('joins-v2', () => {
   it('emits a plain equi-join when from is scalar', async () => {
-    const schemas = [scalar('orders', ['id', 'customer_id']), scalar('customers')];
+    const schemas = [
+      scalar('orders', ['id', 'customer_id']),
+      scalar('customers'),
+    ];
     const sqlMap = sqlMapOf(schemas);
     const paths: StructuredJoin[][] = [
       [
@@ -247,14 +254,33 @@ describe('joins-v2', () => {
     const bridgeTables = new Set(['link']);
     const paths: StructuredJoin[][] = [
       [
-        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
-        { from: { table: 'link', column: 'target_id' }, to: { table: 'part', column: 'id' } },
-        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
-        { from: { table: 'link', column: 'target_id' }, to: { table: 'user', column: 'id' } },
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+        },
+        {
+          from: { table: 'link', column: 'target_id' },
+          to: { table: 'part', column: 'id' },
+        },
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+        },
+        {
+          from: { table: 'link', column: 'target_id' },
+          to: { table: 'user', column: 'id' },
+        },
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas, undefined, bridgeTables);
+    const sql = await generateSqlQueryV2(
+      paths,
+      sqlMap,
+      graph,
+      schemas,
+      undefined,
+      bridgeTables
+    );
 
     expect(sql).toContain('issue.id = link.source_id');
     expect(sql).toContain('link.target_id = part.id');
@@ -273,16 +299,35 @@ describe('joins-v2', () => {
     const bridgeTables = new Set(['link']);
     const paths: StructuredJoin[][] = [
       [
-        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
-        { from: { table: 'link', column: 'target_id' }, to: { table: 'part', column: 'id' } },
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+        },
+        {
+          from: { table: 'link', column: 'target_id' },
+          to: { table: 'part', column: 'id' },
+        },
       ],
       [
-        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
-        { from: { table: 'link', column: 'target_id' }, to: { table: 'user', column: 'id' } },
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+        },
+        {
+          from: { table: 'link', column: 'target_id' },
+          to: { table: 'user', column: 'id' },
+        },
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
-    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas, undefined, bridgeTables);
+    const sql = await generateSqlQueryV2(
+      paths,
+      sqlMap,
+      graph,
+      schemas,
+      undefined,
+      bridgeTables
+    );
 
     expect(sql).toContain('issue.id = link.source_id');
     expect(sql).toContain('link.target_id = part.id');
@@ -299,9 +344,18 @@ describe('joins-v2', () => {
     const sqlMap = sqlMapOf(schemas);
     const paths: StructuredJoin[][] = [
       [
-        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
-        { from: { table: 'link', column: 'target_id' }, to: { table: 'part', column: 'id' } },
-        { from: { table: 'issue', column: 'id' }, to: { table: 'link', column: 'source_id' } },
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+        },
+        {
+          from: { table: 'link', column: 'target_id' },
+          to: { table: 'part', column: 'id' },
+        },
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'source_id' },
+        },
       ],
     ];
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
@@ -440,10 +494,99 @@ describe('joins-v2', () => {
     );
 
     expect(callCount).toBe(1);
-    expect(sql).toContain("issue.id = link.source_id AND (link_type_id = 'type_a')");
+    expect(sql).toContain(
+      "issue.id = link.source_id AND (link_type_id = 'type_a')"
+    );
     expect(sql).toContain('link.target_id = part.id');
-    expect(sql).toContain("part.id = link__1.source_id AND (link_type_id = 'type_b')");
+    expect(sql).toContain(
+      "part.id = link__1.source_id AND (link_type_id = 'type_b')"
+    );
     expect(sql).toContain('link__1.target_id = user.id');
+  });
+
+  it('rewrites condition members to the aliased bridge table (link__1)', async () => {
+    // Reproduces: Issue → link (Child of) → Enhancement and Issue → link
+    // (Dependency of) → Ticket. The second link join must filter on
+    // link__1.link_type_id, not the first link's link_type_id.
+    const schemas = [
+      scalar('issue', ['id']),
+      scalar('link', ['id', 'source_id', 'target_id', 'link_type_id']),
+      scalar('enhancement', ['id', 'name']),
+      scalar('ticket', ['id', 'severity']),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const bridgeTables = new Set(['link']);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'target_id' },
+          condition: {
+            member: 'link.link_type_id',
+            operator: 'equals',
+            values: ['custom_link_type/20'],
+          },
+        },
+        {
+          from: { table: 'link', column: 'source_id' },
+          to: { table: 'enhancement', column: 'id' },
+        },
+      ],
+      [
+        {
+          from: { table: 'issue', column: 'id' },
+          to: { table: 'link', column: 'target_id' },
+          condition: {
+            member: 'link.link_type_id',
+            operator: 'equals',
+            values: ['custom_link_type/default-20'],
+          },
+        },
+        {
+          from: { table: 'link', column: 'source_id' },
+          to: { table: 'ticket', column: 'id' },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+
+    let serializedAstQuery = '';
+    const mockGetQueryOutput: GetQueryOutput = async (query) => {
+      serializedAstQuery = query;
+      return [
+        {
+          result:
+            "SELECT (link.link_type_id = 'custom_link_type/20') AS __meerkat_batch_expr_0__, (link__1.link_type_id = 'custom_link_type/default-20') AS __meerkat_batch_expr_1__;",
+        },
+      ];
+    };
+
+    const sql = await generateSqlQueryV2(
+      paths,
+      sqlMap,
+      graph,
+      schemas,
+      mockGetQueryOutput,
+      bridgeTables
+    );
+
+    // Condition AST must reference the aliased instance — this is what
+    // production DuckDB serialization emits as link__1.link_type_id.
+    expect(serializedAstQuery).toContain(
+      '"column_names":["link","link_type_id"]'
+    );
+    expect(serializedAstQuery).toContain(
+      '"column_names":["link__1","link_type_id"]'
+    );
+    expect(sql).toContain(
+      "issue.id = link.target_id AND (link.link_type_id = 'custom_link_type/20')"
+    );
+    expect(sql).toContain(
+      "issue.id = link__1.target_id AND (link__1.link_type_id = 'custom_link_type/default-20')"
+    );
+    expect(sql).not.toContain(
+      "issue.id = link__1.target_id AND (link.link_type_id = 'custom_link_type/default-20')"
+    );
   });
 
   it('handles notSet condition (IS NULL)', async () => {
@@ -526,7 +669,8 @@ describe('joins-v2', () => {
     );
 
     expect(sql).toContain('issue.id = link.source_id AND');
-    expect(sql).toContain("(link_type_id = 'type_a') OR (link_type_id = 'type_b')");
+    expect(sql).toContain(
+      "(link_type_id = 'type_a') OR (link_type_id = 'type_b')"
+    );
   });
-
 });

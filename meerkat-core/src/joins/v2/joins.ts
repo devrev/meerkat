@@ -2,6 +2,7 @@ import { cubeFilterToDuckdbAST } from '../../cube-filter-transformer/factory';
 import { traverseMeerkatQueryFilter } from '../../filter-params/filter-params-ast';
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
+import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
 import {
   MeerkatQueryFilter,
   Query,
@@ -199,6 +200,21 @@ const inferBridgeTables = (
   return bridges;
 };
 
+const rewriteConditionTableAlias = (
+  condition: MeerkatQueryFilter,
+  originalTable: string,
+  aliasedTable: string
+): MeerkatQueryFilter => {
+  const rewritten: MeerkatQueryFilter = JSON.parse(JSON.stringify(condition));
+  traverseMeerkatQueryFilter([rewritten], (filter) => {
+    const [table, fields] = splitIntoDataSourceAndFields(filter.member);
+    if (table === originalTable) {
+      filter.member = `${aliasedTable}.${fields}`;
+    }
+  });
+  return rewritten;
+};
+
 const aliasBridgeTables = (
   paths: StructuredJoin[][],
   bridgeTables: Set<string>
@@ -225,10 +241,23 @@ const aliasBridgeTables = (
         continue;
       }
 
-      const alias = `${edge.to.table}__${count}`;
-      result.push({ ...edge, to: { ...edge.to, table: alias } });
+      const originalTo = edge.to.table;
+      const alias = `${originalTo}__${count}`;
+      result.push({
+        ...edge,
+        to: { ...edge.to, table: alias },
+        ...(edge.condition
+          ? {
+              condition: rewriteConditionTableAlias(
+                edge.condition,
+                originalTo,
+                alias
+              ),
+            }
+          : {}),
+      });
 
-      if (i + 1 < path.length && path[i + 1].from.table === edge.to.table) {
+      if (i + 1 < path.length && path[i + 1].from.table === originalTo) {
         nextFromAlias = alias;
       }
     }
