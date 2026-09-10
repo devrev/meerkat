@@ -39,7 +39,7 @@
     "@nx/express": "22.7.11",
     "@nx/jest": "22.7.11",
     "@nx/js": "22.7.11",
-    "@nx/linter": "19.8.15",
+    "@nx/linter": "19.8.14",
     "@nx/next": "22.7.11",
     "@nx/node": "22.7.11",
     "@nx/react": "22.7.11",
@@ -106,7 +106,7 @@
   "author": "devrev",
   "license": "ISC",
   "overrides": {
-    "@nx/linter": {
+    "@nx/linter@19.8.14": {
       "@nx/eslint": "20.8.4"
     },
     "duckdb": {
