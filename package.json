@@ -4,7 +4,7 @@
   "scripts": {},
   "private": true,
   "engines": {
-    "node": "^24.15.0"
+    "node": "24.15.0"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "1.32.0",
@@ -39,6 +39,7 @@
     "@nx/express": "22.7.11",
     "@nx/jest": "22.7.11",
     "@nx/js": "22.7.11",
+    "@nx/linter": "19.8.15",
     "@nx/next": "22.7.11",
     "@nx/node": "22.7.11",
     "@nx/react": "22.7.11",
@@ -105,14 +106,20 @@
   "author": "devrev",
   "license": "ISC",
   "overrides": {
+    "@nx/linter": {
+      "@nx/eslint": "20.8.4"
+    },
     "duckdb": {
       "node-gyp": "^12.0.0"
     },
     "express": {
       "qs": "6.16.0"
     },
-    "nx": {
-      "brace-expansion": "5.0.9"
+    "brace-expansion@5.0.8": "5.0.9"
+  },
+  "puppeteer": {
+    "chrome": {
+      "version": "143.0.7499.40"
     }
   }
 }

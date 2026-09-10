@@ -1,5 +1,5 @@
 import { TableConfig } from '../../dbm/types';
-import { File, Table } from '../../types';
+import { Table } from '../../types';
 import { isDefined, mergeFileStoreIntoTable } from '../../utils';
 import {
   FileBufferStore,
@@ -11,49 +11,6 @@ import { BaseIndexedDBFileManager } from './base-indexed-db-file-manager';
 
 // Default max file size is 500mb
 const DEFAULT_MAX_FILE_SIZE = 500 * 1024 * 1024;
-const INDEXED_DB_FILE_CHUNK_SIZE = 64 * 1024 * 1024;
-const FILE_CHUNK_SEPARATOR = '::meerkat-chunk::';
-
-const getChunkFileName = (fileName: string, chunkIndex: number): string =>
-  `${fileName}${FILE_CHUNK_SEPARATOR}${chunkIndex}`;
-
-const getStoredFileKeys = (file: File): string[] => [
-  file.fileName,
-  ...Array.from({ length: file.chunkCount ?? 0 }, (_, chunkIndex) =>
-    getChunkFileName(file.fileName, chunkIndex)
-  ),
-];
-
-const getStoredFiles = (file: File): File[] => {
-  if (file.buffer.byteLength <= INDEXED_DB_FILE_CHUNK_SIZE) {
-    return [file];
-  }
-
-  const chunkCount = Math.ceil(
-    file.buffer.byteLength / INDEXED_DB_FILE_CHUNK_SIZE
-  );
-  const chunks = Array.from({ length: chunkCount }, (_, chunkIndex) => {
-    const start = chunkIndex * INDEXED_DB_FILE_CHUNK_SIZE;
-    const end = Math.min(
-      start + INDEXED_DB_FILE_CHUNK_SIZE,
-      file.buffer.byteLength
-    );
-
-    return {
-      fileName: getChunkFileName(file.fileName, chunkIndex),
-      buffer: file.buffer.slice(start, end),
-    };
-  });
-
-  return [
-    {
-      fileName: file.fileName,
-      buffer: new Uint8Array(),
-      chunkCount,
-    },
-    ...chunks,
-  ];
-};
 
 export class IndexedDBFileManager
   extends BaseIndexedDBFileManager
@@ -90,51 +47,6 @@ export class IndexedDBFileManager
     return;
   }
 
-  private async replaceStoredFiles(files: File[]): Promise<void> {
-    const existingFiles = await this.indexedDB.files.bulkGet(
-      files.map((file) => file.fileName)
-    );
-    const existingKeys = existingFiles
-      .filter(isDefined)
-      .flatMap(getStoredFileKeys);
-
-    await this.indexedDB.files.bulkDelete(existingKeys);
-    await this.indexedDB.files.bulkPut(files.flatMap(getStoredFiles));
-  }
-
-  private async getStoredFile(fileName: string): Promise<File | undefined> {
-    const storedFile = await this.indexedDB.files.get(fileName);
-
-    if (!storedFile?.chunkCount) {
-      return storedFile;
-    }
-
-    const chunks = await this.indexedDB.files.bulkGet(
-      Array.from({ length: storedFile.chunkCount }, (_, chunkIndex) =>
-        getChunkFileName(fileName, chunkIndex)
-      )
-    );
-
-    if (chunks.some((chunk) => !chunk)) {
-      throw new Error(`Missing IndexedDB chunk for file: ${fileName}`);
-    }
-
-    const definedChunks = chunks.filter(isDefined);
-    const bufferLength = definedChunks.reduce(
-      (total, chunk) => total + chunk.buffer.byteLength,
-      0
-    );
-    const buffer = new Uint8Array(bufferLength);
-    let offset = 0;
-
-    for (const chunk of definedChunks) {
-      buffer.set(chunk.buffer, offset);
-      offset += chunk.buffer.byteLength;
-    }
-
-    return { fileName, buffer };
-  }
-
   async bulkRegisterFileBuffer(fileBuffers: FileBufferStore[]): Promise<void> {
     const tableNames = Array.from(
       new Set(fileBuffers.map((fileBuffer) => fileBuffer.tableName))
@@ -155,7 +67,7 @@ export class IndexedDBFileManager
       return { tableName, files: updatedTableMap.get(tableName)?.files ?? [] };
     });
 
-    const newFilesData = fileBuffers.map((fileBuffer): File => {
+    const newFilesData = fileBuffers.map((fileBuffer) => {
       return { buffer: fileBuffer.buffer, fileName: fileBuffer.fileName };
     });
 
@@ -168,7 +80,7 @@ export class IndexedDBFileManager
         async () => {
           await this.indexedDB.tablesKey.bulkPut(updatedTableData);
 
-          await this.replaceStoredFiles(newFilesData);
+          await this.indexedDB.files.bulkPut(newFilesData);
         }
       )
       .catch((error) => {
@@ -198,7 +110,7 @@ export class IndexedDBFileManager
             files: updatedTableMap.get(tableName)?.files ?? [],
           });
 
-          await this.replaceStoredFiles([{ fileName, buffer }]);
+          await this.indexedDB.files.put({ fileName, buffer });
         }
       )
       .catch((error) => {
@@ -250,9 +162,7 @@ export class IndexedDBFileManager
 
       const uniqueFileNames = Array.from(new Set(filesList));
 
-      const filesData = await Promise.all(
-        uniqueFileNames.map((fileName) => this.getStoredFile(fileName))
-      );
+      const filesData = await this.indexedDB?.files.bulkGet(uniqueFileNames);
 
       // Register file buffers from IndexedDB for each table
       await Promise.all(
@@ -286,12 +196,8 @@ export class IndexedDBFileManager
       });
     }
 
-    // Remove the files and any chunks from the IndexedDB
-    const storedFiles = await this.indexedDB.files.bulkGet(fileNames);
-    const storedFileKeys = storedFiles
-      .filter(isDefined)
-      .flatMap(getStoredFileKeys);
-    await this.indexedDB.files.bulkDelete(storedFileKeys);
+    // Remove the files from the IndexedDB
+    await this.indexedDB.files.bulkDelete(fileNames);
   }
 
   async onDBShutdownHandler() {
