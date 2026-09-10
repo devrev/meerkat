@@ -37,4 +37,5 @@ export type FileType = (typeof FILE_TYPES)[keyof typeof FILE_TYPES];
 export interface File {
   fileName: string;
   buffer: Uint8Array;
+  chunkCount?: number;
 }

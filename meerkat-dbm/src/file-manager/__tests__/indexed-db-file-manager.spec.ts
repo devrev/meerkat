@@ -150,6 +150,46 @@ describe('IndexedDBFileManager', () => {
     expect(fileBufferData2[0].buffer).toEqual(new Uint8Array([1]));
   });
 
+  it('should chunk large file buffers and reassemble them when mounting', async () => {
+    const largeBuffer = new Uint8Array(64 * 1024 * 1024 + 1);
+    largeBuffer[0] = 1;
+    largeBuffer[largeBuffer.length - 1] = 2;
+
+    await fileManager.registerFileBuffer({
+      tableName: 'large-table',
+      fileName: 'large.parquet',
+      buffer: largeBuffer,
+    });
+
+    const storedFiles = await indexedDB.files.toArray();
+    const largeStoredFiles = storedFiles.filter((file) =>
+      file.fileName.startsWith('large.parquet')
+    );
+
+    expect(largeStoredFiles).toHaveLength(3);
+    expect(
+      storedFiles.find((file) => file.fileName === 'large.parquet')
+        ?.chunkCount
+    ).toBe(2);
+
+    jest.mocked(mockDB.registerFileBuffer).mockClear();
+    await fileManager.mountFileBufferByTables([{ name: 'large-table' }]);
+
+    const mountedBuffer = jest.mocked(mockDB.registerFileBuffer).mock
+      .calls[0][1] as Uint8Array;
+    expect(mountedBuffer).toHaveLength(largeBuffer.length);
+    expect(mountedBuffer[0]).toBe(1);
+    expect(mountedBuffer[mountedBuffer.length - 1]).toBe(2);
+
+    await fileManager.dropFilesByTableName('large-table', ['large.parquet']);
+    await indexedDB.tablesKey.delete('large-table');
+    expect(
+      (await indexedDB.files.toArray()).filter((file) =>
+        file.fileName.startsWith('large.parquet')
+      )
+    ).toHaveLength(0);
+  });
+
   it('should return the table data', async () => {
     const fileData = await fileManager.getTableData({
       name: 'taxi1',
