@@ -26,8 +26,4 @@ export {
   quoteIdentifierIfNeeded,
 } from './v1/joins';
 
-export {
-  createDirectedGraphV2,
-  generateSqlQueryV2,
-  getCollectedDimensionsV2,
-} from './v2/joins';
+export { createDirectedGraphV2, generateSqlQueryV2 } from './v2/joins';

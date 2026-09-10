@@ -384,40 +384,27 @@ const getCollectionPlans = (
       return;
     }
 
-    const branchMembers = new Set(descendantDimensions);
+    const members = new Set(descendantDimensions);
     filterMembers.forEach((member) => {
       const [table] = splitIntoDataSourceAndFields(member);
-      if (descendantTables.has(table)) branchMembers.add(member);
+      if (descendantTables.has(table)) members.add(member);
     });
-    const memberSchemas = [...branchMembers].map((dimension) => {
+
+    const branchPlans: CollectionPlan[] = [];
+    for (const dimension of members) {
       const [table, field] = splitIntoDataSourceAndFields(dimension);
       const tableSchema = tableSchemas.find((schema) => schema.name === table);
       const dimensionSchema = tableSchema?.dimensions.find(
         (item) => item.name === field
       );
-      return { dimension, dimensionSchema, tableSchema };
-    });
-    if (
-      memberSchemas.some(
-        ({ dimensionSchema, tableSchema }) =>
-          !tableSchema ||
-          !dimensionSchema ||
-          !COLLECTABLE_DIMENSION_TYPES.has(dimensionSchema.type)
-      )
-    ) {
-      return;
-    }
-
-    memberSchemas.forEach(({ dimension, dimensionSchema, tableSchema }) => {
       if (
-        collectedDimensions.has(dimension) ||
         !tableSchema ||
-        !dimensionSchema
+        !dimensionSchema ||
+        !COLLECTABLE_DIMENSION_TYPES.has(dimensionSchema.type)
       ) {
         return;
       }
-      collectedDimensions.add(dimension);
-      plans.push({
+      branchPlans.push({
         descendantTables,
         dimension,
         dimensionSchema,
@@ -425,21 +412,16 @@ const getCollectionPlans = (
         path,
         tableSchema,
       });
+    }
+
+    branchPlans.forEach((plan) => {
+      if (collectedDimensions.has(plan.dimension)) return;
+      collectedDimensions.add(plan.dimension);
+      plans.push(plan);
     });
   });
 
   return plans;
-};
-
-export const getCollectedDimensionsV2 = (
-  tableSchemas: TableSchema[],
-  cubeQuery: Query
-): string[] => {
-  return getCollectionPlans(
-    cubeQuery.joinPathsV2 ?? [],
-    cubeQuery,
-    tableSchemas
-  ).map((plan) => plan.dimension);
 };
 
 export const createDirectedGraphV2 = (
