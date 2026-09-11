@@ -1,9 +1,11 @@
 import { cubeFilterToDuckdbAST } from '../../cube-filter-transformer/factory';
 import { traverseMeerkatQueryFilter } from '../../filter-params/filter-params-ast';
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
+import { getAliasForSQL } from '../../member-formatters/get-alias';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
 import {
+  Dimension,
   MeerkatQueryFilter,
   Query,
   StructuredJoin,
@@ -20,6 +22,17 @@ import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';
 const ARRAY_DIMENSION_TYPES = new Set(['string_array', 'number_array']);
+const COLLECTABLE_DIMENSION_TYPES = new Set(['string', 'number']);
+const ROOT_GRAIN_ALIAS = '__mk_root_grain';
+
+interface CollectionPlan {
+  descendantTables: Set<string>;
+  dimension: string;
+  dimensionSchema: Dimension;
+  fanoutIndex: number;
+  path: StructuredJoin[];
+  tableSchema: TableSchema;
+}
 
 const findArrayMember = (
   tableSchemas: TableSchema[],
@@ -39,6 +52,28 @@ const isArrayColumn = (
   table: string,
   column: string
 ): boolean => findArrayMember(tableSchemas, table, column) !== undefined;
+
+const getFilterScope = (
+  filter: MeerkatQueryFilter,
+  descendantTables: Set<string>
+): [hasDescendant: boolean, hasOther: boolean, hasMixedScopeOr: boolean] => {
+  if ('member' in filter) {
+    const [table] = splitIntoDataSourceAndFields(filter.member);
+    const hasDescendant = descendantTables.has(table);
+    return [hasDescendant, !hasDescendant, false];
+  }
+
+  const children = ('and' in filter ? filter.and : filter.or).map((child) =>
+    getFilterScope(child, descendantTables)
+  );
+  const hasDescendant = children.some(([hasChild]) => hasChild);
+  const hasOther = children.some(([, hasNonChild]) => hasNonChild);
+  const hasMixedScopeOr =
+    children.some(([, , hasMixed]) => hasMixed) ||
+    ('or' in filter && hasDescendant && hasOther);
+
+  return [hasDescendant, hasOther, hasMixedScopeOr];
+};
 
 /**
  * Returns the SQL expression to feed `UNNEST(...)` for an array column
@@ -154,17 +189,58 @@ const buildEquiJoinPredicate = (
     : edge.from.column;
   return `${edge.from.table}.${leftColumn} = ${edge.to.table}.${edge.to.column}`;
 };
-const conditionFilterToAST = (
-  condition: MeerkatQueryFilter,
+const filterToAST = (
+  filter: MeerkatQueryFilter,
   tableSchema: TableSchema | undefined
 ): ParsedExpression | null => {
   if (!tableSchema) return null;
-  const filters = [JSON.parse(JSON.stringify(condition))];
+  const filters = [JSON.parse(JSON.stringify(filter))];
   const enriched = cubeFiltersEnrichment(filters, tableSchema);
   if (!enriched) return null;
   return (
     cubeFilterToDuckdbAST(enriched, getBaseAST(), { isAlias: false }) ?? null
   );
+};
+
+const serializeFilter = async (
+  filter: MeerkatQueryFilter,
+  tableSchema: TableSchema | undefined,
+  getQueryOutput: GetQueryOutput | undefined
+): Promise<string | null> => {
+  const ast = filterToAST(filter, tableSchema);
+  if (!ast) return null;
+  if (!getQueryOutput) {
+    throw new Error(
+      'getQueryOutput is required when collected joins have filter conditions'
+    );
+  }
+  const [sql] = await serializeExpressions([ast], getQueryOutput);
+  return sql;
+};
+
+const getPushdownFilter = (
+  filter: MeerkatQueryFilter,
+  descendantTables: Set<string>
+): MeerkatQueryFilter | null => {
+  if ('member' in filter) {
+    const [table] = splitIntoDataSourceAndFields(filter.member);
+    return descendantTables.has(table) ? filter : null;
+  }
+
+  if ('and' in filter) {
+    const children = filter.and
+      .map((child) => getPushdownFilter(child, descendantTables))
+      .filter((child): child is MeerkatQueryFilter => child !== null);
+    return (
+      children.length > 0 ? { and: children } : null
+    ) as MeerkatQueryFilter | null;
+  }
+
+  const children = filter.or.map((child) =>
+    getPushdownFilter(child, descendantTables)
+  );
+  if (children.some((child) => child === null)) return null;
+  return { or: children } as unknown as MeerkatQueryFilter;
 };
 
 const getReferencedTables = (cubeQuery: Query): Set<string> => {
@@ -263,6 +339,89 @@ const aliasBridgeTables = (
     }
     return result;
   });
+};
+
+const getCollectionPlans = (
+  paths: StructuredJoin[][],
+  cubeQuery: Query,
+  tableSchemas: TableSchema[]
+): CollectionPlan[] => {
+  if (cubeQuery.measures.length > 0) return [];
+
+  const bridgeTables = inferBridgeTables(paths, cubeQuery);
+  const dimensions = cubeQuery.dimensions ?? [];
+  const filterMembers = new Set<string>();
+  traverseMeerkatQueryFilter(cubeQuery.filters ?? [], (filter) => {
+    filterMembers.add(filter.member);
+  });
+  const plans: CollectionPlan[] = [];
+  const collectedDimensions = new Set<string>();
+
+  paths.forEach((path) => {
+    const fanoutIndex = path.findIndex(
+      (edge) =>
+        isArrayColumn(tableSchemas, edge.from.table, edge.from.column) ||
+        edge.condition !== undefined
+    );
+    if (fanoutIndex === -1) return;
+
+    const descendantTables = new Set(
+      path
+        .slice(fanoutIndex)
+        .map((edge) => edge.to.table)
+        .filter((table) => !bridgeTables.has(table))
+    );
+    const descendantDimensions = dimensions.filter((dimension) => {
+      const [table] = splitIntoDataSourceAndFields(dimension);
+      return descendantTables.has(table);
+    });
+    if (descendantDimensions.length !== 1) return;
+    if (
+      (cubeQuery.filters ?? []).some(
+        (filter) => getFilterScope(filter, descendantTables)[2]
+      )
+    ) {
+      return;
+    }
+
+    const members = new Set(descendantDimensions);
+    filterMembers.forEach((member) => {
+      const [table] = splitIntoDataSourceAndFields(member);
+      if (descendantTables.has(table)) members.add(member);
+    });
+
+    const branchPlans: CollectionPlan[] = [];
+    for (const dimension of members) {
+      const [table, field] = splitIntoDataSourceAndFields(dimension);
+      const tableSchema = tableSchemas.find((schema) => schema.name === table);
+      const dimensionSchema = tableSchema?.dimensions.find(
+        (item) => item.name === field
+      );
+      if (
+        !tableSchema ||
+        !dimensionSchema ||
+        !COLLECTABLE_DIMENSION_TYPES.has(dimensionSchema.type)
+      ) {
+        return;
+      }
+      branchPlans.push({
+        descendantTables,
+        dimension,
+        dimensionSchema,
+        fanoutIndex,
+        path,
+        tableSchema,
+      });
+    }
+
+    branchPlans.forEach((plan) => {
+      if (collectedDimensions.has(plan.dimension)) return;
+      collectedDimensions.add(plan.dimension);
+      plans.push(plan);
+    });
+  });
+
+  return plans;
 };
 
 export const createDirectedGraphV2 = (
@@ -378,7 +537,7 @@ export const generateSqlQueryV2 = async (
         const toTableSchema = tableSchemas.find(
           (s) => s.name === toTable || s.name === toTableOriginal
         );
-        const ast = conditionFilterToAST(edge.condition, toTableSchema);
+        const ast = filterToAST(edge.condition, toTableSchema);
         if (ast) {
           conditionIndexByEdge.push(conditionASTs.length);
           conditionASTs.push(ast);
@@ -427,6 +586,178 @@ export const generateSqlQueryV2 = async (
   return query;
 };
 
+const getRootGrainArrayExpression = (
+  edge: StructuredJoin,
+  tableSchemas: TableSchema[]
+): string => {
+  const sql = findArrayMember(
+    tableSchemas,
+    edge.from.table,
+    edge.from.column
+  )?.sql;
+  if (!sql) {
+    return `${ROOT_GRAIN_ALIAS}.${edge.from.column}`;
+  }
+
+  const tablePattern = edge.from.table.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return sql.replace(
+    new RegExp(`\\b${tablePattern}\\.`, 'g'),
+    `${ROOT_GRAIN_ALIAS}.`
+  );
+};
+
+const buildCollectionProjection = async (
+  plan: CollectionPlan,
+  tableSchemaSqlMap: { [key: string]: string },
+  tableSchemas: TableSchema[],
+  cubeQuery: Query,
+  getQueryOutput: GetQueryOutput | undefined,
+  index: number
+): Promise<string> => {
+  const edges = plan.path.slice(plan.fanoutIndex);
+  const firstEdge = edges[0];
+  const dimensionAlias = getAliasForSQL(plan.dimension, plan.tableSchema);
+  const keyAlias = `__mk_collection_key_${index}`;
+  const firstTarget = firstEdge.to.table;
+  const firstTargetSql = tableSchemaSqlMap[firstTarget];
+  const firstTargetRelation = `(${firstTargetSql}) AS ${quoteIdentifierIfNeeded(
+    firstTarget
+  )}`;
+  const fromIsArray = isArrayColumn(
+    tableSchemas,
+    firstEdge.from.table,
+    firstEdge.from.column
+  );
+
+  let fromSql: string;
+  const predicates: string[] = [];
+  if (fromIsArray) {
+    const arrayExpression = getRootGrainArrayExpression(
+      firstEdge,
+      tableSchemas
+    );
+    fromSql = `UNNEST(${arrayExpression}) AS ${keyAlias}(value) JOIN ${firstTargetRelation} ON ${keyAlias}.value = ${firstTarget}.${firstEdge.to.column}`;
+  } else {
+    fromSql = firstTargetRelation;
+    predicates.push(
+      `${firstTarget}.${firstEdge.to.column} = ${ROOT_GRAIN_ALIAS}.${firstEdge.from.column}`
+    );
+  }
+
+  for (const edge of edges) {
+    if (edge.condition) {
+      const targetTable = edge.to.table.replace(/__\d+$/, '');
+      const conditionSql = await serializeFilter(
+        edge.condition,
+        tableSchemas.find((schema) => schema.name === targetTable),
+        getQueryOutput
+      );
+      if (conditionSql) predicates.push(conditionSql);
+    }
+  }
+
+  for (const edge of edges.slice(1)) {
+    const targetSql = tableSchemaSqlMap[edge.to.table];
+    fromSql += ` JOIN (${targetSql}) AS ${quoteIdentifierIfNeeded(
+      edge.to.table
+    )} ON ${edge.from.table}.${edge.from.column} = ${edge.to.table}.${
+      edge.to.column
+    }`;
+  }
+
+  const pushedFilters = (cubeQuery.filters ?? [])
+    .map((filter) => getPushdownFilter(filter, plan.descendantTables))
+    .filter((filter): filter is MeerkatQueryFilter => filter !== null);
+  if (pushedFilters.length > 0) {
+    const pushedFilter = (
+      pushedFilters.length === 1 ? pushedFilters[0] : { and: pushedFilters }
+    ) as MeerkatQueryFilter;
+    const filterSql = await serializeFilter(
+      pushedFilter,
+      plan.tableSchema,
+      getQueryOutput
+    );
+    if (filterSql) predicates.push(filterSql);
+  }
+
+  const whereSql =
+    predicates.length > 0 ? ` WHERE ${predicates.join(' AND ')}` : '';
+  const order = cubeQuery.order?.[plan.dimension];
+  const orderSql = order
+    ? ` ORDER BY ${
+        plan.tableSchema.name
+      }.${dimensionAlias} ${order.toUpperCase()}`
+    : '';
+
+  return `COALESCE((SELECT LIST(${plan.tableSchema.name}.${dimensionAlias}${orderSql}) FROM ${fromSql}${whereSql}), []) AS ${dimensionAlias}`;
+};
+
+const generateRootGrainSqlQueryV2 = async (
+  paths: StructuredJoin[][],
+  tableSchemaSqlMap: { [key: string]: string },
+  directedGraph: Graph,
+  tableSchemas: TableSchema[],
+  plans: CollectionPlan[],
+  cubeQuery: Query,
+  getQueryOutput: GetQueryOutput | undefined,
+  bridgeTables: Set<string>
+): Promise<string> => {
+  const startingTable = paths[0][0].from.table;
+  const planByPath = new Map(plans.map((plan) => [plan.path, plan] as const));
+  const outerPaths = paths
+    .map((path) => {
+      const plan = planByPath.get(path);
+      return plan ? path.slice(0, plan.fanoutIndex) : path;
+    })
+    .filter((path) => path.length > 0);
+  const outerSql =
+    outerPaths.length > 0
+      ? await generateSqlQueryV2(
+          outerPaths,
+          tableSchemaSqlMap,
+          directedGraph,
+          tableSchemas,
+          getQueryOutput,
+          bridgeTables
+        )
+      : tableSchemaSqlMap[startingTable];
+  const projections = await Promise.all(
+    plans.map((plan, index) =>
+      buildCollectionProjection(
+        plan,
+        tableSchemaSqlMap,
+        tableSchemas,
+        cubeQuery,
+        getQueryOutput,
+        index
+      )
+    )
+  );
+
+  return `SELECT ${ROOT_GRAIN_ALIAS}.*, ${projections.join(
+    ', '
+  )} FROM (${outerSql}) AS ${ROOT_GRAIN_ALIAS}`;
+};
+
+const getCombinedDimensions = (
+  tableSchemas: TableSchema[],
+  plans: CollectionPlan[]
+): Dimension[] => {
+  const collectedTypes = new Map<string, Dimension['type']>(
+    plans.map((plan) => [
+      plan.dimension,
+      plan.dimensionSchema.type === 'number' ? 'number_array' : 'string_array',
+    ])
+  );
+
+  return tableSchemas.flatMap((tableSchema) =>
+    tableSchema.dimensions.map((dimension) => {
+      const type = collectedTypes.get(`${tableSchema.name}.${dimension.name}`);
+      return type ? { ...dimension, type } : dimension;
+    })
+  );
+};
+
 const hasLoop = (
   paths: StructuredJoin[][],
   bridgeTables: Set<string>
@@ -469,20 +800,32 @@ export const getCombinedTableSchemaV2 = async (
     activeTables.map((s) => [s.name, s.sql])
   );
   const graph = createDirectedGraphV2(activeTables, tableSchemaSqlMap, paths);
-  const sql = await generateSqlQueryV2(
-    paths,
-    tableSchemaSqlMap,
-    graph,
-    activeTables,
-    getQueryOutput,
-    bridgeTables
-  );
+  const collectionPlans = getCollectionPlans(paths, cubeQuery, activeTables);
+  const sql = collectionPlans.length
+    ? await generateRootGrainSqlQueryV2(
+        paths,
+        tableSchemaSqlMap,
+        graph,
+        activeTables,
+        collectionPlans,
+        cubeQuery,
+        getQueryOutput,
+        bridgeTables
+      )
+    : await generateSqlQueryV2(
+        paths,
+        tableSchemaSqlMap,
+        graph,
+        activeTables,
+        getQueryOutput,
+        bridgeTables
+      );
 
   return {
     name: 'MEERKAT_GENERATED_TABLE',
     sql,
     measures: activeTables.flatMap((s) => s.measures),
-    dimensions: activeTables.flatMap((s) => s.dimensions),
+    dimensions: getCombinedDimensions(activeTables, collectionPlans),
     joins: [],
   };
 };

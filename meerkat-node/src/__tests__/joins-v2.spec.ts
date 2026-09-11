@@ -148,7 +148,12 @@ describe('Joins Tests (v2)', () => {
     await expect(
       cubeQueryToSQL({
         query,
-        tableSchemas: [BOOK_SCHEMA, CUSTOMER_SCHEMA, ORDER_SCHEMA, AUTHOR_SCHEMA],
+        tableSchemas: [
+          BOOK_SCHEMA,
+          CUSTOMER_SCHEMA,
+          ORDER_SCHEMA,
+          AUTHOR_SCHEMA,
+        ],
       })
     ).rejects.toThrow(
       'Invalid path, starting node is not the same for all paths.'
@@ -395,6 +400,216 @@ describe('Joins Tests (v2)', () => {
   });
 
   describe('Array join with VALUES-list base SQL', () => {
+    it('collects array-joined child dimensions without repeating the parent', async () => {
+      const partSchema = {
+        name: 'part',
+        sql: `SELECT * FROM (VALUES ('p1', 'Part A', ['tag1', 'tag2']), ('p2', 'Part B', ['tag3']), ('p3', 'Part C', [])) AS part(id, name, tag_ids)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'part.id', type: 'string' as const },
+          { name: 'name', sql: 'part.name', type: 'string' as const },
+          {
+            name: 'tag_ids',
+            sql: 'part.tag_ids',
+            type: 'string_array' as const,
+          },
+        ],
+        joins: [],
+      };
+      const tagSchema = {
+        name: 'tag',
+        sql: `SELECT * FROM (VALUES ('tag1', 'Red'), ('tag2', 'Blue'), ('tag3', 'Green')) AS tag(id, display_name)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'tag.id', type: 'string' as const },
+          {
+            name: 'display_name',
+            sql: 'tag.display_name',
+            type: 'string' as const,
+          },
+        ],
+        joins: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query: {
+          measures: [],
+          joinPathsV2: [
+            [
+              {
+                from: { table: 'part', column: 'tag_ids' },
+                to: { table: 'tag', column: 'id' },
+              },
+            ],
+          ],
+          filters: [],
+          dimensions: ['part.name', 'tag.display_name'],
+          order: { 'part.name': 'asc' },
+        },
+        tableSchemas: [partSchema, tagSchema],
+      });
+
+      expect(sql).not.toMatch(/GROUP BY\s+part/i);
+      const output = JSON.parse(JSON.stringify(await duckdbExec(sql)));
+
+      expect(output).toEqual([
+        { part__name: 'Part A', tag__display_name: ['Red', 'Blue'] },
+        { part__name: 'Part B', tag__display_name: ['Green'] },
+        { part__name: 'Part C', tag__display_name: [] },
+      ]);
+    });
+
+    it('avoids a cross-product across multiple fan-out branches', async () => {
+      const rootSchema = {
+        name: 'part',
+        sql: `SELECT * FROM (VALUES ('p1', 'Part A', ['tag1', 'tag2'], ['user1', 'user2'])) AS part(id, name, tag_ids, owner_ids)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'part.id', type: 'string' as const },
+          { name: 'name', sql: 'part.name', type: 'string' as const },
+          {
+            name: 'tag_ids',
+            sql: 'part.tag_ids',
+            type: 'string_array' as const,
+          },
+          {
+            name: 'owner_ids',
+            sql: 'part.owner_ids',
+            type: 'string_array' as const,
+          },
+        ],
+        joins: [],
+      };
+      const getChildSchema = (name: string, first: string, second: string) => ({
+        name,
+        sql: `SELECT * FROM (VALUES ('${name}1', '${first}'), ('${name}2', '${second}')) AS ${name}(id, display_name)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: `${name}.id`, type: 'string' as const },
+          {
+            name: 'display_name',
+            sql: `${name}.display_name`,
+            type: 'string' as const,
+          },
+        ],
+        joins: [],
+      });
+      const tagSchema = getChildSchema('tag', 'Red', 'Blue');
+      const userSchema = getChildSchema('user', 'Alice', 'Bob');
+
+      const sql = await cubeQueryToSQL({
+        query: {
+          measures: [],
+          joinPathsV2: [
+            [
+              {
+                from: { table: 'part', column: 'tag_ids' },
+                to: { table: 'tag', column: 'id' },
+              },
+            ],
+            [
+              {
+                from: { table: 'part', column: 'owner_ids' },
+                to: { table: 'user', column: 'id' },
+              },
+            ],
+          ],
+          filters: [],
+          dimensions: ['part.name', 'tag.display_name', 'user.display_name'],
+        },
+        tableSchemas: [rootSchema, tagSchema, userSchema],
+      });
+
+      expect(JSON.parse(JSON.stringify(await duckdbExec(sql)))).toEqual([
+        {
+          part__name: 'Part A',
+          tag__display_name: ['Red', 'Blue'],
+          user__display_name: ['Alice', 'Bob'],
+        },
+      ]);
+    });
+
+    it('collects linked child dimensions without repeating the parent', async () => {
+      const rootSchema = {
+        name: 'root',
+        sql: `SELECT * FROM (VALUES ('r1', 'Root A'), ('r2', 'Root B')) AS root(id, name)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'root.id', type: 'string' as const },
+          { name: 'name', sql: 'root.name', type: 'string' as const },
+        ],
+        joins: [],
+      };
+      const linkSchema = {
+        name: 'link',
+        sql: `SELECT * FROM (VALUES ('r1', 'c1', 'allowed'), ('r1', 'c2', 'allowed'), ('r1', 'c3', 'other'), ('r2', 'c3', 'allowed')) AS link(source_id, target_id, link_type)`,
+        measures: [],
+        dimensions: [
+          {
+            name: 'source_id',
+            sql: 'link.source_id',
+            type: 'string' as const,
+          },
+          {
+            name: 'target_id',
+            sql: 'link.target_id',
+            type: 'string' as const,
+          },
+          {
+            name: 'link_type',
+            sql: 'link.link_type',
+            type: 'string' as const,
+          },
+        ],
+        joins: [],
+      };
+      const childSchema = {
+        name: 'child',
+        sql: `SELECT * FROM (VALUES ('c1', 'One'), ('c2', 'Two'), ('c3', 'Three')) AS child(id, name)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'child.id', type: 'string' as const },
+          { name: 'name', sql: 'child.name', type: 'string' as const },
+        ],
+        joins: [],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query: {
+          measures: [],
+          joinPathsV2: [
+            [
+              {
+                from: { table: 'root', column: 'id' },
+                to: { table: 'link', column: 'source_id' },
+                condition: {
+                  member: 'link.link_type',
+                  operator: 'equals' as const,
+                  values: ['allowed'],
+                },
+              },
+              {
+                from: { table: 'link', column: 'target_id' },
+                to: { table: 'child', column: 'id' },
+              },
+            ],
+          ],
+          filters: [],
+          dimensions: ['root.name', 'child.name'],
+          order: { 'root.name': 'asc' },
+        },
+        tableSchemas: [rootSchema, linkSchema, childSchema],
+      });
+
+      expect(sql).not.toMatch(/GROUP BY\s+root/i);
+      const output = JSON.parse(JSON.stringify(await duckdbExec(sql)));
+
+      expect(output).toEqual([
+        { root__name: 'Root A', child__name: ['One', 'Two'] },
+        { root__name: 'Root B', child__name: ['Three'] },
+      ]);
+    });
+
     it('resolves __mk_u_ columns on a VALUES-list base table', async () => {
       const partSchema = {
         name: 'part',
@@ -454,17 +669,16 @@ describe('Joins Tests (v2)', () => {
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
 
-      expect(parsedOutput).toHaveLength(3);
-      const pairs = parsedOutput.map(
-        (row: Record<string, unknown>) =>
-          `${row['part__name']}-${row['dev_user__display_name']}`
-      );
-      expect(pairs).toContain('Part A-Alice');
-      expect(pairs).toContain('Part A-Bob');
-      expect(pairs).toContain('Part B-Charlie');
+      expect(parsedOutput).toEqual([
+        {
+          part__name: 'Part A',
+          dev_user__display_name: ['Alice', 'Bob'],
+        },
+        { part__name: 'Part B', dev_user__display_name: ['Charlie'] },
+      ]);
     });
 
-    it('supports filtering on the unnested dimension', async () => {
+    it('supports filtering a collected branch by a non-selected child dimension', async () => {
       const partSchema = {
         name: 'part',
         sql: `SELECT * FROM (VALUES ('p1', 'Part A', ['owner1', 'owner2']), ('p2', 'Part B', ['owner3'])) AS part(id, name, owned_by_ids)`,
@@ -482,7 +696,7 @@ describe('Joins Tests (v2)', () => {
       };
       const devUserSchema = {
         name: 'dev_user',
-        sql: `SELECT * FROM (VALUES ('owner1', 'Alice'), ('owner2', 'Bob'), ('owner3', 'Charlie')) AS dev_user(id, display_name)`,
+        sql: `SELECT * FROM (VALUES ('owner1', 'Alice', 'active'), ('owner2', 'Bob', 'inactive'), ('owner3', 'Charlie', 'active')) AS dev_user(id, display_name, status)`,
         measures: [],
         dimensions: [
           { name: 'id', sql: 'dev_user.id', type: 'string' as const },
@@ -491,6 +705,7 @@ describe('Joins Tests (v2)', () => {
             sql: 'dev_user.display_name',
             type: 'string' as const,
           },
+          { name: 'status', sql: 'dev_user.status', type: 'string' as const },
         ],
         joins: [],
       };
@@ -507,9 +722,9 @@ describe('Joins Tests (v2)', () => {
         ],
         filters: [
           {
-            member: 'dev_user.display_name',
+            member: 'dev_user.status',
             operator: 'equals',
-            values: ['Alice'],
+            values: ['active'],
           },
         ],
         dimensions: ['part.name', 'dev_user.display_name'],
@@ -522,11 +737,12 @@ describe('Joins Tests (v2)', () => {
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
 
-      expect(parsedOutput).toHaveLength(1);
+      expect(parsedOutput).toHaveLength(2);
       expect(parsedOutput[0]['part__name']).toBe('Part A');
-      expect(parsedOutput[0]['dev_user__display_name']).toBe('Alice');
+      expect(parsedOutput[0]['dev_user__display_name']).toEqual(['Alice']);
+      expect(parsedOutput[1]['part__name']).toBe('Part B');
+      expect(parsedOutput[1]['dev_user__display_name']).toEqual(['Charlie']);
     });
-
   });
 
   describe('Array Join Tests (UNNEST equi-join)', () => {
@@ -778,18 +994,20 @@ describe('Joins Tests (v2)', () => {
       const output = await duckdbExec(sql);
       const parsedOutput = JSON.parse(JSON.stringify(output));
 
-      expect(parsedOutput).toHaveLength(6);
-
-      const pairs = parsedOutput.map(
-        (p: Record<string, unknown>) =>
-          `${p['parent_items__parent_name']}-${p['child_items__child_name']}`
-      );
-      expect(pairs).toContain('Parent 1-Child 1');
-      expect(pairs).toContain('Parent 1-Child 2');
-      expect(pairs).toContain('Parent 1-Child 3');
-      expect(pairs).toContain('Parent 2-Child 2');
-      expect(pairs).toContain('Parent 2-Child 4');
-      expect(pairs).toContain('Parent 3-Child 5');
+      expect(parsedOutput).toEqual([
+        {
+          parent_items__parent_name: 'Parent 1',
+          child_items__child_name: ['Child 1', 'Child 2', 'Child 3'],
+        },
+        {
+          parent_items__parent_name: 'Parent 2',
+          child_items__child_name: ['Child 2', 'Child 4'],
+        },
+        {
+          parent_items__parent_name: 'Parent 3',
+          child_items__child_name: ['Child 5'],
+        },
+      ]);
     });
 
     it('Array join - many-to-many: aggregation across relationships', async () => {

@@ -59,7 +59,7 @@ describe('joins router', () => {
       ],
     };
     const result = await getCombinedTableSchema(schemas, cubeQuery);
-    expect(result.sql).toContain('UNNEST(owned_by_ids)');
+    expect(result.sql).toContain('UNNEST(__mk_root_grain.owned_by_ids)');
     expect(result.sql).not.toMatch(/CONTAINS/i);
   });
 
@@ -102,7 +102,12 @@ describe('join-path accessors', () => {
       hasAnyJoinPaths({
         ...baseQuery,
         joinPathsV2: [
-          [{ from: { table: 'a', column: 'id' }, to: { table: 'b', column: 'id' } }],
+          [
+            {
+              from: { table: 'a', column: 'id' },
+              to: { table: 'b', column: 'id' },
+            },
+          ],
         ],
       })
     ).toBe(true);
@@ -120,7 +125,12 @@ describe('join-path accessors', () => {
       hasJoinPathsV2({
         ...baseQuery,
         joinPathsV2: [
-          [{ from: { table: 'a', column: 'id' }, to: { table: 'b', column: 'id' } }],
+          [
+            {
+              from: { table: 'a', column: 'id' },
+              to: { table: 'b', column: 'id' },
+            },
+          ],
         ],
       })
     ).toBe(true);

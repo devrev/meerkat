@@ -1,10 +1,15 @@
 import {
   MeerkatQueryFilter,
+  Query,
   StructuredJoin,
   TableSchema,
 } from '../../types/cube-types';
 import { GetQueryOutput } from '../../utils/duckdb-ast-parse-serialize';
-import { createDirectedGraphV2, generateSqlQueryV2 } from './joins';
+import {
+  createDirectedGraphV2,
+  generateSqlQueryV2,
+  getCombinedTableSchemaV2,
+} from './joins';
 
 const scalar = (name: string, cols: string[] = ['id']): TableSchema => ({
   name,
@@ -672,5 +677,111 @@ describe('joins-v2', () => {
     expect(sql).toContain(
       "(link_type_id = 'type_a') OR (link_type_id = 'type_b')"
     );
+  });
+
+  it('does not treat an unselected scalar intermediary as a fan-out bridge', async () => {
+    const schemas = [
+      scalar('root', ['id', 'name']),
+      scalar('intermediary', ['root_id', 'child_id']),
+      scalar('child', ['id', 'name']),
+    ];
+    const joinPathsV2: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'root', column: 'id' },
+          to: { table: 'intermediary', column: 'root_id' },
+        },
+        {
+          from: { table: 'intermediary', column: 'child_id' },
+          to: { table: 'child', column: 'id' },
+        },
+      ],
+    ];
+    const query: Query = {
+      dimensions: ['root.name', 'child.name'],
+      filters: [],
+      joinPathsV2,
+      measures: [],
+    };
+
+    const combined = await getCombinedTableSchemaV2(schemas, query);
+
+    expect(
+      combined.dimensions.find(({ sql }) => sql === 'child.name')?.type
+    ).toBe('string');
+  });
+
+  it('keeps flat semantics for a mixed root-child OR filter', async () => {
+    const schemas = [
+      withArrayCols('root', ['id', 'name'], ['child_ids']),
+      scalar('child', ['id', 'name']),
+    ];
+    const joinPathsV2: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'root', column: 'child_ids' },
+          to: { table: 'child', column: 'id' },
+        },
+      ],
+    ];
+    const query: Query = {
+      dimensions: ['root.name', 'child.name'],
+      filters: [
+        {
+          or: [
+            { member: 'root.name', operator: 'equals', values: ['Root A'] },
+            { member: 'child.name', operator: 'equals', values: ['Child A'] },
+          ],
+        },
+      ],
+      joinPathsV2,
+      measures: [],
+    };
+
+    const combined = await getCombinedTableSchemaV2(schemas, query);
+
+    expect(
+      combined.dimensions.find(({ sql }) => sql === 'child.name')?.type
+    ).toBe('string');
+  });
+
+  it('collects child filter dimensions needed by the outer query', async () => {
+    const schemas = [
+      withArrayCols('root', ['id', 'name'], ['child_ids']),
+      scalar('child', ['id', 'name', 'status']),
+    ];
+    const query: Query = {
+      dimensions: ['root.name', 'child.name'],
+      filters: [
+        { member: 'child.status', operator: 'equals', values: ['active'] },
+      ],
+      joinPathsV2: [
+        [
+          {
+            from: { table: 'root', column: 'child_ids' },
+            to: { table: 'child', column: 'id' },
+          },
+        ],
+      ],
+      measures: [],
+    };
+    const getQueryOutput: GetQueryOutput = async () => [
+      {
+        result: "SELECT (child.status = 'active') AS __meerkat_batch_expr_0__;",
+      },
+    ];
+
+    const combined = await getCombinedTableSchemaV2(
+      schemas,
+      query,
+      getQueryOutput
+    );
+
+    expect(
+      combined.dimensions.find(({ sql }) => sql === 'child.name')?.type
+    ).toBe('string_array');
+    expect(
+      combined.dimensions.find(({ name }) => name === 'status')?.type
+    ).toBe('string_array');
   });
 });
