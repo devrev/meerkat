@@ -12,177 +12,128 @@ import {
 
 import log from 'loglevel';
 import { Table } from 'meerkat-dbm/src/types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { InstanceManager } from './duck-db/instance-manager';
 
-type EffectCallback = () => void | (() => void | undefined);
-
-function useEffectOnce(effect: EffectCallback): void {
-  const destroyFunc = useRef<void | (() => void | undefined)>();
-  const effectCalled = useRef(false);
-  const renderAfterCalled = useRef(false);
-  const [, setVal] = useState<number>(0);
-
-  if (effectCalled.current) {
-    renderAfterCalled.current = true;
-  }
-
-  useEffect(() => {
-    if (!effectCalled.current) {
-      destroyFunc.current = effect();
-      effectCalled.current = true;
-    }
-
-    setVal((val) => val + 1);
-
-    return () => {
-      if (!renderAfterCalled.current) {
-        return;
-      }
-      if (destroyFunc.current) {
-        destroyFunc.current();
-      }
-    };
-  }, []);
-}
-
 export function App() {
-  const messageRefSet = useRef<boolean>(false);
-
-  const communicationRef = useRef<WindowCommunication<BrowserRunnerMessage>>();
-  const instanceManagerRef = useRef<InstanceManager>();
-  const fileManagerRef = useRef<FileManagerType>();
-  const dbmRef = useRef<DBM>();
-  const activeQueriesRef = useRef<Map<string, AbortController>>(new Map());
-
   const urlParams = new URLSearchParams(window.location.search);
   const uuid = urlParams.get('uuid') ?? '';
   const origin = urlParams.get('origin');
 
-  if (!communicationRef.current) {
-    communicationRef.current = new WindowCommunication<BrowserRunnerMessage>({
+  useEffect(() => {
+    const communication = new WindowCommunication<BrowserRunnerMessage>({
       app_name: getRunnerAppName(uuid),
       origin: origin as string,
       targetApp: getMainAppName(uuid),
       targetWindow: window.parent,
     });
-  }
+    const instanceManager = new InstanceManager();
+    const activeQueries = new Map<string, AbortController>();
 
-  if (!instanceManagerRef.current) {
-    instanceManagerRef.current = new InstanceManager();
-  }
-
-  if (!fileManagerRef.current) {
-    fileManagerRef.current = new RunnerIndexedDBFileManager({
-      instanceManager: instanceManagerRef.current,
+    const fileManager: FileManagerType = new RunnerIndexedDBFileManager({
+      instanceManager,
       fetchTableFileBuffers: async () => [],
       logger: log,
       onEvent: (event) => {
-        communicationRef.current?.sendRequestWithoutResponse({
+        communication.sendRequestWithoutResponse({
           type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
           payload: event,
         });
       },
     });
-  }
 
-  if (!dbmRef.current) {
-    dbmRef.current = new DBM({
-      instanceManager: instanceManagerRef.current,
-      fileManager: fileManagerRef.current,
+    const dbm = new DBM({
+      instanceManager,
+      fileManager,
       logger: log,
       onEvent: (event) => {
-        communicationRef.current?.sendRequestWithoutResponse({
+        communication.sendRequestWithoutResponse({
           type: BROWSER_RUNNER_TYPE.RUNNER_ON_EVENT,
           payload: event,
         });
       },
     });
-  }
 
-  useEffectOnce(() => {
-    if (!messageRefSet.current) {
-      communicationRef.current?.onMessage((message) => {
-        switch (message.message.type) {
-          case BROWSER_RUNNER_TYPE.EXEC_QUERY: {
-            const abortController = new AbortController();
-            const queryId = message.message.payload.queryId;
+    communication.onMessage((message) => {
+      switch (message.message.type) {
+        case BROWSER_RUNNER_TYPE.EXEC_QUERY: {
+          const abortController = new AbortController();
+          const queryId = message.message.payload.queryId;
 
-            activeQueriesRef.current?.set(queryId, abortController);
+          activeQueries.set(queryId, abortController);
 
-            dbmRef.current
-              ?.queryWithTables({
-                query: message.message.payload.query,
-                tables: message.message.payload.tables,
-                options: {
-                  ...message.message.payload.options,
-                  signal: abortController.signal,
-                  preQuery: async (tables: Table[]) => {
-                    const preQueryMessage =
-                      await communicationRef.current?.sendRequest<string[]>({
-                        type: BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY,
-                        payload: {
-                          runnerId: uuid,
-                          tables: tables,
-                        },
-                      });
+          dbm
+            .queryWithTables({
+              query: message.message.payload.query,
+              tables: message.message.payload.tables,
+              options: {
+                ...message.message.payload.options,
+                signal: abortController.signal,
+                preQuery: async (tables: Table[]) => {
+                  const preQueryMessage = await communication.sendRequest<
+                    string[]
+                  >({
+                    type: BROWSER_RUNNER_TYPE.RUNNER_PRE_QUERY,
+                    payload: {
+                      runnerId: uuid,
+                      tables: tables,
+                    },
+                  });
 
-                    const preQueries: string[] = preQueryMessage?.message ?? [];
+                  const preQueries: string[] = preQueryMessage.message ?? [];
 
-                    for (const preQuery of preQueries) {
-                      await dbmRef.current?.query(preQuery);
-                    }
-                  },
+                  for (const preQuery of preQueries) {
+                    await dbm.query(preQuery);
+                  }
                 },
-              })
-              .then((result: any) => {
-                communicationRef.current?.sendResponse(message.uuid, {
-                  data: convertArrowTableToJSON(result),
-                  isError: false,
-                  error: null,
-                });
-              })
-              .catch((error) => {
-                communicationRef.current?.sendResponse(message.uuid, {
-                  data: null,
-                  isError: true,
-                  error: error,
-                });
-              })
-              .finally(() => {
-                // Clean up the abort controller after query completes
-                activeQueriesRef.current?.delete(queryId);
+              },
+            })
+            .then((result: any) => {
+              communication.sendResponse(message.uuid, {
+                data: convertArrowTableToJSON(result),
+                isError: false,
+                error: null,
               });
-            break;
-          }
-          case BROWSER_RUNNER_TYPE.CANCEL_QUERY: {
-            const queryId = message.message.payload.queryId;
-            const abortController = activeQueriesRef.current?.get(queryId);
-
-            if (abortController) {
-              // Abort the query
-              abortController.abort();
-              activeQueriesRef.current?.delete(queryId);
-            }
-            break;
-          }
-          default:
-            break;
+            })
+            .catch((error) => {
+              communication.sendResponse(message.uuid, {
+                data: null,
+                isError: true,
+                error: error,
+              });
+            })
+            .finally(() => {
+              activeQueries.delete(queryId);
+            });
+          break;
         }
-      });
-      messageRefSet.current = true;
-    }
-  });
+        case BROWSER_RUNNER_TYPE.CANCEL_QUERY: {
+          const queryId = message.message.payload.queryId;
+          const abortController = activeQueries.get(queryId);
 
-  useEffectOnce(() => {
-    (async () => {
-      //Execute dummy query to check if the DB is ready
-      await dbmRef.current?.query('SELECT 1');
-      communicationRef.current?.sendRequestWithoutResponse({
+          if (abortController) {
+            abortController.abort();
+            activeQueries.delete(queryId);
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    });
+
+    void dbm.query('SELECT 1').then(() => {
+      communication.sendRequestWithoutResponse({
         type: BROWSER_RUNNER_TYPE.RUNNER_ON_READY,
       });
-    })();
-  });
+    });
+
+    return () => {
+      activeQueries.forEach((controller) => controller.abort());
+      activeQueries.clear();
+      communication.destroy();
+    };
+  }, [origin, uuid]);
 
   return <div>Runners </div>;
 }
