@@ -5,19 +5,8 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/webpack:webpack",
-      "outputs": ["{options.outputPath}"],
+      "outputs": ["{workspaceRoot}/dist/examples/meerkat-node-example"],
       "defaultConfiguration": "production",
-      "options": {
-        "target": "node",
-        "compiler": "tsc",
-        "outputPath": "dist/examples/meerkat-node-example",
-        "main": "examples/meerkat-node-example/src/main.ts",
-        "tsConfig": "examples/meerkat-node-example/tsconfig.app.json",
-        "assets": ["examples/meerkat-node-example/src/assets"],
-        "isolatedConfig": true,
-        "webpackConfig": "examples/meerkat-node-example/webpack.config.js"
-      },
       "configurations": {
         "development": {},
         "production": {}

@@ -5,51 +5,27 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "nx-electron:build",
-      "outputs": ["{options.outputPath}"],
-      "options": {
-        "outputPath": "dist/electron-app",
-        "main": "electron-app/src/main.ts",
-        "tsConfig": "electron-app/tsconfig.app.json",
-        "assets": ["electron-app/src/assets"]
-      },
+      "outputs": ["{workspaceRoot}/dist/electron-app"],
       "configurations": {
-        "production": {
-          "optimization": true,
-          "extractLicenses": true,
-          "inspect": false,
-          "fileReplacements": [
-            {
-              "replace": "electron-app/src/environments/environment.ts",
-              "with": "electron-app/src/environments/environment.prod.ts"
-            }
-          ]
-        }
+        "production": {}
       }
     },
     "serve": {
-      "executor": "nx-electron:execute",
+      "executor": "nx:run-commands",
       "options": {
-        "buildTarget": "electron-app:build"
+        "command": "npx nx build electron-app && electron dist/electron-app/main.js"
       }
     },
     "package": {
-      "executor": "nx-electron:package",
+      "executor": "nx:run-commands",
       "options": {
-        "name": "electron-app",
-        "frontendProject": "benchmarking-app",
-        "sourcePath": "dist/apps",
-        "outputPath": "dist/packages",
-        "prepackageOnly": true
+        "command": "npx nx build electron-app && npx nx build benchmarking-app && electron-builder --dir --config electron-app/electron-builder.config.cjs --config.directories.output=dist/packages"
       }
     },
     "make": {
-      "executor": "nx-electron:make",
+      "executor": "nx:run-commands",
       "options": {
-        "name": "electron-app",
-        "frontendProject": "benchmarking-app",
-        "sourcePath": "dist/apps",
-        "outputPath": "dist/executables"
+        "command": "npx nx build electron-app && npx nx build benchmarking-app && electron-builder --config electron-app/electron-builder.config.cjs --config.directories.output=dist/executables"
       }
     },
     "lint": {

@@ -12,10 +12,27 @@
     "projectNameAndRootFormat": "as-provided"
   },
   "targetDefaults": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["production", "^production"]
-    },
+    "build": [
+      {
+        "dependsOn": ["^build"],
+        "inputs": ["production", "^production"]
+      },
+      {
+        "filter": {
+          "plugin": "@nx/vite/plugin"
+        },
+        "outputs": ["{projectRoot}/{options.outDir}", "{projectRoot}/dist"],
+        "defaultConfiguration": "production",
+        "configurations": {
+          "development": {
+            "mode": "development"
+          },
+          "production": {
+            "mode": "production"
+          }
+        }
+      }
+    ],
     "test": {
       "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"]
     },
@@ -28,7 +45,31 @@
     },
     "e2e": {
       "inputs": ["default", "^production"]
-    }
+    },
+    "preview": [
+      {
+        "filter": {
+          "plugin": "@nx/vite/plugin"
+        },
+        "defaultConfiguration": "development",
+        "configurations": {
+          "development": {},
+          "production": {}
+        }
+      }
+    ],
+    "serve": [
+      {
+        "filter": {
+          "plugin": "@nx/vite/plugin"
+        },
+        "defaultConfiguration": "development",
+        "configurations": {
+          "development": {},
+          "production": {}
+        }
+      }
+    ]
   },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
@@ -66,5 +107,30 @@
         "linter": "eslint"
       }
     }
-  }
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/webpack/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static",
+        "serveTargetName": "serve"
+      },
+      "include": [
+        "electron-app/**/*",
+        "examples/meerkat-node-example/**/*"
+      ]
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "devTargetName": "serve",
+        "typecheckTargetName": "typecheck",
+        "buildTargetName": "build",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static"
+      }
+    }
+  ]
 }

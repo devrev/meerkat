@@ -3,77 +3,26 @@
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "meerkat-browser-runner/src",
   "projectType": "application",
+  "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
-      "outputs": [
-        "{options.outputPath}"
-      ],
-      "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/meerkat-browser-runner"
-      },
-      "configurations": {
-        "development": {
-          "mode": "development"
-        },
-        "production": {
-          "mode": "production"
-        }
-      }
-    },
-    "serve": {
-      "executor": "@nx/vite:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "meerkat-browser-runner:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "meerkat-browser-runner:build:development",
-          "hmr": true
-        },
-        "production": {
-          "buildTarget": "meerkat-browser-runner:build:production",
-          "hmr": false
-        }
-      }
-    },
-    "preview": {
-      "executor": "@nx/vite:preview-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "meerkat-browser-runner:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "meerkat-browser-runner:build:development"
-        },
-        "production": {
-          "buildTarget": "meerkat-browser-runner:build:production"
-        }
+        "outDir": "../dist/meerkat-browser-runner"
       }
     },
     "test": {
       "executor": "nx:run-commands",
-      "outputs": [
-        "{workspaceRoot}/coverage/meerkat-browser-runner"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/meerkat-browser-runner"],
       "options": {
         "command": "npx vitest run --config meerkat-browser-runner/vitest.config.ts"
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": [
-        "{options.outputFile}"
-      ],
+      "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "meerkat-browser-runner/**/*.{ts,tsx,js,jsx}"
-        ]
+        "lintFilePatterns": ["meerkat-browser-runner/**/*.{ts,tsx,js,jsx}"]
       }
     }
-  },
-  "tags": []
+  }
 }

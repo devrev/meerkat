@@ -3,77 +3,26 @@
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "benchmarking/src",
   "projectType": "application",
+  "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
-      "outputs": [
-        "{options.outputPath}"
-      ],
-      "defaultConfiguration": "production",
       "options": {
-        "outputPath": "dist/benchmarking"
-      },
-      "configurations": {
-        "development": {
-          "mode": "development"
-        },
-        "production": {
-          "mode": "production"
-        }
-      }
-    },
-    "serve": {
-      "executor": "@nx/vite:dev-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "benchmarking-app:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "benchmarking-app:build:development",
-          "hmr": true
-        },
-        "production": {
-          "buildTarget": "benchmarking-app:build:production",
-          "hmr": false
-        }
-      }
-    },
-    "preview": {
-      "executor": "@nx/vite:preview-server",
-      "defaultConfiguration": "development",
-      "options": {
-        "buildTarget": "benchmarking-app:build"
-      },
-      "configurations": {
-        "development": {
-          "buildTarget": "benchmarking-app:build:development"
-        },
-        "production": {
-          "buildTarget": "benchmarking-app:build:production"
-        }
+        "outDir": "../dist/benchmarking"
       }
     },
     "test": {
       "executor": "nx:run-commands",
-      "outputs": [
-        "{workspaceRoot}/coverage/benchmarking"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/benchmarking"],
       "options": {
         "command": "npx vitest run --config benchmarking/vitest.config.ts"
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
-      "outputs": [
-        "{options.outputFile}"
-      ],
+      "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": [
-          "benchmarking/**/*.{ts,tsx,js,jsx}"
-        ]
+        "lintFilePatterns": ["benchmarking/**/*.{ts,tsx,js,jsx}"]
       }
     }
-  },
-  "tags": []
+  }
 }

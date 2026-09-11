@@ -1,13 +1,16 @@
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import { viteSingleFile } from 'vite-plugin-singlefile';
+
+const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
-  root: __dirname,
-  cacheDir: '../node_modules/.vite/benchmarking-app',
+  root: projectRoot,
+  cacheDir: '../node_modules/.vite/meerkat-browser-runner',
 
   server: {
-    port: 4204,
+    port: 4205,
     host: 'localhost',
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
@@ -26,10 +29,9 @@ export default defineConfig({
     },
   },
 
-  plugins: [react(), nxViteTsPaths()],
+  plugins: [react(), viteSingleFile()],
 
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [ nxViteTsPaths() ],
-  // },
+  resolve: {
+    tsconfigPaths: true,
+  },
 });
