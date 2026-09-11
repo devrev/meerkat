@@ -5,7 +5,7 @@ import {
   Table,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { generateViewQuery } from '../utils';
@@ -18,18 +18,19 @@ export const ParallelIndexedDBMProvider = ({
   children: JSX.Element;
 }) => {
   const [dbm, setdbm] = useState<DBMParallel | null>(null);
-  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
-  const fileManagerRef = useRef<ParallelIndexedDBFileManager>(
-    new ParallelIndexedDBFileManager({
-      instanceManager: instanceManagerRef.current,
-      fetchTableFileBuffers: async (table) => {
-        return [];
-      },
-      logger: log,
-      onEvent: (event) => {
-        console.info(event);
-      },
-    })
+  const [instanceManager] = useState(() => new InstanceManager());
+  const [fileManager] = useState(
+    () =>
+      new ParallelIndexedDBFileManager({
+        instanceManager,
+        fetchTableFileBuffers: async (table) => {
+          return [];
+        },
+        logger: log,
+        onEvent: (event) => {
+          console.info(event);
+        },
+      })
   );
 
   const dbState = useAsyncDuckDB();
@@ -65,8 +66,8 @@ export const ParallelIndexedDBMProvider = ({
     });
 
     const dbm = new DBMParallel({
-      instanceManager: instanceManagerRef.current,
-      fileManager: fileManagerRef.current,
+      instanceManager,
+      fileManager,
       onEvent: (event) => {
         console.info(event);
       },
@@ -80,7 +81,7 @@ export const ParallelIndexedDBMProvider = ({
     setdbm(dbm);
   }, [dbState]);
 
-  if (!dbm || !fileManagerRef.current) {
+  if (!dbm) {
     return <div>Loading...</div>;
   }
 
@@ -88,7 +89,7 @@ export const ParallelIndexedDBMProvider = ({
     <DBMContext.Provider
       value={{
         dbm,
-        fileManager: fileManagerRef.current as any,
+        fileManager: fileManager as any,
         fileManagerType: 'parallel-indexdb',
       }}
     >

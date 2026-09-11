@@ -54,6 +54,7 @@ describe('App', () => {
     };
 
     mockWindowCommunication = {
+      destroy: vi.fn(),
       sendRequestWithoutResponse: vi.fn(),
       sendRequest: vi.fn().mockResolvedValue({ message: [] }),
       sendResponse: vi.fn(),

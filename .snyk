@@ -1,0 +1,44 @@
+version: v1.25.0
+ignore:
+  SNYK-JS-INFLIGHT-6095116:
+    - '*':
+        reason: >-
+          Development-only Electron packaging path. electron-builder 26.15.3 is
+          the latest release and app-builder-lib pins @electron/asar 3.4.1,
+          which still depends on glob 7 and inflight 1.0.6. Re-evaluate when
+          electron-builder updates this chain.
+        expires: 2026-12-10T00:00:00.000Z
+        created: 2026-09-11T00:00:00.000Z
+  SNYK-JS-SMOLTOML-19643959:
+    - '*':
+        reason: >-
+          Development-only Nx CLI path. Nx 23.2.1 is the latest release and
+          directly pins smol-toml 1.6.1; Snyk reports no upgrade or patch path.
+          Re-evaluate when Nx publishes a fixed dependency.
+        expires: 2026-12-10T00:00:00.000Z
+        created: 2026-09-11T00:00:00.000Z
+  SNYK-JS-UNZIPPER-18365659:
+    - '*':
+        reason: >-
+          Development-only Electron packaging path. electron-builder 26.15.3 is
+          the latest release and its app-builder-lib dependency pins unzipper
+          0.12.5; Snyk reports no upgrade or patch path. Re-evaluate upstream.
+        expires: 2026-12-10T00:00:00.000Z
+        created: 2026-09-11T00:00:00.000Z
+  SNYK-JS-XMLDOMXMLDOM-19498551:
+    - '*':
+        reason: >-
+          Development-only Electron packaging path. A lockfile-only update of
+          plist and @xmldom/xmldom was a no-op because app-builder-lib 26.15.3
+          exactly pins plist 3.1.0. No newer electron-builder parent exists;
+          avoid a transitive dev override and re-evaluate the upstream release.
+        expires: 2026-12-10T00:00:00.000Z
+        created: 2026-09-11T00:00:00.000Z
+  'snyk:lic:npm:npm:Artistic-2.0':
+    - '*':
+        reason: >-
+          npm is bundled by the development-only @semantic-release/npm plugin
+          and is not linked into or distributed with Meerkat. semantic-release
+          25.0.9 is the latest release and has no alternative dependency path.
+        expires: 2026-12-10T00:00:00.000Z
+        created: 2026-09-11T00:00:00.000Z
