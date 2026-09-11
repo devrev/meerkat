@@ -13,6 +13,7 @@ export type DBMContextType = {
     | 'raw'
     | 'memory'
     | 'indexdb'
+    | 'opfs'
     | 'native'
     | 'parallel-memory'
     | 'parallel-indexdb';
