@@ -113,6 +113,9 @@
     },
     "express": {
       "qs": "6.16.0"
+    },
+    "verdaccio": {
+      "compression": "1.8.2"
     }
   },
   "puppeteer": {
