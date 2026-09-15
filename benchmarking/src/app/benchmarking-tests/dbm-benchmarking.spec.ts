@@ -45,12 +45,24 @@ describe('Benchmarking DBMs', () => {
 
   beforeAll(async () => {
     appProcess = spawn('npx', ['nx', 'serve', 'benchmarking-app'], {
+      env: {
+        ...process.env,
+        VITE_INDEXED_RUNNER_URL: 'http://localhost:4204/live-runner/',
+      },
       stdio: 'inherit',
     });
 
-    appProcessRunner = spawn('npx', ['nx', 'serve', 'meerkat-browser-runner'], {
-      stdio: 'inherit',
-    });
+    appProcessRunner = spawn(
+      'npx',
+      ['nx', 'preview', 'meerkat-browser-runner', '--port=4205'],
+      {
+        env: {
+          ...process.env,
+          VITE_RUNNER_BASE: '/live-runner/',
+        },
+        stdio: 'inherit',
+      }
+    );
 
     browser = await puppeteer.launch({
       headless: 'new',
@@ -103,6 +115,39 @@ describe('Benchmarking DBMs', () => {
     expect(totalTimeForIndexedDBM).toBeLessThan(totalTimeForMemoryDB * 1.3);
   }, 300000);
 
+  it('loads the live browser runner in parallel indexed iframes', async () => {
+    const iframePage = await browser.newPage();
+
+    try {
+      await iframePage.goto('http://localhost:4204/parallel-indexed-dbm');
+      await iframePage.waitForFunction(
+        () => document.querySelectorAll('iframe').length === 4,
+        { timeout: 60000 }
+      );
+
+      const runners = await iframePage.$$eval('iframe', (iframes) =>
+        iframes.map((iframe) => ({
+          src: iframe.src,
+          content: iframe.contentDocument?.body.textContent,
+        }))
+      );
+      expect(runners.map(({ src }) => src)).toEqual(
+        Array(4).fill(expect.stringContaining('/live-runner/'))
+      );
+      expect(runners.map(({ content }) => content)).toEqual(
+        Array(4).fill(expect.stringContaining('Runners'))
+      );
+
+      await iframePage.waitForSelector('#total_time', { timeout: 300000 });
+      const totalTime = await iframePage.$eval('#total_time', (element) =>
+        Number(element.textContent)
+      );
+      expect(totalTime).toBeGreaterThan(0);
+    } finally {
+      await iframePage.close();
+    }
+  }, 300000);
+
   it('Benchmark parallel memory dbm duckdb', async () => {
     const totalTimeForParallelMemoryDBM = await measureTotalTime(
       page,
@@ -117,7 +162,9 @@ describe('Benchmarking DBMs', () => {
      * Parallel should beat sequential memory DBM; on CI, shared runners add enough
      * scheduling jitter that we allow a small slack (local stays strict).
      */
-    const maxVsMemory = process.env.CI ? totalTimeForMemoryDB * 1.2 : totalTimeForMemoryDB;
+    const maxVsMemory = process.env.CI
+      ? totalTimeForMemoryDB * 1.2
+      : totalTimeForMemoryDB;
     expect(totalTimeForParallelMemoryDBM).toBeLessThan(maxVsMemory);
   }, 300000);
 
