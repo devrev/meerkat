@@ -5,11 +5,6 @@
   "projectType": "application",
   "tags": [],
   "targets": {
-    "build": {
-      "options": {
-        "outDir": "../dist/meerkat-browser-runner"
-      }
-    },
     "test": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/coverage/meerkat-browser-runner"],

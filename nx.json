@@ -21,7 +21,6 @@
         "filter": {
           "plugin": "@nx/vite/plugin"
         },
-        "outputs": ["{projectRoot}/{options.outDir}", "{projectRoot}/dist"],
         "defaultConfiguration": "production",
         "configurations": {
           "development": {
@@ -39,8 +38,7 @@
     "lint": {
       "inputs": [
         "default",
-        "{workspaceRoot}/eslint.config.mjs",
-        "{workspaceRoot}/eslint.config.js"
+        "{workspaceRoot}/eslint.config.mjs"
       ]
     },
     "e2e": {
@@ -80,8 +78,7 @@
       "!{projectRoot}/jest.config.[jt]s",
       "!{projectRoot}/src/test-setup.[jt]s",
       "!{projectRoot}/test-setup.[jt]s",
-      "!{projectRoot}/eslint.config.mjs",
-      "!{projectRoot}/eslint.config.js"
+      "!{projectRoot}/eslint.config.mjs"
     ],
     "sharedGlobals": []
   },
