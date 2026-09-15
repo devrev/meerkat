@@ -1,18 +1,21 @@
-import { DBMNative, FileStore, NativeFileManager } from '@devrev/meerkat-dbm';
+import {
+  DBMNative,
+  FileManagerType,
+  FileStore,
+  NativeFileManager,
+} from '@devrev/meerkat-dbm';
 import log from 'loglevel';
 import { NativeBridge } from 'meerkat-dbm/src/dbm/dbm-native/native-bridge';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
 export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
-  const [instanceManager] = useState(() => new InstanceManager());
-  const [runtime, setRuntime] = useState<{
-    dbm: DBMNative;
-    fileManager: NativeFileManager;
-  } | null>(null);
+  const fileManagerRef = useRef<FileManagerType | null>(null);
+  const [dbm, setdbm] = useState<DBMNative | null>(null);
+  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
 
   const dbState = useAsyncDuckDB();
 
@@ -44,7 +47,7 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       return;
     }
 
-    const fileManager = new NativeFileManager({
+    fileManagerRef.current = new NativeFileManager({
       fetchTableFileBuffers: async (table) => {
         return [];
       },
@@ -53,30 +56,30 @@ export const NativeDBMProvider = ({ children }: { children: JSX.Element }) => {
       onEvent: (event) => {
         console.log('event', event);
       },
-      instanceManager,
+      instanceManager: instanceManagerRef.current,
     });
 
     const dbm = new DBMNative({
-      instanceManager,
-      fileManager,
+      instanceManager: instanceManagerRef.current,
+      fileManager: fileManagerRef.current,
       logger: log,
       onEvent: (event) => {
         console.log('event', event);
       },
       nativeBridge: nativeBridge,
     });
-    setRuntime({ dbm, fileManager });
+    setdbm(dbm);
   }, [dbState]);
 
-  if (!runtime) {
+  if (!dbm || !fileManagerRef.current) {
     return <div>Loading...</div>;
   }
 
   return (
     <DBMContext.Provider
       value={{
-        dbm: runtime.dbm,
-        fileManager: runtime.fileManager,
+        dbm,
+        fileManager: fileManagerRef.current,
         fileManagerType: 'native',
       }}
     >

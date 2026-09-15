@@ -1,17 +1,17 @@
-import { DBM, MemoryDBFileManager } from '@devrev/meerkat-dbm';
+import { DBM, FileManagerType, MemoryDBFileManager } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { InstanceManager } from './instance-manager';
 import { useAsyncDuckDB } from './use-async-duckdb';
 
 export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
-  const [instanceManager] = useState(() => new InstanceManager());
-  const [runtime, setRuntime] = useState<{
-    dbm: DBM;
-    fileManager: MemoryDBFileManager;
-  } | null>(null);
+  const fileManagerRef = React.useRef<FileManagerType | null>(null);
+  const [dbm, setdbm] = useState<DBM | null>(null);
+  const instanceManagerRef = React.useRef<InstanceManager>(
+    new InstanceManager()
+  );
 
   const dbState = useAsyncDuckDB();
 
@@ -19,8 +19,8 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
     if (!dbState) {
       return;
     }
-    const fileManager = new MemoryDBFileManager({
-      instanceManager,
+    fileManagerRef.current = new MemoryDBFileManager({
+      instanceManager: instanceManagerRef.current,
       fetchTableFileBuffers: async (table) => {
         return [];
       },
@@ -31,25 +31,25 @@ export const MemoryDBMProvider = ({ children }: { children: JSX.Element }) => {
     });
     log.setLevel('DEBUG');
     const dbm = new DBM({
-      instanceManager,
-      fileManager,
+      instanceManager: instanceManagerRef.current,
+      fileManager: fileManagerRef.current,
       logger: log,
       onEvent: (event) => {
         console.info(event);
       },
     });
-    setRuntime({ dbm, fileManager });
+    setdbm(dbm);
   }, [dbState]);
 
-  if (!runtime) {
+  if (!dbm || !fileManagerRef.current) {
     return <div>Loading...</div>;
   }
 
   return (
     <DBMContext.Provider
       value={{
-        dbm: runtime.dbm,
-        fileManager: runtime.fileManager,
+        dbm,
+        fileManager: fileManagerRef.current,
         fileManagerType: 'memory',
       }}
     >

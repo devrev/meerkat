@@ -11,11 +11,6 @@ export default defineConfig({
   server: {
     port: 4204,
     host: 'localhost',
-    proxy: {
-      '/live-runner': {
-        target: 'http://localhost:4205',
-      },
-    },
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',

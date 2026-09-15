@@ -5,7 +5,7 @@ import {
   Table,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { generateViewQuery } from '../utils';
@@ -18,19 +18,18 @@ export const ParallelMemoryDBMProvider = ({
   children: JSX.Element;
 }) => {
   const [dbm, setdbm] = useState<DBMParallel | null>(null);
-  const [instanceManager] = useState(() => new InstanceManager());
-  const [fileManager] = useState(
-    () =>
-      new ParallelMemoryFileManager({
-        instanceManager,
-        fetchTableFileBuffers: async (table) => {
-          return [];
-        },
-        logger: log,
-        onEvent: (event) => {
-          console.info(event);
-        },
-      })
+  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
+  const fileManagerRef = useRef<ParallelMemoryFileManager>(
+    new ParallelMemoryFileManager({
+      instanceManager: instanceManagerRef.current,
+      fetchTableFileBuffers: async (table) => {
+        return [];
+      },
+      logger: log,
+      onEvent: (event) => {
+        console.info(event);
+      },
+    })
   );
 
   const dbState = useAsyncDuckDB();
@@ -44,7 +43,7 @@ export const ParallelMemoryDBMProvider = ({
       origin: 'http://localhost:4204',
       totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
-        return fileManager.getTableBufferData(table);
+        return fileManagerRef.current.getTableBufferData(table);
       },
       fetchPreQuery: (runnerId: string, tables: Table[]) => {
         const preQueries: string[] = [];
@@ -67,8 +66,8 @@ export const ParallelMemoryDBMProvider = ({
     });
 
     const dbm = new DBMParallel({
-      instanceManager,
-      fileManager,
+      instanceManager: instanceManagerRef.current,
+      fileManager: fileManagerRef.current,
       onEvent: (event) => {
         console.info(event);
       },
@@ -82,7 +81,7 @@ export const ParallelMemoryDBMProvider = ({
     setdbm(dbm);
   }, [dbState]);
 
-  if (!dbm) {
+  if (!dbm || !fileManagerRef.current) {
     return <div>Loading...</div>;
   }
 
@@ -90,7 +89,7 @@ export const ParallelMemoryDBMProvider = ({
     <DBMContext.Provider
       value={{
         dbm,
-        fileManager: fileManager as any,
+        fileManager: fileManagerRef.current as any,
         fileManagerType: 'parallel-memory',
       }}
     >

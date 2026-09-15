@@ -12,7 +12,6 @@
     },
     "test": {
       "executor": "nx:run-commands",
-      "parallelism": false,
       "outputs": ["{workspaceRoot}/coverage/benchmarking"],
       "options": {
         "command": "npx vitest run --config benchmarking/vitest.config.ts"

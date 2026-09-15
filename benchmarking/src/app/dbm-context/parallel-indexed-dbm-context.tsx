@@ -5,7 +5,7 @@ import {
   Table,
 } from '@devrev/meerkat-dbm';
 import log from 'loglevel';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { DBMContext } from '../hooks/dbm-context';
 import { useClassicEffect } from '../hooks/use-classic-effect';
 import { generateViewQuery } from '../utils';
@@ -18,19 +18,18 @@ export const ParallelIndexedDBMProvider = ({
   children: JSX.Element;
 }) => {
   const [dbm, setdbm] = useState<DBMParallel | null>(null);
-  const [instanceManager] = useState(() => new InstanceManager());
-  const [fileManager] = useState(
-    () =>
-      new ParallelIndexedDBFileManager({
-        instanceManager,
-        fetchTableFileBuffers: async (table) => {
-          return [];
-        },
-        logger: log,
-        onEvent: (event) => {
-          console.info(event);
-        },
-      })
+  const instanceManagerRef = useRef<InstanceManager>(new InstanceManager());
+  const fileManagerRef = useRef<ParallelIndexedDBFileManager>(
+    new ParallelIndexedDBFileManager({
+      instanceManager: instanceManagerRef.current,
+      fetchTableFileBuffers: async (table) => {
+        return [];
+      },
+      logger: log,
+      onEvent: (event) => {
+        console.info(event);
+      },
+    })
   );
 
   const dbState = useAsyncDuckDB();
@@ -40,9 +39,7 @@ export const ParallelIndexedDBMProvider = ({
       return;
     }
     const iframeManager = new IFrameRunnerManager({
-      runnerURL:
-        import.meta.env.VITE_INDEXED_RUNNER_URL ??
-        'http://localhost:4204/runner/indexeddb-runner.html',
+      runnerURL: 'http://localhost:4204/runner/indexeddb-runner.html',
       origin: 'http://localhost:4204',
       totalRunners: 4,
       fetchTableFileBuffers: async (table) => {
@@ -68,8 +65,8 @@ export const ParallelIndexedDBMProvider = ({
     });
 
     const dbm = new DBMParallel({
-      instanceManager,
-      fileManager,
+      instanceManager: instanceManagerRef.current,
+      fileManager: fileManagerRef.current,
       onEvent: (event) => {
         console.info(event);
       },
@@ -83,7 +80,7 @@ export const ParallelIndexedDBMProvider = ({
     setdbm(dbm);
   }, [dbState]);
 
-  if (!dbm) {
+  if (!dbm || !fileManagerRef.current) {
     return <div>Loading...</div>;
   }
 
@@ -91,7 +88,7 @@ export const ParallelIndexedDBMProvider = ({
     <DBMContext.Provider
       value={{
         dbm,
-        fileManager: fileManager as any,
+        fileManager: fileManagerRef.current as any,
         fileManagerType: 'parallel-indexdb',
       }}
     >

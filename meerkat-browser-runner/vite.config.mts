@@ -7,7 +7,6 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
   root: projectRoot,
-  base: process.env.VITE_RUNNER_BASE ?? '/',
   cacheDir: '../node_modules/.vite/meerkat-browser-runner',
 
   build: {

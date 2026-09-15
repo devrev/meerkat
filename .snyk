@@ -25,15 +25,6 @@ ignore:
           0.12.5; Snyk reports no upgrade or patch path. Re-evaluate upstream.
         expires: 2026-12-10T00:00:00.000Z
         created: 2026-09-11T00:00:00.000Z
-  SNYK-JS-XMLDOMXMLDOM-19498551:
-    - '*':
-        reason: >-
-          Development-only Electron packaging path. A lockfile-only update of
-          plist and @xmldom/xmldom was a no-op because app-builder-lib 26.15.3
-          exactly pins plist 3.1.0. No newer electron-builder parent exists;
-          avoid a transitive dev override and re-evaluate the upstream release.
-        expires: 2026-12-10T00:00:00.000Z
-        created: 2026-09-11T00:00:00.000Z
   'snyk:lic:npm:npm:Artistic-2.0':
     - '*':
         reason: >-
