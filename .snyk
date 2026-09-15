@@ -3,25 +3,17 @@ ignore:
   SNYK-JS-INFLIGHT-6095116:
     - '*':
         reason: >-
-          Development-only Electron packaging path. electron-builder 26.15.3 is
-          the latest release and app-builder-lib pins @electron/asar 3.4.1,
-          which still depends on glob 7 and inflight 1.0.6. Re-evaluate when
-          electron-builder updates this chain.
-        expires: 2026-12-10T00:00:00.000Z
-        created: 2026-09-11T00:00:00.000Z
-  SNYK-JS-SMOLTOML-19643959:
-    - '*':
-        reason: >-
-          Development-only Nx CLI path. Nx 23.2.1 is the latest release and
-          directly pins smol-toml 1.6.1; Snyk reports no upgrade or patch path.
-          Re-evaluate when Nx publishes a fixed dependency.
+          Development-only Electron packaging path. The latest stable tag
+          (26.15.3) and newer v26 channel (26.16.1) both pin @electron/asar
+          3.4.1, which still depends on glob 7 and inflight 1.0.6. Re-evaluate
+          when electron-builder updates this chain.
         expires: 2026-12-10T00:00:00.000Z
         created: 2026-09-11T00:00:00.000Z
   SNYK-JS-UNZIPPER-18365659:
     - '*':
         reason: >-
-          Development-only Electron packaging path. electron-builder 26.15.3 is
-          the latest release and its app-builder-lib dependency pins unzipper
+          Development-only Electron packaging path. The latest stable tag
+          (26.15.3) and newer v26 channel (26.16.1) both resolve unzipper
           0.12.5; Snyk reports no upgrade or patch path. Re-evaluate upstream.
         expires: 2026-12-10T00:00:00.000Z
         created: 2026-09-11T00:00:00.000Z

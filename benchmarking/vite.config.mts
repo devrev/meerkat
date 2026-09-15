@@ -8,6 +8,10 @@ export default defineConfig({
   root: projectRoot,
   cacheDir: '../node_modules/.vite/benchmarking-app',
 
+  build: {
+    outDir: '../dist/benchmarking',
+  },
+
   server: {
     port: 4204,
     host: 'localhost',
