@@ -1,6 +1,7 @@
 import { cubeFilterToDuckdbAST } from '../../cube-filter-transformer/factory';
 import { traverseMeerkatQueryFilter } from '../../filter-params/filter-params-ast';
 import { getUsedTableSchema } from '../../get-used-table-schema/get-used-table-schema';
+import { getAliasForSQL } from '../../member-formatters/get-alias';
 import { memberKeyToSafeKey } from '../../member-formatters/member-key-to-safe-key';
 import { splitIntoDataSourceAndFields } from '../../member-formatters/split-into-data-source-and-fields';
 import {
@@ -20,6 +21,16 @@ import { Graph, quoteIdentifierIfNeeded } from '../v1/joins';
 
 const UNNEST_ALIAS_PREFIX = '__mk_u_';
 const ARRAY_DIMENSION_TYPES = new Set(['string_array', 'number_array']);
+const ROOT_GRAIN_ALIAS = '__mk_root_grain';
+
+interface CollectionPlan {
+  alias: string;
+  fanoutIndex: number;
+  member: string;
+  order?: 'asc' | 'desc';
+  outputType: 'number_array' | 'string_array';
+  path: StructuredJoin[];
+}
 
 const findArrayMember = (
   tableSchemas: TableSchema[],
@@ -427,6 +438,163 @@ export const generateSqlQueryV2 = async (
   return query;
 };
 
+const getMemberTable = (member: string): string =>
+  splitIntoDataSourceAndFields(member)[0];
+
+const getCollectionPlans = (
+  paths: StructuredJoin[][],
+  cubeQuery: Query,
+  tableSchemas: TableSchema[]
+): CollectionPlan[] | null => {
+  if (cubeQuery.measures.length > 0) return null;
+
+  const filterTables = new Set<string>();
+  traverseMeerkatQueryFilter(cubeQuery.filters ?? [], ({ member }) => {
+    filterTables.add(getMemberTable(member));
+  });
+  const collectedMembers = new Set<string>();
+  const plans: CollectionPlan[] = [];
+
+  for (const path of paths) {
+    const fanoutIndex = path.findIndex(
+      (edge) =>
+        edge.condition !== undefined ||
+        isArrayColumn(tableSchemas, edge.from.table, edge.from.column)
+    );
+    if (fanoutIndex === -1) continue;
+
+    const descendantTables = new Set(
+      path.slice(fanoutIndex).map(({ to }) => to.table)
+    );
+    if ([...filterTables].some((table) => descendantTables.has(table))) {
+      return null;
+    }
+
+    const members = (cubeQuery.dimensions ?? []).filter((member) =>
+      descendantTables.has(getMemberTable(member))
+    );
+    if (members.length !== 1) return null;
+
+    const member = members[0];
+    const descendantOrderMembers = Object.keys(cubeQuery.order ?? {}).filter(
+      (orderedMember) => descendantTables.has(getMemberTable(orderedMember))
+    );
+    if (
+      descendantOrderMembers.length > 0 &&
+      descendantOrderMembers.some((orderedMember) => orderedMember !== member)
+    ) {
+      return null;
+    }
+    if (collectedMembers.has(member)) return null;
+
+    const [table, field] = splitIntoDataSourceAndFields(member);
+    const tableSchema = tableSchemas.find(({ name }) => name === table);
+    const schema = tableSchema?.dimensions.find(({ name }) => name === field);
+    if (!tableSchema || !schema || ARRAY_DIMENSION_TYPES.has(schema.type)) {
+      return null;
+    }
+
+    collectedMembers.add(member);
+    plans.push({
+      alias: getAliasForSQL(member, tableSchema),
+      fanoutIndex,
+      member,
+      order: cubeQuery.order?.[member],
+      outputType: schema.type === 'number' ? 'number_array' : 'string_array',
+      path,
+    });
+  }
+
+  return plans;
+};
+
+const buildCollectionProjection = async (
+  plan: CollectionPlan,
+  tableSchemaSqlMap: Record<string, string>,
+  directedGraph: Graph,
+  tableSchemas: TableSchema[],
+  getQueryOutput: GetQueryOutput | undefined
+): Promise<string> => {
+  const firstEdge = plan.path[0];
+  const firstSourceIsArray = isArrayColumn(
+    tableSchemas,
+    firstEdge.from.table,
+    firstEdge.from.column
+  );
+  const rootSource = `${ROOT_GRAIN_ALIAS}.${firstEdge.from.column}`;
+  const correlatedSource = `SELECT ${rootSource} AS ${firstEdge.from.column}`;
+  const collectionSqlMap = {
+    ...tableSchemaSqlMap,
+    [firstEdge.from.table]: firstSourceIsArray
+      ? correlatedSource
+      : `(${correlatedSource}) AS ${quoteIdentifierIfNeeded(
+          firstEdge.from.table
+        )}`,
+  };
+  const sql = await generateSqlQueryV2(
+    [plan.path],
+    collectionSqlMap,
+    directedGraph,
+    tableSchemas,
+    getQueryOutput
+  );
+
+  const [table] = splitIntoDataSourceAndFields(plan.member);
+  const reference = `${table}.${plan.alias}`;
+  const value =
+    plan.outputType === 'number_array'
+      ? reference
+      : `CAST(${reference} AS VARCHAR)`;
+  const ordering = plan.order
+    ? ` ORDER BY ${value} ${plan.order.toUpperCase()}`
+    : '';
+  return `ARRAY(SELECT ${value} FROM ${sql} WHERE ${reference} IS NOT NULL${ordering}) AS ${plan.alias}`;
+};
+
+const generateRootGrainSqlQueryV2 = async (
+  paths: StructuredJoin[][],
+  tableSchemaSqlMap: Record<string, string>,
+  directedGraph: Graph,
+  tableSchemas: TableSchema[],
+  plans: CollectionPlan[],
+  getQueryOutput: GetQueryOutput | undefined,
+  bridgeTables: Set<string>
+): Promise<string> => {
+  const planByPath = new Map(plans.map((plan) => [plan.path, plan]));
+  const outerPaths = paths
+    .map((path) => {
+      const plan = planByPath.get(path);
+      return plan ? path.slice(0, plan.fanoutIndex) : path;
+    })
+    .filter((path) => path.length > 0);
+  const rootTable = paths[0][0].from.table;
+  const outerSql = outerPaths.length
+    ? await generateSqlQueryV2(
+        outerPaths,
+        tableSchemaSqlMap,
+        directedGraph,
+        tableSchemas,
+        getQueryOutput,
+        bridgeTables
+      )
+    : tableSchemaSqlMap[rootTable];
+  const projections = await Promise.all(
+    plans.map((plan) =>
+      buildCollectionProjection(
+        plan,
+        tableSchemaSqlMap,
+        directedGraph,
+        tableSchemas,
+        getQueryOutput
+      )
+    )
+  );
+
+  return `SELECT ${ROOT_GRAIN_ALIAS}.*${
+    projections.length ? `, ${projections.join(', ')}` : ''
+  } FROM (${outerSql}) AS ${ROOT_GRAIN_ALIAS}`;
+};
+
 const hasLoop = (
   paths: StructuredJoin[][],
   bridgeTables: Set<string>
@@ -469,20 +637,42 @@ export const getCombinedTableSchemaV2 = async (
     activeTables.map((s) => [s.name, s.sql])
   );
   const graph = createDirectedGraphV2(activeTables, tableSchemaSqlMap, paths);
-  const sql = await generateSqlQueryV2(
-    paths,
-    tableSchemaSqlMap,
-    graph,
-    activeTables,
-    getQueryOutput,
-    bridgeTables
+  const collectionPlans = getCollectionPlans(paths, cubeQuery, activeTables);
+  const sql = collectionPlans?.length
+    ? await generateRootGrainSqlQueryV2(
+        paths,
+        tableSchemaSqlMap,
+        graph,
+        activeTables,
+        collectionPlans,
+        getQueryOutput,
+        bridgeTables
+      )
+    : await generateSqlQueryV2(
+        paths,
+        tableSchemaSqlMap,
+        graph,
+        activeTables,
+        getQueryOutput,
+        bridgeTables
+      );
+  const collectedTypes = new Map(
+    (collectionPlans ?? []).map(({ member, outputType }) => [
+      member,
+      outputType,
+    ])
   );
 
   return {
     name: 'MEERKAT_GENERATED_TABLE',
     sql,
     measures: activeTables.flatMap((s) => s.measures),
-    dimensions: activeTables.flatMap((s) => s.dimensions),
+    dimensions: activeTables.flatMap((table) =>
+      table.dimensions.map((dimension) => {
+        const type = collectedTypes.get(`${table.name}.${dimension.name}`);
+        return type ? { ...dimension, type } : dimension;
+      })
+    ),
     joins: [],
   };
 };
