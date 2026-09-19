@@ -102,6 +102,7 @@ const addDimensionToSQLProjection = (
     return selectString;
   }
   let newSelectString = selectString;
+  let hasEmittedDimension = false;
   for (let i = 0; i < dimensions.length; i++) {
     const dimension = dimensions[i];
     const resolved = findSchemaForMember(dimension, tableSchemas);
@@ -122,11 +123,13 @@ const addDimensionToSQLProjection = (
     if (!dimensionSchema) {
       continue;
     }
-    if (i > 0) {
+    // Gate on emitted count, not loop index, so a skipped unresolved dimension doesn't leave a leading comma.
+    if (hasEmittedDimension) {
       newSelectString += ',';
     }
     // since alias key is expected to have been unfurled in the base query, we can just use it as is.
     newSelectString += `  ${aliasKey}`;
+    hasEmittedDimension = true;
   }
   return newSelectString;
 };
