@@ -123,7 +123,12 @@ const addDimensionToSQLProjection = (
     if (!dimensionSchema) {
       continue;
     }
-    // Gate on emitted count, not loop index, so a skipped unresolved dimension doesn't leave a leading comma.
+    // `dimensions` is caller-supplied and not guaranteed to only contain names present
+    // in `tableSchemas` (e.g. a caller can pass a field that's deliberately excluded
+    // from the schema, such as a hidden field). When that happens `!resolved` or
+    // `!dimensionSchema` above skips it via `continue`, but `i` still advances — so
+    // gating on loop index left a leading comma before the next real dimension. Gate
+    // on whether one was actually emitted instead.
     if (hasEmittedDimension) {
       newSelectString += ',';
     }
