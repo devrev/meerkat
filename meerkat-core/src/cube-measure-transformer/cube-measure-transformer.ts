@@ -27,14 +27,14 @@ export const cubeMeasureToSQLSelectString = (
   measures: Member[],
   tableSchemas: TableSchema[]
 ) => {
-  const entries: string[] = [];
-
-  for (const measure of measures) {
+  let base = 'SELECT';
+  for (let i = 0; i < measures.length; i++) {
+    const measure = measures[i];
     if (measure === '*') {
       // `*` is a single-table convenience — preserve original behavior by
       // emitting `<firstSchema>.*`. Multi-table joined schemas should not
       // combine `*` with named measures.
-      entries.push(` ${tableSchemas[0].name}.*`);
+      base += ` ${tableSchemas[0].name}.*`;
       continue;
     }
     const resolved = findSchemaForMember(measure, tableSchemas);
@@ -55,6 +55,9 @@ export const cubeMeasureToSQLSelectString = (
     );
     if (!measureSchema) {
       continue;
+    }
+    if (i > 0) {
+      base += ', ';
     }
 
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
@@ -85,10 +88,9 @@ export const cubeMeasureToSQLSelectString = (
       );
     });
 
-    entries.push(` ${meerkatReplacedSqlString} AS ${aliasKey} `);
+    base += ` ${meerkatReplacedSqlString} AS ${aliasKey} `;
   }
-
-  return `SELECT${entries.join(', ')}`;
+  return base;
 };
 
 const addDimensionToSQLProjection = (
