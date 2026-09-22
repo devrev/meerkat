@@ -27,14 +27,14 @@ export const cubeMeasureToSQLSelectString = (
   measures: Member[],
   tableSchemas: TableSchema[]
 ) => {
-  let base = 'SELECT';
-  for (let i = 0; i < measures.length; i++) {
-    const measure = measures[i];
+  const entries: string[] = [];
+
+  for (const measure of measures) {
     if (measure === '*') {
       // `*` is a single-table convenience — preserve original behavior by
       // emitting `<firstSchema>.*`. Multi-table joined schemas should not
       // combine `*` with named measures.
-      base += ` ${tableSchemas[0].name}.*`;
+      entries.push(` ${tableSchemas[0].name}.*`);
       continue;
     }
     const resolved = findSchemaForMember(measure, tableSchemas);
@@ -56,9 +56,6 @@ export const cubeMeasureToSQLSelectString = (
     if (!measureSchema) {
       continue;
     }
-    if (i > 0) {
-      base += ', ';
-    }
 
     let meerkatReplacedSqlString = meerkatPlaceholderReplacer(
       measureSchema.sql,
@@ -76,8 +73,6 @@ export const cubeMeasureToSQLSelectString = (
       meerkatReplacedSqlString,
       tableSchemaName
     );
-
-    //Replace all the columnsUsedInMeasure with safeKey
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = getNamespacedKey(tableSchemaName, column);
@@ -88,9 +83,10 @@ export const cubeMeasureToSQLSelectString = (
       );
     });
 
-    base += ` ${meerkatReplacedSqlString} AS ${aliasKey} `;
+    entries.push(` ${meerkatReplacedSqlString} AS ${aliasKey} `);
   }
-  return base;
+
+  return `SELECT${entries.join(', ')}`;
 };
 
 const addDimensionToSQLProjection = (
@@ -98,13 +94,9 @@ const addDimensionToSQLProjection = (
   selectString: string,
   tableSchemas: TableSchema[]
 ) => {
-  if (dimensions.length === 0) {
-    return selectString;
-  }
-  let newSelectString = selectString;
-  let hasEmittedDimension = false;
-  for (let i = 0; i < dimensions.length; i++) {
-    const dimension = dimensions[i];
+  const entries: string[] = [];
+
+  for (const dimension of dimensions) {
     const resolved = findSchemaForMember(dimension, tableSchemas);
     if (!resolved) {
       continue;
@@ -112,31 +104,17 @@ const addDimensionToSQLProjection = (
     const { schema: ownerSchema } = resolved;
     const [, dimensionKeyWithoutTable] =
       splitIntoDataSourceAndFields(dimension);
-    // See comment in `cubeMeasureToSQLSelectString` — resolve the dimension
-    // in its own source-table schema so duplicate names across joined tables
-    // don't collide.
     const dimensionSchema = ownerSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
-    const aliasKey = getAliasForSQL(dimension, ownerSchema);
-
     if (!dimensionSchema) {
       continue;
     }
-    // `dimensions` is caller-supplied and not guaranteed to only contain names present
-    // in `tableSchemas` (e.g. a caller can pass a field that's deliberately excluded
-    // from the schema, such as a hidden field). When that happens `!resolved` or
-    // `!dimensionSchema` above skips it via `continue`, but `i` still advances — so
-    // gating on loop index left a leading comma before the next real dimension. Gate
-    // on whether one was actually emitted instead.
-    if (hasEmittedDimension) {
-      newSelectString += ',';
-    }
-    // since alias key is expected to have been unfurled in the base query, we can just use it as is.
-    newSelectString += `  ${aliasKey}`;
-    hasEmittedDimension = true;
+    const aliasKey = getAliasForSQL(dimension, ownerSchema);
+    entries.push(`  ${aliasKey}`);
   }
-  return newSelectString;
+
+  return selectString + entries.join(',');
 };
 
 export const getSelectReplacedSql = (sql: string, selectString: string) => {
