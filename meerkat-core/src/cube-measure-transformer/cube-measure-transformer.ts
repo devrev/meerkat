@@ -73,6 +73,8 @@ export const cubeMeasureToSQLSelectString = (
       meerkatReplacedSqlString,
       tableSchemaName
     );
+
+    //Replace all the columnsUsedInMeasure with safeKey
     columnsUsedInMeasure?.forEach((measureKey) => {
       const [, column] = splitIntoDataSourceAndFields(measureKey);
       const memberKey = getNamespacedKey(tableSchemaName, column);
@@ -104,13 +106,18 @@ const addDimensionToSQLProjection = (
     const { schema: ownerSchema } = resolved;
     const [, dimensionKeyWithoutTable] =
       splitIntoDataSourceAndFields(dimension);
+    // See comment in `cubeMeasureToSQLSelectString` — resolve the dimension
+    // in its own source-table schema so duplicate names across joined tables
+    // don't collide.
     const dimensionSchema = ownerSchema.dimensions.find(
       (m) => m.name === dimensionKeyWithoutTable
     );
+    const aliasKey = getAliasForSQL(dimension, ownerSchema);
+
     if (!dimensionSchema) {
       continue;
     }
-    const aliasKey = getAliasForSQL(dimension, ownerSchema);
+    // since alias key is expected to have been unfurled in the base query, we can just use it as is.
     entries.push(`  ${aliasKey}`);
   }
 
