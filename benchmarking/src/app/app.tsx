@@ -2,6 +2,7 @@ import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { IndexedDBMProvider } from './dbm-context/indexed-dbm-context';
 import { MemoryDBMProvider } from './dbm-context/memory-dbm-context';
 import { NativeDBMProvider } from './dbm-context/native-dbm-context';
+import { OPFSDBMProvider } from './dbm-context/opfs-dbm-context';
 import { ParallelIndexedDBMProvider } from './dbm-context/parallel-indexed-dbm-context';
 import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-context';
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
@@ -22,6 +23,9 @@ export function App() {
           </li>
           <li>
             <Link to="/indexed-dbm">IndexedDB DuckDB</Link>
+          </li>
+          <li>
+            <Link to="/opfs-dbm">OPFS DuckDB</Link>
           </li>
           <li>
             <Link to="/parallel-memory-dbm">Parallel Memory DuckDB</Link>
@@ -72,6 +76,19 @@ export function App() {
                   <QueryBenchmarking />
                 </FileLoader>
               </IndexedDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/opfs-dbm"
+          element={
+            <div>
+              <h1>OPFS DuckDB</h1>
+              <OPFSDBMProvider>
+                <FileLoader>
+                  <QueryBenchmarking />
+                </FileLoader>
+              </OPFSDBMProvider>
             </div>
           }
         />
