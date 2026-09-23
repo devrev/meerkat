@@ -98,12 +98,9 @@ const addDimensionToSQLProjection = (
   selectString: string,
   tableSchemas: TableSchema[]
 ) => {
-  if (dimensions.length === 0) {
-    return selectString;
-  }
-  let newSelectString = selectString;
-  for (let i = 0; i < dimensions.length; i++) {
-    const dimension = dimensions[i];
+  const entries: string[] = [];
+
+  for (const dimension of dimensions) {
     const resolved = findSchemaForMember(dimension, tableSchemas);
     if (!resolved) {
       continue;
@@ -122,13 +119,11 @@ const addDimensionToSQLProjection = (
     if (!dimensionSchema) {
       continue;
     }
-    if (i > 0) {
-      newSelectString += ',';
-    }
     // since alias key is expected to have been unfurled in the base query, we can just use it as is.
-    newSelectString += `  ${aliasKey}`;
+    entries.push(`  ${aliasKey}`);
   }
-  return newSelectString;
+
+  return selectString + entries.join(',');
 };
 
 export const getSelectReplacedSql = (sql: string, selectString: string) => {

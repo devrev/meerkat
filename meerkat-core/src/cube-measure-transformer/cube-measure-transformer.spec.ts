@@ -120,6 +120,13 @@ describe('cubeMeasureToSQLSelectString', () => {
     );
   });
 
+  it('should not emit a leading comma when an earlier dimension fails to resolve', () => {
+    const dimensions: Member[] = ['temp.unknown_dimension', 'temp.dimension1'];
+    const sqlToReplace = 'SELECT * FROM (SELECT * FROM TABLE_1)';
+    const result = applyProjectionToSQLQuery(dimensions, [], [tableSchema], sqlToReplace);
+    expect(result).toBe(`SELECT  temp__dimension1 FROM (SELECT * FROM TABLE_1)`);
+  });
+
   it('should use aliases when provided', () => {
     const measures: Member[] = ['temp.measure1', 'temp.measure2'];
     const sqlToReplace = 'SELECT * FROM my_table';
