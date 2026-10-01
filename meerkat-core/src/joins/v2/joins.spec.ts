@@ -47,6 +47,9 @@ const sqlMapOf = (schemas: TableSchema[]): { [k: string]: string } =>
     {}
   );
 
+const distinctUnnest = (expr: string): string =>
+  `UNNEST(CASE WHEN list_position(${expr}, NULL) > 0 THEN list_concat(list_distinct(${expr}), [NULL]) ELSE list_distinct(${expr}) END)`;
+
 describe('joins-v2', () => {
   it('emits a plain equi-join when from is scalar', async () => {
     const schemas = [
@@ -86,7 +89,9 @@ describe('joins-v2', () => {
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
     const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
-    expect(sql).toContain('UNNEST(owned_by_ids) AS __mk_u_owned_by_ids');
+    expect(sql).toContain(
+      `${distinctUnnest('owned_by_ids')} AS __mk_u_owned_by_ids`
+    );
     expect(sql).toContain('issues.__mk_u_owned_by_ids = users.id');
     expect(sql).not.toMatch(/CONTAINS/i);
   });
@@ -113,9 +118,38 @@ describe('joins-v2', () => {
     const graph = createDirectedGraphV2(schemas, sqlMap, paths);
     const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
-    expect(sql.match(/UNNEST\(owned_by_ids\)/g)).toHaveLength(1);
+    expect(sql.match(/UNNEST\(/g)).toHaveLength(1);
     expect(sql).toContain('issues.__mk_u_owned_by_ids = users.id');
     expect(sql).toContain('issues.__mk_u_owned_by_ids = admins.id');
+  });
+
+  it('keeps plain UNNEST when a table has more than one array join column', async () => {
+    const schemas = [
+      withArrayCols('issues', ['id'], ['owned_by_ids', 'tag_ids']),
+      scalar('users'),
+      scalar('tags'),
+    ];
+    const sqlMap = sqlMapOf(schemas);
+    const paths: StructuredJoin[][] = [
+      [
+        {
+          from: { table: 'issues', column: 'owned_by_ids' },
+          to: { table: 'users', column: 'id' },
+        },
+      ],
+      [
+        {
+          from: { table: 'issues', column: 'tag_ids' },
+          to: { table: 'tags', column: 'id' },
+        },
+      ],
+    ];
+    const graph = createDirectedGraphV2(schemas, sqlMap, paths);
+    const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
+
+    expect(sql).toContain('UNNEST(owned_by_ids) AS __mk_u_owned_by_ids');
+    expect(sql).toContain('UNNEST(tag_ids) AS __mk_u_tag_ids');
+    expect(sql).not.toContain('list_distinct');
   });
 
   it('inlines dim.sql for composite-child synthetic array columns whose name is not a real column', async () => {
@@ -152,7 +186,9 @@ describe('joins-v2', () => {
     const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     expect(sql).toContain(
-      "UNNEST(json_extract_string(tags, '$[*].tag_id')) AS __mk_u_tags_$0_tag_id"
+      `${distinctUnnest(
+        "json_extract_string(tags, '$[*].tag_id')"
+      )} AS __mk_u_tags_$0_tag_id`
     );
     expect(sql).toContain('parts.__mk_u_tags_$0_tag_id = tags.id');
   });
@@ -180,7 +216,7 @@ describe('joins-v2', () => {
     const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     expect(sql).toContain('tickets.part_id = parts.id');
-    expect(sql).toContain('UNNEST(tag_ids) AS __mk_u_tag_ids');
+    expect(sql).toContain(`${distinctUnnest('tag_ids')} AS __mk_u_tag_ids`);
     expect(sql).toContain('parts.__mk_u_tag_ids = tags.id');
   });
 
@@ -219,8 +255,8 @@ describe('joins-v2', () => {
     const sql = await generateSqlQueryV2(paths, sqlMap, graph, schemas);
 
     // The UNNEST expression must NOT contain `issue.` since it's in an unnamed subquery scope
-    expect(sql).toContain('UNNEST(CAST(owned_by_ids AS VARCHAR[]))');
-    expect(sql).not.toMatch(/UNNEST\(CAST\(issue\./);
+    expect(sql).toContain(distinctUnnest('CAST(owned_by_ids AS VARCHAR[])'));
+    expect(sql).not.toMatch(/\(CAST\(issue\./);
     expect(sql).toContain('issue.__mk_u_owned_by_ids = users.id');
   });
 
