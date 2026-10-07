@@ -14,7 +14,7 @@ interface IFrameManagerConstructor {
   uuid: string;
   onMessage: (
     runnerId: string,
-    message: WindowMessage<BrowserRunnerMessage>
+    message: WindowMessage<BrowserRunnerMessage>,
   ) => any;
 }
 
@@ -33,13 +33,20 @@ export class IFrameManager {
     this.iframe = document.createElement('iframe');
     this.iframe.src = `${runnerURL}?uuid=` + uuid + '&origin=' + origin;
     const runnerDomain = new URL(runnerURL).origin;
-    document.body.appendChild(this.iframe);
 
-    //Move the iframe out of the screen
-    this.iframe.style.position = 'absolute';
-    this.iframe.style.left = '-10000px';
-    this.iframe.style.top = '0';
-    this.iframe.style.visibility = 'hidden';
+    // Hidden worker host, kept as a zero-size fixed box inside the viewport
+    Object.assign(this.iframe.style, {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      width: '0',
+      height: '0',
+      border: '0',
+      visibility: 'hidden',
+      pointerEvents: 'none',
+    });
+
+    document.body.appendChild(this.iframe);
 
     this.communication = new WindowCommunication<BrowserRunnerMessage>({
       targetWindow: this.iframe.contentWindow as Window,
