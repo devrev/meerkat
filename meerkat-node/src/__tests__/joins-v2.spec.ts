@@ -527,6 +527,73 @@ describe('Joins Tests (v2)', () => {
       expect(parsedOutput[0]['dev_user__display_name']).toBe('Alice');
     });
 
+    it('joins each distinct id once when the array has duplicates or NULLs', async () => {
+      const partSchema = {
+        name: 'part',
+        sql: `SELECT * FROM (VALUES ('p1', 'Part A', ['owner1', 'owner1', 'owner2']), ('p2', 'Part B', ['owner3', NULL, NULL]), ('p3', 'Part C', CAST([NULL] AS VARCHAR[]))) AS part(id, name, owned_by_ids)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'part.id', type: 'string' as const },
+          { name: 'name', sql: 'part.name', type: 'string' as const },
+          {
+            name: 'owned_by_ids',
+            sql: 'part.owned_by_ids',
+            type: 'string_array' as const,
+          },
+        ],
+        joins: [],
+      };
+      const devUserSchema = {
+        name: 'dev_user',
+        sql: `SELECT * FROM (VALUES ('owner1', 'Alice'), ('owner2', 'Bob'), ('owner3', 'Charlie')) AS dev_user(id, display_name)`,
+        measures: [],
+        dimensions: [
+          { name: 'id', sql: 'dev_user.id', type: 'string' as const },
+          {
+            name: 'display_name',
+            sql: 'dev_user.display_name',
+            type: 'string' as const,
+          },
+        ],
+        joins: [],
+      };
+
+      const query = {
+        measures: [],
+        joinPathsV2: [
+          [
+            {
+              from: { table: 'part', column: 'owned_by_ids' },
+              to: { table: 'dev_user', column: 'id' },
+            },
+          ],
+        ],
+        filters: [],
+        dimensions: ['part.name', 'dev_user.display_name'],
+      };
+
+      const sql = await cubeQueryToSQL({
+        query,
+        tableSchemas: [partSchema, devUserSchema],
+      });
+      const output = await duckdbExec(sql);
+      const parsedOutput = JSON.parse(JSON.stringify(output));
+
+      const pairs = parsedOutput
+        .map(
+          (row: Record<string, unknown>) =>
+            `${row['part__name']}-${row['dev_user__display_name']}`
+        )
+        .sort();
+      expect(pairs).toEqual([
+        'Part A-Alice',
+        'Part A-Bob',
+        'Part B-Charlie',
+        'Part B-null',
+        'Part C-null',
+      ]);
+    });
+
   });
 
   describe('Array Join Tests (UNNEST equi-join)', () => {
@@ -550,7 +617,7 @@ describe('Joins Tests (v2)', () => {
       });
 
       // v2 must emit UNNEST, never CONTAINS.
-      expect(sql).toMatch(/UNNEST\(child_ids\)/);
+      expect(sql).toMatch(/UNNEST\(CASE WHEN list_position\(child_ids, NULL\)/);
       expect(sql).not.toMatch(/CONTAINS/i);
 
       const output = await duckdbExec(sql);
