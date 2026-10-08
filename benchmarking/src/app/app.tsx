@@ -7,6 +7,7 @@ import { ParallelMemoryDBMProvider } from './dbm-context/parallel-memory-dbm-con
 import { RawDBMProvider } from './dbm-context/raw-dbm-context';
 import { FileLoader } from './file-loader/file-loader';
 import { NativeAppFileLoader } from './file-loader/native-app-file-loader';
+import { MemoryPoc } from './memory-poc/memory-poc';
 import { QueryBenchmarking } from './query-benchmarking/query-benchmarking';
 
 export function App() {
@@ -31,6 +32,9 @@ export function App() {
           </li>
           <li>
             <Link to="/native-dbm">Native Node DuckDB</Link>
+          </li>
+          <li>
+            <Link to="/memory-poc">Memory POC</Link>
           </li>
         </ul>
       </nav>
@@ -111,6 +115,15 @@ export function App() {
                   <QueryBenchmarking />
                 </NativeAppFileLoader>
               </NativeDBMProvider>
+            </div>
+          }
+        />
+        <Route
+          path="/memory-poc"
+          element={
+            <div>
+              <h1>Memory POC</h1>
+              <MemoryPoc />
             </div>
           }
         />
