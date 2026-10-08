@@ -27,7 +27,10 @@ export const QueryBenchmarking = () => {
             filePaths = table.files.map((file) => file.fileName);
           }
 
-          await dbm.query(generateViewQuery(table.tableName, filePaths));
+          const useTable = fileManagerType === 'opfs';
+          await dbm.query(
+            generateViewQuery(table.tableName, filePaths, useTable)
+          );
         }
       },
     [fileManagerType, dbm]
