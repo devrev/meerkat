@@ -107,6 +107,28 @@ const getUnnestAlias = (column: string): string =>
   `${UNNEST_ALIAS_PREFIX}${column}`;
 
 /**
+ * Wraps an array expression so `UNNEST` emits one row per distinct value.
+ *
+ * The UNNEST wrap replaces v1's `CONTAINS(list, right.id)` join, which matches
+ * each right-side row at most once per base row. A plain `UNNEST` emits one
+ * row per list entry, so a repeated id (e.g. the same `metric_definition_id`
+ * reused across SLA policies) would multiply the joined rows.
+ *
+ * `list_distinct` also drops NULLs, so one NULL is added back when the list
+ * has any. NULL entries keep producing a single unmatched row as before; only
+ * duplicate values change.
+ *
+ * Only applied when the table has a single array join column. With several,
+ * DuckDB pairs their UNNESTs by position, and de-duplicating each list on its
+ * own would break that pairing.
+ *
+ * Uses only functions the query server allows (`list_append` and
+ * `list_count` are rejected there).
+ */
+const getDistinctListExpression = (expr: string): string =>
+  `CASE WHEN list_position(${expr}, NULL) > 0 THEN list_concat(list_distinct(${expr}), [NULL]) ELSE list_distinct(${expr}) END`;
+
+/**
  * `<unnestAlias> AS <table.unnestAlias safe-key>` — re-aliases the unnested
  * column under the canonical safe-key form so outer queries can reference it
  * via the same `tableName____mk_u_<col>` identifier they use for any other
@@ -133,7 +155,8 @@ const wrapTableSqlForArrayFrom = (
   const unnestProjections = cols
     .map((c) => {
       const expr = getArrayUnnestExpression(tableSchemas, tableName, c);
-      return `UNNEST(${expr}) AS ${getUnnestAlias(c)}`;
+      const keys = cols.length === 1 ? getDistinctListExpression(expr) : expr;
+      return `UNNEST(${keys}) AS ${getUnnestAlias(c)}`;
     })
     .join(', ');
   const aliasProjections = cols

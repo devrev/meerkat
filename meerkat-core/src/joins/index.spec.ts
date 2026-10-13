@@ -59,7 +59,9 @@ describe('joins router', () => {
       ],
     };
     const result = await getCombinedTableSchema(schemas, cubeQuery);
-    expect(result.sql).toContain('UNNEST(owned_by_ids)');
+    expect(result.sql).toContain(
+      'UNNEST(CASE WHEN list_position(owned_by_ids, NULL)'
+    );
     expect(result.sql).not.toMatch(/CONTAINS/i);
   });
 
