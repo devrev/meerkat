@@ -11,6 +11,8 @@ import {
 } from '../base-condition-builder/base-condition-builder';
 import { andDuckdbCondition } from '../and/and';
 import { CubeToParseExpressionTransform } from '../factory';
+import { isArrayTypeMember } from '../../utils/is-array-member-type';
+import { containsDuckdbCondition } from '../contains/contains';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const notContainsDuckdbCondition = (
@@ -19,11 +21,21 @@ export const notContainsDuckdbCondition = (
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {
+  if (isArrayTypeMember(memberInfo.type)) {
+    return {
+      class: ExpressionClass.OPERATOR,
+      type: ExpressionType.OPERATOR_NOT,
+      alias: '',
+      children: [
+        containsDuckdbCondition(columnName, value, memberInfo, options),
+      ],
+    };
+  }
   return {
     class: ExpressionClass.FUNCTION,
     type: ExpressionType.FUNCTION,
     alias: '',
-    function_name: '!~~',
+    function_name: '!~~*',
     schema: '',
     children: [
       createColumnRef(columnName, {

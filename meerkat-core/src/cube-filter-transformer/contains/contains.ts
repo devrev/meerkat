@@ -11,6 +11,7 @@ import {
   valueBuilder,
 } from '../base-condition-builder/base-condition-builder';
 import { CubeToParseExpressionTransform } from '../factory';
+import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { orDuckdbCondition } from '../or/or';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
@@ -20,11 +21,12 @@ export const containsDuckdbCondition = (
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {
+  const array = isArrayTypeMember(memberInfo.type);
   return {
     class: ExpressionClass.FUNCTION,
     type: ExpressionType.FUNCTION,
     alias: '',
-    function_name: '~~*',
+    function_name: array ? 'list_contains' : '~~*',
     schema: '',
     children: [
       createColumnRef(columnName, {
@@ -34,7 +36,7 @@ export const containsDuckdbCondition = (
         class: 'CONSTANT',
         type: 'VALUE_CONSTANT',
         alias: '',
-        value: valueBuilder(`%${value}%`, memberInfo),
+        value: valueBuilder(array ? value : `%${value}%`, memberInfo),
       },
     ],
     filter: null,
@@ -43,7 +45,7 @@ export const containsDuckdbCondition = (
       orders: [],
     },
     distinct: false,
-    is_operator: true,
+    is_operator: !array,
     export_state: false,
     catalog: '',
   };
