@@ -10,7 +10,6 @@ import {
   hasChildren,
   isFilterArray,
   isLogicalAnd,
-  isLogicalAndOR,
   isLogicalOr,
   isQueryFilter,
 } from '../utils/type-guards';
@@ -141,7 +140,9 @@ const cubeFilterLogicalAndOrToDuckdb = (
         }
       }
     }
-    return whereObj;
+    return hasChildren(whereObj) && whereObj.children.length === 0
+      ? null
+      : whereObj;
   }
   return whereObj;
 };
@@ -151,28 +152,17 @@ export const cubeFilterToDuckdbAST = (
   ast: SelectStatement,
   options: CreateColumnRefOptions
 ) => {
-  let whereObj: ParsedExpression | null | undefined =
-    (ast.node as SelectNode).where_clause || null;
+  const existing = (ast.node as SelectNode).where_clause || null;
+  if (cubeFilter.length === 0) return existing;
 
-  if (cubeFilter.length > 1) {
-    console.error('We do not support multiple filters yet');
-    throw new Error('We do not support multiple filters yet');
-  }
+  // Root filter entries have implicit AND semantics, including nested OR groups.
+  const predicate = cubeFilterLogicalAndOrToDuckdb(
+    cubeFilter,
+    cubeFilter.length > 1 ? andDuckdbCondition() : null,
+    options
+  );
+  if (!predicate) return existing;
+  if (!existing) return predicate;
 
-  const filter = cubeFilter[0];
-
-  if (isQueryFilter(filter)) {
-    whereObj = cubeFilterOperatorsToDuckdb(filter, options);
-  }
-
-  if (isLogicalAndOR(filter)) {
-    // And or Or we need to recurse
-    whereObj = cubeFilterLogicalAndOrToDuckdb(
-      filter,
-      whereObj || null,
-      options
-    );
-  }
-
-  return whereObj;
+  return { ...andDuckdbCondition(), children: [existing, predicate] };
 };
