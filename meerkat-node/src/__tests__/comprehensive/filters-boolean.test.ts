@@ -292,7 +292,7 @@ describe('Comprehensive: Boolean Filters', () => {
       // All even numbers already include multiples of 10, so result is 500K
     });
 
-    it.fails('should handle boolean with numeric filter: is_active=true AND id_bigint < 100000', async () => {
+    it('should handle boolean with numeric filter: is_active=true AND id_bigint < 100000', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -390,7 +390,7 @@ describe('Comprehensive: Boolean Filters', () => {
   });
 
   describe('Boolean Edge Cases', () => {
-    it.fails('should handle contradictory boolean filters: is_active=true AND is_active=false', async () => {
+    it('should handle contradictory boolean filters: is_active=true AND is_active=false', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
