@@ -197,7 +197,7 @@ describe('Comprehensive: Date Filters', () => {
   });
 
   describe('Date Range Queries (BETWEEN)', () => {
-    it.fails('should filter date BETWEEN start and end', async () => {
+    it('should filter date BETWEEN start and end', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -228,7 +228,7 @@ describe('Comprehensive: Date Filters', () => {
       expect(count).toBeLessThan(21000);
     });
 
-    it.fails('should filter date range spanning full year', async () => {
+    it('should filter date range spanning full year', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -258,7 +258,7 @@ describe('Comprehensive: Date Filters', () => {
       expect(count).toBe(1000000);
     });
 
-    it.fails(
+    it(
       'should filter date range with narrow window (1 week)',
       async () => {
         const query = {
@@ -402,7 +402,7 @@ describe('Comprehensive: Date Filters', () => {
   });
 
   describe('Complex Date Combinations', () => {
-    it.fails('should handle date range + boolean filter', async () => {
+    it('should handle date range + boolean filter', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -438,7 +438,7 @@ describe('Comprehensive: Date Filters', () => {
       expect(count).toBeLessThan(11000);
     });
 
-    it.fails('should handle date range + string filter', async () => {
+    it('should handle date range + string filter', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -474,7 +474,7 @@ describe('Comprehensive: Date Filters', () => {
       expect(count).toBeLessThan(17000);
     });
 
-    it.fails('should handle date range + numeric filter', async () => {
+    it('should handle date range + numeric filter', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -510,7 +510,7 @@ describe('Comprehensive: Date Filters', () => {
       expect(count).toBeLessThan(5000);
     });
 
-    it.fails(
+    it(
       'should handle overlapping date ranges on different fields',
       async () => {
         const query = {
@@ -609,7 +609,7 @@ describe('Comprehensive: Date Filters', () => {
       expect(count).toBeLessThan(2740);
     });
 
-    it.fails('should handle month boundary transitions correctly', async () => {
+    it('should handle month boundary transitions correctly', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -642,7 +642,7 @@ describe('Comprehensive: Date Filters', () => {
   });
 
   describe('Date Performance Tests', () => {
-    it.fails(
+    it(
       'should execute date range query quickly (< 500ms on 1M rows)',
       async () => {
         const query = {
@@ -679,7 +679,7 @@ describe('Comprehensive: Date Filters', () => {
   });
 
   describe('Date Edge Cases', () => {
-    it.fails('should handle empty date range (start > end)', async () => {
+    it('should handle empty date range (start > end)', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -709,7 +709,7 @@ describe('Comprehensive: Date Filters', () => {
       expect(count).toBe(0);
     });
 
-    it.fails(
+    it(
       'should handle single-day range (same start and end)',
       async () => {
         const query = {

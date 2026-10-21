@@ -263,7 +263,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
   });
 
   describe('Combined with Other Filters', () => {
-    it.fails('should combine notEmpty with equals filter', async () => {
+    it('should combine notEmpty with equals filter', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
@@ -294,7 +294,7 @@ describe('Comprehensive: Array Empty/Not Empty Filters', () => {
       expect(count).toBe(150000);
     });
 
-    it.fails('should combine empty with boolean filter', async () => {
+    it('should combine empty with boolean filter', async () => {
       const query = {
         measures: ['fact_all_types.count'],
         filters: [
