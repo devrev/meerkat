@@ -27,6 +27,8 @@ npm install @devrev/meerkat-core
 
 The library uses these objects to generate a DuckDB AST. This AST can then be passed to an execution engine.
 
+String `contains` and `notContains` use case-insensitive literal substrings: `%`, `_`, and backslashes in values are ordinary characters. Multiple `contains` values match any value; multiple `notContains` values exclude every value. Both retain SQL NULL semantics.
+
 ## Usage
 
 Here's how to transform a Cube-style query into a DuckDB AST:
