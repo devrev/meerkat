@@ -248,7 +248,7 @@ export const TEST_DATA_WITH_SAFE_ALIAS = [
   [
     {
       testName: 'Contains',
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE (orders__customer_id ~~* '%aa%')`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE ilike_escape(orders__customer_id, '%aa%', '\\')`,
       cubeInput: {
         measures: ['*'],
         filters: [
@@ -276,7 +276,7 @@ export const TEST_DATA_WITH_SAFE_ALIAS = [
   [
     {
       testName: 'NotContains',
-      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE ((orders__customer_id !~~* '%1%') AND (orders__customer_id !~~* '%2%') AND (orders__customer_id !~~* '%3%') AND (orders__customer_id !~~* '%4%') AND (orders__customer_id !~~* '%5%') AND (orders__customer_id !~~* '%aa%'))`,
+      expectedSQL: `SELECT orders.* FROM (SELECT customer_id AS orders__customer_id, * FROM (select * from orders) AS orders) AS orders WHERE ((NOT ilike_escape(orders__customer_id, '%1%', '\\')) AND (NOT ilike_escape(orders__customer_id, '%2%', '\\')) AND (NOT ilike_escape(orders__customer_id, '%3%', '\\')) AND (NOT ilike_escape(orders__customer_id, '%4%', '\\')) AND (NOT ilike_escape(orders__customer_id, '%5%', '\\')) AND (NOT ilike_escape(orders__customer_id, '%aa%', '\\')))`,
       cubeInput: {
         measures: ['*'],
         filters: [

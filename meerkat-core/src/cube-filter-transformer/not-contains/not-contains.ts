@@ -4,15 +4,10 @@ import {
   ExpressionClass,
   ExpressionType,
 } from '../../types/duckdb-serialization-types/serialization/Expression';
-import {
-  createColumnRef,
-  CreateColumnRefOptions,
-  valueBuilder,
-} from '../base-condition-builder/base-condition-builder';
+import { CreateColumnRefOptions } from '../base-condition-builder/base-condition-builder';
 import { andDuckdbCondition } from '../and/and';
-import { CubeToParseExpressionTransform } from '../factory';
-import { isArrayTypeMember } from '../../utils/is-array-member-type';
 import { containsDuckdbCondition } from '../contains/contains';
+import { CubeToParseExpressionTransform } from '../factory';
 import { getSQLExpressionAST } from '../sql-expression/sql-expression-parser';
 
 export const notContainsDuckdbCondition = (
@@ -21,42 +16,11 @@ export const notContainsDuckdbCondition = (
   memberInfo: Measure | Dimension,
   options: CreateColumnRefOptions
 ) => {
-  if (isArrayTypeMember(memberInfo.type)) {
-    return {
-      class: ExpressionClass.OPERATOR,
-      type: ExpressionType.OPERATOR_NOT,
-      alias: '',
-      children: [
-        containsDuckdbCondition(columnName, value, memberInfo, options),
-      ],
-    };
-  }
   return {
-    class: ExpressionClass.FUNCTION,
-    type: ExpressionType.FUNCTION,
+    class: ExpressionClass.OPERATOR,
+    type: ExpressionType.OPERATOR_NOT,
     alias: '',
-    function_name: '!~~*',
-    schema: '',
-    children: [
-      createColumnRef(columnName, {
-        isAlias: options.isAlias,
-      }),
-      {
-        class: 'CONSTANT',
-        type: 'VALUE_CONSTANT',
-        alias: '',
-        value: valueBuilder(`%${value}%`, memberInfo),
-      },
-    ],
-    filter: null,
-    order_bys: {
-      type: 'ORDER_MODIFIER',
-      orders: [],
-    },
-    distinct: false,
-    is_operator: true,
-    export_state: false,
-    catalog: '',
+    children: [containsDuckdbCondition(columnName, value, memberInfo, options)],
   };
 };
 
@@ -66,7 +30,6 @@ export const notContainsTransform: CubeToParseExpressionTransform = (
 ) => {
   const { member, memberInfo } = query;
 
-  // SQL expressions not supported for notContains operator
   if (isQueryOperatorsWithSQLInfo(query)) {
     return getSQLExpressionAST(
       member,
@@ -76,27 +39,17 @@ export const notContainsTransform: CubeToParseExpressionTransform = (
     );
   }
 
-  // Otherwise, use values
   if (!query.values || query.values.length === 0) {
     throw new Error('Contains filter must have at least one value');
   }
 
   const values = query.values;
 
-  /**
-   * If there is only one value, we can create a simple Contains condition
-   */
   if (values.length === 1) {
     return notContainsDuckdbCondition(member, values[0], memberInfo, options);
   }
 
-  /**
-   * If there are multiple values, we need to create an AND condition.
-   * "notContains: [a, b, c]" means the member contains none of the values,
-   * i.e. NOT LIKE a AND NOT LIKE b AND NOT LIKE c (De Morgan's law).
-   * Using OR here would always be true for any value that differs from a
-   * single entry, effectively disabling the filter.
-   */
+  // Exclude every supplied value: NOT contains(a) AND NOT contains(b).
   const andCondition = andDuckdbCondition();
   values.forEach((value) => {
     andCondition.children.push(
